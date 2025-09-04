@@ -1,12 +1,15 @@
 # Sunnylink
 
-A modern web application showcasing sunnypilot features and providing information about the open-source driving assistance software. Built with SvelteKit, TypeScript, and Tailwind CSS.
+A modern web application showcasing sunnypilot features and providing
+information about the open-source driving assistance software. Built with
+SvelteKit, TypeScript, and Tailwind CSS.
 
 ## Features
 
 - **Interactive Dashboard**: Mock driving statistics and engagement metrics
 - **Feature Showcase**: Highlights of key sunnypilot features (DEC, MADS, FCR)
-- **Branch Information**: Detailed explanations of Release, Staging, and Dev branches
+- **Branch Information**: Detailed explanations of Release, Staging, and Dev
+  branches
 - **FAQ Section**: Common questions and community resources
 - **Responsive Design**: Mobile-first approach with DaisyUI components
 - **Authentication**: Integrated with Logto for user management
@@ -32,22 +35,26 @@ A modern web application showcasing sunnypilot features and providing informatio
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/your-username/sunnylink.git
 cd sunnylink
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 3. Copy environment configuration:
+
 ```bash
 cp .env.example .env
 ```
 
 4. Update environment variables in `.env`:
+
 ```env
 PUBLIC_API_URL=https://stg.api.sunnypilot.ai/
 PUBLIC_LOGTO_ENDPOINT=https://logto.sunnypilot.ai/
@@ -59,6 +66,7 @@ PUBLIC_REDIRECT=http://localhost:5173/
 ### Development
 
 Start the development server:
+
 ```bash
 pnpm dev
 ```
@@ -100,6 +108,7 @@ src/
 ### Using Docker
 
 Build and run with Docker:
+
 ```bash
 docker build -t sunnylink .
 docker run -p 3000:3000 sunnylink
@@ -108,6 +117,7 @@ docker run -p 3000:3000 sunnylink
 ### Fly.io Deployment
 
 Deploy to Fly.io:
+
 ```bash
 flyctl deploy
 ```
@@ -115,6 +125,7 @@ flyctl deploy
 ## Authentication
 
 The application uses Logto for authentication with the following flow:
+
 1. Users authenticate via Logto
 2. Callback handles the authentication response
 3. Protected routes require valid session
@@ -134,9 +145,12 @@ This project is private and proprietary to the sunnypilot organization.
 
 ## Related Projects
 
-- [sunnypilot](https://github.com/sunnypilot/sunnypilot) - The main sunnypilot driving assistance software
-- [sunnypilot Discord](https://discord.gg/7wq8zuxB) - Community support and discussions
+- [sunnypilot](https://github.com/sunnypilot/sunnypilot) - The main sunnypilot
+  driving assistance software
+- [sunnypilot Discord](https://discord.gg/7wq8zuxB) - Community support and
+  discussions
 
 ## Support
 
-For support and community discussions, join the [sunnypilot Discord server](https://discord.gg/7wq8zuxB).
+For support and community discussions, join the
+[sunnypilot Discord server](https://discord.gg/7wq8zuxB).
