@@ -103,25 +103,6 @@ src/
 └── app.html           # HTML template
 ```
 
-## Deployment
-
-### Using Docker
-
-Build and run with Docker:
-
-```bash
-docker build -t sunnylink .
-docker run -p 3000:3000 sunnylink
-```
-
-### Fly.io Deployment
-
-Deploy to Fly.io:
-
-```bash
-flyctl deploy
-```
-
 ## Authentication
 
 The application uses Logto for authentication with the following flow:
