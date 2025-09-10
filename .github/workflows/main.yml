@@ -21,31 +21,41 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      # 1. Setup Node (gives us Node + enables dependency caching)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          cache: pnpm  # this only affects dependency cache hashing; doesn't install pnpm
 
+      # 2. Install pnpm binary onto PATH (guaranteed)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.12.0
           run_install: false
 
-      - name: Show pnpm version
-        run: pnpm --version
+      # 3. (Optional) Show pnpm details (helps debug if it fails again)
+      - name: Debug pnpm presence
+        run: |
+          echo "PATH=$PATH"
+          which pnpm || echo "pnpm not found"
+          pnpm --version
 
+      # 4. Install dependencies (frozen for reproducibility)
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # 5. Build (ensure svelte.config.js uses process.env.BASE_PATH)
       - name: Build
         run: pnpm build
         env:
           BASE_PATH: ${{ env.BASE_PATH }}
 
+      # 6. Upload static artifact (SvelteKit adapter-static output)
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
