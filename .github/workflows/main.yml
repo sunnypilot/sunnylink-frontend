@@ -16,11 +16,11 @@ concurrency:
 
 env:
   BASE_PATH: /sunnylink-frontend
-  PUBLIC_API_URL=https://stg.api.sunnypilot.ai/
-  PUBLIC_LOGTO_ENDPOINT=https://logto.sunnypilot.ai/
-  PUBLIC_LOGTO_APP_ID=6mjzxmevkp3ly5c6asvu8
-  PUBLIC_CALLBACK=http://new.sunnypilot.ai/sunnylink-svelte/callback
-  PUBLIC_REDIRECT=http://new.sunnypilot.ai/
+  PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
+  PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
+  PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
+  PUBLIC_CALLBACK: http://new.sunnypilot.ai/sunnylink-svelte/callback
+  PUBLIC_REDIRECT: http://new.sunnypilot.ai/
 
 jobs:
   build:
