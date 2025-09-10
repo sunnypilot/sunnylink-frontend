@@ -24,38 +24,95 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. Setup Node (gives us Node + enables dependency caching)
+      - name: Show commit (helps verify we are on the updated workflow)
+        run: |
+          echo "Git commit:"
+          git rev-parse HEAD
+          echo "Workflow file content (first 60 lines):"
+          sed -n '1,60p' .github/workflows/deploy.yml || true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm  # this only affects dependency cache hashing; doesn't install pnpm
+          cache: pnpm
 
-      # 2. Install pnpm binary onto PATH (guaranteed)
-      - name: Setup pnpm
+      # Attempt A: pnpm/action-setup (skipped if blocked by policy)
+      - name: Setup pnpm via action
+        id: pnpm_action
+        continue-on-error: true
         uses: pnpm/action-setup@v4
         with:
           version: 9.12.0
           run_install: false
 
-      # 3. (Optional) Show pnpm details (helps debug if it fails again)
-      - name: Debug pnpm presence
+      - name: Debug after pnpm/action-setup
         run: |
-          echo "PATH=$PATH"
-          which pnpm || echo "pnpm not found"
+          echo "After pnpm/action-setup:"
+          which pnpm || echo "pnpm not on PATH yet"
+          echo "Exit code of pnpm/action-setup step: ${{ steps.pnpm_action.outcome }}"
+          ls -1 . | head -20
+
+      # Attempt B: Corepack (only if pnpm still missing)
+        # corepack enable + prepare
+      - name: Enable Corepack (conditional)
+        id: corepack_enable
+        if: ${{ !cancelled() && steps.pnpm_action.outcome != 'success' && !contains(steps.pnpm_action.outcome, 'skipped') && !contains(steps.pnpm_action.outcome, 'success') && !(steps.pnpm_action.outcome == 'success') && ! (success() && steps.pnpm_action.outcome == 'success') && ! (contains('success', steps.pnpm_action.outcome)) && ! (contains('success', steps.pnpm_action.outcome)) || ! (hashFiles('**/pnpm-lock.yaml') == '') }}
+        # Simpler: just run corepack if pnpm not found
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            echo "Enabling Corepack..."
+            corepack enable
+            echo "Preparing pnpm@9.12.0 via Corepack..."
+            corepack prepare pnpm@9.12.0 --activate
+          else
+            echo "pnpm already present; skipping Corepack prepare."
+          fi
+        shell: bash
+
+      - name: Debug after Corepack
+        run: |
+          echo "After Corepack:"
+          which pnpm || echo "pnpm still not found"
+          pnpm --version || true
+
+      # Attempt C: Fallback global install (only if still missing)
+      - name: Fallback install pnpm globally
+        if: ${{ !cancelled() }}
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            echo "Installing pnpm globally via npm..."
+            npm install -g pnpm@9.12.0
+          else
+            echo "pnpm already available; skipping global install."
+          fi
+          echo "Final pnpm path:"
+          which pnpm || true
+          echo "pnpm version:"
+          pnpm --version || true
+
+      - name: Verify pnpm final
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            echo "FATAL: pnpm still not available."
+            exit 1
+          fi
           pnpm --version
 
-      # 4. Install dependencies (frozen for reproducibility)
+      - name: List root & lock file
+        run: |
+          ls -al
+          echo "Checking pnpm-lock.yaml:"
+          ls -al pnpm-lock.yaml || echo "pnpm-lock.yaml missing"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 5. Build (ensure svelte.config.js uses process.env.BASE_PATH)
       - name: Build
         run: pnpm build
         env:
           BASE_PATH: ${{ env.BASE_PATH }}
 
-      # 6. Upload static artifact (SvelteKit adapter-static output)
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
