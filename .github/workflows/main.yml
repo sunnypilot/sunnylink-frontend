@@ -5,21 +5,16 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Needed for GitHub Pages deployment
 permissions:
   contents: read
   pages: write
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 env:
-  # If you keep a dynamic base path in svelte.config.js (e.g. process.env.BASE_PATH),
-  # set it here. For a project site:
-  #   BASE_PATH: /sunnypilot-frontend
-  # For a user/organization site (username.github.io), leave it blank ("").
   BASE_PATH: /sunnylink-frontend
 
 jobs:
@@ -29,24 +24,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node (with pnpm cache)
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
+
+      - name: Enable Corepack (ensures pnpm is available)
+        run: corepack enable
+
+      # (Optional but recommended) If you pinned a pnpm version via "packageManager" in package.json,
+      # this will auto-install that version. Otherwise the latest supported is used.
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: pnpm build
         env:
           BASE_PATH: ${{ env.BASE_PATH }}
 
-      - name: Upload build artifact
+      - name: Upload static artifact
         uses: actions/upload-pages-artifact@v3
         with:
-            path: build
+          path: build
 
   deploy:
     needs: build
@@ -55,6 +56,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deploy
         uses: actions/deploy-pages@v4
