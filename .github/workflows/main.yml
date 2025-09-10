@@ -24,17 +24,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node (with pnpm cache)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          cache: pnpm   # This only controls dependency cache, not pnpm installation
 
-      - name: Enable Corepack (ensures pnpm is available)
+      # Activate Corepack so pnpm shim becomes available
+      - name: Enable Corepack
         run: corepack enable
 
-      # (Optional but recommended) If you pinned a pnpm version via "packageManager" in package.json,
-      # this will auto-install that version. Otherwise the latest supported is used.
+      # (Optional) Pin an exact pnpm version. If you added "packageManager": "pnpm@9.12.0"
+      # to package.json, Corepack will auto-resolve it. Otherwise explicitly prepare:
+      - name: Prepare specific pnpm version
+        run: corepack prepare pnpm@9.12.0 --activate
+
+      - name: Show pnpm version
+        run: pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -44,7 +50,7 @@ jobs:
         env:
           BASE_PATH: ${{ env.BASE_PATH }}
 
-      - name: Upload static artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: build
