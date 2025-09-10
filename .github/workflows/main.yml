@@ -1,76 +1,60 @@
-name: Deploy to GitHub Pages
+name: Deploy SvelteKit to GitHub Pages
 
 on:
   push:
-    branches: 'main'
+    branches: [ main ]
+  workflow_dispatch:
+
+# Needed for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+env:
+  # If you keep a dynamic base path in svelte.config.js (e.g. process.env.BASE_PATH),
+  # set it here. For a project site:
+  #   BASE_PATH: /sunnypilot-frontend
+  # For a user/organization site (username.github.io), leave it blank ("").
+  BASE_PATH: /sunnylink-frontend
 
 jobs:
-  build_site:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Install Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-         node-version: 22
-         cache: pnpm
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm ci
 
-      - name: build
+      - name: Build
+        run: npm run build
         env:
-          BASE_PATH: '/${{ github.event.repository.name }}'
-          LOGTO_ENDPOINT: ${{ secrets.LOGTO_ENDPOINT }}
-          LOGTO_APP_ID: ${{ secrets.LOGTO_APP_ID }}
-          LOGTO_APP_SECRET: ${{ secrets.LOGTO_APP_SECRET }}
-          LOGTO_COOKIE_ENCRYPTION_KEY: ${{ secrets.LOGTO_COOKIE_ENCRYPTION_KEY }}
-          LOGTO_REDIRECT: ${{ secrets.LOGTO_REDIRECT }} # Note: This might be public, consider if it needs to be a secret
-          LOGTO_LOGOUT_URI: ${{ secrets.LOGTO_LOGOUT_URI }} # Note: This might be public, consider if it needs to be a secret
-          PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
-          PUBLIC_LOGTO_ENDPOINT: ${{ secrets.PUBLIC_LOGTO_ENDPOINT }}
-          PUBLIC_LOGTO_APP_ID: ${{ secrets.PUBLIC_LOGTO_APP_ID }}
-          PUBLIC_CALLBACK: ${{ secrets.PUBLIC_CALLBACK }}
-          PUBLIC_REDIRECT: ${{ secrets.PUBLIC_REDIRECT }}
-        run: |
-          # Example: Echoing the environment variables to confirm they are set (optional, for debugging)
-          echo "BASE_PATH is: $BASE_PATH"
-          echo "LOGTO_ENDPOINT is available (length): ${#LOGTO_ENDPOINT}" # Check length to avoid printing the secret
-          echo "LOGTO_APP_ID is available (length): ${#LOGTO_APP_ID}"
-          echo "LOGTO_APP_SECRET is available (length): ${#LOGTO_APP_SECRET}"
-          echo "LOGTO_COOKIE_ENCRYPTION_KEY is available (length): ${#LOGTO_COOKIE_ENCRYPTION_KEY}"
-          echo "LOGTO_REDIRECT is: $LOGTO_REDIRECT" # Echoing as this might be a public URL
-          echo "LOGTO_LOGOUT_URI is: $LOGTO_LOGOUT_URI" # Echoing as this might be a public URL
-          echo "COMMIT_SHA is: $COMMIT_SHA"
-          echo "Building the site..."
-          # Your actual build command
-          pnpm run build
+          BASE_PATH: ${{ env.BASE_PATH }}
 
-      - name: Upload Artifacts
+      - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build/'
+            path: build
 
   deploy:
-    needs: build_site
+    needs: build
     runs-on: ubuntu-latest
-
-    permissions:
-      pages: write
-      id-token: write
-
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - name: Deploy
-        id: deployment
+      - name: Deploy to GitHub Pages
+        id: deploy
         uses: actions/deploy-pages@v4
