@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BASE_PATH: /
+  BASE_PATH: ""
   PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
   PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
   PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
