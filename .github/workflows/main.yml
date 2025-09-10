@@ -24,12 +24,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show commit (helps verify we are on the updated workflow)
+      # Optional debug of the file actually in this commit
+      - name: Show workflow snapshot
         run: |
-          echo "Git commit:"
-          git rev-parse HEAD
-          echo "Workflow file content (first 60 lines):"
-          sed -n '1,60p' .github/workflows/deploy.yml || true
+          echo "Commit: $(git rev-parse HEAD)"
+          echo "Listing .github/workflows:"
+          ls -1 .github/workflows
+          echo "First 60 lines of this workflow file:"
+          sed -n '1,60p' .github/workflows/main.yml || true
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -37,73 +39,14 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      # Attempt A: pnpm/action-setup (skipped if blocked by policy)
-      - name: Setup pnpm via action
-        id: pnpm_action
-        continue-on-error: true
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.12.0
           run_install: false
 
-      - name: Debug after pnpm/action-setup
-        run: |
-          echo "After pnpm/action-setup:"
-          which pnpm || echo "pnpm not on PATH yet"
-          echo "Exit code of pnpm/action-setup step: ${{ steps.pnpm_action.outcome }}"
-          ls -1 . | head -20
-
-      # Attempt B: Corepack (only if pnpm still missing)
-        # corepack enable + prepare
-      - name: Enable Corepack (conditional)
-        id: corepack_enable
-        if: ${{ !cancelled() && steps.pnpm_action.outcome != 'success' && !contains(steps.pnpm_action.outcome, 'skipped') && !contains(steps.pnpm_action.outcome, 'success') && !(steps.pnpm_action.outcome == 'success') && ! (success() && steps.pnpm_action.outcome == 'success') && ! (contains('success', steps.pnpm_action.outcome)) && ! (contains('success', steps.pnpm_action.outcome)) || ! (hashFiles('**/pnpm-lock.yaml') == '') }}
-        # Simpler: just run corepack if pnpm not found
-        run: |
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "Enabling Corepack..."
-            corepack enable
-            echo "Preparing pnpm@9.12.0 via Corepack..."
-            corepack prepare pnpm@9.12.0 --activate
-          else
-            echo "pnpm already present; skipping Corepack prepare."
-          fi
-        shell: bash
-
-      - name: Debug after Corepack
-        run: |
-          echo "After Corepack:"
-          which pnpm || echo "pnpm still not found"
-          pnpm --version || true
-
-      # Attempt C: Fallback global install (only if still missing)
-      - name: Fallback install pnpm globally
-        if: ${{ !cancelled() }}
-        run: |
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "Installing pnpm globally via npm..."
-            npm install -g pnpm@9.12.0
-          else
-            echo "pnpm already available; skipping global install."
-          fi
-          echo "Final pnpm path:"
-          which pnpm || true
-          echo "pnpm version:"
-          pnpm --version || true
-
-      - name: Verify pnpm final
-        run: |
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "FATAL: pnpm still not available."
-            exit 1
-          fi
-          pnpm --version
-
-      - name: List root & lock file
-        run: |
-          ls -al
-          echo "Checking pnpm-lock.yaml:"
-          ls -al pnpm-lock.yaml || echo "pnpm-lock.yaml missing"
+      - name: Show pnpm version
+        run: pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
