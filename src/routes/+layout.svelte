@@ -69,7 +69,7 @@
 		{/if}
 	</div>
 	<div class="navbar-end">
-		<a href="/sunnylink-svelte/dashboard" class="btn btn-ghost">Dashboard</a>
+		<a href="{base}/dashboard" class="btn btn-ghost">Dashboard</a>
 
 		{#if data.user}
 			<div class="dropdown dropdown-left">
