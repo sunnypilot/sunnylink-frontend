@@ -1,4 +1,3 @@
-// svelte.config.js
 import adapter from '@sveltejs/adapter-static';
 
 const config = {
@@ -6,11 +5,12 @@ const config = {
     adapter: adapter({
       pages: 'build',
       assets: 'build',
-      fallback: 'index.html',
+      // IMPORTANT for GitHub Pages SPA routing:
+      fallback: '404.html',
       precompress: false
     }),
+    // Use the base path from CI (BASE_PATH=/sunnylink-frontend)
     paths: {
-      // Use environment variable if provided; otherwise default to '' (root)
       base: process.env.BASE_PATH || ''
     }
   }
