@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Toaster } from 'svelte-sonner';
 	import '../app.css';
+	import { base } from '$app/paths';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
 	import { onMount } from 'svelte';
 	import { getCurrentTheme } from '$lib/utils/themeFetcher';
@@ -50,14 +51,14 @@
 					/>
 				</svg>
 			</div>
-			<ul
-				tabindex="-1"
-				class="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
-			>
-				<li><a href="/">Homepage</a></li>
-				<li><a href="/sunnylink">sunnylink</a></li>
-				<li><a href="/sunnylink-svelte/dashboard">Dashboard</a></li>
-			</ul>
+				<ul
+				  tabindex="-1"
+				  class="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
+				>
+				  <li><a href="{base || '/'}">Homepage</a></li>
+				  <li><a href="{base}/">sunnylink</a></li>
+				  <li><a href="{base}/dashboard">Dashboard</a></li>
+				</ul>
 		</div>
 	</div>
 	<div class="navbar-center">
