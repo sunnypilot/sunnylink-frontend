@@ -37,7 +37,7 @@
 		models.filter((model) => model.display_name.toLowerCase().includes(modelSearch.toLowerCase()))
 	);
 
-	type SettingType = 'bool' | 'int';
+	type SettingType = 'bool' | 'int' | 'string' | 'readonly';
 
 	type SettingDefinition = {
 		key: string;
@@ -49,7 +49,7 @@
 
 	type DeviceSettingState = {
 		definition: SettingDefinition;
-		value: boolean | number | null;
+		value: boolean | number | string | null;
 		encodedValue: string | null;
 		loading: boolean;
 	};
@@ -64,6 +64,62 @@
 			};
 		}
 	);
+
+	const ALL_SETTING_KEYS = [
+		"SmartCruiseControlVision", "SpeedLimitPolicy", "SpeedLimitOffsetType", "RoadNameToggle",
+		"RoadName", "OsmStateName", "OsmLocationTitle", "OsmLocationName", "OSMDownloadProgress",
+		"OSMDownloadLocations", "OsmDownloadedDate", "Offroad_OSMUpdateRequired", "MapdVersion",
+		"LaneTurnValue", "LagdToggleDelay", "LagdToggle", "BlindSpot", "HyundaiLongitudinalTuning",
+		"SmartCruiseControlMap", "BackupManager_CreateBackup", "SunnylinkCache_Users",
+		"SunnylinkCache_Roles", "MapAdvisorySpeedLimit", "NeuralNetworkLateralControl",
+		"ModelManager_ModelsCache", "ModelManager_Favs", "ModelManager_ActiveBundle",
+		"MadsUnifiedEngagementMode", "MadsSteeringMode", "MadsMainCruiseAllowed", "Mads",
+		"SunnylinkDongleId", "StandstillTimer", "ShowAdvancedControls", "RainbowMode",
+		"QuickBootToggle", "Offroad_TiciSupport", "QuietMode", "MaxTimeOffroad", "SunnylinkEnabled",
+		"InteractivityTimeout", "EnableCopyparty", "DevUIInfo", "DeviceBootMode",
+		"CustomAccLongPressIncrement", "CustomAccIncrementsEnabled", "ChevronInfo",
+		"CarParamsSPCache", "CarParamsSP", "Brightness", "MapSpeedLimit", "IsTestedBranch",
+		"ModelRunnerTypeCache", "OnroadCycleRequested", "IsOnroad", "TrainingVersion",
+		"OSMDownloadBounds", "InstallDate", "IsMetric", "UpdaterLastFetchTime", "GsmMetered",
+		"GitRemote", "GsmRoaming", "GithubUsername", "GithubRunnerSufficientVoltage",
+		"CameraDebugExpGain", "ExperimentalMode", "DisableUpdates", "ApiCache_FirehoseStats",
+		"DriverTooDistracted", "OsmDbUpdatesCheck", "ApiCache_Device", "JoystickDebugMode",
+		"ModelManager_LastSyncTime", "UpdaterNewDescription", "AthenadRecentlyViewedRoutes",
+		"IsRhdDetected", "BootCount", "GitDiff", "IsDevelopmentBranch", "IsDriverViewEnabled",
+		"CarBatteryCapacity", "GitBranch", "DisablePowerDown", "BlinkerPauseLateralControl",
+		"AthenadUploadQueue", "ForcePowerDown", "CarParamsCache", "UptimeOffroad", "AssistNowToken",
+		"OsmLocationUrl", "GsmApn", "CarParamsPrevRoute", "RecordFrontLock", "UpdaterFetchAvailable",
+		"AlwaysOnDM", "AutoLaneChangeBsmDelay", "IsOffroad", "HasAcceptedTerms", "CarParams",
+		"CarPlatformBundle", "AdbEnabled", "GithubSshKeys", "ObdMultiplexingChanged", "SshEnabled",
+		"DisableLogging", "EnableSunnylinkUploader", "LiveTorqueParameters",
+		"IntelligentCruiseButtonManagement", "CameraDebugExpTime", "AccessToken", "HardwareSerial",
+		"FirmwareQueryDone", "DoReboot", "CalibrationParams", "CompletedTrainingVersion",
+		"SunnylinkdPid", "ModelManager_DownloadIndex", "DoUninstall", "LastUpdateTime",
+		"ModelManager_ClearCache", "RouteCount", "IsLdwEnabled", "PrimeType", "OsmLocal",
+		"AthenadPid", "ControlsReady", "CurrentBootlog", "GitCommitDate", "AlphaLongitudinalEnabled",
+		"UptimeOnroad", "Offroad_TemperatureTooHigh", "LastAthenaPingTime",
+		"Offroad_ExcessiveActuation", "MapTargetVelocities", "LastManagerExitReason",
+		"CarParamsSPPersistent", "SecOCKey", "LastPowerDropDetected", "LastUpdateException",
+		"DoShutdown", "LiveParametersV2", "LastUpdateRouteCount", "OsmWayTest",
+		"LastUpdateUptimeOnroad", "OffroadMode", "RecordFront", "RecordAudioFeedback",
+		"LagdValueCache", "EnableGithubRunner", "DongleId", "LiveDelay", "LocationFilterInitialState",
+		"SpeedLimitMode", "TermsVersion", "LongitudinalManeuverMode", "NextMapSpeedLimit",
+		"LastGPSPosition", "NetworkMetered", "PandaHeartbeatLost", "GitCommit",
+		"UpdaterAvailableBranches", "LastGPSPositionLLK", "DisengageOnAccelerator",
+		"LastOffroadStatusPacket", "ObdMultiplexingEnabled", "CustomAccShortPressIncrement",
+		"Offroad_CarUnrecognized", "OsmStateTitle", "Offroad_ConnectivityNeeded", "IsReleaseBranch",
+		"Offroad_ConnectivityNeededPrompt", "LaneTurnDesire", "BackupManager_RestoreVersion",
+		"LongitudinalPersonality", "LiveParameters", "Offroad_IsTakingSnapshot",
+		"ExperimentalModeConfirmed", "Offroad_NeosUpdate", "Offroad_NoFirmware", "IsEngaged",
+		"Offroad_Recalibration", "SnoozeUpdate", "UpdaterCurrentDescription",
+		"Offroad_UnregisteredHardware", "Offroad_UpdateFailed", "SpeedLimitValueOffset",
+		"DynamicExperimentalControl", "OpenpilotEnabledToggle", "PandaSomResetTriggered",
+		"CurrentRoute", "PandaSignatures", "UbloxAvailable", "UpdateAvailable",
+		"CarParamsPersistent", "LanguageSetting", "RecordAudio", "UpdaterCurrentReleaseNotes",
+		"UpdateFailedCount", "AutoLaneChangeTimer", "LastSunnylinkPingTime", "IsTakingSnapshot",
+		"UpdaterNewReleaseNotes", "UpdaterState", "UpdaterTargetBranch", "Version",
+		"ApiCache_DriveStats", "BlinkerMinLateralControlSpeed"
+	];
 
 	const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		{
@@ -81,18 +137,27 @@
 		}
 	];
 
-	const SETTING_KEYS = SETTINGS_DEFINITIONS.map((definition) => definition.key);
+	const SETTING_KEYS = ALL_SETTING_KEYS;
 
 	function createEmptySettingsState(): Record<string, DeviceSettingState> {
-		return SETTINGS_DEFINITIONS.reduce((accumulator, definition) => {
-			accumulator[definition.key] = {
+		const state: Record<string, DeviceSettingState> = {};
+
+		// Add all setting keys with minimal definition
+		for (const key of ALL_SETTING_KEYS) {
+			const definition = SETTINGS_DEFINITIONS.find(d => d.key === key) || {
+				key,
+				label: key.replace(/([A-Z])/g, ' $1').trim(),
+				type: 'readonly' as SettingType
+			};
+			state[key] = {
 				definition,
 				value: null,
 				encodedValue: null,
 				loading: false
 			};
-			return accumulator;
-		}, {} as Record<string, DeviceSettingState>);
+		}
+
+		return state;
 	}
 
 	let deviceSettings = $state<Record<string, DeviceSettingState>>(createEmptySettingsState());
@@ -128,7 +193,7 @@
 		throw new Error('Base64 encoding is not available in this environment');
 	}
 
-	function decodeSettingValue(definition: SettingDefinition, encodedValue: string | null): boolean | number | null {
+	function decodeSettingValue(definition: SettingDefinition, encodedValue: string | null): boolean | number | string | null {
 		const decoded = decodeBase64Value(encodedValue);
 		if (decoded === null) {
 			return null;
@@ -141,6 +206,7 @@
 			const parsed = Number.parseInt(decoded, 10);
 			return Number.isNaN(parsed) ? null : parsed;
 		}
+		// For readonly, string, and other types, return the decoded string
 		return decoded;
 	}
 
@@ -185,15 +251,21 @@
 
 			const nextState = createEmptySettingsState();
 			const settingsPayload = response.data?.settings ?? {};
-			for (const definition of SETTINGS_DEFINITIONS) {
-				const encodedValue = settingsPayload?.[definition.key] ?? null;
-				nextState[definition.key] = {
-					definition,
-					encodedValue,
-					value: decodeSettingValue(definition, encodedValue),
-					loading: false
-				};
+
+			// Update all keys that came back from the API
+			for (const key of ALL_SETTING_KEYS) {
+				if (key in settingsPayload) {
+					const encodedValue = settingsPayload[key] ?? null;
+					const definition = nextState[key].definition;
+					nextState[key] = {
+						definition,
+						encodedValue,
+						value: decodeSettingValue(definition, encodedValue),
+						loading: false
+					};
+				}
 			}
+
 			deviceSettings = nextState;
 		} catch (error) {
 			console.error('Error loading device settings:', error);
@@ -306,9 +378,7 @@
 
 	function getNumericSettingValue(key: string): number | null {
 		const candidate = deviceSettings[key]?.value;
-		const result = typeof candidate === 'number' ? candidate : null;
-		console.log(`[getNumericSettingValue] key: ${key}, candidate:`, candidate, 'result:', result);
-		return result;
+		return typeof candidate === 'number' ? candidate : null;
 	}
 
 	function isSettingSaving(key: string): boolean {
@@ -756,6 +826,35 @@
 											/>
 									{/if}
 								{/each}
+							</div>
+
+							<!-- All Settings (Read-only) -->
+							<div class="mt-8 border-t border-base-300 pt-6">
+								<h3 class="mb-4 text-md font-semibold">All Device Parameters</h3>
+								<div class="max-h-96 overflow-y-auto rounded-lg border border-base-300 bg-base-200/40">
+									<table class="table table-xs">
+										<thead class="sticky top-0 bg-base-300">
+											<tr>
+												<th>Key</th>
+												<th>Value</th>
+											</tr>
+										</thead>
+										<tbody>
+											{#each Object.entries(deviceSettings).sort(([a], [b]) => a.localeCompare(b)) as [key, setting]}
+												{#if setting.value !== null}
+													<tr class="hover">
+														<td class="font-mono text-xs">{key}</td>
+														<td class="font-mono text-xs break-all">
+															{typeof setting.value === 'boolean'
+																? (setting.value ? 'true' : 'false')
+																: String(setting.value)}
+														</td>
+													</tr>
+												{/if}
+											{/each}
+										</tbody>
+									</table>
+								</div>
 							</div>
 						{/if}
 					</div>

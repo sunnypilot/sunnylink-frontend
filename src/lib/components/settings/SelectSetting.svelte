@@ -34,11 +34,6 @@
 
 	const internalValue = $derived(value === null ? '' : value.toString());
 
-	// Debug logging
-	$effect(() => {
-		console.log(`[SelectSetting ${label}] value:`, value, 'internalValue:', internalValue);
-	});
-
 	const optionsToRender = $derived.by(() => {
 		if (value === null) {
 			return options;
