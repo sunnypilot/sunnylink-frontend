@@ -4,6 +4,8 @@
 	import { toast } from 'svelte-sonner';
 	import { type Device } from '$lib/types/types';
 	import { type ModelsV7, type ModelBundle } from '$lib/types/models-v7';
+	import ToggleSetting from '$lib/components/settings/ToggleSetting.svelte';
+	import SelectSetting from '$lib/components/settings/SelectSetting.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 
@@ -35,6 +37,281 @@
 		models.filter((model) => model.display_name.toLowerCase().includes(modelSearch.toLowerCase()))
 	);
 
+	type SettingType = 'bool' | 'int';
+
+	type SettingDefinition = {
+		key: string;
+		label: string;
+		type: SettingType;
+		description?: string;
+		options?: Array<{ label: string; value: number }>;
+	};
+
+	type DeviceSettingState = {
+		definition: SettingDefinition;
+		value: boolean | number | null;
+		encodedValue: string | null;
+		loading: boolean;
+	};
+
+	const BRIGHTNESS_OPTIONS: Array<{ label: string; value: number }> = Array.from(
+		{ length: 11 },
+		(_, index) => {
+			const value = index * 10;
+			return {
+				value,
+				label: `${value}%`
+			};
+		}
+	);
+
+	const SETTINGS_DEFINITIONS: SettingDefinition[] = [
+		{
+			key: 'ExperimentalMode',
+			label: 'Experimental Mode',
+			type: 'bool',
+			description: 'Enable experimental driver assistance features on the device.'
+		},
+		{
+			key: 'Brightness',
+			label: 'Screen Brightness',
+			type: 'int',
+			description: 'Adjusts device display brightness. Values represent percentage levels.',
+			options: BRIGHTNESS_OPTIONS
+		}
+	];
+
+	const SETTING_KEYS = SETTINGS_DEFINITIONS.map((definition) => definition.key);
+
+	function createEmptySettingsState(): Record<string, DeviceSettingState> {
+		return SETTINGS_DEFINITIONS.reduce((accumulator, definition) => {
+			accumulator[definition.key] = {
+				definition,
+				value: null,
+				encodedValue: null,
+				loading: false
+			};
+			return accumulator;
+		}, {} as Record<string, DeviceSettingState>);
+	}
+
+	let deviceSettings = $state<Record<string, DeviceSettingState>>(createEmptySettingsState());
+	let settingsLoading = $state<boolean>(false);
+	let settingsError = $state<string | null>(null);
+
+	function decodeBase64Value(value: string | null | undefined): string | null {
+		if (!value) {
+			return null;
+		}
+		if (typeof globalThis.atob === 'function') {
+			try {
+				return globalThis.atob(value);
+			} catch (error) {
+				console.warn('Unable to decode setting value in browser', error);
+			}
+		}
+		const bufferConstructor = (globalThis as any).Buffer;
+		if (bufferConstructor) {
+			return bufferConstructor.from(value, 'base64').toString('utf-8');
+		}
+		return null;
+	}
+
+	function encodeBase64Value(value: string): string {
+		if (typeof globalThis.btoa === 'function') {
+			return globalThis.btoa(value);
+		}
+		const bufferConstructor = (globalThis as any).Buffer;
+		if (bufferConstructor) {
+			return bufferConstructor.from(value, 'utf-8').toString('base64');
+		}
+		throw new Error('Base64 encoding is not available in this environment');
+	}
+
+	function decodeSettingValue(definition: SettingDefinition, encodedValue: string | null): boolean | number | null {
+		const decoded = decodeBase64Value(encodedValue);
+		if (decoded === null) {
+			return null;
+		}
+		if (definition.type === 'bool') {
+			const normalized = decoded.toLowerCase();
+			return normalized === '1' || normalized === 'true';
+		}
+		if (definition.type === 'int') {
+			const parsed = Number.parseInt(decoded, 10);
+			return Number.isNaN(parsed) ? null : parsed;
+		}
+		return decoded;
+	}
+
+	function encodeSettingValue(definition: SettingDefinition, value: boolean | number): string {
+		if (definition.type === 'bool') {
+			return encodeBase64Value(value ? '1' : '0');
+		}
+		if (definition.type === 'int') {
+			return encodeBase64Value(value.toString());
+		}
+		return encodeBase64Value(String(value));
+	}
+
+	async function loadSettingsForDevice(deviceId: string) {
+		if (!deviceId) {
+			deviceSettings = createEmptySettingsState();
+			return;
+		}
+		const requestDeviceId = deviceId;
+		settingsLoading = true;
+		settingsError = null;
+		deviceSettings = createEmptySettingsState();
+		try {
+			const response = await sunnylinkClient.GET('/settings/{deviceId}/values', {
+				params: {
+					path: {
+						deviceId
+					},
+					query: {
+						paramKeys: SETTING_KEYS
+					}
+				}
+			});
+
+			if (response.error) {
+				throw new Error(response.error.detail ?? 'Failed to load settings');
+			}
+
+			if (selectedDevice !== requestDeviceId) {
+				return;
+			}
+
+			const nextState = createEmptySettingsState();
+			const settingsPayload = response.data?.settings ?? {};
+			for (const definition of SETTINGS_DEFINITIONS) {
+				const encodedValue = settingsPayload?.[definition.key] ?? null;
+				nextState[definition.key] = {
+					definition,
+					encodedValue,
+					value: decodeSettingValue(definition, encodedValue),
+					loading: false
+				};
+			}
+			deviceSettings = nextState;
+		} catch (error) {
+			console.error('Error loading device settings:', error);
+			if (selectedDevice === requestDeviceId) {
+				settingsError = 'Unable to load device settings right now.';
+				toast.error('Failed to load device settings');
+			}
+		} finally {
+			if (selectedDevice === requestDeviceId) {
+				settingsLoading = false;
+			}
+		}
+	}
+
+	async function persistSetting(definition: SettingDefinition, value: boolean | number) {
+		if (!selectedDevice) {
+			toast.error('Select a device before updating settings');
+			return;
+		}
+		const requestDeviceId = selectedDevice;
+		const previousState = deviceSettings[definition.key] ?? {
+			definition,
+			value: null,
+			encodedValue: null,
+			loading: false
+		};
+
+		if (previousState.loading) {
+			return;
+		}
+
+		if (previousState.value === value) {
+			return;
+		}
+
+		const encodedValue = encodeSettingValue(definition, value);
+
+		deviceSettings = {
+			...deviceSettings,
+			[definition.key]: {
+				...previousState,
+				value,
+				loading: true
+			}
+		};
+
+		try {
+			const response = await sunnylinkClient.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: requestDeviceId
+					}
+				},
+				body: [
+					{
+						key: definition.key,
+						value: encodedValue,
+						is_compressed: false
+					}
+				]
+			});
+
+			if (response.error) {
+				throw new Error(response.error.detail ?? 'Failed to update setting');
+			}
+
+			if (selectedDevice !== requestDeviceId) {
+				return;
+			}
+
+			deviceSettings = {
+				...deviceSettings,
+				[definition.key]: {
+					...deviceSettings[definition.key],
+					encodedValue,
+					loading: false
+				}
+			};
+			toast.success(`${definition.label} updated`);
+		} catch (error) {
+			console.error('Error updating device setting:', error);
+			if (selectedDevice === requestDeviceId) {
+				deviceSettings = {
+					...deviceSettings,
+					[definition.key]: {
+						...previousState,
+						loading: false
+					}
+				};
+				toast.error(`Failed to update ${definition.label}`);
+			}
+		}
+	}
+
+	function handleBooleanSettingChange(definition: SettingDefinition, value: boolean) {
+		void persistSetting(definition, value);
+	}
+
+	function handleNumberSettingChange(definition: SettingDefinition, value: number | null) {
+		if (value === null) {
+			return;
+		}
+		void persistSetting(definition, value);
+	}
+
+	function getBooleanSettingValue(key: string): boolean {
+		return deviceSettings[key]?.value === true;
+	}
+
+	function getNumericSettingValue(key: string): number | null {
+		const candidate = deviceSettings[key]?.value;
+		return typeof candidate === 'number' ? candidate : null;
+	}
+
+	function isSettingSaving(key: string): boolean {
+		return deviceSettings[key]?.loading ?? false;
+	}
+
 	onMount(async () => {
 		// Add click outside listener
 		document.addEventListener('click', handleClickOutside);
@@ -56,6 +333,9 @@
 				allDevices = devices.data!;
 				if (allDevices.length === 1) {
 					selectedDevice = allDevices[0].device_id ?? '';
+					if (selectedDevice) {
+						await loadSettingsForDevice(selectedDevice);
+					}
 				}
 				loading = false;
 			} catch (error: any) {
@@ -126,10 +406,17 @@
 		}
 	}
 
-	function selectDevice(deviceId: string) {
+	async function selectDevice(deviceId: string) {
+		const previousDevice = selectedDevice;
 		selectedDevice = deviceId;
 		deviceDropdownOpen = false;
 		deviceSearch = '';
+		if (deviceId && deviceId !== previousDevice) {
+			await loadSettingsForDevice(deviceId);
+		}
+		if (!deviceId) {
+			deviceSettings = createEmptySettingsState();
+		}
 	}
 
 	function selectModel(modelIndex: number) {
@@ -252,7 +539,7 @@
 										{:else}
 											{#each filteredDevices as device}
 												<button
-													onclick={() => selectDevice(device.device_id ?? '')}
+													onclick={() => void selectDevice(device.device_id ?? '')}
 													class="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-base-200 {selectedDevice ===
 													(device.device_id ?? '')
 														? 'bg-base-200 font-medium'
@@ -421,6 +708,54 @@
 							</div>
 						</div>
 					{/if}
+
+					<!-- Device Settings -->
+					<div class="space-y-4 border-t border-base-300 pt-6">
+						<div class="flex items-center justify-between">
+							<h2 class="text-lg font-semibold">Device Settings</h2>
+							{#if settingsLoading}
+								<span class="loading loading-spinner loading-sm text-primary" aria-hidden="true"></span>
+							{/if}
+						</div>
+						{#if !selectedDevice}
+							<p class="text-sm opacity-70">Select a device to view configurable settings.</p>
+					{:else if settingsLoading}
+						<p class="flex items-center gap-2 text-sm opacity-70">
+							<span class="loading loading-spinner loading-xs text-primary" aria-hidden="true"></span>
+							<span>Loading settings…</span>
+						</p>
+						{:else}
+							{#if settingsError}
+								<div class="alert alert-warning text-sm">
+									<span>{settingsError}</span>
+								</div>
+							{/if}
+							<div class="space-y-4">
+								{#each SETTINGS_DEFINITIONS as definition (definition.key)}
+									{#if definition.type === 'bool'}
+											<ToggleSetting
+												label={definition.label}
+												description={definition.description}
+												value={getBooleanSettingValue(definition.key)}
+												loading={isSettingSaving(definition.key)}
+												disabled={!selectedDevice}
+												onChange={(value) => handleBooleanSettingChange(definition, value)}
+											/>
+										{:else if definition.type === 'int'}
+											<SelectSetting
+												label={definition.label}
+												description={definition.description}
+												options={definition.options ?? []}
+												value={getNumericSettingValue(definition.key)}
+												loading={isSettingSaving(definition.key)}
+												disabled={!selectedDevice}
+												onChange={(value) => handleNumberSettingChange(definition, value)}
+											/>
+									{/if}
+								{/each}
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
 		{/if}
