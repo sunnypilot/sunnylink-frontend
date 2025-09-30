@@ -71,61 +71,104 @@
 		{ value: 2, label: 'Relaxed' }
 	];
 
+	const WAKE_UP_OPTIONS = [
+		{ value: 0, label: 'Always On' },
+		{ value: 1, label: 'On Drive' },
+		{ value: 2, label: 'Off' }
+	];
+
+	const TIMEOUT_OPTIONS = Array.from({ length: 6 }, (_, i) => ({
+		value: (i + 1) * 10,
+		label: `${(i + 1) * 10} seconds`
+	}));
+
+	const MAX_TIME_OFFROAD_OPTIONS = Array.from({ length: 48 }, (_, i) => ({
+		value: (i + 1) * 30,
+		label: `${(i + 1) * 30} hours`
+	}));
+
+	const SPEED_LIMIT_SOURCE_OPTIONS = [
+		{ value: 0, label: 'Car State' },
+		{ value: 1, label: 'OpenStreetMap' },
+		{ value: 2, label: 'Car State & OpenStreetMap' },
+		{ value: 3, label: 'Nav' }
+	];
+
+	const LANE_CHANGE_DELAY_OPTIONS = [
+		{ value: 0, label: 'Disabled' },
+		{ value: 1, label: '0.5s' },
+		{ value: 2, label: '1.0s' },
+		{ value: 3, label: '1.5s' },
+		{ value: 4, label: '2.0s' }
+	];
+
+	const AUTO_LANE_CHANGE_OPTIONS = [
+		{ value: 0, label: 'Disabled' },
+		{ value: 1, label: '0.5s' },
+		{ value: 2, label: '1.0s' },
+		{ value: 3, label: '1.5s' },
+		{ value: 4, label: '2.0s' },
+		{ value: 5, label: '2.5s' },
+		{ value: 6, label: '3.0s' },
+		{ value: 7, label: '3.5s' },
+		{ value: 8, label: '4.0s' }
+	];
+
 	const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		// Device Category
-		{ key: 'MaxTimeOffroad', label: 'Max Time Offroad', type: 'int', category: 'device' },
-		{ key: 'DeviceBootMode', label: 'Wake Up Behavior', type: 'select', category: 'device' },
-		{ key: 'InteractivityTimeout', label: 'Interactivity Timeout', type: 'int', category: 'device' },
-		{ key: 'Brightness', label: 'Brightness', type: 'int', category: 'device', options: BRIGHTNESS_OPTIONS },
-		{ key: 'QuietMode', label: 'Quiet Mode', type: 'bool', category: 'device' },
+		{ key: 'MaxTimeOffroad', label: 'Max Time Offroad', type: 'select', category: 'device', options: MAX_TIME_OFFROAD_OPTIONS, description: 'Maximum time allowed offroad before device powers down automatically.' },
+		{ key: 'DeviceBootMode', label: 'Wake Up Behavior', type: 'select', category: 'device', options: WAKE_UP_OPTIONS, description: 'Controls when the device powers on: Always On, On Drive, or Off.' },
+		{ key: 'InteractivityTimeout', label: 'Interactivity Timeout', type: 'select', category: 'device', options: TIMEOUT_OPTIONS, description: 'Time before the screen dims when no interaction is detected.' },
+		{ key: 'Brightness', label: 'Brightness', type: 'select', category: 'device', options: BRIGHTNESS_OPTIONS, description: 'Adjust the screen brightness level.' },
+		{ key: 'QuietMode', label: 'Quiet Mode', type: 'bool', category: 'device', description: 'Reduces notification sounds and alerts.' },
 
 		// Toggles Category
-		{ key: 'OpenpilotEnabledToggle', label: 'Enable Sunnypilot', type: 'bool', category: 'toggles' },
-		{ key: 'ExperimentalMode', label: 'Experimental Mode', type: 'bool', category: 'toggles' },
-		{ key: 'DynamicExperimentalControl', label: 'Enable Dynamic Experimental Control', type: 'bool', category: 'toggles' },
-		{ key: 'DisengageOnAccelerator', label: 'Disengage on Accelerator Pedal', type: 'bool', category: 'toggles' },
-		{ key: 'LongitudinalPersonality', label: 'Driving Personality', type: 'select', category: 'toggles', options: PERSONALITY_OPTIONS },
-		{ key: 'IsLdwEnabled', label: 'Enable Lane Departure Warnings', type: 'bool', category: 'toggles' },
-		{ key: 'AlwaysOnDM', label: 'Always On Driver Monitoring', type: 'bool', category: 'toggles' },
-		{ key: 'RecordFront', label: 'Record and Upload Driver Camera', type: 'bool', category: 'toggles' },
-		{ key: 'RecordAudio', label: 'Record and Upload Microphone Audio', type: 'bool', category: 'toggles' },
-		{ key: 'IsMetric', label: 'Use Metric System', type: 'bool', category: 'toggles' },
+		{ key: 'OpenpilotEnabledToggle', label: 'Enable Sunnypilot', type: 'bool', category: 'toggles', description: 'Master toggle to enable or disable Sunnypilot.' },
+		{ key: 'ExperimentalMode', label: 'Experimental Mode', type: 'bool', category: 'toggles', description: 'Enable experimental driver assistance features.' },
+		{ key: 'DynamicExperimentalControl', label: 'Enable Dynamic Experimental Control', type: 'bool', category: 'toggles', description: 'Automatically enable Experimental Mode based on driving conditions.' },
+		{ key: 'DisengageOnAccelerator', label: 'Disengage on Accelerator Pedal', type: 'bool', category: 'toggles', description: 'Disengage openpilot when the accelerator pedal is pressed.' },
+		{ key: 'LongitudinalPersonality', label: 'Driving Personality', type: 'select', category: 'toggles', options: PERSONALITY_OPTIONS, description: 'Choose driving style: Aggressive, Standard, or Relaxed.' },
+		{ key: 'IsLdwEnabled', label: 'Enable Lane Departure Warnings', type: 'bool', category: 'toggles', description: 'Alert when drifting out of lane without openpilot engaged.' },
+		{ key: 'AlwaysOnDM', label: 'Always On Driver Monitoring', type: 'bool', category: 'toggles', description: 'Keep driver monitoring active at all times.' },
+		{ key: 'RecordFront', label: 'Record and Upload Driver Camera', type: 'bool', category: 'toggles', description: 'Record and upload driver-facing camera footage.' },
+		{ key: 'RecordAudio', label: 'Record and Upload Microphone Audio', type: 'bool', category: 'toggles', description: 'Record and upload microphone audio while driving.' },
+		{ key: 'IsMetric', label: 'Use Metric System', type: 'bool', category: 'toggles', description: 'Display distances and speeds in metric units.' },
 
 		// Steering Category
-		{ key: 'Mads', label: 'Modular Assistive Driving System (MADS)', type: 'bool', category: 'steering' },
-		{ key: 'MadsMainCruiseAllowed', label: 'Toggle With Main Cruise', type: 'bool', category: 'steering', subsection: 'MADS' },
-		{ key: 'MadsUnifiedEngagementMode', label: 'Unified Engagement Mode (UEM)', type: 'bool', category: 'steering', subsection: 'MADS' },
-		{ key: 'MadsSteeringMode', label: 'Steering Mode on Brake Pedal', type: 'bool', category: 'steering', subsection: 'MADS' },
-		{ key: 'AutoLaneChangeTimer', label: 'Auto Lane Change By Blinker', type: 'int', category: 'steering', subsection: 'Customize Lane Change' },
-		{ key: 'AutoLaneChangeBsmDelay', label: 'Auto Lane Change: Delay With Blind Spot', type: 'int', category: 'steering', subsection: 'Customize Lane Change' },
-		{ key: 'BlinkerPauseLateralControl', label: 'Pause Lateral Control with Blinker', type: 'bool', category: 'steering' },
-		{ key: 'NeuralNetworkLateralControl', label: 'Neural Network Lateral Control (NNLC)', type: 'bool', category: 'steering' },
+		{ key: 'Mads', label: 'Modular Assistive Driving System (MADS)', type: 'bool', category: 'steering', description: 'Enable MADS for advanced steering control features.' },
+		{ key: 'MadsMainCruiseAllowed', label: 'Toggle With Main Cruise', type: 'bool', category: 'steering', subsection: 'MADS', description: 'Allow toggling MADS with the main cruise control button.' },
+		{ key: 'MadsUnifiedEngagementMode', label: 'Unified Engagement Mode (UEM)', type: 'bool', category: 'steering', subsection: 'MADS', description: 'Unified engagement for both lateral and longitudinal control.' },
+		{ key: 'MadsSteeringMode', label: 'Steering Mode on Brake Pedal', type: 'bool', category: 'steering', subsection: 'MADS', description: 'Pause steering when brake pedal is pressed.' },
+		{ key: 'AutoLaneChangeTimer', label: 'Auto Lane Change By Blinker', type: 'select', category: 'steering', subsection: 'Customize Lane Change', options: AUTO_LANE_CHANGE_OPTIONS, description: 'Delay before automatic lane change after blinker activation.' },
+		{ key: 'AutoLaneChangeBsmDelay', label: 'Auto Lane Change: Delay With Blind Spot', type: 'select', category: 'steering', subsection: 'Customize Lane Change', options: LANE_CHANGE_DELAY_OPTIONS, description: 'Additional delay if blind spot monitoring detects a vehicle.' },
+		{ key: 'BlinkerPauseLateralControl', label: 'Pause Lateral Control with Blinker', type: 'bool', category: 'steering', description: 'Temporarily pause lateral control when the blinker is on.' },
+		{ key: 'NeuralNetworkLateralControl', label: 'Neural Network Lateral Control (NNLC)', type: 'bool', category: 'steering', description: 'Use neural network for improved lateral control.' },
 
 		// Cruise Category
-		{ key: 'IntelligentCruiseButtonManagement', label: 'Intelligent Cruise Button Management (ICBM) (Alpha)', type: 'bool', category: 'cruise' },
-		{ key: 'SmartCruiseControlVision', label: 'Smart Cruise Control - Vision', type: 'bool', category: 'cruise' },
-		{ key: 'SmartCruiseControlMap', label: 'Smart Cruise Control - Map', type: 'bool', category: 'cruise' },
-		{ key: 'CustomAccIncrementsEnabled', label: 'Custom ACC Speed Increments', type: 'bool', category: 'cruise' },
-		{ key: 'SpeedLimitMode', label: 'Speed Limit', type: 'bool', category: 'cruise', subsection: 'Speed Limit' },
-		{ key: 'SpeedLimitPolicy', label: 'Speed Limit Source', type: 'select', category: 'cruise', subsection: 'Speed Limit > Customize' },
+		{ key: 'IntelligentCruiseButtonManagement', label: 'Intelligent Cruise Button Management (ICBM) (Alpha)', type: 'bool', category: 'cruise', description: 'Advanced cruise control button management (experimental).' },
+		{ key: 'SmartCruiseControlVision', label: 'Smart Cruise Control - Vision', type: 'bool', category: 'cruise', description: 'Use vision-based data for adaptive cruise control.' },
+		{ key: 'SmartCruiseControlMap', label: 'Smart Cruise Control - Map', type: 'bool', category: 'cruise', description: 'Use map data to adjust cruise control speed.' },
+		{ key: 'CustomAccIncrementsEnabled', label: 'Custom ACC Speed Increments', type: 'bool', category: 'cruise', description: 'Customize the speed increment steps for adaptive cruise control.' },
+		{ key: 'SpeedLimitMode', label: 'Speed Limit', type: 'bool', category: 'cruise', subsection: 'Speed Limit', description: 'Enable speed limit awareness and enforcement.' },
+		{ key: 'SpeedLimitPolicy', label: 'Speed Limit Source', type: 'select', category: 'cruise', subsection: 'Speed Limit > Customize', options: SPEED_LIMIT_SOURCE_OPTIONS, description: 'Choose the source for speed limit data.' },
 
 		// Visuals Category
-		{ key: 'BlindSpot', label: 'Show Blind Spot Warnings', type: 'bool', category: 'visuals' },
-		{ key: 'RainbowMode', label: 'Enable Tesla Rainbow Mode', type: 'bool', category: 'visuals' },
-		{ key: 'StandstillTimer', label: 'Enable Standstill Timer', type: 'bool', category: 'visuals' },
-		{ key: 'RoadNameToggle', label: 'Display Road Name', type: 'bool', category: 'visuals' },
-		{ key: 'ChevronInfo', label: 'Display Metrics Below Chevron', type: 'bool', category: 'visuals' },
-		{ key: 'DevUIInfo', label: 'Developer UI', type: 'bool', category: 'visuals' },
+		{ key: 'BlindSpot', label: 'Show Blind Spot Warnings', type: 'bool', category: 'visuals', description: 'Display blind spot warnings on the screen.' },
+		{ key: 'RainbowMode', label: 'Enable Tesla Rainbow Mode', type: 'bool', category: 'visuals', description: 'Fun rainbow animation on the lane lines.' },
+		{ key: 'StandstillTimer', label: 'Enable Standstill Timer', type: 'bool', category: 'visuals', description: 'Show a timer when the vehicle is at a standstill.' },
+		{ key: 'RoadNameToggle', label: 'Display Road Name', type: 'bool', category: 'visuals', description: 'Show the current road name on the screen.' },
+		{ key: 'ChevronInfo', label: 'Display Metrics Below Chevron', type: 'bool', category: 'visuals', description: 'Show driving metrics below the lead car chevron.' },
+		{ key: 'DevUIInfo', label: 'Developer UI', type: 'bool', category: 'visuals', description: 'Enable developer information overlay on the UI.' },
 
 		// Developer Category
-		{ key: 'AdbEnabled', label: 'Enable ADB', type: 'bool', category: 'developer' },
-		{ key: 'SshEnabled', label: 'Enable SSH', type: 'bool', category: 'developer' },
-		{ key: 'JoystickDebugMode', label: 'Joystick Debug Mode', type: 'bool', category: 'developer' },
-		{ key: 'LongitudinalManeuverMode', label: 'Longitudinal Maneuver Mode', type: 'bool', category: 'developer' },
-		{ key: 'AlphaLongitudinalEnabled', label: 'openpilot Longitudinal Control (Alpha)', type: 'bool', category: 'developer' },
-		{ key: 'ShowAdvancedControls', label: 'Show Advanced Controls', type: 'bool', category: 'developer' },
-		{ key: 'EnableGithubRunner', label: 'Enable GitHub runner service', type: 'bool', category: 'developer' },
-		{ key: 'EnableCopyparty', label: 'Enable copyparty service', type: 'bool', category: 'developer' }
+		{ key: 'AdbEnabled', label: 'Enable ADB', type: 'bool', category: 'developer', description: 'Enable Android Debug Bridge for development access.' },
+		{ key: 'SshEnabled', label: 'Enable SSH', type: 'bool', category: 'developer', description: 'Enable SSH access to the device.' },
+		{ key: 'JoystickDebugMode', label: 'Joystick Debug Mode', type: 'bool', category: 'developer', description: 'Enable joystick debugging features.' },
+		{ key: 'LongitudinalManeuverMode', label: 'Longitudinal Maneuver Mode', type: 'bool', category: 'developer', description: 'Enable experimental longitudinal maneuver controls.' },
+		{ key: 'AlphaLongitudinalEnabled', label: 'openpilot Longitudinal Control (Alpha)', type: 'bool', category: 'developer', description: 'Enable openpilot longitudinal control (experimental).' },
+		{ key: 'ShowAdvancedControls', label: 'Show Advanced Controls', type: 'bool', category: 'developer', description: 'Display advanced control options in the UI.' },
+		{ key: 'EnableGithubRunner', label: 'Enable GitHub runner service', type: 'bool', category: 'developer', description: 'Enable GitHub Actions runner for CI/CD.' },
+		{ key: 'EnableCopyparty', label: 'Enable copyparty service', type: 'bool', category: 'developer', description: 'Enable copyparty file sharing service.' }
 	];
 
 	let activeCategory = $state<SettingCategory>('device');
@@ -200,11 +243,11 @@
 			const normalized = decoded.toLowerCase();
 			return normalized === '1' || normalized === 'true';
 		}
-		if (definition.type === 'int') {
+		if (definition.type === 'int' || definition.type === 'select') {
 			const parsed = Number.parseInt(decoded, 10);
 			return Number.isNaN(parsed) ? null : parsed;
 		}
-		// For readonly, string, and other types, return the decoded string
+		// For string and other types, return the decoded string
 		return decoded;
 	}
 
@@ -212,7 +255,7 @@
 		if (definition.type === 'bool') {
 			return encodeBase64Value(value ? '1' : '0');
 		}
-		if (definition.type === 'int') {
+		if (definition.type === 'int' || definition.type === 'select') {
 			return encodeBase64Value(value.toString());
 		}
 		return encodeBase64Value(String(value));
@@ -858,43 +901,45 @@
 							{/if}
 
 							<!-- Category Tabs -->
-							<div class="tabs tabs-boxed">
-								<button
-									class="tab {activeCategory === 'device' ? 'tab-active' : ''}"
-									onclick={() => switchCategory('device')}
-								>
-									Device
-								</button>
-								<button
-									class="tab {activeCategory === 'toggles' ? 'tab-active' : ''}"
-									onclick={() => switchCategory('toggles')}
-								>
-									Toggles
-								</button>
-								<button
-									class="tab {activeCategory === 'steering' ? 'tab-active' : ''}"
-									onclick={() => switchCategory('steering')}
-								>
-									Steering
-								</button>
-								<button
-									class="tab {activeCategory === 'cruise' ? 'tab-active' : ''}"
-									onclick={() => switchCategory('cruise')}
-								>
-									Cruise
-								</button>
-								<button
-									class="tab {activeCategory === 'visuals' ? 'tab-active' : ''}"
-									onclick={() => switchCategory('visuals')}
-								>
-									Visuals
-								</button>
-								<button
-									class="tab {activeCategory === 'developer' ? 'tab-active' : ''}"
-									onclick={() => switchCategory('developer')}
-								>
-									Developer
-								</button>
+							<div class="flex justify-center">
+								<div class="tabs tabs-boxed">
+									<button
+										class="tab {activeCategory === 'device' ? 'tab-active' : ''}"
+										onclick={() => switchCategory('device')}
+									>
+										Device
+									</button>
+									<button
+										class="tab {activeCategory === 'toggles' ? 'tab-active' : ''}"
+										onclick={() => switchCategory('toggles')}
+									>
+										Toggles
+									</button>
+									<button
+										class="tab {activeCategory === 'steering' ? 'tab-active' : ''}"
+										onclick={() => switchCategory('steering')}
+									>
+										Steering
+									</button>
+									<button
+										class="tab {activeCategory === 'cruise' ? 'tab-active' : ''}"
+										onclick={() => switchCategory('cruise')}
+									>
+										Cruise
+									</button>
+									<button
+										class="tab {activeCategory === 'visuals' ? 'tab-active' : ''}"
+										onclick={() => switchCategory('visuals')}
+									>
+										Visuals
+									</button>
+									<button
+										class="tab {activeCategory === 'developer' ? 'tab-active' : ''}"
+										onclick={() => switchCategory('developer')}
+									>
+										Developer
+									</button>
+								</div>
 							</div>
 
 							<!-- Category Loading State -->
