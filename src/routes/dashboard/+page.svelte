@@ -20,6 +20,7 @@
 	let deploymentProgress = $state<number>(0);
 	let loading = $state(true);
 	let models = $state<ModelBundle[]>([]);
+	let authReady = $state(false);
 
 	onMount(async () => {
 		if (data.user) {
@@ -31,6 +32,8 @@
 				const idToken = await data.logtoClient?.getIdToken();
 				const authMiddleware = createAuthMiddleware(idToken ?? '');
 				sunnylinkClient.use(authMiddleware);
+				authReady = true;
+
 				const devices = await sunnylinkClient.GET('/users/{userId}/devices', {
 					params: { path: { userId: 'self' } }
 				});
@@ -223,7 +226,9 @@
 						</div>
 					{/if}
 
-					<DeviceSettings {selectedDevice} />
+					{#if authReady}
+						<DeviceSettings {selectedDevice} />
+					{/if}
 				</div>
 			</div>
 		{/if}

@@ -101,14 +101,25 @@
 		const categories: SettingCategory[] = ['device', 'toggles', 'steering', 'cruise', 'visuals'];
 
 		try {
-			const requests = categories.map(category => {
+			const requests = categories.map(async (category) => {
 				const keys = SETTINGS_DEFINITIONS.filter((def) => def.category === category).map((def) => def.key);
-				return sunnylinkClient.GET('/settings/{deviceId}/values', {
-					params: {
-						path: { deviceId },
-						query: { paramKeys: keys }
-					}
-				}).then(response => ({ category, response, keys }));
+
+				if (!keys || keys.length === 0) {
+					return { category, response: null, keys: [] };
+				}
+
+				try {
+					const response = await sunnylinkClient.GET('/settings/{deviceId}/values', {
+						params: {
+							path: { deviceId },
+							query: { paramKeys: keys }
+						}
+					});
+					return { category, response, keys };
+				} catch (err) {
+					console.error(`Error fetching ${category}:`, err);
+					return { category, response: null, keys };
+				}
 			});
 
 			const results = await Promise.all(requests);
@@ -116,12 +127,18 @@
 			if (selectedDevice !== requestDeviceId) return;
 
 			for (const { category, response, keys } of results) {
-				if (response.error) {
-					console.error(`Failed to load ${category} settings:`, response.error);
+				if (!response || response.error) {
+					console.error(`Failed to load ${category} settings:`, response?.error);
 					continue;
 				}
 
-				const settingsPayload = response.data?.settings ?? {};
+				if (!response.data?.settings) {
+					console.warn(`No settings data for ${category}`);
+					loadedCategories.add(category);
+					continue;
+				}
+
+				const settingsPayload = response.data.settings;
 
 				for (const key of keys) {
 					if (key in settingsPayload && key in deviceSettings) {
