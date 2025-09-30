@@ -37,14 +37,17 @@
 		models.filter((model) => model.display_name.toLowerCase().includes(modelSearch.toLowerCase()))
 	);
 
-	type SettingType = 'bool' | 'int' | 'string' | 'readonly';
+	type SettingType = 'bool' | 'int' | 'string' | 'select';
+	type SettingCategory = 'device' | 'toggles' | 'steering' | 'cruise' | 'visuals' | 'developer';
 
 	type SettingDefinition = {
 		key: string;
 		label: string;
 		type: SettingType;
+		category: SettingCategory;
 		description?: string;
 		options?: Array<{ label: string; value: number }>;
+		subsection?: string;
 	};
 
 	type DeviceSettingState = {
@@ -58,98 +61,92 @@
 		{ length: 11 },
 		(_, index) => {
 			const value = index * 10;
-			return {
-				value,
-				label: `${value}%`
-			};
+			return { value, label: `${value}%` };
 		}
 	);
 
-	const ALL_SETTING_KEYS = [
-		"SmartCruiseControlVision", "SpeedLimitPolicy", "SpeedLimitOffsetType", "RoadNameToggle",
-		"RoadName", "OsmStateName", "OsmLocationTitle", "OsmLocationName", "OSMDownloadProgress",
-		"OSMDownloadLocations", "OsmDownloadedDate", "Offroad_OSMUpdateRequired", "MapdVersion",
-		"LaneTurnValue", "LagdToggleDelay", "LagdToggle", "BlindSpot", "HyundaiLongitudinalTuning",
-		"SmartCruiseControlMap", "BackupManager_CreateBackup", "SunnylinkCache_Users",
-		"SunnylinkCache_Roles", "MapAdvisorySpeedLimit", "NeuralNetworkLateralControl",
-		"ModelManager_ModelsCache", "ModelManager_Favs", "ModelManager_ActiveBundle",
-		"MadsUnifiedEngagementMode", "MadsSteeringMode", "MadsMainCruiseAllowed", "Mads",
-		"SunnylinkDongleId", "StandstillTimer", "ShowAdvancedControls", "RainbowMode",
-		"QuickBootToggle", "Offroad_TiciSupport", "QuietMode", "MaxTimeOffroad", "SunnylinkEnabled",
-		"InteractivityTimeout", "EnableCopyparty", "DevUIInfo", "DeviceBootMode",
-		"CustomAccLongPressIncrement", "CustomAccIncrementsEnabled", "ChevronInfo",
-		"CarParamsSPCache", "CarParamsSP", "Brightness", "MapSpeedLimit", "IsTestedBranch",
-		"ModelRunnerTypeCache", "OnroadCycleRequested", "IsOnroad", "TrainingVersion",
-		"OSMDownloadBounds", "InstallDate", "IsMetric", "UpdaterLastFetchTime", "GsmMetered",
-		"GitRemote", "GsmRoaming", "GithubUsername", "GithubRunnerSufficientVoltage",
-		"CameraDebugExpGain", "ExperimentalMode", "DisableUpdates", "ApiCache_FirehoseStats",
-		"DriverTooDistracted", "OsmDbUpdatesCheck", "ApiCache_Device", "JoystickDebugMode",
-		"ModelManager_LastSyncTime", "UpdaterNewDescription", "AthenadRecentlyViewedRoutes",
-		"IsRhdDetected", "BootCount", "GitDiff", "IsDevelopmentBranch", "IsDriverViewEnabled",
-		"CarBatteryCapacity", "GitBranch", "DisablePowerDown", "BlinkerPauseLateralControl",
-		"AthenadUploadQueue", "ForcePowerDown", "CarParamsCache", "UptimeOffroad", "AssistNowToken",
-		"OsmLocationUrl", "GsmApn", "CarParamsPrevRoute", "RecordFrontLock", "UpdaterFetchAvailable",
-		"AlwaysOnDM", "AutoLaneChangeBsmDelay", "IsOffroad", "HasAcceptedTerms", "CarParams",
-		"CarPlatformBundle", "AdbEnabled", "GithubSshKeys", "ObdMultiplexingChanged", "SshEnabled",
-		"DisableLogging", "EnableSunnylinkUploader", "LiveTorqueParameters",
-		"IntelligentCruiseButtonManagement", "CameraDebugExpTime", "AccessToken", "HardwareSerial",
-		"FirmwareQueryDone", "DoReboot", "CalibrationParams", "CompletedTrainingVersion",
-		"SunnylinkdPid", "ModelManager_DownloadIndex", "DoUninstall", "LastUpdateTime",
-		"ModelManager_ClearCache", "RouteCount", "IsLdwEnabled", "PrimeType", "OsmLocal",
-		"AthenadPid", "ControlsReady", "CurrentBootlog", "GitCommitDate", "AlphaLongitudinalEnabled",
-		"UptimeOnroad", "Offroad_TemperatureTooHigh", "LastAthenaPingTime",
-		"Offroad_ExcessiveActuation", "MapTargetVelocities", "LastManagerExitReason",
-		"CarParamsSPPersistent", "SecOCKey", "LastPowerDropDetected", "LastUpdateException",
-		"DoShutdown", "LiveParametersV2", "LastUpdateRouteCount", "OsmWayTest",
-		"LastUpdateUptimeOnroad", "OffroadMode", "RecordFront", "RecordAudioFeedback",
-		"LagdValueCache", "EnableGithubRunner", "DongleId", "LiveDelay", "LocationFilterInitialState",
-		"SpeedLimitMode", "TermsVersion", "LongitudinalManeuverMode", "NextMapSpeedLimit",
-		"LastGPSPosition", "NetworkMetered", "PandaHeartbeatLost", "GitCommit",
-		"UpdaterAvailableBranches", "LastGPSPositionLLK", "DisengageOnAccelerator",
-		"LastOffroadStatusPacket", "ObdMultiplexingEnabled", "CustomAccShortPressIncrement",
-		"Offroad_CarUnrecognized", "OsmStateTitle", "Offroad_ConnectivityNeeded", "IsReleaseBranch",
-		"Offroad_ConnectivityNeededPrompt", "LaneTurnDesire", "BackupManager_RestoreVersion",
-		"LongitudinalPersonality", "LiveParameters", "Offroad_IsTakingSnapshot",
-		"ExperimentalModeConfirmed", "Offroad_NeosUpdate", "Offroad_NoFirmware", "IsEngaged",
-		"Offroad_Recalibration", "SnoozeUpdate", "UpdaterCurrentDescription",
-		"Offroad_UnregisteredHardware", "Offroad_UpdateFailed", "SpeedLimitValueOffset",
-		"DynamicExperimentalControl", "OpenpilotEnabledToggle", "PandaSomResetTriggered",
-		"CurrentRoute", "PandaSignatures", "UbloxAvailable", "UpdateAvailable",
-		"CarParamsPersistent", "LanguageSetting", "RecordAudio", "UpdaterCurrentReleaseNotes",
-		"UpdateFailedCount", "AutoLaneChangeTimer", "LastSunnylinkPingTime", "IsTakingSnapshot",
-		"UpdaterNewReleaseNotes", "UpdaterState", "UpdaterTargetBranch", "Version",
-		"ApiCache_DriveStats", "BlinkerMinLateralControlSpeed"
+	const PERSONALITY_OPTIONS = [
+		{ value: 0, label: 'Aggressive' },
+		{ value: 1, label: 'Standard' },
+		{ value: 2, label: 'Relaxed' }
 	];
 
 	const SETTINGS_DEFINITIONS: SettingDefinition[] = [
-		{
-			key: 'ExperimentalMode',
-			label: 'Experimental Mode',
-			type: 'bool',
-			description: 'Enable experimental driver assistance features on the device.'
-		},
-		{
-			key: 'Brightness',
-			label: 'Screen Brightness',
-			type: 'int',
-			description: 'Adjusts device display brightness. Values represent percentage levels.',
-			options: BRIGHTNESS_OPTIONS
-		}
+		// Device Category
+		{ key: 'MaxTimeOffroad', label: 'Max Time Offroad', type: 'int', category: 'device' },
+		{ key: 'DeviceBootMode', label: 'Wake Up Behavior', type: 'select', category: 'device' },
+		{ key: 'InteractivityTimeout', label: 'Interactivity Timeout', type: 'int', category: 'device' },
+		{ key: 'Brightness', label: 'Brightness', type: 'int', category: 'device', options: BRIGHTNESS_OPTIONS },
+		{ key: 'QuietMode', label: 'Quiet Mode', type: 'bool', category: 'device' },
+
+		// Toggles Category
+		{ key: 'OpenpilotEnabledToggle', label: 'Enable Sunnypilot', type: 'bool', category: 'toggles' },
+		{ key: 'ExperimentalMode', label: 'Experimental Mode', type: 'bool', category: 'toggles' },
+		{ key: 'DynamicExperimentalControl', label: 'Enable Dynamic Experimental Control', type: 'bool', category: 'toggles' },
+		{ key: 'DisengageOnAccelerator', label: 'Disengage on Accelerator Pedal', type: 'bool', category: 'toggles' },
+		{ key: 'LongitudinalPersonality', label: 'Driving Personality', type: 'select', category: 'toggles', options: PERSONALITY_OPTIONS },
+		{ key: 'IsLdwEnabled', label: 'Enable Lane Departure Warnings', type: 'bool', category: 'toggles' },
+		{ key: 'AlwaysOnDM', label: 'Always On Driver Monitoring', type: 'bool', category: 'toggles' },
+		{ key: 'RecordFront', label: 'Record and Upload Driver Camera', type: 'bool', category: 'toggles' },
+		{ key: 'RecordAudio', label: 'Record and Upload Microphone Audio', type: 'bool', category: 'toggles' },
+		{ key: 'IsMetric', label: 'Use Metric System', type: 'bool', category: 'toggles' },
+
+		// Steering Category
+		{ key: 'Mads', label: 'Modular Assistive Driving System (MADS)', type: 'bool', category: 'steering' },
+		{ key: 'MadsMainCruiseAllowed', label: 'Toggle With Main Cruise', type: 'bool', category: 'steering', subsection: 'MADS' },
+		{ key: 'MadsUnifiedEngagementMode', label: 'Unified Engagement Mode (UEM)', type: 'bool', category: 'steering', subsection: 'MADS' },
+		{ key: 'MadsSteeringMode', label: 'Steering Mode on Brake Pedal', type: 'bool', category: 'steering', subsection: 'MADS' },
+		{ key: 'AutoLaneChangeTimer', label: 'Auto Lane Change By Blinker', type: 'int', category: 'steering', subsection: 'Customize Lane Change' },
+		{ key: 'AutoLaneChangeBsmDelay', label: 'Auto Lane Change: Delay With Blind Spot', type: 'int', category: 'steering', subsection: 'Customize Lane Change' },
+		{ key: 'BlinkerPauseLateralControl', label: 'Pause Lateral Control with Blinker', type: 'bool', category: 'steering' },
+		{ key: 'NeuralNetworkLateralControl', label: 'Neural Network Lateral Control (NNLC)', type: 'bool', category: 'steering' },
+
+		// Cruise Category
+		{ key: 'IntelligentCruiseButtonManagement', label: 'Intelligent Cruise Button Management (ICBM) (Alpha)', type: 'bool', category: 'cruise' },
+		{ key: 'SmartCruiseControlVision', label: 'Smart Cruise Control - Vision', type: 'bool', category: 'cruise' },
+		{ key: 'SmartCruiseControlMap', label: 'Smart Cruise Control - Map', type: 'bool', category: 'cruise' },
+		{ key: 'CustomAccIncrementsEnabled', label: 'Custom ACC Speed Increments', type: 'bool', category: 'cruise' },
+		{ key: 'SpeedLimitMode', label: 'Speed Limit', type: 'bool', category: 'cruise', subsection: 'Speed Limit' },
+		{ key: 'SpeedLimitPolicy', label: 'Speed Limit Source', type: 'select', category: 'cruise', subsection: 'Speed Limit > Customize' },
+
+		// Visuals Category
+		{ key: 'BlindSpot', label: 'Show Blind Spot Warnings', type: 'bool', category: 'visuals' },
+		{ key: 'RainbowMode', label: 'Enable Tesla Rainbow Mode', type: 'bool', category: 'visuals' },
+		{ key: 'StandstillTimer', label: 'Enable Standstill Timer', type: 'bool', category: 'visuals' },
+		{ key: 'RoadNameToggle', label: 'Display Road Name', type: 'bool', category: 'visuals' },
+		{ key: 'ChevronInfo', label: 'Display Metrics Below Chevron', type: 'bool', category: 'visuals' },
+		{ key: 'DevUIInfo', label: 'Developer UI', type: 'bool', category: 'visuals' },
+
+		// Developer Category
+		{ key: 'AdbEnabled', label: 'Enable ADB', type: 'bool', category: 'developer' },
+		{ key: 'SshEnabled', label: 'Enable SSH', type: 'bool', category: 'developer' },
+		{ key: 'JoystickDebugMode', label: 'Joystick Debug Mode', type: 'bool', category: 'developer' },
+		{ key: 'LongitudinalManeuverMode', label: 'Longitudinal Maneuver Mode', type: 'bool', category: 'developer' },
+		{ key: 'AlphaLongitudinalEnabled', label: 'openpilot Longitudinal Control (Alpha)', type: 'bool', category: 'developer' },
+		{ key: 'ShowAdvancedControls', label: 'Show Advanced Controls', type: 'bool', category: 'developer' },
+		{ key: 'EnableGithubRunner', label: 'Enable GitHub runner service', type: 'bool', category: 'developer' },
+		{ key: 'EnableCopyparty', label: 'Enable copyparty service', type: 'bool', category: 'developer' }
 	];
 
-	const SETTING_KEYS = ALL_SETTING_KEYS;
+	let activeCategory = $state<SettingCategory>('device');
+	let loadedCategories = $state<Set<SettingCategory>>(new Set(['device']));
+
+	const categorySettings = $derived(() => {
+		return SETTINGS_DEFINITIONS.filter(def => def.category === activeCategory);
+	});
+
+	const categoryKeys = $derived(() => {
+		return SETTINGS_DEFINITIONS
+			.filter(def => loadedCategories.has(def.category))
+			.map(def => def.key);
+	});
 
 	function createEmptySettingsState(): Record<string, DeviceSettingState> {
 		const state: Record<string, DeviceSettingState> = {};
 
-		// Add all setting keys with minimal definition
-		for (const key of ALL_SETTING_KEYS) {
-			const definition = SETTINGS_DEFINITIONS.find(d => d.key === key) || {
-				key,
-				label: key.replace(/([A-Z])/g, ' $1').trim(),
-				type: 'readonly' as SettingType
-			};
-			state[key] = {
+		// Only create state for settings we have definitions for
+		for (const definition of SETTINGS_DEFINITIONS) {
+			state[definition.key] = {
 				definition,
 				value: null,
 				encodedValue: null,
@@ -220,6 +217,56 @@
 		return encodeBase64Value(String(value));
 	}
 
+	async function loadCategorySettings(category: SettingCategory) {
+		if (loadedCategories.has(category) || !selectedDevice) {
+			return;
+		}
+
+		const newKeys = SETTINGS_DEFINITIONS
+			.filter(def => def.category === category)
+			.map(def => def.key);
+
+		try {
+			const response = await sunnylinkClient.GET('/settings/{deviceId}/values', {
+				params: {
+					path: { deviceId: selectedDevice },
+					query: { paramKeys: newKeys }
+				}
+			});
+
+			if (response.error) {
+				throw new Error(response.error.detail ?? 'Failed to load settings');
+			}
+
+			const settingsPayload = response.data?.settings ?? {};
+
+			for (const key of newKeys) {
+				if (key in settingsPayload && key in deviceSettings) {
+					const encodedValue = settingsPayload[key] ?? null;
+					const definition = deviceSettings[key].definition;
+					deviceSettings[key] = {
+						definition,
+						encodedValue,
+						value: decodeSettingValue(definition, encodedValue),
+						loading: false
+					};
+				}
+			}
+
+			loadedCategories.add(category);
+		} catch (error) {
+			console.error(`Error loading ${category} settings:`, error);
+			toast.error(`Failed to load ${category} settings`);
+		}
+	}
+
+	function switchCategory(category: SettingCategory) {
+		activeCategory = category;
+		if (!loadedCategories.has(category)) {
+			void loadCategorySettings(category);
+		}
+	}
+
 	async function loadSettingsForDevice(deviceId: string) {
 		if (!deviceId) {
 			deviceSettings = createEmptySettingsState();
@@ -236,7 +283,7 @@
 						deviceId
 					},
 					query: {
-						paramKeys: SETTING_KEYS
+						paramKeys: categoryKeys()
 					}
 				}
 			});
@@ -249,15 +296,14 @@
 				return;
 			}
 
-			const nextState = createEmptySettingsState();
 			const settingsPayload = response.data?.settings ?? {};
 
-			// Update all keys that came back from the API
-			for (const key of ALL_SETTING_KEYS) {
-				if (key in settingsPayload) {
+			// Update settings that came back from the API
+			for (const key of categoryKeys()) {
+				if (key in settingsPayload && key in deviceSettings) {
 					const encodedValue = settingsPayload[key] ?? null;
-					const definition = nextState[key].definition;
-					nextState[key] = {
+					const definition = deviceSettings[key].definition;
+					deviceSettings[key] = {
 						definition,
 						encodedValue,
 						value: decodeSettingValue(definition, encodedValue),
@@ -265,8 +311,6 @@
 					};
 				}
 			}
-
-			deviceSettings = nextState;
 		} catch (error) {
 			console.error('Error loading device settings:', error);
 			if (selectedDevice === requestDeviceId) {
@@ -484,6 +528,11 @@
 		selectedDevice = deviceId;
 		deviceDropdownOpen = false;
 		deviceSearch = '';
+
+		// Reset category state when switching devices
+		activeCategory = 'device';
+		loadedCategories = new Set(['device']);
+
 		if (deviceId && deviceId !== previousDevice) {
 			await loadSettingsForDevice(deviceId);
 		}
@@ -792,19 +841,60 @@
 						</div>
 						{#if !selectedDevice}
 							<p class="text-sm opacity-70">Select a device to view configurable settings.</p>
-					{:else if settingsLoading}
-						<p class="flex items-center gap-2 text-sm opacity-70">
-							<span class="loading loading-spinner loading-xs text-primary" aria-hidden="true"></span>
-							<span>Loading settings…</span>
-						</p>
+						{:else if settingsLoading}
+							<p class="flex items-center gap-2 text-sm opacity-70">
+								<span class="loading loading-spinner loading-xs text-primary" aria-hidden="true"></span>
+								<span>Loading settings…</span>
+							</p>
 						{:else}
 							{#if settingsError}
 								<div class="alert alert-warning text-sm">
 									<span>{settingsError}</span>
 								</div>
 							{/if}
+
+							<!-- Category Tabs -->
+							<div class="tabs tabs-boxed">
+								<button
+									class="tab {activeCategory === 'device' ? 'tab-active' : ''}"
+									onclick={() => switchCategory('device')}
+								>
+									Device
+								</button>
+								<button
+									class="tab {activeCategory === 'toggles' ? 'tab-active' : ''}"
+									onclick={() => switchCategory('toggles')}
+								>
+									Toggles
+								</button>
+								<button
+									class="tab {activeCategory === 'steering' ? 'tab-active' : ''}"
+									onclick={() => switchCategory('steering')}
+								>
+									Steering
+								</button>
+								<button
+									class="tab {activeCategory === 'cruise' ? 'tab-active' : ''}"
+									onclick={() => switchCategory('cruise')}
+								>
+									Cruise
+								</button>
+								<button
+									class="tab {activeCategory === 'visuals' ? 'tab-active' : ''}"
+									onclick={() => switchCategory('visuals')}
+								>
+									Visuals
+								</button>
+								<button
+									class="tab {activeCategory === 'developer' ? 'tab-active' : ''}"
+									onclick={() => switchCategory('developer')}
+								>
+									Developer
+								</button>
+							</div>
+
 							<div class="space-y-4">
-								{#each SETTINGS_DEFINITIONS as definition (definition.key)}
+								{#each categorySettings() as definition (definition.key)}
 									{#if definition.type === 'bool'}
 											<ToggleSetting
 												label={definition.label}
@@ -814,7 +904,7 @@
 												disabled={!selectedDevice}
 												onChange={(value) => handleBooleanSettingChange(definition, value)}
 											/>
-										{:else if definition.type === 'int'}
+										{:else if definition.type === 'int' || definition.type === 'select'}
 											<SelectSetting
 												label={definition.label}
 												description={definition.description}
@@ -826,35 +916,6 @@
 											/>
 									{/if}
 								{/each}
-							</div>
-
-							<!-- All Settings (Read-only) -->
-							<div class="mt-8 border-t border-base-300 pt-6">
-								<h3 class="mb-4 text-md font-semibold">All Device Parameters</h3>
-								<div class="max-h-96 overflow-y-auto rounded-lg border border-base-300 bg-base-200/40">
-									<table class="table table-xs">
-										<thead class="sticky top-0 bg-base-300">
-											<tr>
-												<th>Key</th>
-												<th>Value</th>
-											</tr>
-										</thead>
-										<tbody>
-											{#each Object.entries(deviceSettings).sort(([a], [b]) => a.localeCompare(b)) as [key, setting]}
-												{#if setting.value !== null}
-													<tr class="hover">
-														<td class="font-mono text-xs">{key}</td>
-														<td class="font-mono text-xs break-all">
-															{typeof setting.value === 'boolean'
-																? (setting.value ? 'true' : 'false')
-																: String(setting.value)}
-														</td>
-													</tr>
-												{/if}
-											{/each}
-										</tbody>
-									</table>
-								</div>
 							</div>
 						{/if}
 					</div>
