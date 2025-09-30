@@ -77,7 +77,7 @@
 	>
 		<option value="" disabled>{placeholder ?? 'Select an option'}</option>
 		{#each optionsToRender as option}
-			<option value={option.value}>{option.label}</option>
+			<option value={option.value.toString()}>{option.label}</option>
 		{/each}
 	</select>
 </div>
