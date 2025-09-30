@@ -130,6 +130,7 @@
 
 	let activeCategory = $state<SettingCategory>('device');
 	let loadedCategories = $state<Set<SettingCategory>>(new Set(['device']));
+	let categoryLoading = $state<boolean>(false);
 
 	const categorySettings = $derived(() => {
 		return SETTINGS_DEFINITIONS.filter(def => def.category === activeCategory);
@@ -222,6 +223,7 @@
 			return;
 		}
 
+		categoryLoading = true;
 		const newKeys = SETTINGS_DEFINITIONS
 			.filter(def => def.category === category)
 			.map(def => def.key);
@@ -257,6 +259,8 @@
 		} catch (error) {
 			console.error(`Error loading ${category} settings:`, error);
 			toast.error(`Failed to load ${category} settings`);
+		} finally {
+			categoryLoading = false;
 		}
 	}
 
@@ -893,30 +897,40 @@
 								</button>
 							</div>
 
-							<div class="space-y-4">
-								{#each categorySettings() as definition (definition.key)}
-									{#if definition.type === 'bool'}
-											<ToggleSetting
-												label={definition.label}
-												description={definition.description}
-												value={getBooleanSettingValue(definition.key)}
-												loading={isSettingSaving(definition.key)}
-												disabled={!selectedDevice}
-												onChange={(value) => handleBooleanSettingChange(definition, value)}
-											/>
-										{:else if definition.type === 'int' || definition.type === 'select'}
-											<SelectSetting
-												label={definition.label}
-												description={definition.description}
-												options={definition.options ?? []}
-												value={getNumericSettingValue(definition.key)}
-												loading={isSettingSaving(definition.key)}
-												disabled={!selectedDevice}
-												onChange={(value) => handleNumberSettingChange(definition, value)}
-											/>
-									{/if}
-								{/each}
-							</div>
+							<!-- Category Loading State -->
+							{#if categoryLoading}
+								<div class="flex items-center justify-center py-12">
+									<div class="text-center">
+										<span class="loading loading-spinner loading-md text-primary"></span>
+										<p class="mt-2 text-sm opacity-70">Loading settings...</p>
+									</div>
+								</div>
+							{:else}
+								<div class="space-y-4">
+									{#each categorySettings() as definition (definition.key)}
+										{#if definition.type === 'bool'}
+												<ToggleSetting
+													label={definition.label}
+													description={definition.description}
+													value={getBooleanSettingValue(definition.key)}
+													loading={isSettingSaving(definition.key)}
+													disabled={!selectedDevice}
+													onChange={(value) => handleBooleanSettingChange(definition, value)}
+												/>
+											{:else if definition.type === 'int' || definition.type === 'select'}
+												<SelectSetting
+													label={definition.label}
+													description={definition.description}
+													options={definition.options ?? []}
+													value={getNumericSettingValue(definition.key)}
+													loading={isSettingSaving(definition.key)}
+													disabled={!selectedDevice}
+													onChange={(value) => handleNumberSettingChange(definition, value)}
+												/>
+										{/if}
+									{/each}
+								</div>
+							{/if}
 						{/if}
 					</div>
 				</div>
