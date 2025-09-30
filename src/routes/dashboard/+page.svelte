@@ -268,6 +268,7 @@
 				...deviceSettings,
 				[definition.key]: {
 					...deviceSettings[definition.key],
+					value,
 					encodedValue,
 					loading: false
 				}
@@ -305,7 +306,9 @@
 
 	function getNumericSettingValue(key: string): number | null {
 		const candidate = deviceSettings[key]?.value;
-		return typeof candidate === 'number' ? candidate : null;
+		const result = typeof candidate === 'number' ? candidate : null;
+		console.log(`[getNumericSettingValue] key: ${key}, candidate:`, candidate, 'result:', result);
+		return result;
 	}
 
 	function isSettingSaving(key: string): boolean {

@@ -32,7 +32,12 @@
 
 	const isDisabled = $derived(disabled || loading);
 
-	const selectedValue = $derived(value === null ? '' : value.toString());
+	const internalValue = $derived(value === null ? '' : value.toString());
+
+	// Debug logging
+	$effect(() => {
+		console.log(`[SelectSetting ${label}] value:`, value, 'internalValue:', internalValue);
+	});
 
 	const optionsToRender = $derived.by(() => {
 		if (value === null) {
@@ -66,7 +71,7 @@
 		class="select select-bordered w-full"
 		{name}
 		{id}
-		value={selectedValue}
+		value={internalValue}
 		disabled={isDisabled}
 		onchange={handleChange}
 	>
