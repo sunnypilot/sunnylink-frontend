@@ -45,16 +45,27 @@
 					sunnylinkClient.use(authMiddleware);
 				authReady = true;
 
-				const devices = await sunnylinkClient.GET('/users/{userId}/devices', {
+					const devices = await sunnylinkClient.GET('/users/{userId}/devices', {
 					params: { path: { userId: 'self' } }
 				});
-				allDevices = devices.data!;
+					if (devices.error) {
+						toast.warning('Unable to load devices right now. You can still browse models.');
+						allDevices = [];
+						loading = false;
+						return;
+					}
+					allDevices = devices.data ?? [];
 				if (allDevices.length === 1) {
 					selectedDevice = allDevices[0].device_id ?? '';
 				}
 
 					// Fetch device details to build labels (alias - dongleId)
 					try {
+						if (allDevices.length === 0) {
+							labelsById = {};
+							loading = false;
+							return;
+						}
 						const detailResults = await Promise.all(
 							allDevices.map((d) =>
 								sunnylinkClient.GET('/device/{deviceId}', {
@@ -73,11 +84,11 @@
 						console.warn('Unable to load device details for labels', e);
 					}
 				loading = false;
-			} catch (error: any) {
-				console.error('Error loading data:', error);
-				toast.error('Failed to load dashboard data');
-				loading = false;
-			}
+				} catch (error: any) {
+					console.error('Error loading data:', error);
+					toast.error('Failed to load dashboard data');
+					loading = false;
+				}
 		}
 	});
 
