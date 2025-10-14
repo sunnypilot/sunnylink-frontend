@@ -6,3 +6,19 @@ export const createAuthMiddleware = (token: string): Middleware => ({
 		return request;
 	}
 });
+
+export const createDynamicAuthMiddleware = (
+	getToken: () => Promise<string | null>
+): Middleware => ({
+	async onRequest({ request }) {
+		try {
+			const token = await getToken();
+			if (token) {
+				request.headers.set('Authorization', `Bearer ${token}`);
+			}
+		} catch {
+			// Intentionally ignore token retrieval errors here; callers should handle 401s
+		}
+		return request;
+	}
+});

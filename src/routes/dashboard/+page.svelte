@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createAuthMiddleware } from '$lib/api/auth';
+	import { createDynamicAuthMiddleware } from '$lib/api/auth';
 	import { sunnylinkClient } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import { type Device } from '$lib/types/types';
@@ -21,17 +21,28 @@
 	let loading = $state(true);
 	let models = $state<ModelBundle[]>([]);
 	let authReady = $state(false);
+	let labelsById = $state<Record<string, string>>({});
 
-	onMount(async () => {
+	function buildDeviceLabel(detail: any, deviceId: string) {
+		const alias = (detail?.alias ?? '').trim();
+		const dongle = (detail?.comma_dongle_id ?? '').trim();
+		if (alias && dongle) return `${alias} - ${dongle}`;
+		if (alias) return `${alias} - ${deviceId}`;
+		return dongle || deviceId;
+	}
+
+		onMount(async () => {
 		if (data.user) {
 			try {
 				const modelsResponse = await fetch('https://docs.sunnypilot.ai/driving_models_v7.json');
 				const modelsJson: ModelsV7 = await modelsResponse.json();
 				models = modelsJson.bundles.reverse();
 
-				const idToken = await data.logtoClient?.getIdToken();
-				const authMiddleware = createAuthMiddleware(idToken ?? '');
-				sunnylinkClient.use(authMiddleware);
+					// Attach dynamic auth middleware to ensure fresh tokens
+					const authMiddleware = createDynamicAuthMiddleware(() =>
+						data.logtoClient ? data.logtoClient.getAccessToken() : Promise.resolve(null)
+					);
+					sunnylinkClient.use(authMiddleware);
 				authReady = true;
 
 				const devices = await sunnylinkClient.GET('/users/{userId}/devices', {
@@ -41,6 +52,26 @@
 				if (allDevices.length === 1) {
 					selectedDevice = allDevices[0].device_id ?? '';
 				}
+
+					// Fetch device details to build labels (alias - dongleId)
+					try {
+						const detailResults = await Promise.all(
+							allDevices.map((d) =>
+								sunnylinkClient.GET('/device/{deviceId}', {
+									params: { path: { deviceId: d.device_id ?? '' } }
+								})
+							)
+						);
+						const labels: Record<string, string> = {};
+						for (let i = 0; i < allDevices.length; i++) {
+							const deviceId = allDevices[i].device_id ?? '';
+							const detail = detailResults[i]?.data;
+							labels[deviceId] = buildDeviceLabel(detail, deviceId);
+						}
+						labelsById = labels;
+					} catch (e) {
+						console.warn('Unable to load device details for labels', e);
+					}
 				loading = false;
 			} catch (error: any) {
 				console.error('Error loading data:', error);
@@ -116,7 +147,7 @@
 </script>
 
 <div class="bg-base-100 relative min-h-screen">
-	<div class="mx-auto max-w-4xl px-6 py-16">
+	<div class="ml-auto mr-0 max-w-4xl px-6 py-16">
 		{#if !data.user}
 			<div class="text-center" in:fade={{ delay: 200, duration: 400 }}>
 				<h2 class="mb-3 text-2xl font-medium">Authentication Required</h2>
@@ -170,7 +201,7 @@
 
 				<!-- Form -->
 				<div class="mx-auto max-w-2xl space-y-6">
-					<DeviceSelection devices={allDevices} {selectedDevice} onSelect={handleDeviceSelect} />
+					<DeviceSelection devices={allDevices} {selectedDevice} onSelect={handleDeviceSelect} labelsById={labelsById} />
 
 					<ModelSelection {models} {selectedModel} onSelect={handleModelSelect} />
 
@@ -214,7 +245,7 @@
 							<div class="space-y-2 text-xs">
 								<div class="flex justify-between">
 									<span class="opacity-70">Device:</span>
-									<span class="font-medium">{selectedDevice}</span>
+									<span class="font-medium">{labelsById[selectedDevice] || selectedDevice}</span>
 								</div>
 								<div class="flex justify-between">
 									<span class="opacity-70">Model:</span>

@@ -126,9 +126,15 @@
 
 			if (selectedDevice !== requestDeviceId) return;
 
+			let hasAnySuccess = false;
+			let firstError: any = null;
+
 			for (const { category, response, keys } of results) {
 				if (!response || response.error) {
 					console.error(`Failed to load ${category} settings:`, response?.error);
+					if (!firstError && response?.error) {
+						firstError = response.error;
+					}
 					continue;
 				}
 
@@ -138,6 +144,7 @@
 					continue;
 				}
 
+				hasAnySuccess = true;
 				const settingsPayload = response.data.settings;
 
 				for (const key of keys) {
@@ -155,11 +162,19 @@
 
 				loadedCategories.add(category);
 			}
-		} catch (error) {
+
+			if (!hasAnySuccess && firstError) {
+				const errorDetail = firstError.detail || 'Device not found or offline';
+				throw new Error(errorDetail);
+			}
+		} catch (error: any) {
 			console.error('Error loading device settings:', error);
 			if (selectedDevice === requestDeviceId) {
-				settingsError = 'Unable to load device settings right now.';
-				toast.error('Failed to load device settings');
+				const errorMessage = error?.message || 'Unable to load device settings right now.';
+				settingsError = errorMessage.includes('not found')
+					? 'Device not found. Make sure the device is online.'
+					: errorMessage;
+				toast.error(settingsError);
 			}
 		} finally {
 			if (selectedDevice === requestDeviceId) {

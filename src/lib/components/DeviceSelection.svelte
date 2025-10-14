@@ -7,17 +7,21 @@
 		selectedDevice: string;
 		disabled?: boolean;
 		onSelect: (deviceId: string) => void;
+		labelsById?: Record<string, string>;
 	}
 
-	let { devices, selectedDevice, disabled = false, onSelect }: Props = $props();
+	let { devices, selectedDevice, disabled = false, onSelect, labelsById = {} }: Props = $props();
 
 	let dropdownOpen = $state(false);
 	let searchQuery = $state('');
 
 	const filteredDevices = $derived(
-		devices.filter((device) =>
-			(device.device_id ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-		)
+		devices.filter((device) => {
+			const id = (device.device_id ?? '').toLowerCase();
+			const label = (labelsById[device.device_id ?? ''] ?? '').toLowerCase();
+			const q = searchQuery.toLowerCase();
+			return id.includes(q) || label.includes(q);
+		})
 	);
 
 	const handleSelect = (deviceId: string) => {
@@ -46,7 +50,7 @@
 			class="btn btn-outline w-full justify-between"
 		>
 			<span>
-				{selectedDevice || 'Select a device...'}
+				{labelsById[selectedDevice] || selectedDevice || 'Select a device...'}
 			</span>
 			<svg
 				class="h-4 w-4 transition-transform {dropdownOpen ? 'rotate-180' : ''}"
@@ -76,7 +80,7 @@
 					{#if filteredDevices.length === 0}
 						<div class="px-3 py-2 text-sm opacity-60">No devices found</div>
 					{:else}
-						{#each filteredDevices as device}
+					{#each filteredDevices as device}
 							<button
 								onclick={() => handleSelect(device.device_id ?? '')}
 								class="hover:bg-base-200 flex w-full items-center px-3 py-2 text-left text-sm {selectedDevice ===
@@ -85,7 +89,7 @@
 									: ''}"
 							>
 								<div class="flex-1">
-									<div class="font-medium">{device.device_id ?? ''}</div>
+								<div class="font-medium">{labelsById[device.device_id ?? ''] || device.device_id || ''}</div>
 								</div>
 								{#if selectedDevice === (device.device_id ?? '')}
 									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
