@@ -71,35 +71,45 @@
 			<img src={lightLogo} class="h-12" alt="lightlogo" />
 		{/if}
 	</div>
-	<div class="navbar-end">
+	<div class="navbar-end ml-auto">
 		<a href="{base}/dashboard" class="btn btn-ghost">Dashboard</a>
 
 		{#if data.user}
 			<div class="dropdown dropdown-left">
 				<div tabindex="0" role="button" class="btn btn-ghost btn-circle">
-					<img src={data.user.picture} alt="SSO avatar" class="rounded-4xl" />
+					<img src={data.user.picture} alt="SSO avatar" class="rounded-full ring ring-base-300 ring-offset-2 ring-offset-base-100" />
 				</div>
 				<ul
 					tabindex="-1"
-					class="menu dropdown-content bg-base-200 rounded-box z-1 mt-3 w-60 p-3 shadow"
+					class="menu dropdown-content bg-base-100 border border-base-300 rounded-2xl z-1 mt-3 w-72 p-4 shadow-xl"
 				>
-					<li class="px-2 py-2 flex items-center gap-3">
-						<img src={data.user.picture} alt="avatar" class="h-8 w-8 rounded-full" />
-						<div class="min-w-0 text-sm">
-							<div class="font-semibold truncate">{data.user.name ?? 'Account'}</div>
-							<div class="opacity-60 truncate">{data.user.email}</div>
+					<li class="py-2">
+						<div class="flex flex-col items-center text-center gap-2">
+							<div class="avatar">
+								<div class="h-12 w-12 rounded-full ring ring-base-300 ring-offset-2 ring-offset-base-100">
+									<img src={data.user.picture} alt="avatar" />
+								</div>
+							</div>
+							<div class="min-w-0">
+								<div class="font-semibold">{data.user.name ?? 'Account'}</div>
+								{#if data.user.email}
+									<div class="opacity-60 text-xs truncate">{data.user.email}</div>
+								{/if}
+							</div>
 						</div>
 					</li>
-					<li class="my-1"><div class="divider m-0"></div></li>
-					<li class="px-2 py-1">
-						<ThemeToggle
-							onThemeChanged={() => {
-								determineCurrentLogoColor();
-							}}
-						/>
+					<li class="my-2"><div class="divider m-0"></div></li>
+					<li class="py-1">
+						<div class="rounded-lg bg-base-200/60 px-3 py-2">
+							<ThemeToggle
+								onThemeChanged={() => {
+									determineCurrentLogoColor();
+								}}
+							/>
+						</div>
 					</li>
-					<li class="pt-1">
-						<button class="btn btn-error btn-sm w-full" onclick={signOut}>Logout</button>
+					<li class="pt-2">
+						<button class="btn btn-error w-full" onclick={signOut}>Logout</button>
 					</li>
 				</ul>
 			</div>
