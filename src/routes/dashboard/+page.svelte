@@ -158,7 +158,7 @@
 </script>
 
 <div class="bg-base-100 relative min-h-screen">
-	<div class="ml-auto mr-0 max-w-4xl px-6 py-16">
+    <div class="mx-auto max-w-4xl px-6 py-16">
 		{#if !data.user}
 			<div class="text-center" in:fade={{ delay: 200, duration: 400 }}>
 				<h2 class="mb-3 text-2xl font-medium">Authentication Required</h2>
