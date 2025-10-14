@@ -98,7 +98,7 @@
 							</div>
 						</div>
 					</li>
-					<li class="my-2"><div class="divider m-0"></div></li>
+					<div class="my-2"><div class="divider m-0"></div></div>
 					<li class="py-1">
 						<div class="rounded-lg bg-base-200/60 px-3 py-2">
 							<ThemeToggle
@@ -109,7 +109,7 @@
 						</div>
 					</li>
 					<li class="pt-2">
-						<button class="btn btn-error w-full" onclick={signOut}>Logout</button>
+						<button class="btn btn-neutral w-full" onclick={signOut}>Logout</button>
 					</li>
 				</ul>
 			</div>
