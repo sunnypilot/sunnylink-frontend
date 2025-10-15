@@ -31,64 +31,71 @@
 		return dongle || deviceId;
 	}
 
-		onMount(async () => {
+	onMount(async () => {
 		if (data.user) {
 			try {
 				const modelsResponse = await fetch('https://docs.sunnypilot.ai/driving_models_v7.json');
 				const modelsJson: ModelsV7 = await modelsResponse.json();
 				models = modelsJson.bundles.reverse();
 
-					// Attach dynamic auth middleware to ensure fresh tokens
-					const authMiddleware = createDynamicAuthMiddleware(() =>
-						data.logtoClient ? data.logtoClient.getAccessToken() : Promise.resolve(null)
-					);
-					sunnylinkClient.use(authMiddleware);
+				// Attach dynamic auth middleware; use ID token for compatibility
+				const authMiddleware = createDynamicAuthMiddleware(() =>
+					data.logtoClient ? data.logtoClient.getIdToken() : Promise.resolve(null)
+				);
+				sunnylinkClient.use(authMiddleware);
 				authReady = true;
 
-					const devices = await sunnylinkClient.GET('/users/{userId}/devices', {
+				let devicesResp = await sunnylinkClient.GET('/users/{userId}/devices', {
 					params: { path: { userId: 'self' } }
 				});
-					if (devices.error) {
-						toast.warning('Unable to load devices right now. You can still browse models.');
-						allDevices = [];
-						loading = false;
-						return;
-					}
-					allDevices = devices.data ?? [];
+				if (!devicesResp.data) {
+					// Retry once in case token/key just refreshed; try both access and id tokens
+					try {
+						await data.logtoClient?.getAccessToken();
+						await data.logtoClient?.getIdToken();
+					} catch {}
+					devicesResp = await sunnylinkClient.GET('/users/{userId}/devices', {
+						params: { path: { userId: 'self' } }
+					});
+				}
+				allDevices = devicesResp.data ?? [];
+				if (!devicesResp.data && devicesResp.error) {
+					toast.warning('Unable to load devices right now. You can still browse models.');
+				}
 				if (allDevices.length === 1) {
 					selectedDevice = allDevices[0].device_id ?? '';
 				}
 
-					// Fetch device details to build labels (alias - dongleId)
-					try {
-						if (allDevices.length === 0) {
-							labelsById = {};
-							loading = false;
-							return;
-						}
-						const detailResults = await Promise.all(
-							allDevices.map((d) =>
-								sunnylinkClient.GET('/device/{deviceId}', {
-									params: { path: { deviceId: d.device_id ?? '' } }
-								})
-							)
-						);
-						const labels: Record<string, string> = {};
-						for (let i = 0; i < allDevices.length; i++) {
-							const deviceId = allDevices[i].device_id ?? '';
-							const detail = detailResults[i]?.data;
-							labels[deviceId] = buildDeviceLabel(detail, deviceId);
-						}
-						labelsById = labels;
-					} catch (e) {
-						console.warn('Unable to load device details for labels', e);
+				// Fetch device details to build labels (alias - dongleId)
+				try {
+					if (allDevices.length === 0) {
+						labelsById = {};
+						loading = false;
+						return;
 					}
-				loading = false;
-				} catch (error: any) {
-					console.error('Error loading data:', error);
-					toast.error('Failed to load dashboard data');
-					loading = false;
+					const detailResults = await Promise.all(
+						allDevices.map((d) =>
+							sunnylinkClient.GET('/device/{deviceId}', {
+								params: { path: { deviceId: d.device_id ?? '' } }
+							})
+						)
+					);
+					const labels: Record<string, string> = {};
+					for (let i = 0; i < allDevices.length; i++) {
+						const deviceId = allDevices[i].device_id ?? '';
+						const detail = detailResults[i]?.data;
+						labels[deviceId] = buildDeviceLabel(detail, deviceId);
+					}
+					labelsById = labels;
+				} catch (e) {
+					console.warn('Unable to load device details for labels', e);
 				}
+				loading = false;
+			} catch (error: any) {
+				console.error('Error loading data:', error);
+				toast.error('Failed to load dashboard data');
+				loading = false;
+			}
 		}
 	});
 
@@ -158,7 +165,7 @@
 </script>
 
 <div class="bg-base-100 relative min-h-screen">
-    <div class="mx-auto max-w-4xl px-6 py-16">
+	<div class="mx-auto max-w-4xl px-6 py-16">
 		{#if !data.user}
 			<div class="text-center" in:fade={{ delay: 200, duration: 400 }}>
 				<h2 class="mb-3 text-2xl font-medium">Authentication Required</h2>
@@ -212,7 +219,12 @@
 
 				<!-- Form -->
 				<div class="mx-auto max-w-2xl space-y-6">
-					<DeviceSelection devices={allDevices} {selectedDevice} onSelect={handleDeviceSelect} labelsById={labelsById} />
+					<DeviceSelection
+						devices={allDevices}
+						{selectedDevice}
+						onSelect={handleDeviceSelect}
+						{labelsById}
+					/>
 
 					<ModelSelection {models} {selectedModel} onSelect={handleModelSelect} />
 
