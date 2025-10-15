@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { sunnylinkClient } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
-	import { SETTINGS_DEFINITIONS, type SettingCategory, type SettingDefinition } from '$lib/settings-definitions';
+	import {
+		SETTINGS_DEFINITIONS,
+		type SettingCategory,
+		type SettingDefinition
+	} from '$lib/settings-definitions';
 	import ToggleSetting from '$lib/components/settings/ToggleSetting.svelte';
 	import SelectSetting from '$lib/components/settings/SelectSetting.svelte';
 
@@ -65,7 +69,10 @@
 		throw new Error('Base64 encoding is not available in this environment');
 	};
 
-	const decodeSettingValue = (definition: SettingDefinition, encodedValue: string | null): boolean | number | null => {
+	const decodeSettingValue = (
+		definition: SettingDefinition,
+		encodedValue: string | null
+	): boolean | number | null => {
 		const decoded = decodeBase64Value(encodedValue);
 		if (decoded === null) return null;
 
@@ -102,7 +109,9 @@
 
 		try {
 			const requests = categories.map(async (category) => {
-				const keys = SETTINGS_DEFINITIONS.filter((def) => def.category === category).map((def) => def.key);
+				const keys = SETTINGS_DEFINITIONS.filter((def) => def.category === category).map(
+					(def) => def.key
+				);
 
 				if (!keys || keys.length === 0) {
 					return { category, response: null, keys: [] };
@@ -174,7 +183,7 @@
 				settingsError = errorMessage.includes('not found')
 					? 'Device not found. Make sure the device is online.'
 					: errorMessage;
-				toast.error(settingsError);
+				toast.error(settingsError ?? errorMessage);
 			}
 		} finally {
 			if (selectedDevice === requestDeviceId) {
@@ -346,14 +355,14 @@
 			</div>
 		</div>
 
-		{#if categoryLoading || !loadedCategories.has(activeCategory)}
+		{#if !settingsError && (categoryLoading || !loadedCategories.has(activeCategory))}
 			<div class="flex items-center justify-center py-12">
 				<div class="text-center">
 					<span class="loading loading-spinner loading-md text-primary"></span>
 					<p class="mt-2 text-sm opacity-70">Loading settings...</p>
 				</div>
 			</div>
-		{:else}
+		{:else if !settingsError}
 			<div class="space-y-4">
 				{#each categorySettings as definition (definition.key)}
 					{#if definition.type === 'bool'}
