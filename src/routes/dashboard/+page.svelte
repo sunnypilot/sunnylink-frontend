@@ -34,7 +34,7 @@
 	onMount(async () => {
 		if (data.user) {
 			try {
-				const modelsResponse = await fetch('https://docs.sunnypilot.ai/driving_models_v7.json');
+				const modelsResponse = await fetch('https://raw.githubusercontent.com/sunnypilot/sunnypilot-docs/refs/heads/gh-pages/docs/driving_models_v8.json');
 				const modelsJson: ModelsV7 = await modelsResponse.json();
 				models = modelsJson.bundles.reverse();
 
