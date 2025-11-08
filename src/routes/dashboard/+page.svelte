@@ -25,7 +25,7 @@
 
 	function buildDeviceLabel(detail: any, deviceId: string) {
 		const alias = (detail?.alias ?? '').trim();
-		const dongle = (detail?.comma_dongle_id ?? '').trim();
+		const dongle = (detail?.device_id ?? '').trim();
 		if (alias && dongle) return `${alias} - ${dongle}`;
 		if (alias) return `${alias} - ${deviceId}`;
 		return dongle || deviceId;
