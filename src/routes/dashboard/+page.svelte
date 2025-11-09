@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createDynamicAuthMiddleware } from '$lib/api/auth';
-	import { sunnylinkClient } from '$lib/api/client';
+	import { sunnylinkClient, sunnylinkClientV1 } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import { type Device } from '$lib/types/types';
 	import { type ModelsV7, type ModelBundle } from '$lib/types/models-v7';
@@ -15,8 +15,8 @@
 	let allDevices = $state<Device>([]);
 	let selectedModel = $state<number>();
 	let selectedDevice = $state<string>('');
-	let sendingModel = $state<Boolean>(false);
-	let deploymentAnimation = $state<Boolean>(false);
+	let sendingModel = $state<boolean>(false);
+	let deploymentAnimation = $state<boolean>(false);
 	let deploymentProgress = $state<number>(0);
 	let loading = $state(true);
 	let models = $state<ModelBundle[]>([]);
@@ -43,6 +43,7 @@
 					data.logtoClient ? data.logtoClient.getIdToken() : Promise.resolve(null)
 				);
 				sunnylinkClient.use(authMiddleware);
+				sunnylinkClientV1.use(authMiddleware);
 				authReady = true;
 
 				let devicesResp = await sunnylinkClient.GET('/users/{userId}/devices', {
@@ -53,7 +54,7 @@
 					try {
 						await data.logtoClient?.getAccessToken();
 						await data.logtoClient?.getIdToken();
-					} catch {}
+					} catch { /* empty */ }
 					devicesResp = await sunnylinkClient.GET('/users/{userId}/devices', {
 						params: { path: { userId: 'self' } }
 					});
@@ -91,7 +92,7 @@
 					console.warn('Unable to load device details for labels', e);
 				}
 				loading = false;
-			} catch (error: any) {
+			} catch (error: unknown) {
 				console.error('Error loading data:', error);
 				toast.error('Failed to load dashboard data');
 				loading = false;
@@ -145,7 +146,7 @@
 			}, 2000);
 			sendingModel = false;
 			selectedModel = undefined;
-		} catch (error: any) {
+		} catch (error: unknown) {
 			clearInterval(progressInterval);
 			toast.error('Ah nuts 🔩. We encountered an error');
 			console.error('Error:', error);

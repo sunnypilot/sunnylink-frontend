@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { sunnylinkClient } from '$lib/api/client';
+	import { sunnylinkClient, sunnylinkClientV1 } from '$lib/api/client';
+	import { type components } from '$lib/types/sunnylink_v1';
 	import { toast } from 'svelte-sonner';
 	import {
 		SETTINGS_DEFINITIONS,
@@ -17,25 +18,27 @@
 
 	interface DeviceSettingState {
 		definition: SettingDefinition;
-		value: boolean | number | null;
+		value: boolean | number | string | null;
 		encodedValue: string | null;
 		loading: boolean;
+		type: string;
 	}
 
 	let activeCategory = $state<SettingCategory>('device');
+	let deviceSettingsMap = $state<components['schemas']['DeviceParamKey'][] | null>(null);
 	let loadedCategories = $state(new Set<SettingCategory>());
 	let categoryLoading = $state(false);
 	let settingsLoading = $state(false);
 	let settingsError = $state<string | null>(null);
 
-	const categorySettings = $derived.by(() => {
-		return SETTINGS_DEFINITIONS.filter((def) => def.category === activeCategory);
-	});
+	// const categorySettings = $derived.by(() => {
+	// 	return SETTINGS_DEFINITIONS.filter((def) => def.category === activeCategory);
+	// });
 
 	const createEmptySettingsState = (): Record<string, DeviceSettingState> => {
 		const state: Record<string, DeviceSettingState> = {};
 		for (const definition of SETTINGS_DEFINITIONS) {
-			state[definition.key] = { definition, value: null, encodedValue: null, loading: false };
+			state[definition.key] = { definition, value: null, encodedValue: null, loading: false, type: "unknown" };
 		}
 		return state;
 	};
@@ -70,13 +73,16 @@
 	};
 
 	const decodeSettingValue = (
-		definition: SettingDefinition,
-		encodedValue: string | null
-	): boolean | number | null => {
-		const decoded = decodeBase64Value(encodedValue);
+		deviceParam: components['schemas']['DeviceParam']
+	): boolean | number | string | null => {
+		const decoded = decodeBase64Value(deviceParam.value);
 		if (decoded === null) return null;
 
-		if (definition.type === 'bool') {
+		if (deviceParam.type?.toLowerCase() === 'string') {
+			return decoded;
+		}
+
+		if (deviceParam.type?.toLowerCase() === 'bool') {
 			const normalized = decoded.toLowerCase();
 			return normalized === '1' || normalized === 'true';
 		}
@@ -85,8 +91,8 @@
 		return Number.isNaN(parsed) ? null : parsed;
 	};
 
-	const encodeSettingValue = (definition: SettingDefinition, value: boolean | number): string => {
-		return encodeBase64Value(definition.type === 'bool' ? (value ? '1' : '0') : value.toString());
+	const encodeSettingValue = (definition: components['schemas']['DeviceParam'], value: boolean | number): string => {
+		return encodeBase64Value(definition.type?.toLowerCase() === 'bool' ? (value ? '1' : '0') : value.toString());
 	};
 
 	const switchCategory = (category: SettingCategory) => {
@@ -106,28 +112,34 @@
 		loadedCategories = new Set();
 
 		const categories: SettingCategory[] = ['device', 'toggles', 'steering', 'cruise', 'visuals'];
+		const deviceParamQuery = await sunnylinkClientV1.GET('/v1/settings/{deviceId}', { params: { path: { deviceId } } });
+
+		if (deviceParamQuery.data?.items)
+			deviceSettingsMap = deviceParamQuery.data?.items;
 
 		try {
 			const requests = categories.map(async (category) => {
-				const keys = SETTINGS_DEFINITIONS.filter((def) => def.category === category).map(
+
+				const categoryKeys = SETTINGS_DEFINITIONS.filter((def) => def.category === category).map(
 					(def) => def.key
 				);
+				const deviceParams = deviceSettingsMap?.filter((item => categoryKeys.includes(item.key ?? '')));
 
-				if (!keys || keys.length === 0) {
-					return { category, response: null, keys: [] };
+				if (!deviceParams || deviceParams.length === 0) {
+					return { category, response: null, deviceParamKeys: [] };
 				}
 
 				try {
-					const response = await sunnylinkClient.GET('/settings/{deviceId}/values', {
+					const response = await sunnylinkClientV1.GET('/v1/settings/{deviceId}/values', {
 						params: {
 							path: { deviceId },
-							query: { paramKeys: keys }
+							query: { paramKeys: deviceParams.map(param => param.key) }
 						}
 					});
-					return { category, response, keys };
+					return { category, response, deviceParamKeys: deviceParams };
 				} catch (err) {
 					console.error(`Error fetching ${category}:`, err);
-					return { category, response: null, keys };
+					return { category, response: null, deviceParamKeys: deviceParams };
 				}
 			});
 
@@ -138,7 +150,7 @@
 			let hasAnySuccess = false;
 			let firstError: any = null;
 
-			for (const { category, response, keys } of results) {
+			for (const { category, response, deviceParamKeys } of results) {
 				if (!response || response.error) {
 					console.error(`Failed to load ${category} settings:`, response?.error);
 					if (!firstError && response?.error) {
@@ -147,27 +159,33 @@
 					continue;
 				}
 
-				if (!response.data?.settings) {
+				if (!response.data?.items) {
 					console.warn(`No settings data for ${category}`);
 					loadedCategories.add(category);
 					continue;
 				}
 
 				hasAnySuccess = true;
-				const settingsPayload = response.data.settings;
+				const settingsPayload = response.data.items;
 
-				for (const key of keys) {
-					if (key in settingsPayload && key in deviceSettings) {
-						const encodedValue = settingsPayload[key] ?? null;
-						const definition = deviceSettings[key].definition;
-						deviceSettings[key] = {
+				const newSettings: Record<string, DeviceSettingState> = { ...deviceSettings };
+
+				for (const deviceParamKey of deviceParamKeys) {
+					const deviceParam = settingsPayload.find((item) => item.key === deviceParamKey.key);
+					const definition = SETTINGS_DEFINITIONS.find(i => i.key === deviceParam?.key);
+					if (deviceParam && definition) {
+						const deviceSettingState: DeviceSettingState = {
 							definition,
-							encodedValue,
-							value: decodeSettingValue(definition, encodedValue),
-							loading: false
+							encodedValue: deviceParam.value ?? null,
+							value: decodeSettingValue(deviceParam),
+							loading: false,
+							type: deviceParam.type || 'unknown'
 						};
+						newSettings[deviceParamKey.key] = deviceSettingState;
 					}
 				}
+
+				deviceSettings = newSettings;
 
 				loadedCategories.add(category);
 			}
@@ -192,7 +210,7 @@
 		}
 	};
 
-	const persistSetting = async (definition: SettingDefinition, value: boolean | number) => {
+	const persistSetting = async (definition: components['schemas']['DeviceParamKey'], value: boolean | number) => {
 		if (!selectedDevice) {
 			toast.error('Select a device before updating settings');
 			return;
@@ -206,6 +224,7 @@
 		};
 
 		if (previousState.loading || previousState.value === value) return;
+		const param_metadata = SETTINGS_DEFINITIONS.filter((def) => def.key === definition.key)[0];
 
 		const encodedValue = encodeSettingValue(definition, value);
 
@@ -247,7 +266,7 @@
 					loading: false
 				}
 			};
-			toast.success(`${definition.label} updated`);
+			toast.success(`${param_metadata.label} updated`);
 		} catch (error) {
 			console.error('Error updating device setting:', error);
 			if (selectedDevice === requestDeviceId) {
@@ -258,16 +277,16 @@
 						loading: false
 					}
 				};
-				toast.error(`Failed to update ${definition.label}`);
+				toast.error(`Failed to update ${param_metadata.label}`);
 			}
 		}
 	};
 
-	const handleBooleanSettingChange = (definition: SettingDefinition, value: boolean) => {
+	const handleBooleanSettingChange = (definition: components['schemas']['DeviceParamKey'], value: boolean) => {
 		void persistSetting(definition, value);
 	};
 
-	const handleNumberSettingChange = (definition: SettingDefinition, value: number | null) => {
+	const handleNumberSettingChange = (definition: components['schemas']['DeviceParamKey'], value: number | null) => {
 		if (value !== null) {
 			void persistSetting(definition, value);
 		}
@@ -364,13 +383,14 @@
 			</div>
 		{:else if !settingsError}
 			<div class="space-y-4">
-				{#each categorySettings as definition (definition.key)}
-					{#if definition.type === 'bool'}
+				{#each Object.values(deviceSettings).filter(s => s.definition.category === activeCategory) as deviceSetting (deviceSetting.definition.key)}
+					{@const definition = deviceSetting.definition}
+					{#if deviceSetting.type?.toLowerCase() === 'bool'}
 						<ToggleSetting
 							label={definition.label}
 							description={definition.description}
-							value={getBooleanSettingValue(definition.key)}
-							loading={isSettingSaving(definition.key)}
+							value={deviceSetting.value === true}
+							loading={deviceSetting.loading}
 							disabled={!selectedDevice}
 							onChange={(value) => handleBooleanSettingChange(definition, value)}
 						/>
@@ -379,8 +399,8 @@
 							label={definition.label}
 							description={definition.description}
 							options={[]}
-							value={getNumericSettingValue(definition.key)}
-							loading={isSettingSaving(definition.key)}
+							value={typeof deviceSetting.value === 'number' ? deviceSetting.value : null}
+							loading={deviceSetting.loading}
 							disabled={!selectedDevice}
 							onChange={(value) => handleNumberSettingChange(definition, value)}
 						/>

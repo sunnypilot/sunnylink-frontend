@@ -17,7 +17,7 @@
 		"test:e2e": "playwright test"
 	},
 	"dependencies": {
-		"@logto/browser": "^3.0.8",
+		"@logto/browser": "^3.0.9",
 		"@logto/sveltekit": "^0.3.16",
 		"@sveltejs/adapter-node": "^5.2.12",
 		"buffer": "^6.0.3",
@@ -58,6 +58,6 @@
 		"vitest": "^3.0.0"
 	},
 	"engines": {
-		"node": "^22.0.0"
+		"node": ">=22.0.0"
 	}
 }
