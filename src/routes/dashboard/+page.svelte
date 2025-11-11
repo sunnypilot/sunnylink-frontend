@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { logtoClient } from '$lib/logto/auth';
 	import type { UserInfoResponse } from '@logto/browser';
+	import { v1Client } from '$lib/api/client.js';
 
 	const auth = $state({
 		loading: true,
@@ -20,6 +21,25 @@
 		auth.profile = await logtoClient.fetchUserInfo();
 		auth.loading = false;
 	});
+
+	const fetchDeviceDetails = async (deviceId: string) => {
+		if (!logtoClient) return;
+		if (!deviceId) return;
+		const device = await v1Client.GET('/v1/devices', {
+			params: {
+				query: {
+					deviceId: deviceId
+				}
+			},
+			headers: {
+				Authorization: `Bearer ${await logtoClient.getIdToken()}`
+			}
+		});
+		return device.data;
+	};
+
+	let { data } = $props();
+	let selectedDevice = $state<string | undefined>(undefined);
 </script>
 
 {#if auth.loading}
@@ -67,11 +87,24 @@
 		>
 			<div class="mb-4 flex justify-between">
 				<div class="w-full">
+					<p class="text-lg font-semibold">Devices</p>
+					<legend class="fieldset-legend text-white">Select a device</legend>
+					<select class="select bg-slate-700 text-white">
+						<option disabled selected>Select a device</option>
+						{#each data.devices as device}
+							<option
+								value={device.device_id}
+								onclick={() => {
+									selectedDevice = device.device_id ?? undefined;
+								}}>{device.device_id} - {device.alias ?? 'Not Aliased'}</option
+							>
+						{/each}
+					</select>
 					<p class="text-lg font-semibold">Models</p>
 
 					<fieldset class="fieldset">
 						<legend class="fieldset-legend text-white">Select a model</legend>
-						<select class="select bg-white/10 text-white">
+						<select class="select bg-slate-700 text-white">
 							<option disabled selected>Select a model</option>
 							<option>Sunnypilot v1</option>
 							<option>Sunnypilot v2</option>

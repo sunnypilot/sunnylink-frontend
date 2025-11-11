@@ -1,10 +1,9 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	let { children } = $props();
-	export const ssr = false;
 
 	const navGroups = [
 		{
@@ -31,7 +30,7 @@
 	const supportLink = { icon: '❔', label: 'Help & Support', href: '/support' };
 
 	let collapsed = $state(false);
-	const currentPath = $derived($page.url.pathname);
+	const currentPath = $derived(page.url.pathname);
 	const isActive = (href: string) => currentPath === href || currentPath.startsWith(`${href}/`);
 	const toggleSidebar = () => {
 		collapsed = !collapsed;
