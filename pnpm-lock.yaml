@@ -36,6 +36,9 @@ importers:
       '@vitest/browser-playwright':
         specifier: ^4.0.5
         version: 4.0.8(playwright@1.56.1)(vite@7.2.2(jiti@2.6.1)(lightningcss@1.30.2))(vitest@4.0.8)
+      daisyui:
+        specifier: ^5.4.7
+        version: 5.4.7
       openapi-typescript:
         specifier: ^7.10.1
         version: 7.10.1(typescript@5.9.3)
@@ -652,6 +655,9 @@ packages:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
     engines: {node: '>=4'}
     hasBin: true
+
+  daisyui@5.4.7:
+    resolution: {integrity: sha512-2wYO61vTPCXk7xEBgnzLZAYoE0xS5IRLu/GSq0vORpB+cTrtubdx69NnA0loc0exvCY1s2fYL4lGZtFHe2ohNQ==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1670,6 +1676,8 @@ snapshots:
   cookie@0.6.0: {}
 
   cssesc@3.0.0: {}
+
+  daisyui@5.4.7: {}
 
   debug@4.4.3(supports-color@10.2.2):
     dependencies:

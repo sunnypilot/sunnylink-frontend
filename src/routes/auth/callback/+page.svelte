@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { logtoClient } from '$lib/logto/auth';
 	import type { UserInfoResponse } from '@logto/browser';
+	import { goto } from '$app/navigation';
 
 	const auth = $state({
 		loading: true,
@@ -16,16 +17,13 @@
 
 		if (auth.isAuthenticated) {
 			auth.profile = await logtoClient.fetchUserInfo();
+			goto('/dashboard');
+		} else {
+			goto('/');
 		}
 
 		auth.loading = false;
 	});
-
-	const logout = () => {
-		if (!logtoClient) return;
-		if (!window) return;
-		logtoClient?.signOut(`${window.location.origin}`);
-	};
 </script>
 
 {#if auth.loading}
@@ -33,7 +31,4 @@
 {:else if auth.isAuthenticated}
 	<p>Authenticated</p>
 	<p>{auth.profile?.name}</p>
-	<button onclick={logout}>Logout</button>
-{:else}
-	<p>Not authenticated</p>
 {/if}

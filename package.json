@@ -23,6 +23,7 @@
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.1.14",
 		"@vitest/browser-playwright": "^4.0.5",
+		"daisyui": "^5.4.7",
 		"openapi-typescript": "^7.10.1",
 		"playwright": "^1.56.1",
 		"prettier": "^3.6.2",
