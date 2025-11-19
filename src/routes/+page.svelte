@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { logtoClient } from '$lib/logto/auth';
+	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { browser } from '$app/environment';
 
 	export const ssr = false;

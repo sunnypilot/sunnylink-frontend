@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { logtoClient } from '$lib/logto/auth';
+	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import type { UserInfoResponse } from '@logto/browser';
 	import { goto } from '$app/navigation';
 
@@ -13,22 +13,18 @@
 	onMount(async () => {
 		if (!logtoClient) return;
 		await logtoClient.handleSignInCallback(window.location.href);
-		auth.isAuthenticated = await logtoClient.isAuthenticated();
+		await authState.init();
 
-		if (auth.isAuthenticated) {
-			auth.profile = await logtoClient.fetchUserInfo();
+		if (authState.isAuthenticated) {
 			goto('/dashboard');
 		} else {
-			goto('/');
+			goto('/login');
 		}
-
-		auth.loading = false;
 	});
 </script>
 
-{#if auth.loading}
-	<p>Authenticating...</p>
-{:else if auth.isAuthenticated}
-	<p>Authenticated</p>
-	<p>{auth.profile?.name}</p>
+{#if authState.loading}
+	<p>Finishing up...</p>
+{:else}
+	<p>Redirecting to dashboard...</p>
 {/if}
