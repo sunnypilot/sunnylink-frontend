@@ -23,7 +23,12 @@
 	let { children } = $props();
 	type NavItem = { icon: any; label: string; href?: string; action?: () => void };
 
-	let drawerOpen = $state(true);
+	let drawerOpen = $derived.by(() => {
+		if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+			return false;
+		}
+		return true;
+	});
 	const pathname = $derived(page.url.pathname);
 
 	const handleLogout = async () => {
@@ -219,14 +224,7 @@
 						<span class="truncate text-sm font-medium text-white">{authState.profile?.name}</span>
 						<span class="text-xs tracking-[0.3em] text-slate-500 uppercase">Account</span>
 					</div>
-					<LogOut
-						size={18}
-						class={[
-							'text-slate-500 transition-colors group-hover:text-white',
-							drawerOpen ? 'block' : 'hidden',
-							'lg:block'
-						]}
-					/>
+					<LogOut size={18}></LogOut>
 				</button>
 			</div>
 		</aside>
