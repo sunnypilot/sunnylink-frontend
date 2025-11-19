@@ -184,3 +184,5 @@
 		</aside>
 	</div>
 </div>
+
+export const prerender = true;
