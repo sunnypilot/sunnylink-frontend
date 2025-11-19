@@ -1,16 +1,19 @@
 import adapter from '@sveltejs/adapter-static';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
-/** @type {import('@sveltejs/kit').Config} */
 const config = {
-	// Consult https://svelte.dev/docs/kit/integrations
-	// for more information about preprocessors
-	preprocess: vitePreprocess(),
-	kit: { adapter: adapter(
-		{
-			fallback: '200.html'
-		}
-	) }
+  kit: {
+    adapter: adapter({
+      pages: 'build',
+      assets: 'build',
+      // IMPORTANT for GitHub Pages SPA routing:
+      fallback: '404.html',
+      precompress: false
+    }),
+    // Use the base path from CI (BASE_PATH=/sunnylink-frontend)
+    paths: {
+      base: process.env.BASE_PATH || ''
+    }
+  }
 };
 
 export default config;
