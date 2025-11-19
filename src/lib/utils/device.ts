@@ -41,3 +41,18 @@ export function decodeParamValue(param: DeviceParam): unknown {
 		return null;
 	}
 }
+
+export function encodeParamValue(param: DeviceParam) {
+	if (param.value === null || param.value === undefined) {
+		return null;
+	}
+
+	try {
+		// Encode Base64
+		const bytes = Uint8Array.from(param.value, (c) => c.charCodeAt(0));
+		return btoa(String.fromCharCode(...bytes));
+	} catch (e) {
+		console.error(`Failed to encode param ${param.key}:`, e);
+		return null;
+	}
+}

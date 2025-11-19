@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { logtoClient, authState } from '$lib/logto/auth.svelte.js';
-	import { v1Client } from '$lib/api/client.js';
-	import { decodeParamValue } from '$lib/utils/device';
+	import { v0Client, v1Client } from '$lib/api/client.js';
+	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 
 	let modelList = $state<ModelBundle[] | undefined>();
 	let selectedModelShortName = $state<string | undefined>(undefined);
 	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
 	let loadingModels = $state(false);
+	let sendingModel = $state(false);
 
 	$effect(() => {
 		if (!authState.loading && !authState.isAuthenticated) {
@@ -23,7 +24,7 @@
 	let { data } = $props();
 	let selectedDevice = $state<string | undefined>(undefined);
 
-	const fetchModelsForDevice = async () => {
+	async function fetchModelsForDevice() {
 		if (!logtoClient) return;
 		if (!selectedDevice) return;
 		try {
@@ -57,7 +58,41 @@
 		} finally {
 			loadingModels = false;
 		}
-	};
+	}
+
+	async function sendModelToDevice() {
+		if (!logtoClient) return;
+		if (!selectedDevice) return;
+		if (!selectedModel) return;
+
+		try {
+			sendingModel = true;
+			await v0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: selectedDevice
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_DownloadIndex',
+						value: encodeParamValue({
+							key: 'ModelManager_DownloadIndex',
+							value: String(selectedModel.index ?? ''),
+							is_compressed: true
+						})
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${await logtoClient.getIdToken()}`
+				}
+			});
+		} catch (e) {
+			console.error('Error sending model to device:', e);
+		} finally {
+			sendingModel = false;
+		}
+	}
 </script>
 
 {#if authState.loading}
@@ -85,8 +120,8 @@
 		</div>
 	</div>
 
-	<div class="card border border-[#1e293b] bg-[#0f1726]">
-		<div class="card-body p-8">
+	<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
+		<div class="card-body p-2">
 			<div class="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
 				<div class="space-y-6">
 					<div class="form-control w-full">
@@ -173,15 +208,20 @@
 			</div>
 
 			<div class="mt-8 card-actions">
-				<button class="btn btn-block border-[#1e293b] bg-[#1e293b] text-white hover:bg-[#334155]"
-					>Send to device 🚀</button
+				<button
+					class="btn btn-block border-[#1e293b] bg-[#1e293b] text-white hover:bg-[#334155]"
+					onclick={sendModelToDevice}
+					disabled={sendingModel}>Send to device 🚀</button
 				>
+				{#if sendingModel}
+					<progress class="progress w-full progress-primary"></progress>
+				{/if}
 			</div>
 		</div>
 	</div>
 
-	<div class="card border border-[#1e293b] bg-[#0f1726]">
-		<div class="card-body p-8">
+	<div class="card mt-2 gap-2 border border-[#1e293b] bg-[#0f1726] p-2">
+		<div class="card-body p-2">
 			<div class="mb-6 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
 				<div>
 					<p class="text-xs tracking-[0.35em] text-slate-400 uppercase">Navigation</p>
