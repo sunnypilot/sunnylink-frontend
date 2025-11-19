@@ -17,6 +17,9 @@ importers:
       heroicons:
         specifier: ^2.1.5
         version: 2.2.0
+      lucide-svelte:
+        specifier: ^0.554.0
+        version: 0.554.0(svelte@5.43.5)
       openapi-fetch:
         specifier: ^0.15.0
         version: 0.15.0
@@ -854,6 +857,11 @@ packages:
 
   locate-character@3.0.0:
     resolution: {integrity: sha512-SW13ws7BjaeJ6p7Q6CO2nchbYEc3X3J6WrmTTDto7yMPqVSZTUyY5Tjbid+Ab8gLnATtygYtiDIJGQRRn2ZOiA==}
+
+  lucide-svelte@0.554.0:
+    resolution: {integrity: sha512-LLcpHi3SuKup0nVD1kKqo8FDZnjXJp48uST26GGh8Jcyrxqk5gmgpnvKmHsHox674UL3cPS1DCul/wFL7ybGqg==}
+    peerDependencies:
+      svelte: ^3 || ^4 || ^5.0.0-next.42
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -1854,6 +1862,10 @@ snapshots:
       lightningcss-win32-x64-msvc: 1.30.2
 
   locate-character@3.0.0: {}
+
+  lucide-svelte@0.554.0(svelte@5.43.5):
+    dependencies:
+      svelte: 5.43.5
 
   magic-string@0.30.21:
     dependencies:

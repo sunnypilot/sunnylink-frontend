@@ -2,37 +2,43 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
+
+	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import {
-		House,
-		Map,
-		HardDrive,
-		Settings,
-		ToggleLeft,
+		CloudSun,
 		Gauge,
-		Wind,
-		Palette,
-		Wrench,
+		HardDrive,
+		House,
 		LifeBuoy,
 		LogOut,
+		Map as MapIcon,
 		Menu,
-		CloudSun
-	} from '@lucide/svelte';
-	import type { Component } from 'svelte';
-	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+		Palette,
+		Settings,
+		ToggleLeft,
+		Wind,
+		Wrench
+	} from 'lucide-svelte';
 
 	let { children } = $props();
-	type NavItem = { icon: Component; label: string; href: string };
+	type NavItem = { icon: any; label: string; href?: string; action?: () => void };
 
 	let drawerOpen = $state(true);
-	let currentPath = $derived(page.url.pathname.split('/')[1]);
+	const pathname = $derived(page.url.pathname);
 
 	const handleLogout = async () => {
 		await logtoClient?.signOut('http://localhost:5173/');
 	};
 
+	const closeDrawerOnMobile = () => {
+		if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+			drawerOpen = false;
+		}
+	};
+
 	const navItems = [
 		{ icon: House, label: 'Overview', href: '/dashboard' },
-		{ icon: Map, label: 'Routes', href: '/dashboard/routes' },
+		{ icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
 		{ icon: HardDrive, label: 'Backups', href: '/dashboard/backups' },
 		{ icon: Settings, label: 'Device Settings', href: '/settings/general' },
 		{ icon: ToggleLeft, label: 'Toggles', href: '/settings/network' },
@@ -44,33 +50,43 @@
 
 	const bottomNavItems = [
 		{ icon: LifeBuoy, label: 'Support', href: '/support' },
-		{ icon: LogOut, label: 'Logout', href: '#' } // Logout handled by button
+		{ icon: LogOut, label: 'Logout', action: handleLogout }
 	];
+
+	const navItemClasses = (isActive: boolean) =>
+		[
+			'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366f1]',
+			drawerOpen ? 'justify-start' : 'justify-center',
+			'lg:justify-start',
+			isActive
+				? 'border-[#334155] bg-[#1e293b] text-white shadow-inner'
+				: 'border-transparent text-slate-400 hover:border-[#1e293b] hover:bg-[#1e293b]/80 hover:text-white'
+		].join(' ');
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="drawer lg:drawer-open">
+<div class="drawer min-h-screen bg-[#0f1726] lg:drawer-open">
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
-	<div class="drawer-content flex flex-col bg-[#0f1726]">
+	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726]">
 		<!-- Navbar for mobile -->
-		<div class="navbar w-full lg:hidden">
-			<div class="flex-none">
+		<header class="w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6 lg:hidden">
+			<div class="flex items-center justify-between gap-3">
 				<label
 					for="main-drawer"
 					aria-label="open sidebar"
 					class="btn btn-square text-white btn-ghost"
 				>
-					<Menu size={24} />
+					<Menu size={22} />
 				</label>
+				<p class="text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">sunnypilot</p>
 			</div>
-			<div class="mx-2 flex-1 px-2 font-bold text-white">sunnypilot</div>
-		</div>
+		</header>
 
 		<!-- Page content -->
-		<main class="flex-1 overflow-y-auto p-4 lg:p-8">
+		<main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
 			{@render children()}
 		</main>
 	</div>
@@ -80,24 +96,26 @@
 		<aside
 			class={[
 				'flex min-h-full flex-col border-r border-[#1e293b] bg-[#0f1726] transition-[width] duration-300',
-				drawerOpen ? 'w-80' : 'w-20'
+				drawerOpen ? 'w-64 sm:w-72' : 'w-16 sm:w-20',
+				'lg:w-80 lg:min-w-[20rem]'
 			]}
 		>
 			<!-- Logo Area -->
-			<div class="flex h-20 items-center gap-4 px-6">
+			<div class="flex h-16 items-center gap-3 px-3 sm:h-20 sm:gap-4 sm:px-4 lg:px-6">
 				<div
 					class="badge h-8 w-8 rounded-md border-[#334155] p-0 font-mono text-[0.6rem] tracking-widest text-white badge-neutral"
 				>
 					SP
 				</div>
-				{#if drawerOpen}
-					<h1 class="text-base font-semibold text-slate-200">Control Center</h1>
-				{/if}
+				<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+					<p class="text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">Sunnylink</p>
+					<h1 class="text-base font-semibold">Control Center</h1>
+				</div>
 			</div>
 
 			<!-- Navigation -->
-			<nav class="flex-1 px-4 py-6">
-				<ul class="menu gap-2 p-0 text-base">
+			<nav class="flex-1 px-2 py-4 sm:px-3 sm:py-6 lg:px-4">
+				<ul class="menu gap-2 p-0 text-sm sm:text-base">
 					{#each navItems as item}
 						{@render navItem(item)}
 					{/each}
@@ -107,7 +125,7 @@
 					<div class="divider my-1 before:bg-[#1e293b] after:bg-[#1e293b]"></div>
 				</div>
 
-				<ul class="menu gap-2 p-0 text-base">
+				<ul class="menu gap-2 p-0 text-sm sm:text-base">
 					{#each bottomNavItems as item}
 						{@render navItem(item)}
 					{/each}
@@ -115,52 +133,70 @@
 			</nav>
 
 			{#snippet navItem(item: NavItem)}
+				{@const isActive = item.href ? pathname.startsWith(item.href) : false}
 				<li>
-					<a
-						href={item.href}
-						class={[
-							'flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200',
-							currentPath === item.href
-								? 'active border-[#334155] bg-[#1e293b] text-white'
-								: 'border-transparent text-slate-400 hover:border-[#1e293b] hover:bg-[#1e293b] hover:text-white',
-							!drawerOpen && 'justify-center px-2'
-						]}
-					>
-						<item.icon size={20} />
-						{#if drawerOpen}
-							<span class="font-medium">{item.label}</span>
-						{/if}
-					</a>
+					{#if item.href}
+						<a
+							href={item.href}
+							onclick={closeDrawerOnMobile}
+							class={navItemClasses(isActive)}
+							aria-current={isActive ? 'page' : undefined}
+						>
+							<item.icon class="size-5" />
+							<span class={['font-medium', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								{item.label}
+							</span>
+						</a>
+					{:else if item.action}
+						<button
+							type="button"
+							onclick={() => {
+								item.action?.();
+								closeDrawerOnMobile();
+							}}
+							class={navItemClasses(isActive)}
+						>
+							<item.icon class="size-5" />
+							<span class={['font-medium', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								{item.label}
+							</span>
+						</button>
+					{/if}
 				</li>
 			{/snippet}
 
-			<!-- Weather Widget (Only visible when open) -->
-			{#if drawerOpen}
-				<div class="p-4">
-					<div
-						class="card rounded-2xl border border-[#334155] bg-[#101a29] p-4 text-sm text-slate-300"
-					>
-						<div class="mb-3 flex items-center justify-between">
-							<p class="text-xs tracking-[0.35em] text-slate-500 uppercase">Weather</p>
-							<CloudSun size={16} class="text-amber-400" />
-						</div>
-						<div class="flex items-baseline gap-1">
-							<span class="text-2xl font-bold text-white">72°</span>
-							<span class="text-xs text-slate-500">San Diego</span>
-						</div>
+			<!-- Weather Widget -->
+			<div class={['p-3 sm:p-4', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+				<div
+					class="card rounded-2xl border border-[#334155] bg-[#101a29] p-4 text-sm text-slate-300"
+				>
+					<div class="mb-3 flex items-center justify-between">
+						<p class="text-xs tracking-[0.35em] text-slate-500 uppercase">Weather</p>
+						<CloudSun size={16} class="text-amber-400" />
+					</div>
+					<div class="flex items-baseline gap-1">
+						<span class="text-2xl font-bold text-white">72°</span>
+						<span class="text-xs text-slate-500">San Diego</span>
 					</div>
 				</div>
-			{/if}
+			</div>
 
 			<!-- User Profile / Logout -->
-			<div class="border-t border-[#1e293b] p-4">
+			<div class="border-t border-[#1e293b] p-3 sm:p-4">
 				<button
-					onclick={handleLogout}
-					class="group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]"
-					class:justify-center={!drawerOpen}
+					type="button"
+					onclick={() => {
+						handleLogout();
+						closeDrawerOnMobile();
+					}}
+					class={[
+						'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
+						drawerOpen ? 'justify-start' : 'justify-center',
+						'lg:justify-start'
+					]}
 				>
 					<div class="placeholder avatar">
-						<div class="w-8 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
+						<div class="w-9 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
 							{#if authState.profile?.picture}
 								<img src={authState.profile.picture} alt={authState.profile?.name || ''} />
 							{:else}
@@ -173,16 +209,26 @@
 							{/if}
 						</div>
 					</div>
-					{#if drawerOpen}
-						<div class="flex flex-1 flex-col overflow-hidden">
-							<span class="truncate text-sm font-medium text-white">{authState.profile?.name}</span>
-						</div>
-						<LogOut size={18} class="text-slate-500 transition-colors group-hover:text-white" />
-					{/if}
+					<div
+						class={[
+							'flex flex-1 flex-col overflow-hidden',
+							drawerOpen ? 'block' : 'hidden',
+							'lg:block'
+						]}
+					>
+						<span class="truncate text-sm font-medium text-white">{authState.profile?.name}</span>
+						<span class="text-xs tracking-[0.3em] text-slate-500 uppercase">Account</span>
+					</div>
+					<LogOut
+						size={18}
+						class={[
+							'text-slate-500 transition-colors group-hover:text-white',
+							drawerOpen ? 'block' : 'hidden',
+							'lg:block'
+						]}
+					/>
 				</button>
 			</div>
 		</aside>
 	</div>
 </div>
-
-export const prerender = true;

@@ -100,17 +100,19 @@
 		<span class="loading loading-lg loading-spinner"></span>
 	</div>
 {:else}
-	<div class="space-y-8">
+	<div class="space-y-4 sm:space-y-6 lg:space-y-8">
 		<div class="card border border-[#1e293b] bg-[#0f1726]">
-			<div class="card-body p-8">
-				<div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-					<div class="max-w-2xl space-y-4">
+			<div class="card-body p-4 sm:p-6 lg:p-8">
+				<div
+					class="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8"
+				>
+					<div class="max-w-2xl space-y-3 sm:space-y-4">
 						<p class="text-xs tracking-[0.3em] text-slate-400 uppercase">Daily sunnypilot</p>
-						<h1 class="text-4xl font-bold text-white md:text-5xl">
+						<h1 class="text-2xl font-bold text-white sm:text-3xl md:text-4xl lg:text-5xl">
 							Hi {authState.profile?.name || 'there'}!
 						</h1>
-						<p class="text-xl text-slate-300">Here’s your latest sunnypilot snapshot</p>
-						<p class="text-base text-slate-400">
+						<p class="text-lg text-slate-300 sm:text-xl">Here's your latest sunnypilot snapshot</p>
+						<p class="text-sm text-slate-400 sm:text-base">
 							Dive in to see new routes, backups, and model insights. Everything you need, all in
 							one place.
 						</p>
@@ -121,9 +123,9 @@
 	</div>
 
 	<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
-		<div class="card-body p-2">
-			<div class="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-				<div class="space-y-6">
+		<div class="card-body p-4 sm:p-6 lg:p-8">
+			<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.6fr_1fr]">
+				<div class="space-y-4 sm:space-y-6">
 					<div class="form-control w-full">
 						<div class="label">
 							<span
@@ -172,12 +174,14 @@
 				</div>
 
 				<div class="card border border-[#1e293b] bg-[#0f1726]">
-					<div class="card-body">
+					<div class="card-body p-4 sm:p-6">
 						<p class="text-xs font-semibold tracking-[0.32em] text-slate-400 uppercase">
 							Current Model
 						</p>
 						{#if selectedModel}
-							<h3 class="card-title text-3xl text-white">{selectedModel.display_name}</h3>
+							<h3 class="card-title text-xl text-white sm:text-2xl lg:text-3xl">
+								{selectedModel.display_name}
+							</h3>
 							<p class="text-sm text-slate-400">
 								{selectedModel.environment} • {selectedModel.build_time
 									? new Date(selectedModel.build_time).toLocaleDateString()
@@ -194,7 +198,9 @@
 								</div>
 							</div>
 						{:else}
-							<h3 class="card-title text-3xl text-white">No Model Selected</h3>
+							<h3 class="card-title text-xl text-white sm:text-2xl lg:text-3xl">
+								No Model Selected
+							</h3>
 							<p class="text-sm text-slate-400">Select a device and model to view details</p>
 						{/if}
 
@@ -207,9 +213,9 @@
 				</div>
 			</div>
 
-			<div class="mt-8 card-actions">
+			<div class="mt-6 card-actions sm:mt-8">
 				<button
-					class="btn btn-block border-[#1e293b] bg-[#1e293b] text-white hover:bg-[#334155]"
+					class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
 					onclick={sendModelToDevice}
 					disabled={sendingModel}>Send to device 🚀</button
 				>
@@ -220,21 +226,23 @@
 		</div>
 	</div>
 
-	<div class="card mt-2 gap-2 border border-[#1e293b] bg-[#0f1726] p-2">
-		<div class="card-body p-2">
-			<div class="mb-6 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+	<div class="card mt-2 gap-2 border border-[#1e293b] bg-[#0f1726]">
+		<div class="card-body p-4 sm:p-6 lg:p-8">
+			<div
+				class="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
+			>
 				<div>
 					<p class="text-xs tracking-[0.35em] text-slate-400 uppercase">Navigation</p>
-					<h3 class="text-2xl font-semibold text-white">Plan a destination</h3>
+					<h3 class="text-xl font-semibold text-white sm:text-2xl">Plan a destination</h3>
 				</div>
 				<button
-					class="btn border border-[#1e293b] text-slate-300 btn-ghost btn-sm hover:bg-[#1e293b] hover:text-white"
+					class="btn w-full border border-[#1e293b] text-slate-300 btn-ghost btn-sm hover:bg-[#1e293b] hover:text-white sm:w-auto"
 					>View recent places</button
 				>
 			</div>
 
-			<div class="grid gap-8 lg:grid-cols-[1.05fr_1fr]">
-				<form class="space-y-5" onsubmit={handleRouteSubmit}>
+			<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.05fr_1fr]">
+				<form class="space-y-4 sm:space-y-5" onsubmit={handleRouteSubmit}>
 					<div class="form-control w-full">
 						<label class="label" for="start-point">
 							<span class="label-text text-sm font-medium text-slate-300">Start point</span>
@@ -251,15 +259,15 @@
 						<label class="label" for="destination">
 							<span class="label-text text-sm font-medium text-slate-300">Destination</span>
 						</label>
-						<div class="join w-full">
+						<div class="join w-full flex-col sm:flex-row">
 							<input
 								id="destination"
 								type="text"
 								placeholder="Search city, address, or coordinates"
-								class="input join-item w-full border border-[#334155] bg-[#101a29] text-white placeholder:text-slate-500"
+								class="input join-item w-full border border-[#334155] bg-[#101a29] text-sm text-white placeholder:text-slate-500 sm:text-base"
 							/>
 							<button
-								class="btn join-item border border-[#1e293b] bg-[#1e293b] text-white hover:bg-[#334155]"
+								class="btn join-item w-full border border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:w-auto sm:text-base"
 								>Plan route</button
 							>
 						</div>
@@ -267,14 +275,18 @@
 
 					<button
 						type="submit"
-						class="btn btn-block border-[#1e293b] bg-[#1e293b] text-white hover:bg-[#334155]"
+						class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
 						>Send to device</button
 					>
 				</form>
 
 				<div class="card border border-dashed border-[#334155] bg-[#0f1726]">
-					<div class="card-body min-h-[300px] items-center justify-center text-center">
-						<span class="text-sm tracking-[0.35em] text-slate-500 uppercase">MAP GOES HERE</span>
+					<div
+						class="card-body min-h-[200px] items-center justify-center p-4 text-center sm:min-h-[300px] sm:p-6"
+					>
+						<span class="text-xs tracking-[0.35em] text-slate-500 uppercase sm:text-sm"
+							>MAP GOES HERE</span
+						>
 					</div>
 				</div>
 			</div>

@@ -47,6 +47,7 @@
 		"@logto/browser": "^3.0.9",
 		"@lucide/svelte": "^0.553.0",
 		"heroicons": "^2.1.5",
+		"lucide-svelte": "^0.554.0",
 		"openapi-fetch": "^0.15.0"
 	}
 }
