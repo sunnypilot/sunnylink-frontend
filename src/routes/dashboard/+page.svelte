@@ -4,6 +4,7 @@
 	import { v0Client, v1Client } from '$lib/api/client.js';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
+	import DashboardSkeleton from './DashboardSkeleton.svelte';
 
 	let modelList = $state<ModelBundle[] | undefined>();
 	let selectedModelShortName = $state<string | undefined>(undefined);
@@ -96,10 +97,13 @@
 </script>
 
 {#if authState.loading}
-	<div class="grid min-h-[60vh] place-content-center text-slate-400">
-		<span class="loading loading-lg loading-spinner"></span>
-	</div>
+	<DashboardSkeleton />
+
 {:else}
+	{#await data.streamed.devices}
+		<DashboardSkeleton />
+
+	{:then devices}
 	<div class="space-y-4 sm:space-y-6 lg:space-y-8">
 		<div class="card border border-[#1e293b] bg-[#0f1726]">
 			<div class="card-body p-4 sm:p-6 lg:p-8">
@@ -133,18 +137,26 @@
 								>Devices</span
 							>
 						</div>
-						<select
-							class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
-							bind:value={selectedDevice}
-							onchange={fetchModelsForDevice}
-						>
-							<option disabled selected value={undefined}>Select a device</option>
-							{#each data.devices as device}
-								<option value={device.device_id}
-									>{device.device_id} - {device.alias ?? 'Not Aliased'}</option
-								>
-							{/each}
-						</select>
+
+						{#if devices?.length === 0}
+							<div class="alert alert-warning bg-[#1e293b] border-none text-slate-300">
+								<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+								<span>No devices found. Make sure you've paired your device.</span>
+							</div>
+						{:else}
+							<select
+								class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
+								bind:value={selectedDevice}
+								onchange={fetchModelsForDevice}
+							>
+								<option disabled selected value={undefined}>Select a device</option>
+								{#each devices as device}
+									<option value={device.device_id}
+										>{device.device_id} - {device.alias ?? 'Not Aliased'}</option
+									>
+								{/each}
+							</select>
+						{/if}
 					</div>
 
 					<div class="form-control w-full">
@@ -292,4 +304,9 @@
 			</div>
 		</div>
 	</div>
+	{:catch error}
+		<div class="alert alert-error">
+			Failed to load: {error.message}
+		</div>
+	{/await}
 {/if}

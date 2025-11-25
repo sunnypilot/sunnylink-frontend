@@ -24,10 +24,8 @@
 	type NavItem = { icon: any; label: string; href?: string; action?: () => void };
 
 	let drawerOpen = $derived.by(() => {
-		if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-			return false;
-		}
-		return true;
+		return !(typeof window !== 'undefined' && window.innerWidth < 1024);
+
 	});
 	const pathname = $derived(page.url.pathname);
 
@@ -44,13 +42,13 @@
 	const navItems = [
 		{ icon: House, label: 'Overview', href: '/dashboard' },
 		{ icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
-		{ icon: HardDrive, label: 'Backups', href: '/dashboard/backups' },
-		{ icon: Settings, label: 'Device Settings', href: '/settings/general' },
-		{ icon: ToggleLeft, label: 'Toggles', href: '/settings/network' },
-		{ icon: Gauge, label: 'Steering', href: '/settings/driving' },
-		{ icon: Wind, label: 'Cruise', href: '/settings/privacy' },
-		{ icon: Palette, label: 'Visuals', href: '/settings/developer' },
-		{ icon: Wrench, label: 'Developer', href: '/settings/developer' }
+		{ icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
+		{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/general' },
+		{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+		{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
+		{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
+		{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+		{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
 	];
 
 	const bottomNavItems = [
@@ -138,7 +136,8 @@
 			</nav>
 
 			{#snippet navItem(item: NavItem)}
-				{@const isActive = item.href ? pathname.startsWith(item.href) : false}
+				{@const isActive = item.href === pathname}
+				{@const Icon = item.icon}
 				<li>
 					{#if item.href}
 						<a
@@ -147,7 +146,7 @@
 							class={navItemClasses(isActive)}
 							aria-current={isActive ? 'page' : undefined}
 						>
-							<item.icon class="size-5" />
+							<Icon class="size-5" />
 							<span class={['font-medium', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 								{item.label}
 							</span>
@@ -161,7 +160,7 @@
 							}}
 							class={navItemClasses(isActive)}
 						>
-							<item.icon class="size-5" />
+							<Icon class="size-5" />
 							<span class={['font-medium', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 								{item.label}
 							</span>
@@ -200,8 +199,8 @@
 						'lg:justify-start'
 					]}
 				>
-					<div class="placeholder avatar">
-						<div class="w-9 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
+					<span class="placeholder avatar">
+						<span class="w-9 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
 							{#if authState.profile?.picture}
 								<img src={authState.profile.picture} alt={authState.profile?.name || ''} />
 							{:else}
@@ -212,9 +211,9 @@
 										.join('')}</span
 								>
 							{/if}
-						</div>
-					</div>
-					<div
+						</span>
+					</span>
+					<span
 						class={[
 							'flex flex-1 flex-col overflow-hidden',
 							drawerOpen ? 'block' : 'hidden',
@@ -223,7 +222,7 @@
 					>
 						<span class="truncate text-sm font-medium text-white">{authState.profile?.name}</span>
 						<span class="text-xs tracking-[0.3em] text-slate-500 uppercase">Account</span>
-					</div>
+					</span>
 					<LogOut size={18}></LogOut>
 				</button>
 			</div>
