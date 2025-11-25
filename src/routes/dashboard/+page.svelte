@@ -26,6 +26,9 @@
 	let selectedDevice = $state<string | undefined>(undefined);
 
 	async function fetchModelsForDevice() {
+		modelList = undefined;
+		selectedModelShortName = undefined;
+
 		if (!logtoClient) return;
 		if (!selectedDevice) return;
 		try {
@@ -37,21 +40,58 @@
 						deviceId: selectedDevice
 					},
 					query: {
-						paramKeys: ['ModelManager_ModelsCache']
+						paramKeys: ['ModelManager_ModelsCache', 'ModelManager_ActiveBundle']
 					}
 				},
 				headers: {
 					Authorization: `Bearer ${await logtoClient.getIdToken()}`
 				}
 			});
-			if (models.data?.items && models.data.items.length > 0) {
-				const modelParam = models.data.items[0];
-				if (!modelParam) return undefined;
 
-				const decodedValue = decodeParamValue(modelParam);
+			if (models.data?.items) {
+				const modelsCacheParam = models.data.items.find(
+					(i) => i.key === 'ModelManager_ModelsCache'
+				);
+				const activeBundleParam = models.data.items.find(
+					(i) => i.key === 'ModelManager_ActiveBundle'
+				);
 
-				if (isModelManifest(decodedValue)) {
-					modelList = decodedValue.bundles;
+				if (modelsCacheParam) {
+					const decodedValue = decodeParamValue(modelsCacheParam);
+					if (isModelManifest(decodedValue)) {
+						modelList = decodedValue.bundles;
+					}
+				}
+
+				if (activeBundleParam) {
+					let decodedValue = decodeParamValue(activeBundleParam);
+
+					// If it's a string, try to parse it as JSON
+					if (typeof decodedValue === 'string') {
+						try {
+							decodedValue = JSON.parse(decodedValue);
+						} catch (e) {
+							console.warn('Failed to parse Active Bundle string as JSON:', e);
+						}
+					}
+
+					// The active bundle is just a ModelBundle object, not a manifest
+					// We can check if it has a short_name or internalName
+					if (typeof decodedValue === 'object' && decodedValue !== null) {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const bundle = decodedValue as any;
+						if ('short_name' in bundle) {
+							selectedModelShortName = bundle.short_name;
+						} else if ('internalName' in bundle) {
+							selectedModelShortName = bundle.internalName;
+						} else {
+							selectedModelShortName = undefined;
+						}
+					} else {
+						selectedModelShortName = undefined;
+					}
+				} else {
+					selectedModelShortName = undefined;
 				}
 			}
 		} catch (e) {
@@ -139,8 +179,19 @@
 						</div>
 
 						{#if devices?.length === 0}
-							<div class="alert alert-warning bg-[#1e293b] border-none text-slate-300">
-								<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+							<div class="alert border-none bg-[#1e293b] alert-warning text-slate-300">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-6 w-6 shrink-0 stroke-current"
+									fill="none"
+									viewBox="0 0 24 24"
+									><path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+									/></svg
+								>
 								<span>No devices found. Make sure you've paired your device.</span>
 							</div>
 						{:else}
