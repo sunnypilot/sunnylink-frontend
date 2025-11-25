@@ -24,6 +24,53 @@
 
 	let { data } = $props();
 	let selectedDevice = $state<string | undefined>(undefined);
+	let onlineStatuses = $state<Record<string, 'loading' | 'online' | 'offline'>>({});
+
+	async function checkOnlineStatus(devices: any[]) {
+		if (!logtoClient) return;
+		const token = await logtoClient.getIdToken();
+
+		// Initialize all to loading
+		for (const device of devices) {
+			if (device.device_id) {
+				onlineStatuses[device.device_id] = 'loading';
+			}
+		}
+
+		// Check status for all devices in parallel
+		await Promise.all(
+			devices.map(async (device) => {
+				if (!device.device_id) return;
+				try {
+					const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
+						params: {
+							path: { deviceId: device.device_id },
+							query: { paramKeys: ['SunnylinkDongleId'] }
+						},
+						headers: { Authorization: `Bearer ${token}` }
+					});
+
+					// If we get a response and items is not empty, consider it online
+					if (response.data?.items && response.data.items.length > 0) {
+						onlineStatuses[device.device_id] = 'online';
+					} else {
+						onlineStatuses[device.device_id] = 'offline';
+					}
+				} catch (e) {
+					console.error(`Failed to check status for ${device.device_id}`, e);
+					onlineStatuses[device.device_id] = 'offline';
+				}
+			})
+		);
+	}
+
+	$effect(() => {
+		data.streamed.devices.then((devices) => {
+			if (devices && devices.length > 0) {
+				checkOnlineStatus(devices);
+			}
+		});
+	});
 
 	async function fetchModelsForDevice() {
 		modelList = undefined;
@@ -138,11 +185,9 @@
 
 {#if authState.loading}
 	<DashboardSkeleton />
-
 {:else}
 	{#await data.streamed.devices}
 		<DashboardSkeleton />
-
 	{:then devices}
 	<div class="space-y-4 sm:space-y-6 lg:space-y-8">
 		<div class="card border border-[#1e293b] bg-[#0f1726]">
@@ -155,7 +200,9 @@
 						<h1 class="text-2xl font-bold text-white sm:text-3xl md:text-4xl lg:text-5xl">
 							Hi {authState.profile?.name || 'there'}!
 						</h1>
-						<p class="text-lg text-slate-300 sm:text-xl">Here's your latest sunnypilot snapshot</p>
+						<p class="text-lg text-slate-300 sm:text-xl">
+							Here's your latest sunnypilot snapshot
+						</p>
 						<p class="text-sm text-slate-400 sm:text-base">
 							Dive in to see new routes, backups, and model insights. Everything you need, all in
 							one place.
@@ -203,7 +250,12 @@
 								<option disabled selected value={undefined}>Select a device</option>
 								{#each devices as device}
 									<option value={device.device_id}
-										>{device.device_id} - {device.alias ?? 'Not Aliased'}</option
+										>{device.device_id} - {device.alias ?? 'Not Aliased'}
+										{onlineStatuses[device.device_id ?? ''] === 'online'
+											? ' 🟢'
+											: onlineStatuses[device.device_id ?? ''] === 'offline'
+												? ' 🔴'
+												: ' ⏳'}</option
 									>
 								{/each}
 							</select>
