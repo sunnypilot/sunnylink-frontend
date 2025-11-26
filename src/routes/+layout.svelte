@@ -29,7 +29,7 @@
 	const pathname = $derived(page.url.pathname);
 
 	const handleLogout = async () => {
-		await logtoClient?.signOut('http://localhost:5173/');
+		await logtoClient?.signOut(window.location.origin);
 	};
 
 	const closeDrawerOnMobile = () => {
