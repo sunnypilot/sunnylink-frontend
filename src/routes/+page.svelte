@@ -3,11 +3,12 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { ArrowRight, Shield, Globe, Smartphone } from 'lucide-svelte';
+	import { get } from 'svelte/store';
 
 	export const ssr = false;
 
 	const handleMainAction = async () => {
-		if (authState.isAuthenticated) {
+		if (get(authState).isAuthenticated) {
 			goto('/dashboard');
 		} else {
 			if (!browser || !logtoClient) return;
@@ -46,7 +47,7 @@
 						onclick={handleMainAction}
 						class="group flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
 					>
-						{authState.isAuthenticated ? 'Go to sunnylink Dashboard' : 'Sign in via sunnylink'}
+						{$authState.isAuthenticated ? 'Go to sunnylink Dashboard' : 'Sign in via sunnylink'}
 						<ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
 					</button>
 					<a
