@@ -20,7 +20,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
     { key: 'IsLdwEnabled', label: 'LDW Enabled', description: 'Lane departure warnings', category: 'device' },
     { key: 'IsMetric', label: 'Metric Units', description: 'Display metric measurements', category: 'device' },
     { key: 'LanguageSetting', label: 'Language', description: 'UI language', category: 'device' },
-    { key: 'OpenpilotEnabledToggle', label: 'Openpilot Enabled', description: 'Master sunnypilot toggle', category: 'device' },
+    { key: 'OpenpilotEnabledToggle', label: 'sunnypilot Enabled', description: 'Master sunnypilot toggle', category: 'device' },
     { key: 'RecordFront', label: 'Record Front', description: 'Front camera recording', category: 'device' },
     { key: 'IsRHD', label: 'Right-Hand Drive', description: 'RHD vehicle configuration', category: 'device' },
     { key: 'Version', label: 'Version', description: 'Software version number', category: 'device', readonly: true },
