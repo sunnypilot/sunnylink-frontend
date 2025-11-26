@@ -7,6 +7,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
+      PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
+      PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
+      PUBLIC_CALLBACK: https://new.sunnypilot.ai/auth/callback
+      PUBLIC_REDIRECT: https://new.sunnypilot.ai/
     steps:
       - name: Checkout
         uses: actions/checkout@v4
