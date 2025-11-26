@@ -2,6 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
+	import { invalidateAll } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -102,6 +103,12 @@
 				checkAllDevicesStatus(devices);
 			}
 		});
+	});
+
+	$effect(() => {
+		if (authState.isAuthenticated) {
+			invalidateAll();
+		}
 	});
 </script>
 

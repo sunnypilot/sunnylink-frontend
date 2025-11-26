@@ -8,24 +8,63 @@ export const load: LayoutLoad = async () => {
     const fetchAllDeviceData = async () => {
         if (!logtoClient) return [];
 
-        // 1. Get the token ONCE to reuse (optimization)
-        const token = await logtoClient.getIdToken();
+        // 1. Get the token
+        let token = await logtoClient.getIdToken();
 
-        // 2. Fetch the list
-        const devices = await v1Client.GET('/v1/users/{userId}/devices', {
-            params: { path: { userId: 'self' } },
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        // Helper to fetch list
+        const fetchList = async (t: string) => {
+            return await v1Client.GET('/v1/users/{userId}/devices', {
+                params: { path: { userId: 'self' } },
+                headers: { Authorization: `Bearer ${t}` }
+            });
+        };
+
+        // 2. Fetch the list with retry
+        let devices = await fetchList(token || '');
+
+        // If 401, try to refresh token and retry
+        if (devices.response.status === 401) {
+            try {
+                // Force a token refresh (getAccessToken usually handles this)
+                await logtoClient.getAccessToken();
+                // Get the potentially new ID token
+                token = await logtoClient.getIdToken();
+                if (token) {
+                    devices = await fetchList(token);
+                }
+            } catch (e) {
+                console.error('Failed to refresh token after 401:', e);
+            }
+        }
 
         const items = devices.data?.items ?? [];
 
         // 3. Parallelize the detail fetches
         // Map the items to an array of Promises, then await them all at once
         const detailPromises = items.map(async (device) => {
-            const response = await v0Client.GET('/device/{deviceId}', {
-                params: { path: { deviceId: device.device_id ?? '' } },
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            // Helper for detail fetch
+            const fetchDetail = async (t: string) => {
+                return await v0Client.GET('/device/{deviceId}', {
+                    params: { path: { deviceId: device.device_id ?? '' } },
+                    headers: { Authorization: `Bearer ${t}` }
+                });
+            };
+
+            let response = await fetchDetail(token || '');
+
+            // Retry detail fetch if 401 (though unlikely if list succeeded with same token)
+            if (response.response.status === 401) {
+                try {
+                    await logtoClient.getAccessToken();
+                    token = await logtoClient.getIdToken();
+                    if (token) {
+                        response = await fetchDetail(token);
+                    }
+                } catch (e) {
+                    console.error('Failed to refresh token for detail fetch:', e);
+                }
+            }
+
             return response.data; // Return the data part
         });
 

@@ -157,7 +157,7 @@
 	<DashboardSkeleton />
 {:else}
 	{#await data.streamed.devices}
-		<DashboardSkeleton name={authState.profile?.name} />
+		<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 	{:then devices}
 		<div class="space-y-4 sm:space-y-6 lg:space-y-8">
 			<div class="card border border-[#1e293b] bg-[#0f1726]">
