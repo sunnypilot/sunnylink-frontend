@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import { deviceState } from '$lib/stores/device.svelte';
 	import {
 		CloudSun,
 		Gauge,
@@ -20,13 +21,10 @@
 		Wrench
 	} from 'lucide-svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	type NavItem = { icon: any; label: string; href?: string; action?: () => void };
 
-	let drawerOpen = $derived.by(() => {
-		return !(typeof window !== 'undefined' && window.innerWidth < 1024);
-
-	});
+	let drawerOpen = $state(false);
 	const pathname = $derived(page.url.pathname);
 
 	const handleLogout = async () => {
@@ -39,16 +37,23 @@
 		}
 	};
 
+	$effect(() => {
+		if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+			drawerOpen = true;
+		}
+	});
+
 	const navItems = [
 		{ icon: House, label: 'Overview', href: '/dashboard' },
 		{ icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
 		{ icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
-		{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/general' },
+		{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
 		{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
 		{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
 		{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
 		{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-		{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
+		{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
+		{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
 	];
 
 	const bottomNavItems = [
@@ -65,6 +70,31 @@
 				? 'border-[#334155] bg-[#1e293b] text-white shadow-inner'
 				: 'border-transparent text-slate-400 hover:border-[#1e293b] hover:bg-[#1e293b]/80 hover:text-white'
 		].join(' ');
+	import { checkDeviceStatus } from '$lib/api/device';
+	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+
+	async function checkAllDevicesStatus(devices: any[]) {
+		if (!logtoClient) return;
+		const token = await logtoClient.getIdToken();
+		if (!token) return;
+
+		// Check status for all devices in parallel
+		await Promise.all(
+			devices.map((device) => {
+				if (device.device_id) {
+					return checkDeviceStatus(device.device_id, token);
+				}
+			})
+		);
+	}
+
+	$effect(() => {
+		data.streamed.devices.then((devices) => {
+			if (devices && devices.length > 0) {
+				checkAllDevicesStatus(devices);
+			}
+		});
+	});
 </script>
 
 <svelte:head>
@@ -75,16 +105,35 @@
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726]">
 		<!-- Navbar for mobile -->
-		<header class="w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6 lg:hidden">
+		<header class="w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6">
 			<div class="flex items-center justify-between gap-3">
-				<label
-					for="main-drawer"
-					aria-label="open sidebar"
-					class="btn btn-square text-white btn-ghost"
-				>
-					<Menu size={22} />
-				</label>
-				<p class="text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">sunnypilot</p>
+				<div class="flex items-center gap-3 lg:hidden">
+					<label
+						for="main-drawer"
+						aria-label="open sidebar"
+						class="btn btn-square text-white btn-ghost"
+					>
+						<Menu size={22} />
+					</label>
+					<p class="text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">sunnypilot</p>
+				</div>
+
+				<!-- Device Selector -->
+				<div class="flex flex-1 justify-end lg:w-full lg:justify-between">
+					<div class="hidden lg:block">
+						<!-- Breadcrumbs or Title could go here -->
+					</div>
+
+					{#await data.streamed.devices}
+						<div class="h-10 w-48 animate-pulse rounded-lg bg-[#1e293b]"></div>
+					{:then devices}
+						{#if devices && devices.length > 0}
+							<DeviceSelector {devices} />
+						{:else}
+							<span class="text-sm text-slate-400">No devices found</span>
+						{/if}
+					{/await}
+				</div>
 			</div>
 		</header>
 
