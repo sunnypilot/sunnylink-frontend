@@ -11,6 +11,7 @@
 		HardDrive,
 		House,
 		LifeBuoy,
+		LogIn,
 		LogOut,
 		Map as MapIcon,
 		Menu,
@@ -43,23 +44,29 @@
 		}
 	});
 
-	const navItems = [
-		{ icon: House, label: 'Overview', href: '/dashboard' },
-		// { icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
-		// { icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
-		{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
-		{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
-		{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
-		{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
-		{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-		{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
-		{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
-	];
+	let navItems = $derived(
+		authState.isAuthenticated
+			? [
+					{ icon: House, label: 'Overview', href: '/dashboard' },
+					// { icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
+					// { icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
+					{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
+					{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+					{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
+					{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
+					{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+					{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
+					{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
+				]
+			: []
+	);
 
-	const bottomNavItems = [
-		{ icon: LifeBuoy, label: 'Support', href: '/support' },
-		{ icon: LogOut, label: 'Logout', action: handleLogout }
-	];
+	let bottomNavItems = $derived(
+		[
+			{ icon: LifeBuoy, label: 'Support', href: '/support' },
+			authState.isAuthenticated ? { icon: LogOut, label: 'Logout', action: handleLogout } : null
+		].filter((item) => item !== null)
+	);
 
 	const navItemClasses = (isActive: boolean) =>
 		[
@@ -236,44 +243,66 @@
 
 			<!-- User Profile / Logout -->
 			<div class="border-t border-[#1e293b] p-3 sm:p-4">
-				<button
-					type="button"
-					onclick={() => {
-						handleLogout();
-						closeDrawerOnMobile();
-					}}
-					class={[
-						'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
-						drawerOpen ? 'justify-start' : 'justify-center',
-						'lg:justify-start'
-					]}
-				>
-					<span class="placeholder avatar">
-						<span class="w-9 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
-							{#if authState.profile?.picture}
-								<img src={authState.profile.picture} alt={authState.profile?.name || ''} />
-							{:else}
-								<span class="text-xs"
-									>{authState.profile?.name
-										?.split(' ')
-										.map((name) => name[0])
-										.join('')}</span
-								>
-							{/if}
-						</span>
-					</span>
-					<span
+				{#if authState.isAuthenticated}
+					<a
+						href="/dashboard/settings/developer"
+						onclick={closeDrawerOnMobile}
 						class={[
-							'flex flex-1 flex-col overflow-hidden',
-							drawerOpen ? 'block' : 'hidden',
-							'lg:block'
+							'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
+							drawerOpen ? 'justify-start' : 'justify-center',
+							'lg:justify-start'
 						]}
 					>
-						<span class="truncate text-sm font-medium text-white">{authState.profile?.name}</span>
-						<span class="text-xs tracking-[0.3em] text-slate-500 uppercase">Account</span>
-					</span>
-					<LogOut size={18}></LogOut>
-				</button>
+						<span class="placeholder avatar">
+							<span class="w-9 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
+								{#if authState.profile?.picture}
+									<img src={authState.profile.picture} alt={authState.profile?.name || ''} />
+								{:else}
+									<span class="text-xs"
+										>{authState.profile?.name
+											?.split(' ')
+											.map((name) => name[0])
+											.join('')}</span
+									>
+								{/if}
+							</span>
+						</span>
+						<span
+							class={[
+								'flex flex-1 flex-col overflow-hidden',
+								drawerOpen ? 'block' : 'hidden',
+								'lg:block'
+							]}
+						>
+							<span class="truncate text-sm font-medium text-white">{authState.profile?.name}</span>
+							<span class="text-xs tracking-[0.3em] text-slate-500 uppercase">Account</span>
+						</span>
+					</a>
+				{:else}
+					<button
+						type="button"
+						onclick={async () => {
+							await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							closeDrawerOnMobile();
+						}}
+						class={[
+							'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
+							drawerOpen ? 'justify-start' : 'justify-center',
+							'lg:justify-start'
+						]}
+					>
+						<LogIn size={20} class="text-slate-400 group-hover:text-white" />
+						<span
+							class={[
+								'font-medium text-slate-400 group-hover:text-white',
+								drawerOpen ? 'block' : 'hidden',
+								'lg:block'
+							]}
+						>
+							Login
+						</span>
+					</button>
+				{/if}
 			</div>
 		</aside>
 	</div>

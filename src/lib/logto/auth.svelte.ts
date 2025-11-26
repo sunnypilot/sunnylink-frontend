@@ -24,16 +24,20 @@ class AuthState {
 	async init() {
 		if (!logtoClient) return;
 		this.loading = true;
-		// Even though we don't use the access token, we need to call this to ensure the token refresh is triggered.
-		await logtoClient.getAccessToken();
 
 		try {
 			this.isAuthenticated = await logtoClient.isAuthenticated();
+
 			if (this.isAuthenticated) {
+				// Only attempt to get access token (refresh) if we think we are authenticated
+				await logtoClient.getAccessToken();
 				this.profile = await logtoClient.fetchUserInfo();
 			}
 		} catch (e) {
 			console.error('Auth init error:', e);
+			// If error occurs (e.g. refresh failed), assume not authenticated
+			this.isAuthenticated = false;
+			this.profile = undefined;
 		} finally {
 			this.loading = false;
 		}
