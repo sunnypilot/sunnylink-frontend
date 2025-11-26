@@ -7,6 +7,8 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
+	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
 
 	let { data } = $props();
 
@@ -110,6 +112,7 @@
 	let jsonModalOpen = $state(false);
 	let jsonModalContent = $state('');
 	let jsonModalTitle = $state('');
+	let pushModalOpen = $state(false);
 
 	$effect(() => {
 		if (deviceId && logtoClient && categorySettings.length > 0) {
@@ -338,22 +341,46 @@
 	{:else}
 		{#snippet settingCard(setting: any)}
 			{@const currentValue = deviceState.deviceValues[deviceId]?.[setting.key]}
-			{@const displayValue =
-				currentValue !== undefined ? currentValue : setting.value?.default_value}
+			{@const stagedValue = deviceState.getChange(deviceId, setting.key)}
+			{@const hasStaged = stagedValue !== undefined}
+			{@const displayValue = hasStaged
+				? stagedValue
+				: currentValue !== undefined
+					? currentValue
+					: setting.value?.default_value}
 			{@const isBool = setting.value?.type === 'Bool'}
 			{@const isJson = setting.value?.type === 'Json'}
 			{@const isString = setting.value?.type === 'String'}
+			{@const isNumber = setting.value?.type === 'Int' || setting.value?.type === 'Float'}
 			{@const isLoading = loadingValues && currentValue === undefined}
 
 			{#if isBool}
 				<button
-					class="flex w-full cursor-default flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
+					class="flex w-full cursor-default flex-col justify-between rounded-xl border bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
+					class:border-primary={hasStaged}
+					class:border-[#334155]={!hasStaged}
 					class:opacity-50={setting.readonly}
 					class:cursor-not-allowed={setting.readonly}
 					disabled={setting.readonly}
 					aria-pressed={displayValue === true}
 					aria-disabled={setting.readonly}
 					tabindex={setting.readonly ? -1 : 0}
+					onclick={() => {
+						if (!setting.readonly) {
+							const newValue = !displayValue;
+							// Use currentValue as original, or default if undefined.
+							// For booleans, undefined should be treated as false for the original value check
+							// to avoid "undefined -> true" showing as a change if it was effectively false (off).
+							let original =
+								currentValue !== undefined ? currentValue : setting.value?.default_value;
+
+							if (isBool && original === undefined) {
+								original = false;
+							}
+
+							deviceState.stageChange(deviceId, setting.key, newValue, original);
+						}
+					}}
 				>
 					<div class="mb-4 w-full">
 						<div class="flex items-start justify-between">
@@ -364,6 +391,13 @@
 										class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
 									>
 										RO
+									</span>
+								{/if}
+								{#if hasStaged}
+									<span
+										class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-primary uppercase"
+									>
+										Modified
 									</span>
 								{/if}
 							</h3>
@@ -403,7 +437,9 @@
 				</button>
 			{:else}
 				<div
-					class="flex flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 transition-colors hover:border-primary/50 sm:p-6"
+					class="flex flex-col justify-between rounded-xl border bg-[#101a29] p-4 transition-colors hover:border-primary/50 sm:p-6"
+					class:border-primary={hasStaged}
+					class:border-[#334155]={!hasStaged}
 				>
 					<div class="mb-4">
 						<div class="flex items-start justify-between">
@@ -414,6 +450,13 @@
 										class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
 									>
 										RO
+									</span>
+								{/if}
+								{#if hasStaged}
+									<span
+										class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-primary uppercase"
+									>
+										Modified
 									</span>
 								{/if}
 							</h3>
@@ -440,6 +483,25 @@
 							>
 								View JSON
 							</button>
+						{:else if !setting.readonly && (isString || isNumber)}
+							<input
+								type={isNumber ? 'number' : 'text'}
+								value={displayValue !== undefined ? displayValue : ''}
+								class="input input-sm w-full bg-[#0f1726] text-white focus:border-primary focus:outline-none"
+								placeholder={setting.value?.default_value
+									? String(setting.value.default_value)
+									: ''}
+								oninput={(e) => {
+									const val = e.currentTarget.value;
+									let newValue: any = val;
+									if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
+									if (setting.value?.type === 'Float') newValue = parseFloat(val);
+
+									const original =
+										currentValue !== undefined ? currentValue : setting.value?.default_value;
+									deviceState.stageChange(deviceId, setting.key, newValue, original);
+								}}
+							/>
 						{:else if isString && String(displayValue).length > 50}
 							<div
 								class="max-h-32 w-full overflow-y-auto rounded bg-[#0f1726] p-2 text-xs whitespace-pre-wrap text-slate-300"
@@ -495,6 +557,13 @@
 		{/if}
 	{/if}
 </div>
+
+<SettingsActionBar
+	onPush={() => (pushModalOpen = true)}
+	onReset={() => deviceId && deviceState.clearChanges(deviceId)}
+/>
+
+<PushSettingsModal bind:open={pushModalOpen} onPushSuccess={() => fetchCurrentValues()} />
 
 <!-- JSON Modal -->
 {#if jsonModalOpen}
