@@ -6,16 +6,14 @@
 
 	export const ssr = false;
 
-	const login = async () => {
-		if (!browser || !logtoClient) return;
-		await logtoClient.signIn(`${window.location.origin}/auth/callback`);
-	};
-
-	$effect(() => {
+	const handleMainAction = async () => {
 		if (authState.isAuthenticated) {
 			goto('/dashboard');
+		} else {
+			if (!browser || !logtoClient) return;
+			await logtoClient.signIn(`${window.location.origin}/auth/callback`);
 		}
-	});
+	};
 </script>
 
 <div class="min-h-screen bg-[#0f1726] text-white selection:bg-indigo-500/30">
@@ -45,10 +43,10 @@
 				</p>
 				<div class="mt-10 flex items-center justify-center gap-x-6">
 					<button
-						onclick={login}
+						onclick={handleMainAction}
 						class="group flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
 					>
-						Sign in via sunnylink
+						{authState.isAuthenticated ? 'Go to sunnylink Dashboard' : 'Sign in via sunnylink'}
 						<ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
 					</button>
 					<a
