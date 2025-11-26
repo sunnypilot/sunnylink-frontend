@@ -320,25 +320,10 @@
 
 				{#if isBool}
 					<button
-						class="flex w-full flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-all duration-200 hover:border-primary/50 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#101a29] focus:outline-none sm:p-6"
-						onclick={() => {
-							// Toggle the value
-							const newValue = !displayValue;
-							// Optimistic update
-							if (!deviceState.deviceValues[deviceId]) {
-								deviceState.deviceValues[deviceId] = {};
-							}
-							deviceState.deviceValues[deviceId][setting.key] = newValue;
-							// It didn't have an onclick handler! It seems it was just display.
-							// I should probably add the logic to actually update it if I can, or at least keep it consistent.
-							// Since I am refactoring the UI, I should make it functional if possible, but the prompt didn't explicitly ask for backend wiring if it wasn't there.
-							// However, a toggle that doesn't toggle is bad.
-							// The user said "acts as the toggle".
-							// I will assume for now I should just toggle the local state or call a function if one existed.
-							// Looking at the imports, there is no update function imported.
-							// I will add a placeholder comment or just toggle the local state for visual feedback as requested.
-						}}
+						class="flex w-full cursor-default flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
 						aria-pressed={displayValue === true}
+						aria-disabled="true"
+						tabindex="-1"
 					>
 						<div class="mb-4 w-full">
 							<div class="flex items-start justify-between">

@@ -185,7 +185,36 @@
 
 		<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
 			<div class="card-body p-4 sm:p-6 lg:p-8">
-				{#if isOffline}
+				{#if loadingModels}
+					<div class="animate-pulse">
+						<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.6fr_1fr]">
+							<div class="space-y-4 sm:space-y-6">
+								<div class="form-control w-full">
+									<div class="mb-2 h-4 w-24 rounded bg-slate-700"></div>
+									<div class="h-12 w-full rounded bg-slate-700"></div>
+								</div>
+								<div class="form-control w-full">
+									<div class="mb-2 h-4 w-24 rounded bg-slate-700"></div>
+									<div class="h-12 w-full rounded bg-slate-700"></div>
+								</div>
+							</div>
+							<div class="card border border-[#1e293b] bg-[#0f1726]">
+								<div class="card-body space-y-4 p-4 sm:p-6">
+									<div class="h-4 w-32 rounded bg-slate-700"></div>
+									<div class="h-8 w-48 rounded bg-slate-700"></div>
+									<div class="h-4 w-40 rounded bg-slate-700"></div>
+									<div class="mt-4 space-y-2">
+										<div class="h-4 w-full rounded bg-slate-700"></div>
+										<div class="h-4 w-full rounded bg-slate-700"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="mt-6 sm:mt-8">
+							<div class="h-12 w-full rounded bg-slate-700"></div>
+						</div>
+					</div>
+				{:else if isOffline}
 					{#await data.streamed.devices then devices}
 						{@const selectedDevice = devices?.find(
 							(d) => d.device_id === deviceState.selectedDeviceId
@@ -284,22 +313,18 @@
 										>Models</span
 									>
 								</div>
-								{#if loadingModels}
-									<progress class="progress w-full progress-primary"></progress>
-								{:else}
-									<select
-										class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
-										bind:value={selectedModelShortName}
-										disabled={!modelList}
-									>
-										<option disabled selected value={undefined}>Select a model</option>
-										{#if modelList}
-											{#each modelList as model}
-												<option value={model.short_name}>{model.display_name}</option>
-											{/each}
-										{/if}
-									</select>
-								{/if}
+								<select
+									class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
+									bind:value={selectedModelShortName}
+									disabled={!modelList}
+								>
+									<option disabled selected value={undefined}>Select a model</option>
+									{#if modelList}
+										{#each modelList as model}
+											<option value={model.short_name}>{model.display_name}</option>
+										{/each}
+									{/if}
+								</select>
 							</div>
 						</div>
 
@@ -357,72 +382,75 @@
 			</div>
 		</div>
 
-		<div class="card mt-2 gap-2 border border-[#1e293b] bg-[#0f1726]">
-			<div class="card-body p-4 sm:p-6 lg:p-8">
-				<div
-					class="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
-				>
-					<div>
-						<p class="text-xs tracking-[0.35em] text-slate-400 uppercase">Navigation</p>
-						<h3 class="text-xl font-semibold text-white sm:text-2xl">Plan a destination</h3>
-					</div>
-					<button
-						class="btn w-full border border-[#1e293b] text-slate-300 btn-ghost btn-sm hover:bg-[#1e293b] hover:text-white sm:w-auto"
-						>View recent places</button
+		<!-- TODO: Navigation and Routes are hidden for now, pending refinement -->
+		{#if false}
+			<div class="card mt-2 gap-2 border border-[#1e293b] bg-[#0f1726]">
+				<div class="card-body p-4 sm:p-6 lg:p-8">
+					<div
+						class="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
 					>
-				</div>
-
-				<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.05fr_1fr]">
-					<form class="space-y-4 sm:space-y-5" onsubmit={handleRouteSubmit}>
-						<div class="form-control w-full">
-							<label class="label" for="start-point">
-								<span class="label-text text-sm font-medium text-slate-300">Start point</span>
-							</label>
-							<input
-								id="start-point"
-								type="text"
-								placeholder="Current location"
-								class="input w-full border border-[#334155] bg-[#101a29] text-white placeholder:text-slate-500"
-							/>
+						<div>
+							<p class="text-xs tracking-[0.35em] text-slate-400 uppercase">Navigation</p>
+							<h3 class="text-xl font-semibold text-white sm:text-2xl">Plan a destination</h3>
 						</div>
+						<button
+							class="btn w-full border border-[#1e293b] text-slate-300 btn-ghost btn-sm hover:bg-[#1e293b] hover:text-white sm:w-auto"
+							>View recent places</button
+						>
+					</div>
 
-						<div class="form-control w-full">
-							<label class="label" for="destination">
-								<span class="label-text text-sm font-medium text-slate-300">Destination</span>
-							</label>
-							<div class="join w-full flex-col sm:flex-row">
+					<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.05fr_1fr]">
+						<form class="space-y-4 sm:space-y-5" onsubmit={handleRouteSubmit}>
+							<div class="form-control w-full">
+								<label class="label" for="start-point">
+									<span class="label-text text-sm font-medium text-slate-300">Start point</span>
+								</label>
 								<input
-									id="destination"
+									id="start-point"
 									type="text"
-									placeholder="Search city, address, or coordinates"
-									class="input join-item w-full border border-[#334155] bg-[#101a29] text-sm text-white placeholder:text-slate-500 sm:text-base"
+									placeholder="Current location"
+									class="input w-full border border-[#334155] bg-[#101a29] text-white placeholder:text-slate-500"
 								/>
-								<button
-									class="btn join-item w-full border border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:w-auto sm:text-base"
-									>Plan route</button
+							</div>
+
+							<div class="form-control w-full">
+								<label class="label" for="destination">
+									<span class="label-text text-sm font-medium text-slate-300">Destination</span>
+								</label>
+								<div class="join w-full flex-col sm:flex-row">
+									<input
+										id="destination"
+										type="text"
+										placeholder="Search city, address, or coordinates"
+										class="input join-item w-full border border-[#334155] bg-[#101a29] text-sm text-white placeholder:text-slate-500 sm:text-base"
+									/>
+									<button
+										class="btn join-item w-full border border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:w-auto sm:text-base"
+										>Plan route</button
+									>
+								</div>
+							</div>
+
+							<button
+								type="submit"
+								class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
+								>Send to device</button
+							>
+						</form>
+
+						<div class="card border border-dashed border-[#334155] bg-[#0f1726]">
+							<div
+								class="card-body min-h-[200px] items-center justify-center p-4 text-center sm:min-h-[300px] sm:p-6"
+							>
+								<span class="text-xs tracking-[0.35em] text-slate-500 uppercase sm:text-sm"
+									>MAP GOES HERE</span
 								>
 							</div>
-						</div>
-
-						<button
-							type="submit"
-							class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
-							>Send to device</button
-						>
-					</form>
-
-					<div class="card border border-dashed border-[#334155] bg-[#0f1726]">
-						<div
-							class="card-body min-h-[200px] items-center justify-center p-4 text-center sm:min-h-[300px] sm:p-6"
-						>
-							<span class="text-xs tracking-[0.35em] text-slate-500 uppercase sm:text-sm"
-								>MAP GOES HERE</span
-							>
 						</div>
 					</div>
 				</div>
 			</div>
-		</div>
+		{/if}
 	{:catch error}
 		<div class="alert alert-error">
 			Failed to load: {error.message}
