@@ -247,6 +247,13 @@
 							<p class="mt-2 max-w-md text-slate-400">
 								This device appears to be offline. Please check its connectivity and try again.
 							</p>
+							<a
+								href="https://community.sunnypilot.ai"
+								target="_blank"
+								class="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+							>
+								Need help? Visit our community →
+							</a>
 							<div class="mt-6 flex flex-col items-center gap-4">
 								<button
 									class="btn btn-sm btn-primary"

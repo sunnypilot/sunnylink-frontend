@@ -63,7 +63,7 @@
 
 	let bottomNavItems = $derived(
 		[
-			{ icon: LifeBuoy, label: 'Support', href: '/support' },
+			{ icon: LifeBuoy, label: 'Support', href: 'https://community.sunnypilot.ai/c/bug-reports/8' },
 			authState.isAuthenticated ? { icon: LogOut, label: 'Logout', action: handleLogout } : null
 		].filter((item) => item !== null)
 	);

@@ -52,6 +52,13 @@
 						<ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
 					</button>
 					<a
+						href="https://community.sunnypilot.ai"
+						target="_blank"
+						class="text-sm leading-6 font-semibold text-white hover:text-indigo-400"
+					>
+						Join the Community <span aria-hidden="true">→</span>
+					</a>
+					<a
 						href="https://github.com/sunnypilot/sunnylink"
 						target="_blank"
 						class="text-sm leading-6 font-semibold text-white hover:text-indigo-400"
