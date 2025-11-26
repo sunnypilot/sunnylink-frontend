@@ -38,9 +38,9 @@ jobs:
       - name: Run Playwright tests
         run: pnpm test
 
-      - name: Upload screenshot artifact
+      - name: Comment PR with images
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: opengisch/comment-pr-with-images@upload_only
         with:
-          name: screenshots
-          path: test-results/
+          images: "test-results/**/*.png, test-results/**/*.jpeg, test-results/**/*.gif"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
