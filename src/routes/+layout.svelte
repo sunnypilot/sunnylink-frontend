@@ -45,8 +45,8 @@
 
 	const navItems = [
 		{ icon: House, label: 'Overview', href: '/dashboard' },
-		{ icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
-		{ icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
+		// { icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
+		// { icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
 		{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
 		{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
 		{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
@@ -219,7 +219,7 @@
 			{/snippet}
 
 			<!-- Weather Widget -->
-			<div class={['p-3 sm:p-4', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+			<!-- <div class={['p-3 sm:p-4', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 				<div
 					class="card rounded-2xl border border-[#334155] bg-[#101a29] p-4 text-sm text-slate-300"
 				>
@@ -232,7 +232,7 @@
 						<span class="text-xs text-slate-500">San Diego</span>
 					</div>
 				</div>
-			</div>
+			</div> -->
 
 			<!-- User Profile / Logout -->
 			<div class="border-t border-[#1e293b] p-3 sm:p-4">
