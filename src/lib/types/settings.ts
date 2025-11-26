@@ -280,5 +280,6 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
     { key: 'OsmWayTest', label: 'OSM Way Test', description: 'Debug OSM way query', category: 'other', advanced: true, hidden: true },
     { key: 'NextMapSpeedLimit', label: 'Next Map Speed', description: 'Upcoming speed limit', category: 'other', readonly: true, hidden: true },
     { key: 'OsmStateTitle', label: 'State Region', description: 'Current OSM region', category: 'other', readonly: true, hidden: true },
+    { key: 'LastSunnylinkPingTime', label: 'LastSunnylinkPingTime', description: 'Unknown setting from device', category: 'other', hidden: true },
 
 ];
