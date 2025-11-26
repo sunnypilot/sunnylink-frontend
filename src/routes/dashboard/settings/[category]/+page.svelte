@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { preferences } from '$lib/stores/preferences.svelte';
 	import { SETTINGS_DEFINITIONS, type SettingCategory } from '$lib/types/settings';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -14,20 +15,20 @@
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 
 	let categorySettings = $derived.by(() => {
-		if (!settings) return [];
+		// 1. Get explicit definitions for this category
+		const explicitDefs = SETTINGS_DEFINITIONS.filter((def) => def.category === category);
 
-		if (category === 'other') {
-			// Find settings that are NOT in SETTINGS_DEFINITIONS
+		// 2. If category is 'other', also find dynamic settings from device
+		let dynamicDefs: any[] = [];
+		if (category === 'other' && settings) {
 			const definedKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
-			return settings
+			dynamicDefs = settings
 				.filter((s) => s.key && !definedKeys.has(s.key))
 				.map((s) => {
 					let decodedValue = s;
 					if (s.default_value) {
 						try {
 							decodedValue = { ...s };
-							// For 'other', we need to decode based on its type if available
-							// Assuming s.type is available on the device param
 							decodedValue.default_value = atob(s.default_value);
 						} catch (e) {
 							console.warn(`Failed to decode default value for ${s.key}`, e);
@@ -36,45 +37,72 @@
 					return {
 						key: s.key!,
 						label: s.key!,
-						description: 'Unknown setting',
+						description: 'Unknown setting from device',
 						category: 'other' as SettingCategory,
-						value: decodedValue
+						value: decodedValue,
+						advanced: false,
+						readonly: false,
+						hidden: false
 					};
 				});
 		}
 
-		// Find settings that match the current category
-		return SETTINGS_DEFINITIONS.filter((def) => def.category === category)
-			.map((def) => {
-				const settingValue = settings?.find((s) => s.key === def.key);
-				let decodedValue = settingValue;
+		// 3. Combine and map values
+		const allDefs = [...explicitDefs, ...dynamicDefs];
 
-				// Decode default value if present
-				if (settingValue?.default_value) {
-					try {
-						// Create a shallow copy to avoid mutating the store and ensure reactivity
-						decodedValue = { ...settingValue };
-						// Check if it looks like base64 (simple check)
-						// Or just try to decode it. The user said "default values were always base64 encoded".
-						// We can use atob() for browser environment.
-						decodedValue.default_value = atob(settingValue.default_value);
-					} catch (e) {
-						// If it fails, it might not be base64 or invalid. Keep original.
-						console.warn(`Failed to decode default value for ${def.key}`, e);
+		return (
+			allDefs
+				.map((def) => {
+					const settingValue = settings?.find((s) => s.key === def.key);
+					let decodedValue = settingValue;
+
+					// Decode default value if present (and not already decoded for dynamic ones)
+					// Dynamic ones are already decoded above, but explicit ones need it here.
+					// Actually, for dynamic ones, we constructed a 'def' that has 'value' already set.
+					// For explicit ones, 'def' is just the definition.
+
+					// Let's normalize.
+					if (settingValue?.default_value) {
+						try {
+							decodedValue = { ...settingValue };
+							decodedValue.default_value = atob(settingValue.default_value);
+						} catch (e) {
+							console.warn(`Failed to decode default value for ${def.key}`, e);
+						}
+					} else if ((def as any).value) {
+						// It's a dynamic def we just created, use its value
+						decodedValue = (def as any).value;
 					}
-				}
-				return {
-					...def,
-					value: decodedValue
-				};
-			})
-			.filter((s) => s.value !== undefined); // Only show settings that exist on the device? Or show all defined ones?
-		// User said: "if a setting is not listed, it probably should go to a new category... so that it is still tweakable"
-		// This implies we should show what is available on the device.
-		// But for defined settings, maybe we want to show them even if not returned?
-		// The prompt says: "Gets all the available settings on the device... giving us the name of the param... we should store that in memory because the available settings for each device may be different."
-		// So we should probably only show settings that are actually returned by the API.
+
+					return {
+						...def,
+						value: decodedValue
+					};
+				})
+				// Filter out those that have no value AND no default value?
+				// The original logic filtered `s.value !== undefined`.
+				// For explicit settings, `decodedValue` might be undefined if not on device.
+				// But we usually want to show them if they are in definitions?
+				// Original logic: `.filter((s) => s.value !== undefined)`
+				// This implies we ONLY show settings that exist on the device (or have a default value loaded).
+				// If `settings` is undefined (device not loaded), `decodedValue` is undefined.
+				// So we probably want to keep this filter to avoid showing empty cards before data loads?
+				// Or maybe we want to show them as "loading"?
+				// The original code had `if (!settings) return []`, so it waited for settings.
+				// Here `settings` is derived from deviceState.
+
+				// If we want to show explicit settings even if not on device yet (e.g. to show they exist),
+				// we might want to relax this. But for now, let's stick to original behavior:
+				// show if we have a value (from device or default).
+				.filter((s) => s.value !== undefined)
+				.filter((s) => !s.hidden)
+				.filter((s) => preferences.showAdvanced || !s.advanced)
+		);
 	});
+
+	let writableSettings = $derived(categorySettings.filter((s) => !s.readonly));
+	let readonlySettings = $derived(categorySettings.filter((s) => s.readonly));
+
 	import { v1Client } from '$lib/api/client';
 
 	let loadingValues = $state(false);
@@ -308,108 +336,163 @@
 			<span>No settings found for this category.</span>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-			{#each categorySettings as setting}
-				{@const currentValue = deviceState.deviceValues[deviceId]?.[setting.key]}
-				{@const displayValue =
-					currentValue !== undefined ? currentValue : setting.value?.default_value}
-				{@const isBool = setting.value?.type === 'Bool'}
-				{@const isJson = setting.value?.type === 'Json'}
-				{@const isString = setting.value?.type === 'String'}
-				{@const isLoading = loadingValues && currentValue === undefined}
+		{#snippet settingCard(setting: any)}
+			{@const currentValue = deviceState.deviceValues[deviceId]?.[setting.key]}
+			{@const displayValue =
+				currentValue !== undefined ? currentValue : setting.value?.default_value}
+			{@const isBool = setting.value?.type === 'Bool'}
+			{@const isJson = setting.value?.type === 'Json'}
+			{@const isString = setting.value?.type === 'String'}
+			{@const isLoading = loadingValues && currentValue === undefined}
 
-				{#if isBool}
-					<button
-						class="flex w-full cursor-default flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
-						aria-pressed={displayValue === true}
-						aria-disabled="true"
-						tabindex="-1"
-					>
-						<div class="mb-4 w-full">
-							<div class="flex items-start justify-between">
-								<h3 class="font-medium break-all text-white">{setting.label}</h3>
-								<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">
-									{#if displayValue === true}
-										Enabled
-									{:else}
-										Disabled
-									{/if}
-								</span>
-							</div>
-							<p class="mt-1 text-sm text-slate-400">{setting.description}</p>
-							{#if setting.value?.default_value && !isLoading}
-								<p class="mt-2 text-xs text-slate-500">
-									Default: {setting.value.default_value}
-								</p>
-							{/if}
-						</div>
-
-						<div class="mt-auto flex w-full items-end justify-end">
-							{#if isLoading}
-								<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
-							{:else}
-								<div
-									class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
-									class:bg-primary={displayValue === true}
-									class:bg-slate-700={displayValue !== true}
-								>
+			{#if isBool}
+				<button
+					class="flex w-full cursor-default flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
+					class:opacity-50={setting.readonly}
+					class:cursor-not-allowed={setting.readonly}
+					disabled={setting.readonly}
+					aria-pressed={displayValue === true}
+					aria-disabled={setting.readonly}
+					tabindex={setting.readonly ? -1 : 0}
+				>
+					<div class="mb-4 w-full">
+						<div class="flex items-start justify-between">
+							<h3 class="font-medium break-all text-white">
+								{preferences.debugMode ? setting.key : setting.label}
+								{#if setting.readonly}
 									<span
-										class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-										class:translate-x-6={displayValue === true}
-										class:translate-x-1={displayValue !== true}
-									></span>
-								</div>
-							{/if}
+										class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
+									>
+										RO
+									</span>
+								{/if}
+							</h3>
+							<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">
+								{#if displayValue === true}
+									Enabled
+								{:else}
+									Disabled
+								{/if}
+							</span>
 						</div>
-					</button>
-				{:else}
-					<div
-						class="flex flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 transition-colors hover:border-primary/50 sm:p-6"
-					>
-						<div class="mb-4">
-							<div class="flex items-start justify-between">
-								<h3 class="font-medium break-all text-white">{setting.label}</h3>
-							</div>
-							<p class="mt-1 text-sm text-slate-400">{setting.description}</p>
-							{#if setting.value?.default_value && !isLoading}
-								<p class="mt-2 text-xs text-slate-500">
-									Default: {isJson
-										? '(JSON)'
-										: String(setting.value.default_value).length > 50
-											? String(setting.value.default_value).slice(0, 50) + '...'
-											: setting.value.default_value}
-								</p>
-							{/if}
-						</div>
-
-						<div class="mt-auto flex items-end justify-end">
-							{#if isLoading}
-								<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
-							{:else if isJson}
-								<button
-									class="btn w-full text-slate-300 btn-outline btn-sm hover:border-primary hover:text-primary"
-									onclick={() => openJsonModal(setting.label, displayValue)}
-								>
-									View JSON
-								</button>
-							{:else if isString && String(displayValue).length > 50}
-								<div
-									class="max-h-32 w-full overflow-y-auto rounded bg-[#0f1726] p-2 text-xs whitespace-pre-wrap text-slate-300"
-								>
-									{displayValue}
-								</div>
-							{:else}
-								<div
-									class="w-full rounded bg-[#0f1726] p-2 text-center text-sm font-medium text-white"
-								>
-									{displayValue !== undefined ? String(displayValue) : '-'}
-								</div>
-							{/if}
-						</div>
+						<p class="mt-1 text-sm text-slate-400">{setting.description}</p>
+						{#if setting.value?.default_value && !isLoading}
+							<p class="mt-2 text-xs text-slate-500">
+								Default: {setting.value.default_value}
+							</p>
+						{/if}
 					</div>
-				{/if}
+
+					<div class="mt-auto flex w-full items-end justify-end">
+						{#if isLoading}
+							<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
+						{:else}
+							<div
+								class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
+								class:bg-primary={displayValue === true}
+								class:bg-slate-700={displayValue !== true}
+							>
+								<span
+									class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+									class:translate-x-6={displayValue === true}
+									class:translate-x-1={displayValue !== true}
+								></span>
+							</div>
+						{/if}
+					</div>
+				</button>
+			{:else}
+				<div
+					class="flex flex-col justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 transition-colors hover:border-primary/50 sm:p-6"
+				>
+					<div class="mb-4">
+						<div class="flex items-start justify-between">
+							<h3 class="font-medium break-all text-white">
+								{preferences.debugMode ? setting.key : setting.label}
+								{#if setting.readonly}
+									<span
+										class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
+									>
+										RO
+									</span>
+								{/if}
+							</h3>
+						</div>
+						<p class="mt-1 text-sm text-slate-400">{setting.description}</p>
+						{#if setting.value?.default_value && !isLoading}
+							<p class="mt-2 text-xs text-slate-500">
+								Default: {isJson
+									? '(JSON)'
+									: String(setting.value.default_value).length > 50
+										? String(setting.value.default_value).slice(0, 50) + '...'
+										: setting.value.default_value}
+							</p>
+						{/if}
+					</div>
+
+					<div class="mt-auto flex items-end justify-end">
+						{#if isLoading}
+							<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
+						{:else if isJson}
+							<button
+								class="btn w-full text-slate-300 btn-outline btn-sm hover:border-primary hover:text-primary"
+								onclick={() => openJsonModal(setting.label, displayValue)}
+							>
+								View JSON
+							</button>
+						{:else if isString && String(displayValue).length > 50}
+							<div
+								class="max-h-32 w-full overflow-y-auto rounded bg-[#0f1726] p-2 text-xs whitespace-pre-wrap text-slate-300"
+							>
+								{displayValue}
+							</div>
+						{:else}
+							<div
+								class="w-full rounded bg-[#0f1726] p-2 text-center text-sm font-medium text-white"
+							>
+								{displayValue !== undefined ? String(displayValue) : '-'}
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+		{/snippet}
+
+		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+			{#each writableSettings as setting}
+				{@render settingCard(setting)}
 			{/each}
 		</div>
+
+		{#if readonlySettings.length > 0}
+			<details class="group mt-8 rounded-xl border border-[#334155] bg-[#101a29] open:bg-[#0f1726]">
+				<summary
+					class="flex cursor-pointer items-center justify-between p-4 font-medium text-slate-400 hover:text-white"
+				>
+					<span>Read-Only Settings ({readonlySettings.length})</span>
+					<span class="transition-transform group-open:rotate-180">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg
+						>
+					</span>
+				</summary>
+				<div
+					class="grid grid-cols-1 gap-4 border-t border-[#334155] p-4 lg:grid-cols-2 xl:grid-cols-3"
+				>
+					{#each readonlySettings as setting}
+						{@render settingCard(setting)}
+					{/each}
+				</div>
+			</details>
+		{/if}
 	{/if}
 </div>
 

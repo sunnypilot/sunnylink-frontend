@@ -64,6 +64,7 @@
 	let bottomNavItems = $derived(
 		[
 			{ icon: LifeBuoy, label: 'Support', href: 'https://community.sunnypilot.ai/c/bug-reports/8' },
+			{ icon: Settings, label: 'Preferences', href: '/dashboard/preferences' },
 			authState.isAuthenticated ? { icon: LogOut, label: 'Logout', action: handleLogout } : null
 		].filter((item) => item !== null)
 	);
@@ -245,7 +246,7 @@
 			<div class="border-t border-[#1e293b] p-3 sm:p-4">
 				{#if authState.isAuthenticated}
 					<a
-						href="/dashboard/settings/developer"
+						href="/dashboard/preferences"
 						onclick={closeDrawerOnMobile}
 						class={[
 							'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
