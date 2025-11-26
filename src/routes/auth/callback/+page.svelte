@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import type { UserInfoResponse } from '@logto/browser';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 
 	const auth = $state({
 		loading: true,
@@ -16,6 +16,8 @@
 		await authState.init();
 
 		if (authState.isAuthenticated) {
+			// Force re-execution of all load functions to fetch fresh data (e.g. devices)
+			await invalidateAll();
 			goto('/dashboard');
 		} else {
 			goto('/login');
