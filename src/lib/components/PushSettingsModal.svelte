@@ -16,12 +16,26 @@
 	let changeList = $derived(
 		Object.entries(changes || {}).map(([key, value]) => {
 			const def = SETTINGS_DEFINITIONS.find((d) => d.key === key);
+			const deviceSetting = deviceState.deviceSettings[deviceId!]?.find((s) => s.key === key);
 			const originalValue = deviceState.deviceValues[deviceId!]?.[key];
+
+			let displayValue = value;
+			let displayOriginalValue = originalValue;
+
+			const options = deviceSetting?._extra?.options;
+			if (options) {
+				const valOption = options.find((o) => o.value == value);
+				if (valOption) displayValue = valOption.label;
+
+				const origOption = options.find((o) => o.value == originalValue);
+				if (origOption) displayOriginalValue = origOption.label;
+			}
+
 			return {
 				key,
-				label: def?.label || key,
-				value,
-				originalValue,
+				label: deviceSetting?._extra?.title || def?.label || key,
+				value: displayValue,
+				originalValue: displayOriginalValue,
 				def
 			};
 		})

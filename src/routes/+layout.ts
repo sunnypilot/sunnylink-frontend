@@ -55,10 +55,12 @@ export const load: LayoutLoad = async () => {
             // Retry detail fetch if 401 (though unlikely if list succeeded with same token)
             if (response.response.status === 401) {
                 try {
-                    await logtoClient.getAccessToken();
-                    token = await logtoClient.getIdToken();
-                    if (token) {
-                        response = await fetchDetail(token);
+                    if (logtoClient) {
+                        await logtoClient.getAccessToken();
+                        token = await logtoClient.getIdToken();
+                        if (token) {
+                            response = await fetchDetail(token);
+                        }
                     }
                 } catch (e) {
                     console.error('Failed to refresh token for detail fetch:', e);

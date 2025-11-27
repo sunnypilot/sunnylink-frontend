@@ -1,3 +1,18 @@
+import type { components } from '../../sunnylink/v1/schema';
+
+export interface ParamExtra {
+    title?: string;
+    description?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+    options?: { value: number | string; label: string }[];
+}
+
+export type ExtendedDeviceParamKey = components['schemas']['DeviceParamKey'] & {
+    _extra?: ParamExtra;
+};
+
 export type SettingCategory = 'device' | 'toggles' | 'steering' | 'cruise' | 'visuals' | 'developer' | 'other';
 
 export interface SettingDefinition {
@@ -8,6 +23,11 @@ export interface SettingDefinition {
     advanced?: boolean;
     readonly?: boolean;
     hidden?: boolean;
+}
+
+export interface RenderableSetting extends SettingDefinition {
+    value?: ExtendedDeviceParamKey;
+    _extra?: ParamExtra;
 }
 
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [

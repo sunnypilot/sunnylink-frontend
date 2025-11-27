@@ -2,7 +2,11 @@
 	import { page } from '$app/state';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
-	import { SETTINGS_DEFINITIONS, type SettingCategory } from '$lib/types/settings';
+	import {
+		SETTINGS_DEFINITIONS,
+		type SettingCategory,
+		type RenderableSetting
+	} from '$lib/types/settings';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
@@ -21,7 +25,7 @@
 		const explicitDefs = SETTINGS_DEFINITIONS.filter((def) => def.category === category);
 
 		// 2. If category is 'other', also find dynamic settings from device
-		let dynamicDefs: any[] = [];
+		let dynamicDefs: RenderableSetting[] = [];
 		if (category === 'other' && settings) {
 			const definedKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
 			dynamicDefs = settings
@@ -42,6 +46,7 @@
 						description: 'Unknown setting from device',
 						category: 'other' as SettingCategory,
 						value: decodedValue,
+						_extra: s._extra,
 						advanced: false,
 						readonly: false,
 						hidden: false
@@ -71,13 +76,14 @@
 						} catch (e) {
 							console.warn(`Failed to decode default value for ${def.key}`, e);
 						}
-					} else if ((def as any).value) {
+					} else if ((def as unknown as RenderableSetting).value) {
 						// It's a dynamic def we just created, use its value
-						decodedValue = (def as any).value;
+						decodedValue = (def as unknown as RenderableSetting).value;
 					}
 
 					return {
 						...def,
+						_extra: settingValue?._extra,
 						value: decodedValue
 					};
 				})
@@ -279,7 +285,9 @@
 		{/await}
 	{:else if deviceState.onlineStatuses[deviceId] === 'offline'}
 		{#await data.streamed.devices then devices}
-			{@const selectedDevice = devices?.find((d: any) => d.device_id === deviceId)}
+			{@const selectedDevice = devices?.find(
+				(d: { device_id: string | null }) => d.device_id === deviceId
+			)}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<div class="mb-4 rounded-full bg-red-500/10 p-4">
 					<svg
@@ -339,7 +347,7 @@
 			<span>No settings found for this category.</span>
 		</div>
 	{:else}
-		{#snippet settingCard(setting: any)}
+		{#snippet settingCard(setting: RenderableSetting)}
 			{@const currentValue = deviceState.deviceValues[deviceId]?.[setting.key]}
 			{@const stagedValue = deviceState.getChange(deviceId, setting.key)}
 			{@const hasStaged = stagedValue !== undefined}
@@ -353,6 +361,14 @@
 			{@const isString = setting.value?.type === 'String'}
 			{@const isNumber = setting.value?.type === 'Int' || setting.value?.type === 'Float'}
 			{@const isLoading = loadingValues && currentValue === undefined}
+
+			{@const title =
+				setting._extra?.title || (preferences.debugMode ? setting.key : setting.label)}
+			{@const description = setting._extra?.description || setting.description}
+			{@const options = setting._extra?.options}
+			{@const min = setting._extra?.min}
+			{@const max = setting._extra?.max}
+			{@const step = setting._extra?.step}
 
 			{#if isBool}
 				<button
@@ -385,7 +401,7 @@
 					<div class="mb-4 w-full">
 						<div class="flex items-start justify-between">
 							<h3 class="font-medium break-all text-white">
-								{preferences.debugMode ? setting.key : setting.label}
+								{title}
 								{#if setting.readonly}
 									<span
 										class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
@@ -409,10 +425,13 @@
 								{/if}
 							</span>
 						</div>
-						<p class="mt-1 text-sm text-slate-400">{setting.description}</p>
-						{#if setting.value?.default_value && !isLoading}
+						<p class="mt-1 text-sm text-slate-400">{description}</p>
+						{#if setting.value?.default_value !== undefined && setting.value?.default_value !== null && !isLoading}
 							<p class="mt-2 text-xs text-slate-500">
-								Default: {setting.value.default_value}
+								Default: {options
+									? options.find((o) => String(o.value) === String(setting.value?.default_value))
+											?.label || setting.value.default_value
+									: setting.value.default_value}
 							</p>
 						{/if}
 					</div>
@@ -444,7 +463,7 @@
 					<div class="mb-4">
 						<div class="flex items-start justify-between">
 							<h3 class="font-medium break-all text-white">
-								{preferences.debugMode ? setting.key : setting.label}
+								{title}
 								{#if setting.readonly}
 									<span
 										class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
@@ -461,14 +480,17 @@
 								{/if}
 							</h3>
 						</div>
-						<p class="mt-1 text-sm text-slate-400">{setting.description}</p>
-						{#if setting.value?.default_value && !isLoading}
+						<p class="mt-1 text-sm text-slate-400">{description}</p>
+						{#if setting.value?.default_value !== undefined && setting.value?.default_value !== null && !isLoading}
 							<p class="mt-2 text-xs text-slate-500">
-								Default: {isJson
-									? '(JSON)'
-									: String(setting.value.default_value).length > 50
-										? String(setting.value.default_value).slice(0, 50) + '...'
-										: setting.value.default_value}
+								Default: {options
+									? options.find((o) => String(o.value) === String(setting.value?.default_value))
+											?.label || setting.value.default_value
+									: isJson
+										? '(JSON)'
+										: String(setting.value.default_value).length > 50
+											? String(setting.value.default_value).slice(0, 50) + '...'
+											: setting.value.default_value}
 							</p>
 						{/if}
 					</div>
@@ -476,6 +498,26 @@
 					<div class="mt-auto flex items-end justify-end">
 						{#if isLoading}
 							<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
+						{:else if options}
+							<select
+								class="select w-full bg-[#0f1726] select-sm text-white focus:border-primary focus:outline-none"
+								value={displayValue}
+								onchange={(e: Event & { currentTarget: HTMLSelectElement }) => {
+									const val = e.currentTarget.value;
+									let newValue: string | number = val;
+									// Try to convert to number if the original type is Int/Float
+									if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
+									if (setting.value?.type === 'Float') newValue = parseFloat(val);
+
+									const original =
+										currentValue !== undefined ? currentValue : setting.value?.default_value;
+									deviceState.stageChange(deviceId, setting.key, newValue, original);
+								}}
+							>
+								{#each options as option}
+									<option value={option.value}>{option.label}</option>
+								{/each}
+							</select>
 						{:else if isJson}
 							<button
 								class="btn w-full text-slate-300 btn-outline btn-sm hover:border-primary hover:text-primary"
@@ -484,24 +526,115 @@
 								View JSON
 							</button>
 						{:else if !setting.readonly && (isString || isNumber)}
-							<input
-								type={isNumber ? 'number' : 'text'}
-								value={displayValue !== undefined ? displayValue : ''}
-								class="input input-sm w-full bg-[#0f1726] text-white focus:border-primary focus:outline-none"
-								placeholder={setting.value?.default_value
-									? String(setting.value.default_value)
-									: ''}
-								oninput={(e) => {
-									const val = e.currentTarget.value;
-									let newValue: any = val;
-									if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
-									if (setting.value?.type === 'Float') newValue = parseFloat(val);
+							{#if isNumber && min !== undefined && max !== undefined}
+								<div class="flex w-full flex-col gap-2">
+									<div class="flex items-center justify-between">
+										<span class="text-xs font-medium text-slate-400">{min}</span>
+										<span class="text-lg font-bold text-primary">
+											{displayValue !== undefined
+												? displayValue
+												: setting.value?.default_value || min}
+										</span>
+										<span class="text-xs font-medium text-slate-400">{max}</span>
+									</div>
+									<div class="flex items-center gap-4">
+										<button
+											class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
+											aria-label="Decrease value"
+											onclick={() => {
+												let current =
+													displayValue !== undefined
+														? Number(displayValue)
+														: Number(setting.value?.default_value || min);
+												let newValue = Math.max(min, current - (step || 1));
+												const original =
+													currentValue !== undefined ? currentValue : setting.value?.default_value;
+												deviceState.stageChange(deviceId, setting.key, newValue, original);
+											}}
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="20"
+												height="20"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"><path d="M5 12h14" /></svg
+											>
+										</button>
+										<input
+											type="range"
+											{min}
+											{max}
+											step={step || 1}
+											value={displayValue !== undefined
+												? displayValue
+												: setting.value?.default_value || min}
+											class="range flex-1 range-primary range-xs"
+											oninput={(e: Event & { currentTarget: HTMLInputElement }) => {
+												const val = e.currentTarget.value;
+												let newValue: string | number = val;
+												if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
+												if (setting.value?.type === 'Float') newValue = parseFloat(val);
 
-									const original =
-										currentValue !== undefined ? currentValue : setting.value?.default_value;
-									deviceState.stageChange(deviceId, setting.key, newValue, original);
-								}}
-							/>
+												const original =
+													currentValue !== undefined ? currentValue : setting.value?.default_value;
+												deviceState.stageChange(deviceId, setting.key, newValue, original);
+											}}
+										/>
+										<button
+											class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
+											aria-label="Increase value"
+											onclick={() => {
+												let current =
+													displayValue !== undefined
+														? Number(displayValue)
+														: Number(setting.value?.default_value || min);
+												let newValue = Math.min(max, current + (step || 1));
+												const original =
+													currentValue !== undefined ? currentValue : setting.value?.default_value;
+												deviceState.stageChange(deviceId, setting.key, newValue, original);
+											}}
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="20"
+												height="20"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg
+											>
+										</button>
+									</div>
+								</div>
+							{:else}
+								<input
+									type={isNumber ? 'number' : 'text'}
+									value={displayValue !== undefined ? displayValue : ''}
+									class="input input-sm w-full bg-[#0f1726] text-white focus:border-primary focus:outline-none"
+									placeholder={setting.value?.default_value
+										? String(setting.value.default_value)
+										: ''}
+									{min}
+									{max}
+									{step}
+									oninput={(e: Event & { currentTarget: HTMLInputElement }) => {
+										const val = e.currentTarget.value;
+										let newValue: string | number = val;
+										if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
+										if (setting.value?.type === 'Float') newValue = parseFloat(val);
+
+										const original =
+											currentValue !== undefined ? currentValue : setting.value?.default_value;
+										deviceState.stageChange(deviceId, setting.key, newValue, original);
+									}}
+								/>
+							{/if}
 						{:else if isString && String(displayValue).length > 50}
 							<div
 								class="max-h-32 w-full overflow-y-auto rounded bg-[#0f1726] p-2 text-xs whitespace-pre-wrap text-slate-300"

@@ -1,5 +1,6 @@
 import { v1Client } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
+import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 
 export async function checkDeviceStatus(deviceId: string, token: string) {
     if (!deviceId || !token) return;
@@ -20,7 +21,7 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
         // Strict check: Must have items and length > 0
         if (response.data?.items && response.data.items.length > 0) {
             deviceState.onlineStatuses[deviceId] = 'online';
-            deviceState.deviceSettings[deviceId] = response.data.items;
+            deviceState.deviceSettings[deviceId] = response.data.items as ExtendedDeviceParamKey[];
         } else {
             // Empty items means we couldn't fetch settings -> likely offline or not ready
             deviceState.onlineStatuses[deviceId] = 'offline';

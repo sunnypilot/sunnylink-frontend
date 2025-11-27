@@ -1,8 +1,8 @@
-import type { components } from '../../sunnylink/v1/schema';
+import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 
 export const deviceState = $state({
     selectedDeviceId: undefined as string | undefined,
-    deviceSettings: {} as Record<string, components['schemas']['DeviceParamKey'][]>,
+    deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
     deviceValues: {} as Record<string, Record<string, unknown>>,
     onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline'>,
     stagedChanges: {} as Record<string, Record<string, unknown>>,
