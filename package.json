@@ -23,6 +23,8 @@
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.1.14",
 		"@vitest/browser-playwright": "^4.0.5",
+		"@testing-library/svelte": "^5.2.9",
+		"@vitest/coverage-v8": "^4.0.14",
 		"daisyui": "^5.5.5",
 		"openapi-typescript": "^7.10.1",
 		"playwright": "^1.56.1",
