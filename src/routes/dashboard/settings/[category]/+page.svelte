@@ -13,6 +13,7 @@
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
+	import DeviceOnlineModal from '$lib/components/DeviceOnlineModal.svelte';
 
 	let { data } = $props();
 
@@ -119,6 +120,15 @@
 	let jsonModalContent = $state('');
 	let jsonModalTitle = $state('');
 	let pushModalOpen = $state(false);
+	let deviceOnlineModalOpen = $state(false);
+
+	$effect(() => {
+		if (deviceId) {
+			if (preferences.showDeviceOnlineHelp) {
+				deviceOnlineModalOpen = true;
+			}
+		}
+	});
 
 	$effect(() => {
 		if (deviceId && logtoClient && categorySettings.length > 0) {
@@ -697,6 +707,7 @@
 />
 
 <PushSettingsModal bind:open={pushModalOpen} onPushSuccess={() => fetchCurrentValues()} />
+<DeviceOnlineModal bind:open={deviceOnlineModalOpen} />
 
 <!-- JSON Modal -->
 {#if jsonModalOpen}

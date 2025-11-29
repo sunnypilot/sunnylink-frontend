@@ -224,6 +224,33 @@
 				</button>
 			</div>
 		</div>
+
+		<!-- Show Device Online Help -->
+		<div class="rounded-xl border border-[#334155] bg-[#101a29] p-6">
+			<div class="flex items-center justify-between">
+				<div>
+					<h3 class="font-medium text-white">Show Device Online Help</h3>
+					<p class="text-sm text-slate-400">
+						Display the explanation modal when visiting settings.
+					</p>
+				</div>
+				<button
+					class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#0f1726] focus:outline-none"
+					class:bg-primary={preferences.showDeviceOnlineHelp}
+					class:bg-slate-700={!preferences.showDeviceOnlineHelp}
+					onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}
+					role="switch"
+					aria-checked={preferences.showDeviceOnlineHelp}
+					aria-label="Toggle Show Device Online Help"
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+						class:translate-x-6={preferences.showDeviceOnlineHelp}
+						class:translate-x-1={!preferences.showDeviceOnlineHelp}
+					></span>
+				</button>
+			</div>
+		</div>
 	</div>
 
 	{#if isDev}
