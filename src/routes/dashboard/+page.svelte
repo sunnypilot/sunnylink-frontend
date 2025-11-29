@@ -106,24 +106,6 @@
 		}
 	});
 
-	// Helper to sort a list of devices
-	function sortDevicesList(list: any[]) {
-		return [...list].sort((a, b) => {
-			// Helper to get stable alias (ignoring unsaved overrides) for sorting
-			const getStableAlias = (d: any) => deviceState.aliases[d.device_id] ?? d.alias ?? d.device_id;
-
-			// 1. Aliased (Aliased first)
-			const aliasA = getStableAlias(a);
-			const aliasB = getStableAlias(b);
-			const hasAliasA = aliasA !== a.device_id;
-			const hasAliasB = aliasB !== b.device_id;
-			if (hasAliasA !== hasAliasB) return hasAliasA ? -1 : 1;
-
-			// 2. Alphabetical (Alias or ID)
-			return aliasA.localeCompare(aliasB);
-		});
-	}
-
 	let onlineDevices = $derived.by(() => {
 		deviceState.version; // Dependency
 		if (!devices) return [];
@@ -131,14 +113,14 @@
 			const status = deviceState.onlineStatuses[d.device_id];
 			return status === 'online' || status === 'loading' || status === undefined;
 		});
-		return sortDevicesList(list);
+		return deviceState.sortDevices(list);
 	});
 
 	let offlineDevices = $derived.by(() => {
 		deviceState.version; // Dependency
 		if (!devices) return [];
 		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
-		return sortDevicesList(list);
+		return deviceState.sortDevices(list);
 	});
 </script>
 
@@ -223,7 +205,7 @@
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
-							class="card cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+							class="card cursor-pointer border bg-[#0f1726] transition-all duration-300 hover:border-primary/50 hover:shadow-lg {hasPendingChange
 								? 'border-primary ring-1 ring-primary/50'
 								: isSelected
 									? 'border-primary ring-1 ring-primary/50'
@@ -293,28 +275,20 @@
 									<!-- Quick Actions / Status Cards -->
 									<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-1/2">
 										<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-											{#if isSelected}
-												<div class="mb-2 flex items-center gap-2 text-emerald-400">
-													<Check size={18} />
-													<span class="text-xs font-bold tracking-wider uppercase">Selected</span>
-												</div>
-												<div class="text-lg font-medium text-white">Active Device</div>
-											{:else}
-												<button
-													class="group flex w-full flex-col items-start gap-2"
-													onclick={() => deviceState.setSelectedDevice(device.device_id)}
-												>
-													<div
-														class="flex items-center gap-2 text-slate-400 group-hover:text-primary"
-													>
-														<Activity size={18} />
-														<span class="text-xs font-bold tracking-wider uppercase">Select</span>
-													</div>
-													<div class="text-lg font-medium text-white group-hover:text-primary">
-														Click to Manage
-													</div>
-												</button>
-											{/if}
+											<div class="mb-2 flex items-center gap-2 text-slate-400">
+												<Activity size={18} />
+												<span class="text-xs font-bold tracking-wider uppercase">Status</span>
+											</div>
+											<div class="text-lg font-medium text-white">
+												{#if isLoading}
+													<span class="flex items-center gap-2">
+														<Loader2 size={16} class="animate-spin" />
+														Checking...
+													</span>
+												{:else}
+													Connected
+												{/if}
+											</div>
 										</div>
 
 										{#if !isUnregistered}
@@ -325,13 +299,13 @@
 													copyToClipboard(device.comma_dongle_id, device.device_id);
 												}}
 											>
-												<div class="mb-2 flex items-center justify-between text-slate-400">
-													<div class="flex items-center gap-2">
+												<span class="mb-2 flex items-center justify-between text-slate-400">
+													<span class="flex items-center gap-2">
 														<Cpu size={18} />
 														<span class="text-xs font-bold tracking-wider uppercase"
 															>Comma Dongle ID</span
 														>
-													</div>
+													</span>
 													{#if copiedDeviceId === device.device_id}
 														<Check size={16} class="text-emerald-400" />
 													{:else}
@@ -340,10 +314,10 @@
 															class="opacity-0 transition-opacity group-hover:opacity-100"
 														/>
 													{/if}
-												</div>
-												<div class="truncate text-xl font-bold text-white">
+												</span>
+												<span class="truncate text-xl font-bold text-white">
 													{device.comma_dongle_id}
-												</div>
+												</span>
 											</button>
 										{/if}
 									</div>
@@ -359,19 +333,19 @@
 								class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-[#1e293b]/50"
 								onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
 							>
-								<div class="flex items-center gap-3">
-									<div
+								<span class="flex items-center gap-3">
+									<span
 										class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400"
 									>
 										<WifiOff size={16} />
-									</div>
-									<div>
+									</span>
+									<span>
 										<h3 class="font-medium text-slate-300">Offline Devices</h3>
 										<p class="text-xs text-slate-500">
 											{offlineDevices.length} device{offlineDevices.length === 1 ? '' : 's'}
 										</p>
-									</div>
-								</div>
+									</span>
+								</span>
 								{#if offlineSectionOpen}
 									<ChevronDown class="text-slate-500" size={20} />
 								{:else}
@@ -473,13 +447,13 @@
 																	copyToClipboard(device.comma_dongle_id, device.device_id);
 																}}
 															>
-																<div class="mb-2 flex items-center justify-between text-slate-400">
-																	<div class="flex items-center gap-2">
+																<span class="mb-2 flex items-center justify-between text-slate-400">
+																	<span class="flex items-center gap-2">
 																		<Cpu size={18} />
 																		<span class="text-xs font-bold tracking-wider uppercase"
 																			>Comma Dongle ID</span
 																		>
-																	</div>
+																	</span>
 																	{#if copiedDeviceId === device.device_id}
 																		<Check size={16} class="text-emerald-400" />
 																	{:else}
@@ -488,10 +462,10 @@
 																			class="opacity-0 transition-opacity group-hover:opacity-100"
 																		/>
 																	{/if}
-																</div>
-																<div class="truncate text-xl font-bold text-white">
+																</span>
+																<span class="truncate text-xl font-bold text-white">
 																	{device.comma_dongle_id}
-																</div>
+																</span>
 															</button>
 														{/if}
 													</div>

@@ -340,8 +340,7 @@
 					>
 						Retry Connection
 					</button>
-					<div class="divider text-slate-600">OR</div>
-					<p class="text-sm text-slate-400">Select another device:</p>
+					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
 					{#if devices}
 						<DeviceSelector {devices} />
 					{/if}
@@ -408,8 +407,8 @@
 						}
 					}}
 				>
-					<div class="mb-4 w-full">
-						<div class="flex items-start justify-between">
+					<span class="mb-4 w-full">
+						<span class="flex items-start justify-between">
 							<h3 class="font-medium break-all text-white">
 								{title}
 								{#if setting.readonly}
@@ -434,7 +433,7 @@
 									Disabled
 								{/if}
 							</span>
-						</div>
+						</span>
 						<p class="mt-1 text-sm text-slate-400">{description}</p>
 						{#if setting.value?.default_value !== undefined && setting.value?.default_value !== null && !isLoading}
 							<p class="mt-2 text-xs text-slate-500">
@@ -444,9 +443,9 @@
 									: setting.value.default_value}
 							</p>
 						{/if}
-					</div>
+					</span>
 
-					<div class="mt-auto flex w-full items-end justify-end">
+					<span class="mt-auto flex w-full items-end justify-end">
 						{#if isLoading}
 							<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
 						{:else}
@@ -462,7 +461,7 @@
 								></span>
 							</div>
 						{/if}
-					</div>
+					</span>
 				</button>
 			{:else}
 				<div

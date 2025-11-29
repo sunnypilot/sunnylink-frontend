@@ -99,5 +99,23 @@ export const deviceState = $state({
     // Helper to remove a specific alias override
     removeAliasOverride(deviceId: string) {
         delete this.aliasOverrides[deviceId];
+    },
+
+    // Helper to sort a list of devices
+    sortDevices(list: any[]) {
+        return [...list].sort((a, b) => {
+            // Helper to get stable alias (ignoring unsaved overrides) for sorting
+            const getStableAlias = (d: any) => this.aliases[d.device_id] ?? d.alias ?? d.device_id;
+
+            // 1. Aliased (Aliased first)
+            const aliasA = getStableAlias(a);
+            const aliasB = getStableAlias(b);
+            const hasAliasA = aliasA !== a.device_id;
+            const hasAliasB = aliasB !== b.device_id;
+            if (hasAliasA !== hasAliasB) return hasAliasA ? -1 : 1;
+
+            // 2. Alphabetical (Alias or ID)
+            return aliasA.localeCompare(aliasB);
+        });
     }
 });

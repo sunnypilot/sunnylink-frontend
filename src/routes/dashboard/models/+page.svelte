@@ -3,6 +3,7 @@
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { v0Client, v1Client } from '$lib/api/client';
+	import { checkDeviceStatus } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
@@ -179,28 +180,59 @@
 			<p class="mt-2 text-slate-400">Select a device to view available models.</p>
 		</div>
 	{:else if isOffline}
-		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="mb-4 rounded-full bg-red-500/10 p-4">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					class="h-12 w-12 text-red-500"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-					/>
-				</svg>
+		{#await data.streamed.devices then devices}
+			{@const selectedDevice = devices?.find(
+				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
+			)}
+			<div class="flex flex-col items-center justify-center py-12 text-center">
+				<div class="mb-4 rounded-full bg-red-500/10 p-4">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-12 w-12 text-red-500"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+						/>
+					</svg>
+				</div>
+				<h3 class="text-xl font-semibold text-white">
+					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
+					{#if selectedDevice?.alias}
+						<span class="block text-sm font-normal text-slate-400"
+							>({selectedDevice?.device_id})</span
+						>
+					{/if}
+				</h3>
+				<p class="mt-2 max-w-md text-slate-400">
+					Your device needs to be online to fetch and manage models.
+				</p>
+				<div class="mt-6">
+					<button
+						class="btn btn-sm btn-primary"
+						onclick={async () => {
+							if (deviceState.selectedDeviceId && logtoClient) {
+								const token = await logtoClient.getIdToken();
+								if (token) {
+									await checkDeviceStatus(deviceState.selectedDeviceId, token);
+								}
+							}
+						}}
+					>
+						Retry Connection
+					</button>
+					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
+					{#if devices}
+						<DeviceSelector {devices} />
+					{/if}
+				</div>
 			</div>
-			<h3 class="text-xl font-semibold text-white">Device Offline</h3>
-			<p class="mt-2 max-w-md text-slate-400">
-				Your device needs to be online to fetch and manage models.
-			</p>
-		</div>
+		{/await}
 	{:else if loadingModels}
 		<div class="animate-pulse space-y-6">
 			<div class="h-12 w-full rounded bg-slate-700"></div>
