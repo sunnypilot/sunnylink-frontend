@@ -76,3 +76,168 @@ export function getAllSettings(
             .filter((s) => showAdvanced || !s.advanced)
     );
 }
+
+export interface DeviceSettingsBackup {
+    version: number;
+    timestamp: number;
+    deviceId: string;
+    settings: Record<string, any>;
+}
+
+export function downloadSettingsBackup(deviceId: string, settings: Record<string, any>) {
+    const backup: DeviceSettingsBackup = {
+        version: 1,
+        timestamp: Date.now(),
+        deviceId,
+        settings
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sunnylink-settings-${deviceId}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+import { decodeParamValue } from '$lib/utils/device';
+
+export async function fetchAllSettings(
+    deviceId: string,
+    client: any,
+    token: string,
+    currentValues: Record<string, any>,
+    onProgress?: (progress: number, status: string) => void,
+    signal?: AbortSignal
+): Promise<Record<string, any>> {
+    // 1. Get all known keys
+    const explicitKeys = SETTINGS_DEFINITIONS.map(d => d.key);
+
+    // 2. Get dynamic keys if available in store (passed as part of currentValues or we assume caller handles definitions)
+    // Ideally we should fetch definitions first if we want to be 100% sure, but for now let's rely on definitions being loaded 
+    // or just fetch what we know.
+    // Actually, let's fetch definitions to be safe if we can, but that requires more deps.
+    // Let's stick to SETTINGS_DEFINITIONS for now as that covers most. 
+    // If we want dynamic ones, we should rely on what's in deviceState.deviceSettings.
+
+    const keysToFetch = [...explicitKeys]; // Add dynamic ones if we can access them here
+
+    // 3. Filter out keys we already have
+    const missingKeys = keysToFetch.filter(key => currentValues[key] === undefined);
+
+    if (missingKeys.length === 0) {
+        onProgress?.(100, 'All settings up to date');
+        return currentValues;
+    }
+
+    // 4. Fetch missing values in chunks
+    const newValues = { ...currentValues };
+    const chunkedKeys = [];
+    for (let i = 0; i < missingKeys.length; i += 10) {
+        chunkedKeys.push(missingKeys.slice(i, i + 10));
+    }
+
+    let processedCount = 0;
+    const totalCount = missingKeys.length;
+    let successCount = 0;
+    let failCount = 0;
+
+    // Process in chunks with limited concurrency to avoid overwhelming the device/connection
+    // but faster than sequential.
+    const CONCURRENCY = 3;
+    const activePromises: Promise<void>[] = [];
+
+    for (const chunk of chunkedKeys) {
+        if (signal?.aborted) {
+            throw new Error('Backup cancelled');
+        }
+
+        const promise = (async () => {
+            if (signal?.aborted) return;
+
+            try {
+                const response = await client.GET('/v1/settings/{deviceId}/values', {
+                    params: {
+                        path: { deviceId },
+                        query: { paramKeys: chunk }
+                    },
+                    headers: { Authorization: `Bearer ${token}` },
+                    signal // Pass signal to fetch if supported by client, otherwise we check manually
+                });
+
+                if (response.data?.items) {
+                    for (const item of response.data.items) {
+                        if (item.key && item.value !== undefined) {
+                            const def = SETTINGS_DEFINITIONS.find(d => d.key === item.key);
+                            const type = (def as any)?.value?.type ?? 'String';
+
+                            newValues[item.key] = decodeParamValue({
+                                key: item.key,
+                                value: item.value,
+                                type
+                            });
+                        }
+                    }
+                    successCount += chunk.length;
+                } else {
+                    failCount += chunk.length;
+                }
+            } catch (e: any) {
+                if (e.name === 'AbortError' || signal?.aborted) {
+                    // Ignore abort errors
+                    return;
+                }
+                console.error(`Failed to fetch chunk for ${deviceId}`, e);
+                failCount += chunk.length;
+            } finally {
+                if (!signal?.aborted) {
+                    processedCount += chunk.length;
+                    onProgress?.(
+                        (processedCount / totalCount) * 100,
+                        `Processed ${processedCount} of ${totalCount} settings...`
+                    );
+                    // Small delay to let UI breathe
+                    await new Promise(r => setTimeout(r, 10));
+                }
+            }
+        })();
+
+        activePromises.push(promise);
+
+        if (activePromises.length >= CONCURRENCY) {
+            await Promise.race(activePromises);
+        }
+    }
+
+    // Wait for all remaining
+    await Promise.all(activePromises);
+
+    if (signal?.aborted) {
+        throw new Error('Backup cancelled');
+    }
+
+    if (failCount > 0) {
+        onProgress?.(100, `Completed with ${failCount} errors.`);
+        // Give user time to see the error
+        await new Promise(r => setTimeout(r, 1000));
+    } else {
+        onProgress?.(100, 'Finalizing backup...');
+    }
+
+    return newValues;
+}
+
+export function parseSettingsBackup(json: string): DeviceSettingsBackup {
+    try {
+        const parsed = JSON.parse(json);
+        if (!parsed.version || !parsed.settings) {
+            throw new Error('Invalid backup format');
+        }
+        return parsed as DeviceSettingsBackup;
+    } catch (e) {
+        throw new Error('Failed to parse settings backup file');
+    }
+}

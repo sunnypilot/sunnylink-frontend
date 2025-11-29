@@ -2,14 +2,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
-	import {
-		ChevronDown,
-		X,
-		WifiOff,
-		Check,
-		Smartphone,
-		LayoutDashboard
-	} from 'lucide-svelte';
+	import { ChevronDown, X, WifiOff, Check, Smartphone, LayoutDashboard } from 'lucide-svelte';
 	import { fade, fly, slide } from 'svelte/transition';
 	import { ChevronRight } from 'lucide-svelte';
 

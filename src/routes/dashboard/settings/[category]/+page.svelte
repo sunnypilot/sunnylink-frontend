@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
+	import { toastState } from '$lib/stores/toast.svelte';
 	import {
 		SETTINGS_DEFINITIONS,
 		type SettingCategory,
@@ -21,10 +23,27 @@
 
 	let { data } = $props();
 
+	let devices = $state<any[]>([]);
+
+	$effect(() => {
+		if (data.streamed.devices) {
+			data.streamed.devices.then((d) => {
+				devices = d || [];
+			});
+		}
+	});
+
 	let category = $derived(page.params.category as SettingCategory);
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
+
+	// Derived alias for current device
+	let currentDeviceAlias = $derived.by(() => {
+		if (!deviceId) return undefined;
+		const device = devices.find((d) => d.device_id === deviceId);
+		return deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
+	});
 
 	let categorySettings = $derived.by(() => {
 		const all = getAllSettings(settings, preferences.showAdvanced).filter(
@@ -61,6 +80,16 @@
 	$effect(() => {
 		if (deviceId && logtoClient && categorySettings.length > 0) {
 			fetchCurrentValues();
+		}
+	});
+
+	$effect(() => {
+		if (page.url.searchParams.get('openPush') === 'true') {
+			pushModalOpen = true;
+			// Optional: Clean up URL
+			const newUrl = new URL(page.url);
+			newUrl.searchParams.delete('openPush');
+			goto(newUrl.toString(), { replaceState: true, keepFocus: true, noScroll: true });
 		}
 	});
 
@@ -172,7 +201,6 @@
 	}
 </script>
 
-```typescript
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
 		<div>
@@ -184,7 +212,15 @@
 			</h2>
 			<p class="text-slate-400">
 				{#if deviceId}
-					Configuring {deviceId}
+					{@const device = devices.find((d) => d.device_id === deviceId)}
+					{@const alias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId}
+					Configuring
+					{#if alias && alias !== deviceId}
+						<span class="font-bold text-white">{alias}</span>
+						<span class="text-sm italic">({deviceId})</span>
+					{:else}
+						<span class="font-bold text-white">{deviceId}</span>
+					{/if}
 				{:else}
 					Select a device to configure settings
 				{/if}
@@ -636,7 +672,15 @@
 	onReset={() => deviceId && deviceState.clearChanges(deviceId)}
 />
 
-<PushSettingsModal bind:open={pushModalOpen} onPushSuccess={() => fetchCurrentValues()} />
+<PushSettingsModal
+	bind:open={pushModalOpen}
+	onPushSuccess={() => {
+		// Refresh values
+		fetchCurrentValues();
+		toastState.show('Settings pushed successfully!', 'success');
+	}}
+	alias={currentDeviceAlias}
+/>
 <DeviceOnlineModal bind:open={deviceOnlineModalOpen} />
 
 <!-- JSON Modal -->

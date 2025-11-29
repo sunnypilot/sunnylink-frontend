@@ -21,7 +21,8 @@
 		Settings,
 		ToggleLeft,
 		Wind,
-		Wrench
+		Wrench,
+		ArrowLeftRight
 	} from 'lucide-svelte';
 
 	let { children, data } = $props();
@@ -68,6 +69,13 @@
 
 	let bottomNavItems = $derived(
 		[
+			deviceState.selectedDeviceId
+				? {
+						icon: ArrowLeftRight,
+						label: 'Migrate Settings',
+						action: () => deviceState.openMigrationWizard()
+					}
+				: null,
 			{ icon: LifeBuoy, label: 'Support', href: 'https://community.sunnypilot.ai/c/bug-reports/8' },
 			{ icon: Settings, label: 'Preferences', href: '/dashboard/preferences' },
 			authState.isAuthenticated ? { icon: LogOut, label: 'Logout', action: handleLogout } : null
@@ -86,6 +94,11 @@
 	import { checkDeviceStatus } from '$lib/api/device';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
+	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
+	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+
+	let devices = $state<any[]>([]);
 
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
@@ -103,9 +116,10 @@
 	}
 
 	$effect(() => {
-		data.streamed.devices.then((devices) => {
-			if (devices && devices.length > 0) {
-				checkAllDevicesStatus(devices);
+		data.streamed.devices.then((d) => {
+			if (d && d.length > 0) {
+				devices = d;
+				checkAllDevicesStatus(d);
 			}
 		});
 	});
@@ -334,3 +348,15 @@
 		</aside>
 	</div>
 </div>
+
+<BackupStatusIndicator />
+
+{#if deviceState.migrationState.isOpen}
+	<SettingsMigrationWizard
+		bind:open={deviceState.migrationState.isOpen}
+		deviceId={deviceState.migrationState.targetDeviceId}
+		{devices}
+	/>
+{/if}
+
+<Toast />

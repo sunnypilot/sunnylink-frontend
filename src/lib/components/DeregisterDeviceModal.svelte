@@ -3,6 +3,9 @@
 	import { AlertTriangle, Loader2, Trash2, X, ArrowRight, Wifi, WifiOff } from 'lucide-svelte';
 	import { deregisterDevice, removeUserFromDevice } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
+	import { downloadSettingsBackup } from '$lib/utils/settings';
+	import { deviceState } from '$lib/stores/device.svelte';
+	import { Download } from 'lucide-svelte';
 
 	let {
 		open = $bindable(false),
@@ -166,6 +169,33 @@
 								This action cannot be undone. You should only do this if you are selling or
 								returning your device.
 							</p>
+						</div>
+
+						<!-- Backup Recommendation -->
+						<div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+							<div class="flex items-start gap-3">
+								<div class="rounded-full bg-blue-500/10 p-2 text-blue-400">
+									<Download size={20} />
+								</div>
+								<div>
+									<h4 class="font-bold text-blue-400">Recommended: Backup Settings</h4>
+									<p class="mt-1 text-sm text-slate-300">
+										Before deregistering, download a backup of your settings so you can restore them
+										to a new device later.
+									</p>
+									<button
+										class="btn mt-3 border-blue-500/30 text-blue-400 btn-outline btn-sm hover:border-blue-500 hover:bg-blue-500 hover:text-white"
+										onclick={() => {
+											if (deviceState.deviceValues[deviceId]) {
+												downloadSettingsBackup(deviceId, deviceState.deviceValues[deviceId]);
+											}
+										}}
+									>
+										<Download size={14} class="mr-2" />
+										Download Backup
+									</button>
+								</div>
+							</div>
 						</div>
 
 						<!-- Checkboxes -->

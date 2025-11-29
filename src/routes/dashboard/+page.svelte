@@ -19,9 +19,13 @@
 		Calendar,
 		Copy,
 		Check,
-		Trash2
+		Trash2,
+		Download
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
+	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
+	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
+	import { v1Client } from '$lib/api/client';
 
 	let { data } = $props();
 
@@ -33,6 +37,56 @@
 	let deviceToDeregisterIsOnline = $state<boolean>(false);
 	let offlineSectionOpen = $state(false);
 	let copiedDeviceId = $state<string | null>(null);
+
+	async function handleDownloadBackup(deviceId: string) {
+		if (!deviceId || deviceState.backupState.isDownloading) return;
+
+		deviceState.startBackup(deviceId);
+
+		try {
+			const token = await logtoClient?.getIdToken();
+			if (!token) throw new Error('Not authenticated');
+
+			const currentValues = deviceState.deviceValues[deviceId] || {};
+			const allSettings = await fetchAllSettings(
+				deviceId,
+				v1Client,
+				token,
+				currentValues,
+				(progress, status) => {
+					deviceState.setBackupProgress(progress, status);
+				},
+				deviceState.backupState.abortController?.signal
+			);
+
+			// Update store with any new values fetched
+			Object.entries(allSettings).forEach(([key, value]) => {
+				if (currentValues[key] === undefined) {
+					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
+				}
+			});
+
+			downloadSettingsBackup(deviceId, allSettings);
+
+			deviceState.finishBackup(true);
+
+			// Keep modal open briefly to show completion if it's open
+			if (deviceState.backupState.isOpen) {
+				setTimeout(() => {
+					deviceState.closeBackupModal();
+				}, 1000);
+			}
+		} catch (e: any) {
+			if (e.message === 'Backup cancelled') {
+				deviceState.finishBackup(false, 'Backup cancelled');
+			} else {
+				console.error('Failed to download backup', e);
+				deviceState.finishBackup(false, 'Failed to download backup');
+				alert('Failed to download backup. Please try again.');
+			}
+		}
+	}
 
 	$effect(() => {
 		if (!authState.loading && !authState.isAuthenticated) {
@@ -165,6 +219,25 @@
 								one place.
 							</p>
 						</div>
+
+						<!-- Migration CTA -->
+						<div
+							class="flex w-full flex-col items-start gap-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 lg:max-w-md"
+						>
+							<div class="space-y-2">
+								<h3 class="font-bold text-blue-400">Migrate Settings</h3>
+								<p class="text-sm text-slate-300">
+									Whether you have your new device or are waiting for it to arrive, you can start
+									your settings migration now and resume it later.
+								</p>
+							</div>
+							<button
+								class="btn btn-sm btn-primary"
+								onclick={() => deviceState.openMigrationWizard()}
+							>
+								Open Migration Wizard
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -269,17 +342,36 @@
 										<span>Paired {formatDate(device.created_at)}</span>
 									</div>
 
-									<!-- Trash Icon -->
-									<button
-										class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
-										onclick={(e) => {
-											e.stopPropagation();
-											openDeregisterModal(device, isOnline);
-										}}
-										title="Deregister Device"
-									>
-										<Trash2 size={20} />
-									</button>
+									<!-- Action Buttons -->
+									<div class="flex items-center gap-1">
+										<button
+											class="rounded-lg p-2 text-slate-400 transition-all hover:bg-white/5 hover:text-white"
+											onclick={(e) => {
+												e.stopPropagation();
+												handleDownloadBackup(device.device_id);
+											}}
+											title="Download Settings Backup"
+											disabled={deviceState.backupState.isDownloading &&
+												deviceState.backupState.deviceId === device.device_id}
+										>
+											{#if deviceState.backupState.isDownloading && deviceState.backupState.deviceId === device.device_id}
+												<Loader2 size={20} class="animate-spin" />
+											{:else}
+												<Download size={20} />
+											{/if}
+										</button>
+
+										<button
+											class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+											onclick={(e) => {
+												e.stopPropagation();
+												openDeregisterModal(device, isOnline);
+											}}
+											title="Deregister Device"
+										>
+											<Trash2 size={20} />
+										</button>
+									</div>
 								</div>
 							</div>
 
@@ -620,4 +712,6 @@
 			{/if}
 		</div>
 	{/await}
+
+	<BackupProgressModal />
 {/if}
