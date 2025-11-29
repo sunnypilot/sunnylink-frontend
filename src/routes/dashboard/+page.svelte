@@ -1,19 +1,31 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import { v0Client, v1Client } from '$lib/api/client';
-	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
+	import {
+		Wifi,
+		WifiOff,
+		Activity,
+		Cpu,
+		Save,
+		X,
+		Loader2,
+		ChevronDown,
+		ChevronRight,
+		Calendar,
+		Copy,
+		Check
+	} from 'lucide-svelte';
+	import { slide } from 'svelte/transition';
 
-	let modelList = $state<ModelBundle[] | undefined>();
-	let selectedModelShortName = $state<string | undefined>(undefined);
-	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
-	let loadingModels = $state(false);
-	let sendingModel = $state(false);
+	let { data } = $props();
+
+	let updateAliasModalOpen = $state(false);
+	let offlineSectionOpen = $state(false);
+	let copiedDeviceId = $state<string | null>(null);
 
 	$effect(() => {
 		if (!authState.loading && !authState.isAuthenticated) {
@@ -21,145 +33,123 @@
 		}
 	});
 
+	// When modal closes (saved or cancelled), remove focus from any active element
 	$effect(() => {
-		if (deviceState.selectedDeviceId) {
-			fetchModelsForDevice();
-			// Settings are fetched by the layout/global selector now
+		if (!updateAliasModalOpen) {
+			if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+				document.activeElement.blur();
+			}
 		}
 	});
 
-	const handleRouteSubmit = (event: SubmitEvent) => {
-		event.preventDefault();
-	};
+	function handleAliasChange(device: any, newAlias: string) {
+		if (!newAlias.trim()) return;
+		const originalAlias = deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
+		deviceState.setAliasOverride(device.device_id, newAlias, originalAlias);
+	}
 
-	let { data } = $props();
-	// selectedDevice is now managed by deviceState.selectedDeviceId
-	// onlineStatuses are now managed by deviceState.onlineStatuses
+	function getAlias(device: any) {
+		// Priority: Unsaved override > Saved store alias > Device alias > Device ID
+		return (
+			deviceState.aliasOverrides[device.device_id] ??
+			deviceState.aliases[device.device_id] ??
+			device.alias ??
+			device.device_id
+		);
+	}
 
-	let isOffline = $derived(
-		deviceState.selectedDeviceId &&
-			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'offline'
-	);
+	function getPendingChanges(devices: any[]) {
+		return Object.entries(deviceState.aliasOverrides)
+			.map(([deviceId, newAlias]) => {
+				const device = devices.find((d) => d.device_id === deviceId);
+				const oldAlias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
+				if (newAlias === oldAlias) return null;
+				return { deviceId, oldAlias, newAlias };
+			})
+			.filter((c) => c !== null) as Array<{
+			deviceId: string;
+			oldAlias: string;
+			newAlias: string;
+		}>;
+	}
 
-	async function fetchModelsForDevice() {
-		modelList = undefined;
-		selectedModelShortName = undefined;
+	function clearChanges() {
+		deviceState.clearAliasOverrides();
+	}
 
-		if (!logtoClient) return;
-		if (!deviceState.selectedDeviceId) return;
-		try {
-			loadingModels = true;
+	function formatDate(timestamp: number | undefined) {
+		if (!timestamp) return 'Unknown';
+		return new Date(timestamp * 1000).toLocaleDateString(undefined, {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric'
+		});
+	}
 
-			const models = await v1Client.GET('/v1/settings/{deviceId}/values', {
-				params: {
-					path: {
-						deviceId: deviceState.selectedDeviceId
-					},
-					query: {
-						paramKeys: ['ModelManager_ModelsCache', 'ModelManager_ActiveBundle']
-					}
-				},
-				headers: {
-					Authorization: `Bearer ${await logtoClient.getIdToken()}`
-				}
-			});
-
-			if (models.data?.items) {
-				const modelsCacheParam = models.data.items.find(
-					(i) => i.key === 'ModelManager_ModelsCache'
-				);
-				const activeBundleParam = models.data.items.find(
-					(i) => i.key === 'ModelManager_ActiveBundle'
-				);
-
-				if (modelsCacheParam) {
-					const decodedValue = decodeParamValue(modelsCacheParam);
-					if (isModelManifest(decodedValue)) {
-						modelList = decodedValue.bundles;
-					}
-				}
-
-				if (activeBundleParam) {
-					let decodedValue = decodeParamValue(activeBundleParam);
-
-					// If it's a string, try to parse it as JSON
-					if (typeof decodedValue === 'string') {
-						try {
-							decodedValue = JSON.parse(decodedValue);
-						} catch (e) {
-							console.warn('Failed to parse Active Bundle string as JSON:', e);
-						}
-					}
-
-					// The active bundle is just a ModelBundle object, not a manifest
-					// We can check if it has a short_name or internalName
-					if (typeof decodedValue === 'object' && decodedValue !== null) {
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						const bundle = decodedValue as any;
-						if ('short_name' in bundle) {
-							selectedModelShortName = bundle.short_name;
-						} else if ('internalName' in bundle) {
-							selectedModelShortName = bundle.internalName;
-						} else {
-							selectedModelShortName = undefined;
-						}
-					} else {
-						selectedModelShortName = undefined;
-					}
-				} else {
-					selectedModelShortName = undefined;
-				}
+	function copyToClipboard(text: string, deviceId: string) {
+		navigator.clipboard.writeText(text);
+		copiedDeviceId = deviceId;
+		setTimeout(() => {
+			if (copiedDeviceId === deviceId) {
+				copiedDeviceId = null;
 			}
-		} catch (e) {
-			console.error('Error fetching models:', e);
-		} finally {
-			loadingModels = false;
-		}
+		}, 2000);
 	}
 
-	async function sendModelToDevice() {
-		if (!logtoClient) return;
-		if (!deviceState.selectedDeviceId) return;
-		if (!selectedModel) return;
+	let devices = $state<any[]>([]);
 
-		try {
-			sendingModel = true;
-			await v0Client.POST('/settings/{deviceId}', {
-				params: {
-					path: {
-						deviceId: deviceState.selectedDeviceId
-					}
-				},
-				body: [
-					{
-						key: 'ModelManager_DownloadIndex',
-						value: encodeParamValue({
-							key: 'ModelManager_DownloadIndex',
-							value: String(selectedModel.index ?? ''),
-							is_compressed: true
-						})
-					}
-				],
-				headers: {
-					Authorization: `Bearer ${await logtoClient.getIdToken()}`
-				}
+	$effect(() => {
+		if (data.streamed.devices) {
+			data.streamed.devices.then((d) => {
+				devices = d || [];
 			});
-		} catch (e) {
-			console.error('Error sending model to device:', e);
-		} finally {
-			sendingModel = false;
 		}
+	});
+
+	// Helper to sort a list of devices
+	function sortDevicesList(list: any[]) {
+		return [...list].sort((a, b) => {
+			// Helper to get stable alias (ignoring unsaved overrides) for sorting
+			const getStableAlias = (d: any) => deviceState.aliases[d.device_id] ?? d.alias ?? d.device_id;
+
+			// 1. Aliased (Aliased first)
+			const aliasA = getStableAlias(a);
+			const aliasB = getStableAlias(b);
+			const hasAliasA = aliasA !== a.device_id;
+			const hasAliasB = aliasB !== b.device_id;
+			if (hasAliasA !== hasAliasB) return hasAliasA ? -1 : 1;
+
+			// 2. Alphabetical (Alias or ID)
+			return aliasA.localeCompare(aliasB);
+		});
 	}
+
+	let onlineDevices = $derived.by(() => {
+		deviceState.version; // Dependency
+		if (!devices) return [];
+		const list = devices.filter((d) => {
+			const status = deviceState.onlineStatuses[d.device_id];
+			return status === 'online' || status === 'loading' || status === undefined;
+		});
+		return sortDevicesList(list);
+	});
+
+	let offlineDevices = $derived.by(() => {
+		deviceState.version; // Dependency
+		if (!devices) return [];
+		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
+		return sortDevicesList(list);
+	});
 </script>
 
-```
 {#if authState.loading}
 	<DashboardSkeleton />
 {:else}
 	{#await data.streamed.devices}
 		<DashboardSkeleton name={authState.profile?.name ?? undefined} />
-	{:then devices}
-		<div class="space-y-4 sm:space-y-6 lg:space-y-8">
+	{:then _}
+		<div class="space-y-4 pb-24 sm:space-y-6 lg:space-y-8">
+			<!-- Header Card -->
 			<div class="card border border-[#1e293b] bg-[#0f1726]">
 				<div class="card-body p-4 sm:p-6 lg:p-8">
 					<div
@@ -181,286 +171,360 @@
 					</div>
 				</div>
 			</div>
-		</div>
 
-		<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
-			<div class="card-body p-4 sm:p-6 lg:p-8">
-				{#if loadingModels}
-					<div class="animate-pulse">
-						<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.6fr_1fr]">
-							<div class="space-y-4 sm:space-y-6">
-								<div class="form-control w-full">
-									<div class="mb-2 h-4 w-24 rounded bg-slate-700"></div>
-									<div class="h-12 w-full rounded bg-slate-700"></div>
-								</div>
-								<div class="form-control w-full">
-									<div class="mb-2 h-4 w-24 rounded bg-slate-700"></div>
-									<div class="h-12 w-full rounded bg-slate-700"></div>
-								</div>
-							</div>
-							<div class="card border border-[#1e293b] bg-[#0f1726]">
-								<div class="card-body space-y-4 p-4 sm:p-6">
-									<div class="h-4 w-32 rounded bg-slate-700"></div>
-									<div class="h-8 w-48 rounded bg-slate-700"></div>
-									<div class="h-4 w-40 rounded bg-slate-700"></div>
-									<div class="mt-4 space-y-2">
-										<div class="h-4 w-full rounded bg-slate-700"></div>
-										<div class="h-4 w-full rounded bg-slate-700"></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						<div class="mt-6 sm:mt-8">
-							<div class="h-12 w-full rounded bg-slate-700"></div>
-						</div>
-					</div>
-				{:else if isOffline}
-					{#await data.streamed.devices then devices}
-						{@const selectedDevice = devices?.find(
-							(d) => d.device_id === deviceState.selectedDeviceId
-						)}
+			{#if !devices || devices.length === 0}
+				<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
+					<div class="card-body p-4 sm:p-6 lg:p-8">
 						<div class="flex flex-col items-center justify-center py-12 text-center">
-							<div class="mb-4 rounded-full bg-red-500/10 p-4">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-12 w-12 text-red-500"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-									/>
-								</svg>
+							<div class="mb-4 rounded-full bg-slate-700/50 p-4">
+								<Cpu class="h-12 w-12 text-slate-400" />
 							</div>
-							<h3 class="text-xl font-semibold text-white">
-								Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
-								{#if selectedDevice?.alias}
-									<span class="block text-sm font-normal text-slate-400"
-										>({selectedDevice?.device_id})</span
-									>
-								{/if}
+							<h3 class="text-xl font-semibold text-white sm:text-2xl lg:text-3xl">
+								No Devices Found
 							</h3>
-							<p class="mt-2 max-w-md text-slate-400">
-								This device appears to be offline. Please check its connectivity and try again.
+							<p class="mt-2 text-sm text-slate-400">
+								Pair a device to get started with sunnypilot.
 							</p>
-							<a
-								href="https://community.sunnypilot.ai"
-								target="_blank"
-								class="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
-							>
-								Need help? Visit our community →
-							</a>
-							<div class="mt-6 flex flex-col items-center gap-4">
-								<button
-									class="btn btn-sm btn-primary"
-									onclick={async () => {
-										if (deviceState.selectedDeviceId && logtoClient) {
-											const token = await logtoClient.getIdToken();
-											if (token) {
-												await checkDeviceStatus(deviceState.selectedDeviceId, token);
-											}
-										}
-									}}
-								>
-									Retry Connection
-								</button>
-								<div class="divider text-slate-600">OR</div>
-								<p class="text-sm text-slate-400">Select another device:</p>
-								{#if devices}
-									<DeviceSelector {devices} />
-								{/if}
-							</div>
-						</div>
-					{/await}
-				{:else if !selectedModel}
-					<div class="flex flex-col items-center justify-center py-12 text-center">
-						<div class="mb-4 rounded-full bg-slate-700/50 p-4">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-12 w-12 text-slate-400"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-								/>
-							</svg>
-						</div>
-						<h3 class="card-title text-xl text-white sm:text-2xl lg:text-3xl">
-							No Device Selected
-						</h3>
-						<p class="mt-2 text-sm text-slate-400">Select a device to view details</p>
-						<div class="mt-6">
-							{#await data.streamed.devices then devices}
-								{#if devices}
-									<DeviceSelector {devices} />
-								{/if}
-							{/await}
-						</div>
-					</div>
-				{:else}
-					<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.6fr_1fr]">
-						<div class="space-y-4 sm:space-y-6">
-							<div class="form-control w-full">
-								<!-- Device selection moved to global layout -->
-							</div>
-
-							<div class="form-control w-full">
-								<div class="label">
-									<span
-										class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
-										>Models</span
-									>
-								</div>
-								<select
-									class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
-									bind:value={selectedModelShortName}
-									disabled={!modelList}
-								>
-									<option disabled selected value={undefined}>Select a model</option>
-									{#if modelList}
-										{#each modelList as model}
-											<option value={model.short_name}>{model.display_name}</option>
-										{/each}
-									{/if}
-								</select>
-							</div>
-						</div>
-
-						<div class="card border border-[#1e293b] bg-[#0f1726]">
-							<div class="card-body p-4 sm:p-6">
-								<p class="text-xs font-semibold tracking-[0.32em] text-slate-400 uppercase">
-									Current Model
-								</p>
-								{#if selectedModel}
-									<h3 class="card-title text-xl text-white sm:text-2xl lg:text-3xl">
-										{selectedModel.display_name}
-									</h3>
-									<p class="text-sm text-slate-400">
-										{selectedModel.environment} • {selectedModel.build_time
-											? new Date(selectedModel.build_time).toLocaleDateString()
-											: 'Unknown date'}
-									</p>
-									<div class="mt-4 flex flex-col gap-2">
-										<div class="text-sm">
-											<span class="font-bold text-white">Runner:</span>
-											<span class="text-slate-400"> {selectedModel.runner ?? 'Unknown'}</span>
-										</div>
-										<div class="text-sm">
-											<span class="font-bold text-white">Generation:</span>
-											<span class="text-slate-400">{selectedModel.generation ?? 'Unknown'}</span>
-										</div>
-									</div>
-								{:else}
-									<h3 class="card-title text-xl text-white sm:text-2xl lg:text-3xl">
-										No Model Selected
-									</h3>
-									<p class="text-sm text-slate-400">Select a device and model to view details</p>
-								{/if}
-
-								<div class="mt-4 card-actions text-white">
-									{#if deviceState.selectedDeviceId}
-										Active Device: <span class="font-semibold">{deviceState.selectedDeviceId}</span>
-									{/if}
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="mt-6 card-actions sm:mt-8">
-						<button
-							class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
-							onclick={sendModelToDevice}
-							disabled={sendingModel}>Send to device 🚀</button
-						>
-						{#if sendingModel}
-							<progress class="progress w-full progress-primary"></progress>
-						{/if}
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		<!-- TODO: Navigation and Routes are hidden for now, pending refinement -->
-		{#if false}
-			<div class="card mt-2 gap-2 border border-[#1e293b] bg-[#0f1726]">
-				<div class="card-body p-4 sm:p-6 lg:p-8">
-					<div
-						class="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
-					>
-						<div>
-							<p class="text-xs tracking-[0.35em] text-slate-400 uppercase">Navigation</p>
-							<h3 class="text-xl font-semibold text-white sm:text-2xl">Plan a destination</h3>
-						</div>
-						<button
-							class="btn w-full border border-[#1e293b] text-slate-300 btn-ghost btn-sm hover:bg-[#1e293b] hover:text-white sm:w-auto"
-							>View recent places</button
-						>
-					</div>
-
-					<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.05fr_1fr]">
-						<form class="space-y-4 sm:space-y-5" onsubmit={handleRouteSubmit}>
-							<div class="form-control w-full">
-								<label class="label" for="start-point">
-									<span class="label-text text-sm font-medium text-slate-300">Start point</span>
-								</label>
-								<input
-									id="start-point"
-									type="text"
-									placeholder="Current location"
-									class="input w-full border border-[#334155] bg-[#101a29] text-white placeholder:text-slate-500"
-								/>
-							</div>
-
-							<div class="form-control w-full">
-								<label class="label" for="destination">
-									<span class="label-text text-sm font-medium text-slate-300">Destination</span>
-								</label>
-								<div class="join w-full flex-col sm:flex-row">
-									<input
-										id="destination"
-										type="text"
-										placeholder="Search city, address, or coordinates"
-										class="input join-item w-full border border-[#334155] bg-[#101a29] text-sm text-white placeholder:text-slate-500 sm:text-base"
-									/>
-									<button
-										class="btn join-item w-full border border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:w-auto sm:text-base"
-										>Plan route</button
-									>
-								</div>
-							</div>
-
-							<button
-								type="submit"
-								class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
-								>Send to device</button
-							>
-						</form>
-
-						<div class="card border border-dashed border-[#334155] bg-[#0f1726]">
-							<div
-								class="card-body min-h-[200px] items-center justify-center p-4 text-center sm:min-h-[300px] sm:p-6"
-							>
-								<span class="text-xs tracking-[0.35em] text-slate-500 uppercase sm:text-sm"
-									>MAP GOES HERE</span
-								>
-							</div>
 						</div>
 					</div>
 				</div>
-			</div>
-		{/if}
-	{:catch error}
-		<div class="alert alert-error">
-			Failed to load: {error.message}
+			{:else}
+				<!-- Device List -->
+				<div class="space-y-6">
+					<!-- Online / Checking Devices -->
+					{#each onlineDevices as device (device.device_id)}
+						{@const status = deviceState.onlineStatuses[device.device_id]}
+						{@const isOnline = status === 'online'}
+						{@const isLoading = !status || status === 'loading'}
+						{@const isUnregistered =
+							device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
+						{@const currentAlias = getAlias(device)}
+						{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
+
+						<div
+							class="card border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+								? 'border-primary ring-1 ring-primary/50'
+								: 'border-[#1e293b]'}"
+						>
+							<div class="card-body p-6 lg:p-8">
+								<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+									<!-- Device Info / Alias Input -->
+									<div class="max-w-xl flex-1 space-y-4">
+										<div class="form-control w-full">
+											<label class="label" for="alias-{device.device_id}">
+												<span
+													class="label-text text-xs font-bold tracking-wider text-slate-500 uppercase"
+												>
+													Device Alias
+												</span>
+											</label>
+											<input
+												id="alias-{device.device_id}"
+												type="text"
+												value={currentAlias}
+												oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+												class="input input-lg w-full border-0 border-b-2 border-transparent bg-transparent px-0 text-2xl font-bold text-white placeholder-slate-600 transition-colors hover:border-[#334155] focus:border-primary focus:outline-none"
+												placeholder={device.device_id}
+											/>
+										</div>
+
+										<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400">
+											<button
+												class="group flex items-center gap-2 rounded bg-[#1e293b] px-2 py-1 font-mono text-xs transition-colors hover:bg-[#334155] hover:text-white"
+												onclick={() => copyToClipboard(device.device_id, `id-${device.device_id}`)}
+												title="Copy Device ID"
+											>
+												{device.device_id}
+												{#if copiedDeviceId === `id-${device.device_id}`}
+													<Check size={12} class="text-emerald-400" />
+												{:else}
+													<Copy
+														size={12}
+														class="opacity-0 transition-opacity group-hover:opacity-100"
+													/>
+												{/if}
+											</button>
+											{#if isLoading}
+												<span class="flex items-center gap-1.5 text-slate-400">
+													<Loader2 size={16} class="animate-spin" />
+													Checking status...
+												</span>
+											{:else}
+												<span class="flex items-center gap-1.5 text-emerald-400">
+													<Wifi size={16} />
+													Online
+												</span>
+											{/if}
+											<span class="flex items-center gap-1.5 text-slate-500">
+												<Calendar size={14} />
+												Paired {formatDate(device.created_at)}
+											</span>
+										</div>
+									</div>
+
+									<!-- Quick Actions / Status Cards -->
+									<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-1/2">
+										<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
+											<div class="mb-2 flex items-center gap-2 text-slate-400">
+												<Activity size={18} />
+												<span class="text-xs font-bold tracking-wider uppercase">Status</span>
+											</div>
+											<div class="text-lg font-medium text-white">
+												{#if isLoading}
+													<span class="flex items-center gap-2">
+														<Loader2 size={16} class="animate-spin" />
+														Checking...
+													</span>
+												{:else}
+													Connected
+												{/if}
+											</div>
+										</div>
+
+										{#if !isUnregistered}
+											<button
+												class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+												onclick={() => copyToClipboard(device.comma_dongle_id, device.device_id)}
+											>
+												<div class="mb-2 flex items-center justify-between text-slate-400">
+													<div class="flex items-center gap-2">
+														<Cpu size={18} />
+														<span class="text-xs font-bold tracking-wider uppercase"
+															>Comma Dongle ID</span
+														>
+													</div>
+													{#if copiedDeviceId === device.device_id}
+														<Check size={16} class="text-emerald-400" />
+													{:else}
+														<Copy
+															size={16}
+															class="opacity-0 transition-opacity group-hover:opacity-100"
+														/>
+													{/if}
+												</div>
+												<div class="truncate text-xl font-bold text-white">
+													{device.comma_dongle_id}
+												</div>
+											</button>
+										{/if}
+									</div>
+								</div>
+							</div>
+						</div>
+					{/each}
+
+					<!-- Offline Devices Section -->
+					{#if offlineDevices.length > 0}
+						<div class="rounded-xl border border-[#1e293b] bg-[#0f1726]/50">
+							<button
+								class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-[#1e293b]/50"
+								onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
+							>
+								<div class="flex items-center gap-3">
+									<div
+										class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400"
+									>
+										<WifiOff size={16} />
+									</div>
+									<div>
+										<h3 class="font-medium text-slate-300">Offline Devices</h3>
+										<p class="text-xs text-slate-500">
+											{offlineDevices.length} device{offlineDevices.length === 1 ? '' : 's'}
+										</p>
+									</div>
+								</div>
+								{#if offlineSectionOpen}
+									<ChevronDown class="text-slate-500" size={20} />
+								{:else}
+									<ChevronRight class="text-slate-500" size={20} />
+								{/if}
+							</button>
+
+							{#if offlineSectionOpen}
+								<div transition:slide class="space-y-4 border-t border-[#1e293b] p-4">
+									{#each offlineDevices as device (device.device_id)}
+										{@const isUnregistered =
+											device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') ===
+											'unregistereddevice'}
+										{@const currentAlias = getAlias(device)}
+										{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
+
+										<div
+											class="card border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+												? 'border-primary ring-1 ring-primary/50'
+												: 'border-[#1e293b]'}"
+										>
+											<div class="card-body p-6 lg:p-8">
+												<div
+													class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between"
+												>
+													<!-- Device Info / Alias Input -->
+													<div class="max-w-xl flex-1 space-y-4">
+														<div class="form-control w-full">
+															<label class="label" for="alias-{device.device_id}">
+																<span
+																	class="label-text text-xs font-bold tracking-wider text-slate-500 uppercase"
+																>
+																	Device Alias
+																</span>
+															</label>
+															<input
+																id="alias-{device.device_id}"
+																type="text"
+																value={currentAlias}
+																oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+																class="input input-lg w-full border-0 border-b-2 border-transparent bg-transparent px-0 text-2xl font-bold text-white placeholder-slate-600 transition-colors hover:border-[#334155] focus:border-primary focus:outline-none"
+																placeholder={device.device_id}
+															/>
+														</div>
+
+														<div
+															class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400"
+														>
+															<button
+																class="group flex items-center gap-2 rounded bg-[#1e293b] px-2 py-1 font-mono text-xs transition-colors hover:bg-[#334155] hover:text-white"
+																onclick={() =>
+																	copyToClipboard(device.device_id, `id-${device.device_id}`)}
+																title="Copy Device ID"
+															>
+																{device.device_id}
+																{#if copiedDeviceId === `id-${device.device_id}`}
+																	<Check size={12} class="text-emerald-400" />
+																{:else}
+																	<Copy
+																		size={12}
+																		class="opacity-0 transition-opacity group-hover:opacity-100"
+																	/>
+																{/if}
+															</button>
+															<span class="flex items-center gap-1.5 text-red-400">
+																<WifiOff size={16} />
+																Offline
+															</span>
+															<span class="flex items-center gap-1.5 text-slate-500">
+																<Calendar size={14} />
+																Paired {formatDate(device.created_at)}
+															</span>
+														</div>
+													</div>
+
+													<!-- Quick Actions / Status Cards -->
+													<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-1/2">
+														<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
+															<div class="mb-2 flex items-center gap-2 text-slate-400">
+																<Activity size={18} />
+																<span class="text-xs font-bold tracking-wider uppercase"
+																	>Status</span
+																>
+															</div>
+															<div class="text-lg font-medium text-white">Disconnected</div>
+														</div>
+
+														{#if !isUnregistered}
+															<button
+																class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+																onclick={() =>
+																	copyToClipboard(device.comma_dongle_id, device.device_id)}
+															>
+																<div class="mb-2 flex items-center justify-between text-slate-400">
+																	<div class="flex items-center gap-2">
+																		<Cpu size={18} />
+																		<span class="text-xs font-bold tracking-wider uppercase"
+																			>Comma Dongle ID</span
+																		>
+																	</div>
+																	{#if copiedDeviceId === device.device_id}
+																		<Check size={16} class="text-emerald-400" />
+																	{:else}
+																		<Copy
+																			size={16}
+																			class="opacity-0 transition-opacity group-hover:opacity-100"
+																		/>
+																	{/if}
+																</div>
+																<div class="truncate text-xl font-bold text-white">
+																	{device.comma_dongle_id}
+																</div>
+															</button>
+														{/if}
+													</div>
+												</div>
+
+												<div
+													class="mt-6 flex items-center gap-4 rounded-lg border border-red-500/20 bg-red-500/5 p-4"
+												>
+													<WifiOff class="h-5 w-5 shrink-0 text-red-500" />
+													<p class="flex-1 text-sm text-slate-400">
+														Device is offline. Some features are unavailable.
+													</p>
+													<button
+														class="btn text-red-400 btn-ghost btn-xs hover:bg-red-500/10"
+														onclick={async () => {
+															if (logtoClient) {
+																const token = await logtoClient.getIdToken();
+																if (token) {
+																	await checkDeviceStatus(device.device_id, token);
+																}
+															}
+														}}
+													>
+														Retry
+													</button>
+												</div>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Unsaved Changes Bar -->
+				{@const pendingChanges = getPendingChanges(devices)}
+				{#if pendingChanges.length > 0}
+					<div
+						class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 duration-300"
+					>
+						<div
+							class="flex items-center justify-between gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/95 p-4 shadow-2xl backdrop-blur-md"
+						>
+							<div class="flex items-center gap-3">
+								<div
+									class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary"
+								>
+									<Save size={20} />
+								</div>
+								<div>
+									<p class="font-medium text-white">Unsaved Changes</p>
+									<p class="text-xs text-slate-400">
+										You have modified {pendingChanges.length} device alias{pendingChanges.length ===
+										1
+											? ''
+											: 'es'}.
+									</p>
+								</div>
+							</div>
+							<div class="flex items-center gap-2">
+								<button
+									class="btn text-slate-400 btn-ghost btn-sm hover:text-white"
+									onclick={clearChanges}
+								>
+									Discard
+								</button>
+								<button
+									class="btn btn-sm btn-primary"
+									onclick={() => (updateAliasModalOpen = true)}
+								>
+									Review & Save
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<UpdateAliasModal bind:open={updateAliasModalOpen} changes={pendingChanges} />
+				{/if}
+			{/if}
 		</div>
 	{/await}
 {/if}

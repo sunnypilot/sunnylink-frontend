@@ -7,6 +7,7 @@
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import {
+		Bot,
 		CloudSun,
 		Gauge,
 		HardDrive,
@@ -49,6 +50,7 @@
 		authState.isAuthenticated
 			? [
 					{ icon: House, label: 'Overview', href: '/dashboard' },
+					{ icon: Bot, label: 'Models', href: '/dashboard/models' },
 					// { icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
 					// { icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
 					{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },

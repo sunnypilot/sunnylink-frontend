@@ -5,7 +5,10 @@ export const deviceState = $state({
     deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
     deviceValues: {} as Record<string, Record<string, unknown>>,
     onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline'>,
+    aliases: {} as Record<string, string>,
+    aliasOverrides: {} as Record<string, string>,
     stagedChanges: {} as Record<string, Record<string, unknown>>,
+    version: 0,
 
     // Helper to stage a change
     stageChange(deviceId: string, key: string, value: unknown, originalValue: unknown) {
@@ -61,5 +64,32 @@ export const deviceState = $state({
         if (Object.keys(this.stagedChanges[deviceId]).length === 0) {
             delete this.stagedChanges[deviceId];
         }
+    },
+
+    // Helper to update alias
+    updateAlias(deviceId: string, alias: string) {
+        this.aliases = { ...this.aliases, [deviceId]: alias };
+        this.version++;
+    },
+
+    // Helper to set alias override
+    setAliasOverride(deviceId: string, alias: string, originalAlias: string) {
+        if (alias === originalAlias) {
+            const newOverrides = { ...this.aliasOverrides };
+            delete newOverrides[deviceId];
+            this.aliasOverrides = newOverrides;
+        } else {
+            this.aliasOverrides = { ...this.aliasOverrides, [deviceId]: alias };
+        }
+    },
+
+    // Helper to clear alias overrides
+    clearAliasOverrides() {
+        this.aliasOverrides = {};
+    },
+
+    // Helper to remove a specific alias override
+    removeAliasOverride(deviceId: string) {
+        delete this.aliasOverrides[deviceId];
     }
 });

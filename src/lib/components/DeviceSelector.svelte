@@ -23,7 +23,7 @@
 	<option disabled selected value={undefined}>Select a device</option>
 	{#each devices as device}
 		<option value={device.device_id}>
-			{device.alias ?? device.device_id}
+			{deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id}
 			{deviceState.onlineStatuses[device.device_id ?? ''] === 'online'
 				? ' 🟢'
 				: deviceState.onlineStatuses[device.device_id ?? ''] === 'offline'
