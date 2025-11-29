@@ -1,4 +1,4 @@
-import { v1Client } from '$lib/api/client';
+import { v1Client, v0Client } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 
@@ -30,4 +30,23 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
         console.error(`Failed to check status for ${deviceId}`, e);
         deviceState.onlineStatuses[deviceId] = 'offline';
     }
+}
+
+export async function deregisterDevice(deviceId: string, token: string) {
+    // Real implementation:
+    return await v0Client.DELETE('/device/{deviceId}', {
+        params: {
+            path: { deviceId }
+        },
+        headers: { Authorization: `Bearer ${token}` }
+    });
+}
+
+export async function removeUserFromDevice(deviceId: string, userId: string, token: string) {
+    return await v0Client.DELETE('/device/{deviceId}/users/{userId}', {
+        params: {
+            path: { deviceId, userId }
+        },
+        headers: { Authorization: `Bearer ${token}` }
+    });
 }

@@ -4,6 +4,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
+	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
 	import {
 		Wifi,
@@ -17,13 +18,19 @@
 		ChevronRight,
 		Calendar,
 		Copy,
-		Check
+		Check,
+		Trash2
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 
 	let { data } = $props();
 
 	let updateAliasModalOpen = $state(false);
+	let deregisterModalOpen = $state(false);
+	let deviceToDeregister = $state<string | null>(null);
+	let deviceToDeregisterAlias = $state<string>('');
+	let deviceToDeregisterPairedAt = $state<number>(0);
+	let deviceToDeregisterIsOnline = $state<boolean>(false);
 	let offlineSectionOpen = $state(false);
 	let copiedDeviceId = $state<string | null>(null);
 
@@ -35,7 +42,7 @@
 
 	// When modal closes (saved or cancelled), remove focus from any active element
 	$effect(() => {
-		if (!updateAliasModalOpen) {
+		if (!updateAliasModalOpen && !deregisterModalOpen) {
 			if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
 				document.activeElement.blur();
 			}
@@ -94,6 +101,14 @@
 				copiedDeviceId = null;
 			}
 		}, 2000);
+	}
+
+	function openDeregisterModal(device: any, isOnline: boolean) {
+		deviceToDeregister = device.device_id;
+		deviceToDeregisterAlias = getAlias(device);
+		deviceToDeregisterPairedAt = device.created_at;
+		deviceToDeregisterIsOnline = isOnline;
+		deregisterModalOpen = true;
 	}
 
 	let devices = $state<any[]>([]);
@@ -205,122 +220,146 @@
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
-							class="card cursor-pointer border bg-[#0f1726] transition-all duration-300 hover:border-primary/50 hover:shadow-lg {hasPendingChange
+							class="card relative cursor-pointer border bg-[#0f1726] transition-all duration-300 hover:border-primary/50 hover:shadow-lg {hasPendingChange
 								? 'border-primary ring-1 ring-primary/50'
 								: isSelected
 									? 'border-primary ring-1 ring-primary/50'
 									: 'border-[#1e293b]'}"
 							onclick={() => deviceState.setSelectedDevice(device.device_id)}
 						>
-							<div class="card-body p-6 lg:p-8">
-								<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-									<!-- Device Info / Alias Input -->
-									<div class="max-w-xl flex-1 space-y-4">
-										<div class="form-control w-full">
-											<label class="label" for="alias-{device.device_id}">
-												<span
-													class="label-text text-xs font-bold tracking-wider text-slate-500 uppercase"
-												>
-													Device Alias
-												</span>
-											</label>
-											<input
-												id="alias-{device.device_id}"
-												type="text"
-												value={currentAlias}
-												oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-												onclick={(e) => e.stopPropagation()}
-												class="input input-lg w-full border-0 border-b-2 border-transparent bg-transparent px-0 text-2xl font-bold text-white placeholder-slate-600 transition-colors hover:border-[#334155] focus:border-primary focus:outline-none"
-												placeholder={device.device_id}
-											/>
+							<div
+								class="flex flex-row items-center justify-between gap-2 border-b border-[#1e293b] bg-[#0f1726]/50 px-4 py-4 sm:gap-4 sm:px-6"
+							>
+								<div class="flex flex-1 items-center gap-4">
+									<!-- Online Status Badge -->
+									{#if isLoading}
+										<div
+											class="flex items-center gap-2 rounded-full bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400"
+										>
+											<Loader2 size={14} class="animate-spin" />
+											<span>Checking...</span>
 										</div>
+									{:else}
+										<div
+											class="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400"
+										>
+											<Wifi size={14} />
+											<span>Online</span>
+										</div>
+									{/if}
 
-										<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400">
-											<button
-												class="group flex items-center gap-2 rounded bg-[#1e293b] px-2 py-1 font-mono text-xs transition-colors hover:bg-[#334155] hover:text-white"
-												onclick={(e) => {
-													e.stopPropagation();
-													copyToClipboard(device.device_id, `id-${device.device_id}`);
-												}}
-												title="Copy Device ID"
-											>
-												{device.device_id}
-												{#if copiedDeviceId === `id-${device.device_id}`}
-													<Check size={12} class="text-emerald-400" />
+									<!-- Alias Input -->
+									<div class="min-w-0 flex-1">
+										<input
+											id="alias-{device.device_id}"
+											type="text"
+											value={currentAlias}
+											oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+											onclick={(e) => e.stopPropagation()}
+											class="input w-full border-0 bg-transparent px-0 text-base font-bold text-white placeholder-slate-600 focus:ring-0 focus:outline-none"
+											placeholder={device.device_id}
+										/>
+									</div>
+								</div>
+
+								<div class="flex items-center gap-4">
+									<!-- Paired Date -->
+									<div class="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+										<Calendar size={14} />
+										<span>Paired {formatDate(device.created_at)}</span>
+									</div>
+
+									<!-- Trash Icon -->
+									<button
+										class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+										onclick={(e) => {
+											e.stopPropagation();
+											openDeregisterModal(device, isOnline);
+										}}
+										title="Deregister Device"
+									>
+										<Trash2 size={20} />
+									</button>
+								</div>
+							</div>
+
+							<div class="card-body p-6 lg:p-8">
+								<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+									<!-- Sunnylink ID Card -->
+									<button
+										class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+										onclick={(e) => {
+											e.stopPropagation();
+											copyToClipboard(device.device_id, `id-${device.device_id}`);
+										}}
+									>
+										<span class="mb-2 flex items-center justify-between text-slate-400">
+											<span class="flex items-center gap-2">
+												<Cpu size={18} />
+												<span class="text-xs font-bold tracking-wider uppercase">Sunnylink ID</span>
+											</span>
+											{#if copiedDeviceId === `id-${device.device_id}`}
+												<Check size={16} class="text-emerald-400" />
+											{:else}
+												<Copy
+													size={16}
+													class="opacity-0 transition-opacity group-hover:opacity-100"
+												/>
+											{/if}
+										</span>
+										<span class="truncate font-mono text-sm font-bold text-white">
+											{device.device_id}
+										</span>
+									</button>
+
+									<!-- Status Card -->
+									<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
+										<div class="mb-2 flex items-center gap-2 text-slate-400">
+											<Activity size={18} />
+											<span class="text-xs font-bold tracking-wider uppercase">Status</span>
+										</div>
+										<div class="text-lg font-medium text-white">
+											{#if isLoading}
+												<span class="flex items-center gap-2">
+													<Loader2 size={16} class="animate-spin" />
+													Checking...
+												</span>
+											{:else}
+												Connected
+											{/if}
+										</div>
+									</div>
+
+									<!-- Comma Dongle ID Card -->
+									{#if !isUnregistered}
+										<button
+											class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+											onclick={(e) => {
+												e.stopPropagation();
+												copyToClipboard(device.comma_dongle_id, device.device_id);
+											}}
+										>
+											<span class="mb-2 flex items-center justify-between text-slate-400">
+												<span class="flex items-center gap-2">
+													<Cpu size={18} />
+													<span class="text-xs font-bold tracking-wider uppercase"
+														>Comma Dongle ID</span
+													>
+												</span>
+												{#if copiedDeviceId === device.device_id}
+													<Check size={16} class="text-emerald-400" />
 												{:else}
 													<Copy
-														size={12}
+														size={16}
 														class="opacity-0 transition-opacity group-hover:opacity-100"
 													/>
 												{/if}
-											</button>
-											{#if isLoading}
-												<span class="flex items-center gap-1.5 text-slate-400">
-													<Loader2 size={16} class="animate-spin" />
-													Checking status...
-												</span>
-											{:else}
-												<span class="flex items-center gap-1.5 text-emerald-400">
-													<Wifi size={16} />
-													Online
-												</span>
-											{/if}
-											<span class="flex items-center gap-1.5 text-slate-500">
-												<Calendar size={14} />
-												Paired {formatDate(device.created_at)}
 											</span>
-										</div>
-									</div>
-
-									<!-- Quick Actions / Status Cards -->
-									<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-1/2">
-										<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-											<div class="mb-2 flex items-center gap-2 text-slate-400">
-												<Activity size={18} />
-												<span class="text-xs font-bold tracking-wider uppercase">Status</span>
-											</div>
-											<div class="text-lg font-medium text-white">
-												{#if isLoading}
-													<span class="flex items-center gap-2">
-														<Loader2 size={16} class="animate-spin" />
-														Checking...
-													</span>
-												{:else}
-													Connected
-												{/if}
-											</div>
-										</div>
-
-										{#if !isUnregistered}
-											<button
-												class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-												onclick={(e) => {
-													e.stopPropagation();
-													copyToClipboard(device.comma_dongle_id, device.device_id);
-												}}
-											>
-												<span class="mb-2 flex items-center justify-between text-slate-400">
-													<span class="flex items-center gap-2">
-														<Cpu size={18} />
-														<span class="text-xs font-bold tracking-wider uppercase"
-															>Comma Dongle ID</span
-														>
-													</span>
-													{#if copiedDeviceId === device.device_id}
-														<Check size={16} class="text-emerald-400" />
-													{:else}
-														<Copy
-															size={16}
-															class="opacity-0 transition-opacity group-hover:opacity-100"
-														/>
-													{/if}
-												</span>
-												<span class="truncate text-xl font-bold text-white">
-													{device.comma_dongle_id}
-												</span>
-											</button>
-										{/if}
-									</div>
+											<span class="truncate text-xl font-bold text-white">
+												{device.comma_dongle_id}
+											</span>
+										</button>
+									{/if}
 								</div>
 							</div>
 						</div>
@@ -365,110 +404,128 @@
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
-											class="card cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+											class="card relative cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
 												? 'border-primary ring-1 ring-primary/50'
 												: 'border-[#1e293b]'}"
 											onclick={() => deviceState.setSelectedDevice(device.device_id)}
 										>
-											<div class="card-body p-6 lg:p-8">
-												<div
-													class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between"
-												>
-													<!-- Device Info / Alias Input -->
-													<div class="max-w-xl flex-1 space-y-4">
-														<div class="form-control w-full">
-															<label class="label" for="alias-{device.device_id}">
-																<span
-																	class="label-text text-xs font-bold tracking-wider text-slate-500 uppercase"
-																>
-																	Device Alias
-																</span>
-															</label>
-															<input
-																id="alias-{device.device_id}"
-																type="text"
-																value={currentAlias}
-																oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-																onclick={(e) => e.stopPropagation()}
-																class="input input-lg w-full border-0 border-b-2 border-transparent bg-transparent px-0 text-2xl font-bold text-white placeholder-slate-600 transition-colors hover:border-[#334155] focus:border-primary focus:outline-none"
-																placeholder={device.device_id}
-															/>
-														</div>
+											<div
+												class="flex flex-row items-center justify-between gap-2 border-b border-[#1e293b] bg-[#0f1726]/50 px-4 py-4 sm:gap-4 sm:px-6"
+											>
+												<div class="flex flex-1 items-center gap-4">
+													<!-- Offline Status Badge -->
+													<div
+														class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400"
+													>
+														<WifiOff size={14} />
+														<span>Offline</span>
+													</div>
 
-														<div
-															class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400"
+													<!-- Alias Input -->
+													<div class="min-w-0 flex-1">
+														<input
+															id="alias-{device.device_id}"
+															type="text"
+															value={currentAlias}
+															oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+															onclick={(e) => e.stopPropagation()}
+															class="input w-full border-0 bg-transparent px-0 text-base font-bold text-white placeholder-slate-600 focus:ring-0 focus:outline-none"
+															placeholder={device.device_id}
+														/>
+													</div>
+												</div>
+
+												<div class="flex items-center gap-4">
+													<!-- Paired Date -->
+													<div class="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+														<Calendar size={14} />
+														<span>Paired {formatDate(device.created_at)}</span>
+													</div>
+
+													<!-- Trash Icon -->
+													<button
+														class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+														onclick={(e) => {
+															e.stopPropagation();
+															openDeregisterModal(device, false);
+														}}
+														title="Deregister Device"
+													>
+														<Trash2 size={20} />
+													</button>
+												</div>
+											</div>
+
+											<div class="card-body p-6 lg:p-8">
+												<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+													<!-- Sunnylink ID Card -->
+													<button
+														class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+														onclick={(e) => {
+															e.stopPropagation();
+															copyToClipboard(device.device_id, `id-${device.device_id}`);
+														}}
+													>
+														<span class="mb-2 flex items-center justify-between text-slate-400">
+															<span class="flex items-center gap-2">
+																<Cpu size={18} />
+																<span class="text-xs font-bold tracking-wider uppercase"
+																	>Sunnylink ID</span
+																>
+															</span>
+															{#if copiedDeviceId === `id-${device.device_id}`}
+																<Check size={16} class="text-emerald-400" />
+															{:else}
+																<Copy
+																	size={16}
+																	class="opacity-0 transition-opacity group-hover:opacity-100"
+																/>
+															{/if}
+														</span>
+														<span class="truncate font-mono text-sm font-bold text-white">
+															{device.device_id}
+														</span>
+													</button>
+
+													<!-- Status Card (Offline) -->
+													<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
+														<div class="mb-2 flex items-center gap-2 text-slate-400">
+															<Activity size={18} />
+															<span class="text-xs font-bold tracking-wider uppercase">Status</span>
+														</div>
+														<div class="text-lg font-medium text-slate-400">Disconnected</div>
+													</div>
+
+													<!-- Comma Dongle ID Card -->
+													{#if !isUnregistered}
+														<button
+															class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+															onclick={(e) => {
+																e.stopPropagation();
+																copyToClipboard(device.comma_dongle_id, device.device_id);
+															}}
 														>
-															<button
-																class="group flex items-center gap-2 rounded bg-[#1e293b] px-2 py-1 font-mono text-xs transition-colors hover:bg-[#334155] hover:text-white"
-																onclick={(e) => {
-																	e.stopPropagation();
-																	copyToClipboard(device.device_id, `id-${device.device_id}`);
-																}}
-																title="Copy Device ID"
-															>
-																{device.device_id}
-																{#if copiedDeviceId === `id-${device.device_id}`}
-																	<Check size={12} class="text-emerald-400" />
+															<span class="mb-2 flex items-center justify-between text-slate-400">
+																<span class="flex items-center gap-2">
+																	<Cpu size={18} />
+																	<span class="text-xs font-bold tracking-wider uppercase"
+																		>Comma Dongle ID</span
+																	>
+																</span>
+																{#if copiedDeviceId === device.device_id}
+																	<Check size={16} class="text-emerald-400" />
 																{:else}
 																	<Copy
-																		size={12}
+																		size={16}
 																		class="opacity-0 transition-opacity group-hover:opacity-100"
 																	/>
 																{/if}
-															</button>
-															<span class="flex items-center gap-1.5 text-red-400">
-																<WifiOff size={16} />
-																Offline
 															</span>
-															<span class="flex items-center gap-1.5 text-slate-500">
-																<Calendar size={14} />
-																Paired {formatDate(device.created_at)}
+															<span class="truncate text-xl font-bold text-white">
+																{device.comma_dongle_id}
 															</span>
-														</div>
-													</div>
-
-													<!-- Quick Actions / Status Cards -->
-													<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-1/2">
-														<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-															<div class="mb-2 flex items-center gap-2 text-slate-400">
-																<Activity size={18} />
-																<span class="text-xs font-bold tracking-wider uppercase"
-																	>Status</span
-																>
-															</div>
-															<div class="text-lg font-medium text-white">Disconnected</div>
-														</div>
-
-														{#if !isUnregistered}
-															<button
-																class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-																onclick={(e) => {
-																	e.stopPropagation();
-																	copyToClipboard(device.comma_dongle_id, device.device_id);
-																}}
-															>
-																<span class="mb-2 flex items-center justify-between text-slate-400">
-																	<span class="flex items-center gap-2">
-																		<Cpu size={18} />
-																		<span class="text-xs font-bold tracking-wider uppercase"
-																			>Comma Dongle ID</span
-																		>
-																	</span>
-																	{#if copiedDeviceId === device.device_id}
-																		<Check size={16} class="text-emerald-400" />
-																	{:else}
-																		<Copy
-																			size={16}
-																			class="opacity-0 transition-opacity group-hover:opacity-100"
-																		/>
-																	{/if}
-																</span>
-																<span class="truncate text-xl font-bold text-white">
-																	{device.comma_dongle_id}
-																</span>
-															</button>
-														{/if}
-													</div>
+														</button>
+													{/if}
 												</div>
 
 												<div
@@ -545,6 +602,20 @@
 					</div>
 
 					<UpdateAliasModal bind:open={updateAliasModalOpen} changes={pendingChanges} />
+				{/if}
+
+				{#if deviceToDeregister}
+					<DeregisterDeviceModal
+						bind:open={deregisterModalOpen}
+						deviceId={deviceToDeregister}
+						alias={deviceToDeregisterAlias}
+						pairedAt={deviceToDeregisterPairedAt}
+						isOnline={deviceToDeregisterIsOnline}
+						onDeregistered={() => {
+							// Refresh page or list
+							window.location.reload();
+						}}
+					/>
 				{/if}
 			{/if}
 		</div>
