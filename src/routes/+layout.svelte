@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 
@@ -30,6 +30,23 @@
 
 	let drawerOpen = $state(false);
 	const pathname = $derived(page.url.pathname);
+
+	const getPageTitle = (path: string) => {
+		const titles: Record<string, string> = {
+			'/': 'Home',
+			'/dashboard': 'Overview',
+			'/dashboard/models': 'Models',
+			'/dashboard/settings/device': 'Device Settings',
+			'/dashboard/settings/toggles': 'Toggles',
+			'/dashboard/settings/steering': 'Steering',
+			'/dashboard/settings/cruise': 'Cruise',
+			'/dashboard/settings/visuals': 'Visuals',
+			'/dashboard/settings/developer': 'Developer',
+			'/dashboard/settings/other': 'Other',
+			'/dashboard/preferences': 'Preferences'
+		};
+		return `sunnylink${titles[path] ? ` - ${titles[path]}` : ''}`;
+	};
 
 	const handleLogout = async () => {
 		await logtoClient?.signOut(window.location.origin);
@@ -132,6 +149,7 @@
 </script>
 
 <svelte:head>
+	<title>{getPageTitle(pathname)}</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
