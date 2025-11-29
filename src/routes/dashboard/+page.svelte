@@ -172,6 +172,23 @@
 				</div>
 			</div>
 
+			{#if !deviceState.selectedDeviceId && devices.length > 0}
+				<div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+					<div class="flex items-start gap-3">
+						<div class="mt-0.5 text-blue-400">
+							<Activity size={20} />
+						</div>
+						<div>
+							<h3 class="font-medium text-blue-400">Select a Device</h3>
+							<p class="text-sm text-slate-400">
+								Please select a device from the list below to manage its settings, view models, and
+								access other features.
+							</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			{#if !devices || devices.length === 0}
 				<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
 					<div class="card-body p-4 sm:p-6 lg:p-8">
@@ -201,10 +218,17 @@
 						{@const currentAlias = getAlias(device)}
 						{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
 
+						{@const isSelected = deviceState.selectedDeviceId === device.device_id}
+
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
-							class="card border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+							class="card cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
 								? 'border-primary ring-1 ring-primary/50'
-								: 'border-[#1e293b]'}"
+								: isSelected
+									? 'border-primary ring-1 ring-primary/50'
+									: 'border-[#1e293b]'}"
+							onclick={() => deviceState.setSelectedDevice(device.device_id)}
 						>
 							<div class="card-body p-6 lg:p-8">
 								<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -223,6 +247,7 @@
 												type="text"
 												value={currentAlias}
 												oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+												onclick={(e) => e.stopPropagation()}
 												class="input input-lg w-full border-0 border-b-2 border-transparent bg-transparent px-0 text-2xl font-bold text-white placeholder-slate-600 transition-colors hover:border-[#334155] focus:border-primary focus:outline-none"
 												placeholder={device.device_id}
 											/>
@@ -231,7 +256,10 @@
 										<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400">
 											<button
 												class="group flex items-center gap-2 rounded bg-[#1e293b] px-2 py-1 font-mono text-xs transition-colors hover:bg-[#334155] hover:text-white"
-												onclick={() => copyToClipboard(device.device_id, `id-${device.device_id}`)}
+												onclick={(e) => {
+													e.stopPropagation();
+													copyToClipboard(device.device_id, `id-${device.device_id}`);
+												}}
 												title="Copy Device ID"
 											>
 												{device.device_id}
@@ -265,26 +293,37 @@
 									<!-- Quick Actions / Status Cards -->
 									<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-1/2">
 										<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-											<div class="mb-2 flex items-center gap-2 text-slate-400">
-												<Activity size={18} />
-												<span class="text-xs font-bold tracking-wider uppercase">Status</span>
-											</div>
-											<div class="text-lg font-medium text-white">
-												{#if isLoading}
-													<span class="flex items-center gap-2">
-														<Loader2 size={16} class="animate-spin" />
-														Checking...
-													</span>
-												{:else}
-													Connected
-												{/if}
-											</div>
+											{#if isSelected}
+												<div class="mb-2 flex items-center gap-2 text-emerald-400">
+													<Check size={18} />
+													<span class="text-xs font-bold tracking-wider uppercase">Selected</span>
+												</div>
+												<div class="text-lg font-medium text-white">Active Device</div>
+											{:else}
+												<button
+													class="group flex w-full flex-col items-start gap-2"
+													onclick={() => deviceState.setSelectedDevice(device.device_id)}
+												>
+													<div
+														class="flex items-center gap-2 text-slate-400 group-hover:text-primary"
+													>
+														<Activity size={18} />
+														<span class="text-xs font-bold tracking-wider uppercase">Select</span>
+													</div>
+													<div class="text-lg font-medium text-white group-hover:text-primary">
+														Click to Manage
+													</div>
+												</button>
+											{/if}
 										</div>
 
 										{#if !isUnregistered}
 											<button
 												class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-												onclick={() => copyToClipboard(device.comma_dongle_id, device.device_id)}
+												onclick={(e) => {
+													e.stopPropagation();
+													copyToClipboard(device.comma_dongle_id, device.device_id);
+												}}
 											>
 												<div class="mb-2 flex items-center justify-between text-slate-400">
 													<div class="flex items-center gap-2">
@@ -349,10 +388,13 @@
 										{@const currentAlias = getAlias(device)}
 										{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
 
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
-											class="card border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+											class="card cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
 												? 'border-primary ring-1 ring-primary/50'
 												: 'border-[#1e293b]'}"
+											onclick={() => deviceState.setSelectedDevice(device.device_id)}
 										>
 											<div class="card-body p-6 lg:p-8">
 												<div
@@ -373,6 +415,7 @@
 																type="text"
 																value={currentAlias}
 																oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+																onclick={(e) => e.stopPropagation()}
 																class="input input-lg w-full border-0 border-b-2 border-transparent bg-transparent px-0 text-2xl font-bold text-white placeholder-slate-600 transition-colors hover:border-[#334155] focus:border-primary focus:outline-none"
 																placeholder={device.device_id}
 															/>
@@ -383,8 +426,10 @@
 														>
 															<button
 																class="group flex items-center gap-2 rounded bg-[#1e293b] px-2 py-1 font-mono text-xs transition-colors hover:bg-[#334155] hover:text-white"
-																onclick={() =>
-																	copyToClipboard(device.device_id, `id-${device.device_id}`)}
+																onclick={(e) => {
+																	e.stopPropagation();
+																	copyToClipboard(device.device_id, `id-${device.device_id}`);
+																}}
 																title="Copy Device ID"
 															>
 																{device.device_id}
@@ -423,8 +468,10 @@
 														{#if !isUnregistered}
 															<button
 																class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-																onclick={() =>
-																	copyToClipboard(device.comma_dongle_id, device.device_id)}
+																onclick={(e) => {
+																	e.stopPropagation();
+																	copyToClipboard(device.comma_dongle_id, device.device_id);
+																}}
 															>
 																<div class="mb-2 flex items-center justify-between text-slate-400">
 																	<div class="flex items-center gap-2">
@@ -459,7 +506,8 @@
 													</p>
 													<button
 														class="btn text-red-400 btn-ghost btn-xs hover:bg-red-500/10"
-														onclick={async () => {
+														onclick={async (e) => {
+															e.stopPropagation();
 															if (logtoClient) {
 																const token = await logtoClient.getIdToken();
 																if (token) {

@@ -1,7 +1,7 @@
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 
 export const deviceState = $state({
-    selectedDeviceId: undefined as string | undefined,
+    selectedDeviceId: (typeof localStorage !== 'undefined' ? localStorage.getItem('selectedDeviceId') || undefined : undefined) as string | undefined,
     deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
     deviceValues: {} as Record<string, Record<string, unknown>>,
     onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline'>,
@@ -9,6 +9,14 @@ export const deviceState = $state({
     aliasOverrides: {} as Record<string, string>,
     stagedChanges: {} as Record<string, Record<string, unknown>>,
     version: 0,
+
+    // Helper to set selected device
+    setSelectedDevice(deviceId: string) {
+        this.selectedDeviceId = deviceId;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('selectedDeviceId', deviceId);
+        }
+    },
 
     // Helper to stage a change
     stageChange(deviceId: string, key: string, value: unknown, originalValue: unknown) {

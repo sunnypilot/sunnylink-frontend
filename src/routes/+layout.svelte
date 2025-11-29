@@ -50,16 +50,18 @@
 		authState.isAuthenticated
 			? [
 					{ icon: House, label: 'Overview', href: '/dashboard' },
-					{ icon: Bot, label: 'Models', href: '/dashboard/models' },
-					// { icon: MapIcon, label: 'Routes', href: '/dashboard/routes' },
-					// { icon: HardDrive, label: 'Backups', href: '/dashboard/settings/backups' },
-					{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
-					{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
-					{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
-					{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
-					{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-					{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
-					{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
+					...(deviceState.selectedDeviceId
+						? [
+								{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+								{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
+								{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+								{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
+								{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
+								{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+								{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
+								{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
+							]
+						: [])
 				]
 			: []
 	);
