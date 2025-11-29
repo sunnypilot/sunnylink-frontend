@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
+	import { searchState } from '$lib/stores/search.svelte';
 	import {
 		SETTINGS_DEFINITIONS,
 		type SettingCategory,
@@ -10,6 +11,9 @@
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
+	import { getAllSettings } from '$lib/utils/settings';
+	import { searchSettings } from '$lib/utils/search';
+
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
@@ -20,93 +24,17 @@
 	let category = $derived(page.params.category as SettingCategory);
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
+	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 
 	let categorySettings = $derived.by(() => {
-		// 1. Get explicit definitions for this category
-		const explicitDefs = SETTINGS_DEFINITIONS.filter((def) => def.category === category);
-
-		// 2. If category is 'other', also find dynamic settings from device
-		let dynamicDefs: RenderableSetting[] = [];
-		if (category === 'other' && settings) {
-			const definedKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
-			dynamicDefs = settings
-				.filter((s) => s.key && !definedKeys.has(s.key))
-				.map((s) => {
-					let decodedValue = s;
-					if (s.default_value) {
-						try {
-							decodedValue = { ...s };
-							decodedValue.default_value = atob(s.default_value);
-						} catch (e) {
-							console.warn(`Failed to decode default value for ${s.key}`, e);
-						}
-					}
-					return {
-						key: s.key!,
-						label: s.key!,
-						description: 'Unknown setting from device',
-						category: 'other' as SettingCategory,
-						value: decodedValue,
-						_extra: s._extra,
-						advanced: false,
-						readonly: false,
-						hidden: false
-					};
-				});
-		}
-
-		// 3. Combine and map values
-		const allDefs = [...explicitDefs, ...dynamicDefs];
-
-		return (
-			allDefs
-				.map((def) => {
-					const settingValue = settings?.find((s) => s.key === def.key);
-					let decodedValue = settingValue;
-
-					// Decode default value if present (and not already decoded for dynamic ones)
-					// Dynamic ones are already decoded above, but explicit ones need it here.
-					// Actually, for dynamic ones, we constructed a 'def' that has 'value' already set.
-					// For explicit ones, 'def' is just the definition.
-
-					// Let's normalize.
-					if (settingValue?.default_value) {
-						try {
-							decodedValue = { ...settingValue };
-							decodedValue.default_value = atob(settingValue.default_value);
-						} catch (e) {
-							console.warn(`Failed to decode default value for ${def.key}`, e);
-						}
-					} else if ((def as unknown as RenderableSetting).value) {
-						// It's a dynamic def we just created, use its value
-						decodedValue = (def as unknown as RenderableSetting).value;
-					}
-
-					return {
-						...def,
-						_extra: settingValue?._extra,
-						value: decodedValue
-					};
-				})
-				// Filter out those that have no value AND no default value?
-				// The original logic filtered `s.value !== undefined`.
-				// For explicit settings, `decodedValue` might be undefined if not on device.
-				// But we usually want to show them if they are in definitions?
-				// Original logic: `.filter((s) => s.value !== undefined)`
-				// This implies we ONLY show settings that exist on the device (or have a default value loaded).
-				// If `settings` is undefined (device not loaded), `decodedValue` is undefined.
-				// So we probably want to keep this filter to avoid showing empty cards before data loads?
-				// Or maybe we want to show them as "loading"?
-				// The original code had `if (!settings) return []`, so it waited for settings.
-				// Here `settings` is derived from deviceState.
-
-				// If we want to show explicit settings even if not on device yet (e.g. to show they exist),
-				// we might want to relax this. But for now, let's stick to original behavior:
-				// show if we have a value (from device or default).
-				.filter((s) => s.value !== undefined)
-				.filter((s) => !s.hidden)
-				.filter((s) => preferences.showAdvanced || !s.advanced)
+		const all = getAllSettings(settings, preferences.showAdvanced).filter(
+			(s) => s.category === category
 		);
+		if (!searchState.query.trim()) return all;
+
+		// Filter by search query
+		const results = searchSettings(searchState.query, all, deviceValues);
+		return results.map((r) => r.setting);
 	});
 
 	let writableSettings = $derived(categorySettings.filter((s) => !s.readonly));
@@ -244,6 +172,7 @@
 	}
 </script>
 
+```typescript
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
 		<div>
@@ -387,6 +316,7 @@
 					class:opacity-50={setting.readonly}
 					class:cursor-not-allowed={setting.readonly}
 					disabled={setting.readonly}
+					id={setting.key}
 					aria-pressed={displayValue === true}
 					aria-disabled={setting.readonly}
 					tabindex={setting.readonly ? -1 : 0}
@@ -468,6 +398,7 @@
 					class="flex flex-col justify-between rounded-xl border bg-[#101a29] p-4 transition-colors hover:border-primary/50 sm:p-6"
 					class:border-primary={hasStaged}
 					class:border-[#334155]={!hasStaged}
+					id={setting.key}
 				>
 					<div class="mb-4">
 						<div class="flex items-start justify-between">

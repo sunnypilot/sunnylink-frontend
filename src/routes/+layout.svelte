@@ -85,6 +85,7 @@
 		].join(' ');
 	import { checkDeviceStatus } from '$lib/api/device';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
@@ -137,23 +138,37 @@
 					<p class="text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">sunnypilot</p>
 				</div>
 
-				<!-- Device Selector -->
-				<div class="flex flex-1 justify-end lg:w-full lg:justify-between">
-					<div class="hidden lg:block">
-						<!-- Breadcrumbs or Title could go here -->
+				<!-- Device Selector & Search -->
+				<div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+					<!-- Desktop Search -->
+					<div class="hidden flex-1 justify-center px-6 lg:flex">
+						{#if deviceState.selectedDeviceId}
+							<SettingsSearch />
+						{/if}
 					</div>
 
 					{#await data.streamed.devices}
-						<div class="h-10 w-48 animate-pulse rounded-lg bg-[#1e293b]"></div>
+						<div
+							class="h-10 w-48 animate-pulse self-end rounded-lg bg-[#1e293b] lg:self-auto"
+						></div>
 					{:then devices}
 						{#if devices && devices.length > 0}
-							<DeviceSelector {devices} />
+							<div class="self-end lg:self-auto">
+								<DeviceSelector {devices} />
+							</div>
 						{:else}
-							<span class="text-sm text-slate-400">No devices found</span>
+							<span class="self-end text-sm text-slate-400 lg:self-auto">No devices found</span>
 						{/if}
 					{/await}
 				</div>
 			</div>
+
+			<!-- Mobile Search Row -->
+			{#if deviceState.selectedDeviceId}
+				<div class="mt-3 lg:hidden">
+					<SettingsSearch />
+				</div>
+			{/if}
 		</header>
 
 		<!-- Page content -->
