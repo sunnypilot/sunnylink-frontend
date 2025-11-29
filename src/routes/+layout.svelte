@@ -72,7 +72,7 @@
 			deviceState.selectedDeviceId
 				? {
 						icon: ArrowLeftRight,
-						label: 'Migrate Settings',
+						label: 'Device Migration Wizard',
 						action: () => deviceState.openMigrationWizard()
 					}
 				: null,

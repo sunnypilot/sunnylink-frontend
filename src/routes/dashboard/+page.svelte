@@ -225,7 +225,7 @@
 							class="flex w-full flex-col items-start gap-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 lg:max-w-md"
 						>
 							<div class="space-y-2">
-								<h3 class="font-bold text-blue-400">Migrate Settings</h3>
+								<h3 class="font-bold text-blue-400">Device Migration Wizard</h3>
 								<p class="text-sm text-slate-300">
 									Whether you have your new device or are waiting for it to arrive, you can start
 									your settings migration now and resume it later.

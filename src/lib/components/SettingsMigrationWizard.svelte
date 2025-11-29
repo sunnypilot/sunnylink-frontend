@@ -369,7 +369,7 @@
 				<div class="flex items-center justify-between">
 					<h3 class="text-xl font-bold text-white">
 						{#if ms.step === 1}
-							Migrate Settings
+							Device Migration Wizard
 						{:else if ms.type === 'new'}
 							New Migration
 						{:else}
