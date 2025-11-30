@@ -1,0 +1,46 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
+      PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
+      PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
+      PUBLIC_CALLBACK: https://new.sunnypilot.ai/auth/callback
+      PUBLIC_REDIRECT: https://new.sunnypilot.ai/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: pnpm test
+
+      - name: Comment PR with images
+        if: always()
+        uses: opengisch/comment-pr-with-images@upload_only
+        with:
+          images: "test-results/**/*.png, test-results/**/*.jpeg, test-results/**/*.gif"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
