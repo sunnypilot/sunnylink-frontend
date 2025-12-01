@@ -68,7 +68,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
     { key: 'GitCommitDate', label: 'Commit Date', description: 'Date of current commit', category: 'device', readonly: true },
     { key: 'UptimeOnroad', label: 'Uptime Onroad', description: 'Session driving time', category: 'device', readonly: true },
     { key: 'DoShutdown', label: 'Shutdown Device', description: 'Power off the device immediately', category: 'device', advanced: true },
-    { key: 'OffroadMode', label: 'Offroad Mode', description: 'System offroad state', category: 'device', readonly: true, hidden: true },
+    { key: 'OffroadMode', label: 'Force Offroad Mode', description: 'Forced offroad mode', category: 'device' },
     { key: 'RecordAudioFeedback', label: 'Record Audio Feedback', description: 'Audio feedback status', category: 'device', hidden: true },
     { key: 'BackupManager_RestoreVersion', label: 'Restore Backup', description: 'Restore settings from backup', category: 'device', advanced: true },
     { key: 'RecordAudio', label: 'Record Audio', description: 'Record cabin audio', category: 'device' },
