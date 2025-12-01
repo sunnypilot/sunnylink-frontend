@@ -1,27 +1,55 @@
 import { v1Client, v0Client } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
+import { decodeParamValue } from '$lib/utils/device';
 
 export async function checkDeviceStatus(deviceId: string, token: string) {
     if (!deviceId || !token) return;
 
-    // Set to loading if not already determined (or if forcing refresh)
-    // We might want to keep the old status while refreshing to avoid flickering,
-    // but 'loading' gives feedback. Let's set it to loading.
     deviceState.onlineStatuses[deviceId] = 'loading';
 
     try {
-        const response = await v1Client.GET('/v1/settings/{deviceId}', {
-            params: {
-                path: { deviceId }
-            },
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const [settingsRes, valuesRes] = await Promise.all([
+            v1Client.GET('/v1/settings/{deviceId}', {
+                params: {
+                    path: { deviceId }
+                },
+                headers: { Authorization: `Bearer ${token}` }
+            }),
+            v1Client.GET('/v1/settings/{deviceId}/values', {
+                params: {
+                    path: { deviceId },
+                    query: { paramKeys: ['IsOffroad', 'OffroadMode'] }
+                },
+                headers: { Authorization: `Bearer ${token}` }
+            })
+        ]);
 
         // Strict check: Must have items and length > 0
-        if (response.data?.items && response.data.items.length > 0) {
+        if (settingsRes.data?.items && settingsRes.data.items.length > 0) {
             deviceState.onlineStatuses[deviceId] = 'online';
-            deviceState.deviceSettings[deviceId] = response.data.items as ExtendedDeviceParamKey[];
+            deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
+
+            // Process Offroad Status from valuesRes
+            if (valuesRes.data?.items) {
+                const isOffroadParam = valuesRes.data.items.find((i) => i.key === 'IsOffroad');
+                const offroadModeParam = valuesRes.data.items.find((i) => i.key === 'OffroadMode');
+
+                let isOffroad = false;
+                let forceOffroad = false;
+
+                if (isOffroadParam) {
+                    const val = decodeParamValue(isOffroadParam);
+                    isOffroad = val === '1' || val === 1 || val === true || val === 'true';
+                }
+
+                if (offroadModeParam) {
+                    const val = decodeParamValue(offroadModeParam);
+                    forceOffroad = val === '1' || val === 1 || val === true || val === 'true';
+                }
+
+                deviceState.offroadStatuses[deviceId] = { isOffroad, forceOffroad };
+            }
         } else {
             // Empty items means we couldn't fetch settings -> likely offline or not ready
             deviceState.onlineStatuses[deviceId] = 'offline';

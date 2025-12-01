@@ -7,6 +7,7 @@ export const deviceState = $state({
     deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
     deviceValues: {} as Record<string, Record<string, unknown>>,
     onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline'>,
+    offroadStatuses: {} as Record<string, { isOffroad: boolean; forceOffroad: boolean }>,
     aliases: {} as Record<string, string>,
     aliasOverrides: {} as Record<string, string>,
     stagedChanges: {} as Record<string, Record<string, unknown>>,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
@@ -8,6 +9,8 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
+	import { AlertTriangle, ShieldAlert } from 'lucide-svelte';
 
 	let { data } = $props();
 
@@ -16,20 +19,47 @@
 	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
+	let isOffroad = $derived(
+		deviceState.selectedDeviceId
+			? (deviceState.offroadStatuses[deviceState.selectedDeviceId]?.isOffroad ?? false)
+			: false
+	);
+	let forceOffroadModalOpen = $state(false);
 
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
 			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'offline'
 	);
 
+	let isCheckingStatus = $derived(
+		deviceState.selectedDeviceId &&
+			(deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'loading' ||
+				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
+	);
+
+	// Check status on mount / device change if not already online
 	$effect(() => {
-		if (!authState.loading && !authState.isAuthenticated) {
-			goto('/');
+		const deviceId = deviceState.selectedDeviceId;
+		if (deviceId && authState.isAuthenticated) {
+			untrack(() => {
+				const status = deviceState.onlineStatuses[deviceId];
+				if (status === undefined || status === 'offline') {
+					logtoClient?.getIdToken().then((token) => {
+						if (token && deviceState.selectedDeviceId === deviceId) {
+							checkDeviceStatus(deviceId, token);
+						}
+					});
+				}
+			});
 		}
 	});
 
+	// Auto-refresh when device comes online
 	$effect(() => {
-		if (deviceState.selectedDeviceId) {
+		if (
+			deviceState.selectedDeviceId &&
+			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'online'
+		) {
 			fetchModelsForDevice();
 		}
 	});
@@ -37,6 +67,7 @@
 	async function fetchModelsForDevice() {
 		modelList = undefined;
 		selectedModelShortName = undefined;
+		// isOffroad is derived, no need to reset local state
 
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
@@ -49,7 +80,12 @@
 						deviceId: deviceState.selectedDeviceId
 					},
 					query: {
-						paramKeys: ['ModelManager_ModelsCache', 'ModelManager_ActiveBundle']
+						paramKeys: [
+							'ModelManager_ModelsCache',
+							'ModelManager_ActiveBundle',
+							'IsOffroad',
+							'OffroadMode'
+						]
 					}
 				},
 				headers: {
@@ -64,6 +100,29 @@
 				const activeBundleParam = models.data.items.find(
 					(i) => i.key === 'ModelManager_ActiveBundle'
 				);
+				const isOffroadParam = models.data.items.find((i) => i.key === 'IsOffroad');
+				const offroadModeParam = models.data.items.find((i) => i.key === 'OffroadMode');
+
+				let isOffroadVal = false;
+				if (isOffroadParam) {
+					const val = decodeParamValue(isOffroadParam);
+					// IsOffroad is usually "1" or "0" or boolean
+					isOffroadVal = val === '1' || val === 1 || val === true || val === 'true';
+				}
+
+				let forceOffroad = false;
+				if (offroadModeParam) {
+					const val = decodeParamValue(offroadModeParam);
+					forceOffroad = val === '1' || val === 1 || val === true || val === 'true';
+				}
+
+				// Update global state
+				if (deviceState.selectedDeviceId) {
+					deviceState.offroadStatuses[deviceState.selectedDeviceId] = {
+						isOffroad: isOffroadVal,
+						forceOffroad
+					};
+				}
 
 				if (modelsCacheParam) {
 					const decodedValue = decodeParamValue(modelsCacheParam);
@@ -110,6 +169,15 @@
 		}
 	}
 
+	async function recheckStatus() {
+		if (!deviceState.selectedDeviceId || !logtoClient) return;
+		const token = await logtoClient.getIdToken();
+		if (token) {
+			await checkDeviceStatus(deviceState.selectedDeviceId, token);
+			await fetchModelsForDevice();
+		}
+	}
+
 	async function sendModelToDevice() {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
@@ -117,6 +185,37 @@
 
 		try {
 			sendingModel = true;
+
+			// Pre-push check: Verify IsOffroad is still true
+			const token = await logtoClient.getIdToken();
+			if (!token) throw new Error('Not authenticated');
+			const statusRes = await v1Client.GET('/v1/settings/{deviceId}/values', {
+				params: {
+					path: { deviceId: deviceState.selectedDeviceId },
+					query: { paramKeys: ['IsOffroad'] }
+				},
+				headers: { Authorization: `Bearer ${token}` }
+			});
+
+			const isOffroadParam = statusRes.data?.items?.find((i) => i.key === 'IsOffroad');
+			let currentIsOffroad = false;
+			if (isOffroadParam) {
+				const val = decodeParamValue(isOffroadParam);
+				currentIsOffroad = val === '1' || val === 1 || val === true || val === 'true';
+			}
+
+			if (!currentIsOffroad) {
+				// Update global state to reflect reality
+				if (deviceState.selectedDeviceId) {
+					deviceState.offroadStatuses[deviceState.selectedDeviceId] = {
+						isOffroad: false,
+						forceOffroad:
+							deviceState.offroadStatuses[deviceState.selectedDeviceId]?.forceOffroad ?? false
+					};
+				}
+				throw new Error('Device is Onroad. Cannot push model.');
+			}
+
 			await v0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
@@ -129,8 +228,9 @@
 						value: encodeParamValue({
 							key: 'ModelManager_DownloadIndex',
 							value: String(selectedModel.index ?? ''),
-							is_compressed: true
-						})
+							type: 'String'
+						}),
+						is_compressed: true
 					}
 				],
 				headers: {
@@ -233,8 +333,14 @@
 				</div>
 			</div>
 		{/await}
-	{:else if loadingModels}
+	{:else if loadingModels || isCheckingStatus}
 		<div class="animate-pulse space-y-6">
+			{#if isCheckingStatus}
+				<div class="flex items-center gap-2 text-slate-400">
+					<span class="loading loading-sm loading-spinner"></span>
+					<span>Checking device status...</span>
+				</div>
+			{/if}
 			<div class="h-12 w-full rounded bg-slate-700"></div>
 			<div class="h-48 w-full rounded bg-slate-700"></div>
 		</div>
@@ -262,11 +368,40 @@
 					</select>
 				</div>
 
+				{#if !isOffroad}
+					<div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+						<div class="flex items-start gap-3">
+							<ShieldAlert class="mt-0.5 shrink-0 text-amber-500" size={20} />
+							<div class="space-y-2">
+								<p class="text-sm font-medium text-amber-200">Device is Onroad</p>
+								<p class="text-xs text-amber-200/80">
+									Models cannot be changed while the device is driving. Park the vehicle to change
+									models.
+								</p>
+								<div class="flex flex-wrap gap-3">
+									<button
+										class="text-xs font-semibold text-amber-500 underline decoration-amber-500/50 underline-offset-2 hover:text-amber-400"
+										onclick={() => (forceOffroadModalOpen = true)}
+									>
+										Force Offroad Mode (Danger)
+									</button>
+									<button
+										class="text-xs font-semibold text-slate-400 underline decoration-slate-500/50 underline-offset-2 hover:text-slate-300"
+										onclick={recheckStatus}
+									>
+										Recheck Status
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				{/if}
+
 				<div class="card-actions">
 					<button
 						class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
 						onclick={sendModelToDevice}
-						disabled={sendingModel || !selectedModel}>Send to device 🚀</button
+						disabled={sendingModel || !selectedModel || !isOffroad}>Send to device 🚀</button
 					>
 					{#if sendingModel}
 						<progress class="progress w-full progress-primary"></progress>
@@ -307,3 +442,11 @@
 		</div>
 	{/if}
 </div>
+
+<ForceOffroadModal
+	bind:open={forceOffroadModalOpen}
+	onSuccess={async () => {
+		// Refresh status
+		await recheckStatus();
+	}}
+/>

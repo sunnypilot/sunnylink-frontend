@@ -114,6 +114,8 @@
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	import { onMount } from 'svelte';
 
 	let devices = $state<any[]>([]);
 
@@ -378,3 +380,4 @@
 {/if}
 
 <Toast />
+<ForceOffroadBanner />

@@ -6,16 +6,19 @@
 	import { fade, fly, slide } from 'svelte/transition';
 	import { ChevronRight } from 'lucide-svelte';
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let { devices } = $props<{ devices: any[] }>();
 
 	let isOpen = $state(false);
 	let offlineSectionOpen = $state(false);
 
-	let selectedDevice = $derived(devices.find((d) => d.device_id === deviceState.selectedDeviceId));
+	let selectedDevice = $derived(
+		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)
+	);
 
 	let onlineDevices = $derived(
 		deviceState.sortDevices(
-			devices.filter((d) => {
+			devices.filter((d: any) => {
 				const status = deviceState.onlineStatuses[d.device_id];
 				return status === 'online' || status === 'loading' || status === undefined;
 			})
@@ -24,10 +27,11 @@
 
 	let offlineDevices = $derived(
 		deviceState.sortDevices(
-			devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline')
+			devices.filter((d: any) => deviceState.onlineStatuses[d.device_id] === 'offline')
 		)
 	);
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function getAlias(device: any) {
 		return deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
 	}
@@ -41,6 +45,7 @@
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function selectDevice(device: any) {
 		deviceState.setSelectedDevice(device.device_id);
 		isOpen = false;
@@ -79,10 +84,8 @@
 		if (isOpen) {
 			// Refresh statuses when opening, but skip selected device to avoid re-rendering parent
 			// (which would close the modal if parent conditionally renders based on status)
-			devices.forEach((d) => {
-				if (d.device_id !== deviceState.selectedDeviceId) {
-					checkStatus(d.device_id);
-				}
+			devices.forEach((d: any) => {
+				checkStatus(d.device_id);
 			});
 		}
 	}
@@ -105,6 +108,17 @@
 				{#if deviceState.onlineStatuses[selectedDevice.device_id] === 'online'}
 					<div class="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
 					<span class="text-[10px] text-emerald-400">Online</span>
+					{#if deviceState.offroadStatuses[selectedDevice.device_id]}
+						{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
+						<span class="text-[10px] text-slate-600">•</span>
+						{#if status?.forceOffroad}
+							<span class="text-[10px] font-bold text-amber-500">Forced Offroad</span>
+						{:else if status?.isOffroad}
+							<span class="text-[10px] text-blue-400">Offroad</span>
+						{:else}
+							<span class="text-[10px] text-amber-400">Onroad</span>
+						{/if}
+					{/if}
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
 					<div class="h-1.5 w-1.5 rounded-full bg-red-400"></div>
 					<span class="text-[10px] text-red-400">Offline</span>
@@ -210,6 +224,17 @@
 								{#if status === 'online'}
 									<div class="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
 									<span class="text-xs text-emerald-400">Online</span>
+									{#if deviceState.offroadStatuses[device.device_id]}
+										{@const offroadStatus = deviceState.offroadStatuses[device.device_id]}
+										<span class="text-[10px] text-slate-600">•</span>
+										{#if offroadStatus?.forceOffroad}
+											<span class="text-xs font-bold text-amber-500">Forced</span>
+										{:else if offroadStatus?.isOffroad}
+											<span class="text-xs text-blue-400">Offroad</span>
+										{:else}
+											<span class="text-xs text-amber-400">Onroad</span>
+										{/if}
+									{/if}
 								{:else if status === 'offline'}
 									<div class="h-1.5 w-1.5 rounded-full bg-red-400"></div>
 									<span class="text-xs text-red-400">Offline</span>
