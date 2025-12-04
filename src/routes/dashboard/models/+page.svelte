@@ -230,7 +230,7 @@
 							value: String(selectedModel.index ?? ''),
 							type: 'String'
 						}),
-						is_compressed: true
+						is_compressed: false
 					}
 				],
 				headers: {
