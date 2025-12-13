@@ -37,7 +37,6 @@
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
-	let hasChanges = $derived(deviceId ? deviceState.hasChanges(deviceId) : false);
 
 	// Derived alias for current device
 	let currentDeviceAlias = $derived.by(() => {
@@ -202,7 +201,7 @@
 	}
 </script>
 
-<div class="space-y-6" class:pb-16={hasChanges}>
+<div class="space-y-6">
 	<div class="flex items-center justify-between">
 		<div>
 			<h2 class="text-2xl font-bold text-white capitalize">
