@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Search } from 'lucide-svelte';
+	import { fade } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
@@ -9,6 +10,7 @@
 
 	let query = $state('');
 	let isOpen = $state(false);
+	let isFocused = $state(false);
 	let inputRef: HTMLInputElement;
 	let results: SearchResult[] = $state([]);
 
@@ -45,6 +47,7 @@
 	function handleSelect(result: SearchResult) {
 		// Do NOT clear query, so the page can filter
 		isOpen = false;
+		isFocused = false;
 		// Navigate to the setting
 		// We need to know the route. It's /dashboard/settings/[category]
 		// And we can add a hash to scroll to it.
@@ -54,6 +57,8 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			isOpen = false;
+			isFocused = false;
+			searchState.query = '';
 			inputRef?.blur();
 		}
 	}
@@ -67,13 +72,29 @@
 			!(event.target as Element).closest('.search-results')
 		) {
 			isOpen = false;
+			isFocused = false;
+			searchState.query = '';
 		}
 	}
 </script>
 
 <svelte:window onclick={handleClickOutside} onkeydown={handleKeydown} />
 
-<div class="relative w-full max-w-md">
+{#if isFocused}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div
+		transition:fade={{ duration: 200 }}
+		class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+		role="presentation"
+		onclick={() => {
+			isFocused = false;
+			isOpen = false;
+			searchState.query = '';
+		}}
+	></div>
+{/if}
+
+<div class="relative w-full max-w-md {isFocused ? 'z-50' : ''}">
 	<div class="relative">
 		<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 			<Search class="h-5 w-5 text-slate-400" />
@@ -85,6 +106,7 @@
 			placeholder="Search settings..."
 			class="input-bordered input w-full bg-[#1e293b] pl-10 text-sm text-white placeholder-slate-400 focus:border-primary focus:outline-none"
 			onfocus={() => {
+				isFocused = true;
 				if (searchState.query.trim()) isOpen = true;
 			}}
 		/>
