@@ -16,7 +16,7 @@
 {#if changeCount > 0}
 	<div
 		transition:fly={{ y: 50, duration: 300 }}
-		class="fixed bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-4 rounded-full border border-[#334155] bg-[#1e293b]/90 px-6 py-3 shadow-2xl backdrop-blur-md"
+		class="fixed bottom-4 left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-4 rounded-full border border-[#334155] bg-[#1e293b]/90 px-6 py-3 shadow-2xl backdrop-blur-md"
 	>
 		<div class="flex items-center gap-3 border-r border-slate-700 pr-4">
 			<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary">
