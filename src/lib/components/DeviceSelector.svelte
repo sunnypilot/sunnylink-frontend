@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { ChevronDown, X, WifiOff, Check, Smartphone, LayoutDashboard } from 'lucide-svelte';
@@ -11,6 +12,11 @@
 
 	let isOpen = $state(false);
 	let offlineSectionOpen = $state(false);
+
+	// Sync modal state with global store
+	$effect(() => {
+		deviceSelectorState.open = isOpen;
+	});
 
 	let selectedDevice = $derived(
 		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)

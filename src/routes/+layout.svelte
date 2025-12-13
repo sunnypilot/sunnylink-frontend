@@ -6,6 +6,7 @@
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
 		Bot,
 		CloudSun,
@@ -217,9 +218,10 @@
 		<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 		<aside
 			class={[
-				'flex min-h-full flex-col border-r border-[#1e293b] bg-[#0f1726] transition-[width] duration-300',
+				'flex min-h-full flex-col border-r border-[#1e293b] bg-[#0f1726] transition-[width,filter] duration-300',
 				drawerOpen ? 'w-64 sm:w-72' : 'w-16 sm:w-20',
-				'lg:w-80 lg:min-w-[20rem]'
+				'lg:w-80 lg:min-w-[20rem]',
+				deviceSelectorState.isOpen ? 'blur-sm' : ''
 			]}
 		>
 			<!-- Logo Area -->
