@@ -103,8 +103,11 @@
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
+            // Determine scheme: If PWA is HTTPS, assume Device is HTTPS (to match requirement)
+            const scheme = window.location.protocol === 'https:' ? 'https' : 'http';
+            
             // Send to backend (Port 5001)
-            const res = await fetch(`http://${localDeviceState.ip}:5001/stream`, {
+            const res = await fetch(`${scheme}://${localDeviceState.ip}:5001/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
