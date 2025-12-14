@@ -1,14 +1,13 @@
 [phases.setup]
-nixPkgs = ["nodejs_23", "pnpm"]
+# This specific commit hash contains Node 22.13.1
+nixpkgsArchive = "51ad838b03a05b1de6f9f2a0fffecee64a9788ee"
+nixPkgs = ["nodejs_22", "pnpm"]
 
 [phases.install]
-dependsOn = ["setup"]
 cmds = ["pnpm install --frozen-lockfile"]
 
 [phases.build]
-dependsOn = ["install"]
 cmds = ["pnpm build"]
 
 [start]
-buildImage = "ghcr.io/railwayapp/nixpacks:ubuntu-1733789128"
 cmd = "node build"
