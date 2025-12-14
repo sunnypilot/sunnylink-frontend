@@ -119,12 +119,22 @@
             await pc.setRemoteDescription(new RTCSessionDescription(answer));
 
         } catch (e: any) {
+            console.error(e);
             error = e.message;
-            loading = false;
-            // Mixed content warning hint
-            if (window.location.protocol === 'https:' && e.message.includes('Failed to fetch')) {
-                error += '. (Try using HTTP or configuring the browser to allow mixed content)';
+            
+            const isMixedContent = window.location.protocol === 'https:';
+            const isNetworkError = e.message.toLowerCase().includes('failed to fetch') || 
+                                 e.message.toLowerCase().includes('load failed') ||
+                                 e.message.toLowerCase().includes('networkerror');
+
+            if (isNetworkError) {
+                if (isMixedContent) {
+                    error = "Mixed Content Error: Cannot connect to HTTP device from HTTPS PWA. Please try accessing the app via HTTP or check if your device is blocking the connection.";
+                } else {
+                    error = "Network Error: Unable to reach device. Ensure phone and device are on the same Wi-Fi and the IP is correct.";
+                }
             }
+            loading = false;
         }
     }
     
