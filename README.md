@@ -1,38 +1,89 @@
-# sv
+# sunnylink
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Remote management platform for **comma devices running [sunnypilot](https://github.com/sunnypilot/sunnypilot)** - an open-source driver assistance system forked.
 
-## Creating a project
+## What It Is
 
-If you're seeing this, you've probably already done this step. Congrats!
+sunnylink is a web-based control center that allows you to remotely manage comma devices running sunnypilot from anywhere in the world. Configure settings, switch driving models, monitor device status, and backup configurations through a secure, modern interface.
 
-```sh
-# create a new project in the current directory
-npx sv create
+## Technology Stack
 
-# create a new project in my-app
-npx sv create my-app
+- **Framework**: SvelteKit with Svelte 5 (runes)
+- **Language**: TypeScript with strict mode
+- **Styling**: Tailwind CSS + DaisyUI components
+- **Authentication**: Logto SSO integration
+- **API**: OpenAPI-generated TypeScript clients
+- **PWA**: Progressive Web App with service worker
+
+## Key Features
+
+### Device Management
+
+- Multi-device support with online/offline status monitoring
+- Custom device aliasing and organization
+- Real-time device communication via websockets
+- Device registration, deregistration, and migration
+
+### Remote Settings Configuration
+
+- **Configurable parameters** across 7 categories:
+  - **Device**: Core settings (language, units, recording)
+  - **Toggles**: Feature switches and experimental modes
+  - **Steering**: Advanced steering control (MADS, torque, neural control)
+  - **Cruise**: Speed control and adaptive cruise settings
+  - **Visuals**: UI customization and display preferences
+  - **Developer**: Advanced debugging and development tools
+  - **Other**: Navigation, maps, and system settings
+
+### Model Management
+
+- Browse and switch between driving models
+- Model metadata display (runner, generation, build time)
+- Offroad mode enforcement for safety
+- Force offroad option with warnings
+
+### Backup & Migration
+
+- Complete device settings backup as JSON
+- Settings migration between devices
+- Progress tracking for all operations
+
+## Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run type checking
+pnpm check
+
+# Run tests
+pnpm test
 ```
 
-## Developing
+## Project Structure
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```
+src/
+├── routes/           # SvelteKit pages and layouts
+├── components/       # Reusable UI components
+├── lib/
+│   ├── api/         # OpenAPI client wrappers and device functions
+│   ├── stores/      # Svelte reactive state
+│   ├── types/       # TypeScript type definitions
+│   └── utils/       # Utility functions
+└── sunnylink/       # API schemas (v0, v1)
 ```
 
-## Building
+## Development
 
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- Uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactive state management
+- OpenAPI schemas in `sunnylink/` directory with custom client wrappers
+- Prettier with tabs, single quotes, 100 char width
+- Dark theme with responsive design for mobile and desktop
