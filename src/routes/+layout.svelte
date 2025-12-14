@@ -116,6 +116,8 @@
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
+	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { onMount } from 'svelte';
 
 	let devices = $state<any[]>([]);
@@ -401,3 +403,14 @@
 
 <Toast />
 <ForceOffroadBanner />
+<PWAPrompt
+	copyTitle="Add to Home Screen"
+	copyBody="This website has app functionality. Add it to your home screen to use it in fullscreen and while offline."
+	copyShareButtonLabel="1) Press the 'Share' button"
+	copyAddHomeButtonLabel="2) Press 'Add to Home Screen'"
+	copyClosePrompt="Cancel"
+	promptOnVisit={1}
+	timesToShow={3}
+	permanentlyHideOnDismiss={false}
+	debug={false}
+/>

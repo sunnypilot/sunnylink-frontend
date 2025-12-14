@@ -15,6 +15,9 @@ export default defineConfig({
 				short_name: 'sunnylink',
 				description: 'Connect with sunnypilot.',
 				theme_color: '#ffffff',
+				display: 'standalone',
+				start_url: '/',
+				scope: '/',
 				icons: [
 					{
 						src: 'pwa-icon.png',
