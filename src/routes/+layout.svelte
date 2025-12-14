@@ -411,6 +411,7 @@
 	copyClosePrompt="Cancel"
 	promptOnVisit={1}
 	timesToShow={3}
+	delay={3000}
 	permanentlyHideOnDismiss={false}
 	debug={false}
 />
