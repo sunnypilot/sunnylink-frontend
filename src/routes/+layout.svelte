@@ -146,6 +146,12 @@
 		});
 	});
 
+	let isIOS = $state(false);
+	onMount(() => {
+		const ua = window.navigator.userAgent;
+		isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+	});
+
 	$effect(() => {
 		if (authState.isAuthenticated) {
 			invalidateAll();
@@ -403,15 +409,19 @@
 
 <Toast />
 <ForceOffroadBanner />
-<PWAPrompt
-	copyTitle="Add to Home Screen"
-	copyBody="This website has app functionality. Add it to your home screen to use it in fullscreen and while offline."
-	copyShareButtonLabel="1) Press the 'Share' button"
-	copyAddHomeButtonLabel="2) Press 'Add to Home Screen'"
-	copyClosePrompt="Cancel"
-	promptOnVisit={1}
-	timesToShow={3}
-	delay={3000}
-	permanentlyHideOnDismiss={false}
-	debug={false}
-/>
+<Toast />
+<ForceOffroadBanner />
+{#if isIOS}
+	<PWAPrompt
+		copyTitle="Add to Home Screen"
+		copyBody="This website has app functionality. Add it to your home screen to use it in fullscreen and while offline."
+		copyShareButtonLabel="1) Press the 'Share' button"
+		copyAddHomeButtonLabel="2) Press 'Add to Home Screen'"
+		copyClosePrompt="Cancel"
+		promptOnVisit={1}
+		timesToShow={3}
+		delay={3000}
+		permanentlyHideOnDismiss={false}
+		debug={false}
+	/>
+{/if}
