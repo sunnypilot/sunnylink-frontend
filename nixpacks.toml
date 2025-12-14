@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_23", "pnpm"]
+
+[phases.install]
+dependsOn = ["setup"]
+cmds = ["pnpm install --frozen-lockfile"]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = ["pnpm build"]
+
+[start]
+buildImage = "ghcr.io/railwayapp/nixpacks:ubuntu-1733789128"
+cmd = "node build"
