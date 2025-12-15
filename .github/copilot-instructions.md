@@ -224,7 +224,7 @@ When working on issues:
 
 Before considering work complete:
 
-- [ ] Code follows Prettier formatting (tabs, single quotes, 100 char width)
+- [ ] Code follows Prettier formatting (tabs, single quotes, no trailing commas, 100 char width)
 - [ ] TypeScript strict mode passes with no errors
 - [ ] All tests pass (`pnpm test`)
 - [ ] Build succeeds (`pnpm build`)
