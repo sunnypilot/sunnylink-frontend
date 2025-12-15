@@ -120,18 +120,24 @@
 	}
 
 	function getPendingChanges(devices: any[]) {
-		return Object.entries(deviceState.aliasOverrides)
-			.map(([deviceId, newAlias]) => {
-				const device = devices.find((d) => d.device_id === deviceId);
-				const oldAlias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
-				if (newAlias === oldAlias) return null;
-				return { deviceId, oldAlias, newAlias };
-			})
-			.filter((c) => c !== null) as Array<{
+		// Build a Map for O(1) device lookups
+		const deviceMap = new Map(devices.map(d => [d.device_id, d]));
+		
+		const changes: Array<{
 			deviceId: string;
 			oldAlias: string;
 			newAlias: string;
-		}>;
+		}> = [];
+
+		for (const [deviceId, newAlias] of Object.entries(deviceState.aliasOverrides)) {
+			const device = deviceMap.get(deviceId);
+			const oldAlias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
+			if (newAlias !== oldAlias) {
+				changes.push({ deviceId, oldAlias, newAlias });
+			}
+		}
+
+		return changes;
 	}
 
 	function clearChanges() {

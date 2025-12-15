@@ -39,7 +39,12 @@
 		}
 	}
 
-	let definitions = $state<SettingDefinition[]>(JSON.parse(JSON.stringify(initialDefinitions)));
+	// Helper function to deep copy an array of SettingDefinition objects
+	function cloneDefinitions(defs: SettingDefinition[]): SettingDefinition[] {
+		return defs.map(def => ({ ...def }));
+	}
+
+	let definitions = $state<SettingDefinition[]>(cloneDefinitions(initialDefinitions));
 	let copied = $state(false);
 	let searchQuery = $state('');
 	let selectedCategory = $state<SettingCategory | 'all'>('all');
@@ -160,7 +165,7 @@
 	}
 
 	function confirmReset() {
-		definitions = JSON.parse(JSON.stringify(SETTINGS_DEFINITIONS));
+		definitions = cloneDefinitions(SETTINGS_DEFINITIONS);
 		localStorage.removeItem('sunnylink_custom_definitions');
 		resetModalOpen = false;
 	}
