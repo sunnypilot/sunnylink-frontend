@@ -94,14 +94,6 @@
 		}
 	});
 
-	function chunkArray<T>(array: T[], size: number): T[][] {
-		const result = [];
-		for (let i = 0; i < array.length; i += size) {
-			result.push(array.slice(i, i + size));
-		}
-		return result;
-	}
-
 	async function fetchCurrentValues() {
 		if (!deviceId || !logtoClient) return;
 
@@ -117,9 +109,17 @@
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
 
-			const chunks = chunkArray(keysToFetch, 10);
+			// Build lookup map for O(1) access to setting types
+			const settingsTypeMap = new Map<string, string>();
+			for (const setting of categorySettings) {
+				settingsTypeMap.set(setting.key, setting.value?.type ?? 'String');
+			}
 
-			for (const chunk of chunks) {
+			// Process keys in chunks of 10
+			const chunkSize = 10;
+			for (let i = 0; i < keysToFetch.length; i += chunkSize) {
+				const chunk = keysToFetch.slice(i, i + chunkSize);
+
 				try {
 					const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
 						params: {
@@ -140,9 +140,7 @@
 						// Update store with fetched values
 						for (const item of response.data.items) {
 							if (item.key && item.value !== undefined) {
-								// Find definition to get the type
-								const def = categorySettings.find((s) => s.key === item.key);
-								const type = def?.value?.type ?? 'String'; // Default to String if unknown
+								const type = settingsTypeMap.get(item.key) ?? 'String';
 
 								// Decode the value
 								const decoded = decodeParamValue({

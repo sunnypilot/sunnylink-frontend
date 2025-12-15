@@ -336,11 +336,10 @@ export const deviceState = $state({
     sortDevices(list: any[]) {
         return [...list].sort((a, b) => {
             // Helper to get stable alias (ignoring unsaved overrides) for sorting
-            const getStableAlias = (d: any) => this.aliases[d.device_id] ?? d.alias ?? d.device_id;
-
+            const aliasA = this.aliases[a.device_id] ?? a.alias ?? a.device_id;
+            const aliasB = this.aliases[b.device_id] ?? b.alias ?? b.device_id;
+            
             // 1. Aliased (Aliased first)
-            const aliasA = getStableAlias(a);
-            const aliasB = getStableAlias(b);
             const hasAliasA = aliasA !== a.device_id;
             const hasAliasB = aliasB !== b.device_id;
             if (hasAliasA !== hasAliasB) return hasAliasA ? -1 : 1;
