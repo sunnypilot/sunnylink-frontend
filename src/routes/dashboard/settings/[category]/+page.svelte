@@ -169,15 +169,15 @@
 		}
 	}
 
+	// Pre-compiled regex for JSON syntax highlighting
+	const JSON_TOKEN_REGEX = /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g;
+
 	function syntaxHighlightJson(json: string): string {
 		if (!json) return '';
 		// Escape HTML entities once
 		const escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 		
-		// Pre-compile regex patterns for better performance (these are constants)
-		const tokenRegex = /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g;
-		
-		return escaped.replace(tokenRegex, (match) => {
+		return escaped.replace(JSON_TOKEN_REGEX, (match) => {
 			let cls = 'text-orange-400'; // number
 			const firstChar = match[0];
 			if (firstChar === '"') {

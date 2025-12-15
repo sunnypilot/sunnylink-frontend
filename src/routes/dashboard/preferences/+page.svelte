@@ -39,7 +39,7 @@
 		}
 	}
 
-	// Helper function to deep copy an array of SettingDefinition objects
+	// Helper function to create a shallow copy of an array of SettingDefinition objects
 	function cloneDefinitions(defs: SettingDefinition[]): SettingDefinition[] {
 		return defs.map(def => ({ ...def }));
 	}

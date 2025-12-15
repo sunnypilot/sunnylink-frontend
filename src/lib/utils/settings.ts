@@ -165,9 +165,9 @@ export async function fetchAllSettings(
         const chunk = missingKeys.slice(i, i + chunkSize);
         
         const promise = (async () => {
-            if (signal?.aborted) return;
-
             try {
+                if (signal?.aborted) return;
+
                 const response = await client.GET('/v1/settings/{deviceId}/values', {
                     params: {
                         path: { deviceId },
@@ -207,11 +207,12 @@ export async function fetchAllSettings(
                     // Small delay to let UI breathe
                     await new Promise(r => setTimeout(r, 10));
                 }
+                // Always clean up from the Set when done
+                activePromises.delete(promise);
             }
         })();
 
         activePromises.add(promise);
-        promise.finally(() => activePromises.delete(promise));
 
         if (activePromises.size >= CONCURRENCY) {
             await Promise.race(activePromises);
