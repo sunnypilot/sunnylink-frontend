@@ -39,6 +39,7 @@ src/
 ## Coding Standards
 
 ### Code Style
+
 - **Formatter**: Prettier with the following configuration:
   - Use tabs (not spaces)
   - Single quotes
@@ -49,6 +50,7 @@ src/
 - **Svelte 5**: Use modern runes syntax (`$state`, `$derived`, `$effect`) for reactive state
 
 ### Best Practices
+
 - Prefer functional components and composition over class-based patterns
 - Use Svelte 5 runes for reactive state management instead of legacy stores where possible
 - Keep components focused and reusable
@@ -57,6 +59,7 @@ src/
 - Use DaisyUI components for consistent UI patterns
 
 ### File Naming
+
 - Svelte components: PascalCase (e.g., `DeviceCard.svelte`)
 - Routes: lowercase with hyphens (e.g., `device-list`)
 - TypeScript files: camelCase (e.g., `deviceApi.ts`)
@@ -65,6 +68,7 @@ src/
 ## Build & Development
 
 ### Setup
+
 ```bash
 # Install dependencies
 pnpm install --frozen-lockfile
@@ -74,6 +78,7 @@ pnpm dev
 ```
 
 ### Available Scripts
+
 - `pnpm dev` - Start development server with hot reload
 - `pnpm build` - Build for production (output to `build/`)
 - `pnpm preview` - Preview production build locally
@@ -85,6 +90,7 @@ pnpm dev
 - `pnpm test:unit` - Run tests in watch mode
 
 ### Testing
+
 - Test framework: Vitest with two test projects:
   - **Client tests**: Browser-based tests using Playwright (`*.svelte.{test,spec}.{js,ts}`)
   - **Server tests**: Node-based tests (`*.{test,spec}.{js,ts}` excluding Svelte tests)
@@ -93,8 +99,9 @@ pnpm dev
 - Use `describe` and `it` blocks for test organization
 
 ### CI/CD
+
 - **Deployment**: GitHub Actions workflow deploys to GitHub Pages on push to `main`
-- **Build Requirements**: 
+- **Build Requirements**:
   - Node 22
   - pnpm 9.12.0
   - Environment variables for API endpoints and Logto configuration
@@ -103,12 +110,14 @@ pnpm dev
 ## Key Features & Architecture
 
 ### Device Management
+
 - Multi-device support with real-time online/offline status
 - WebSocket communication for device commands
 - Custom device aliasing and organization
 - Device registration, deregistration, and migration flows
 
 ### Settings Configuration
+
 - 7 categories of configurable parameters:
   - Device (language, units, recording)
   - Toggles (feature switches)
@@ -120,11 +129,13 @@ pnpm dev
 - Real-time setting synchronization with devices
 
 ### Model Management
+
 - Browse and switch driving models remotely
 - Safety enforcement: offroad mode required for model changes
 - Force offroad option with user warnings
 
 ### Backup & Migration
+
 - JSON-based settings backup
 - Cross-device settings migration
 - Progress tracking for operations
@@ -132,18 +143,21 @@ pnpm dev
 ## Common Tasks
 
 ### Adding a New Route
+
 1. Create route directory in `src/routes/`
 2. Add `+page.svelte` for the page component
 3. Add `+page.ts` or `+page.server.ts` for data loading if needed
 4. Follow existing patterns for layout and styling
 
 ### Adding a New API Endpoint
+
 1. Update OpenAPI schema in `src/sunnylink/v0/` or `v1/`
 2. Regenerate TypeScript types if needed
 3. Add wrapper functions in `src/lib/api/` following existing patterns
 4. Use openapi-fetch for type-safe API calls
 
 ### Adding a New Component
+
 1. Create component in `src/lib/components/`
 2. Use TypeScript for props and exports
 3. Follow Svelte 5 runes syntax for reactive state
@@ -151,6 +165,7 @@ pnpm dev
 5. Add unit tests if the component has complex logic
 
 ### Working with State
+
 - Use Svelte 5 runes (`$state`, `$derived`, `$effect`) for local component state
 - Use stores in `src/lib/stores/` for shared application state
 - Follow reactive patterns and avoid imperative updates
@@ -158,11 +173,13 @@ pnpm dev
 ## Security & Environment
 
 ### Environment Variables
+
 - API endpoints configured via `PUBLIC_API_URL`
 - Logto authentication via `PUBLIC_LOGTO_ENDPOINT` and `PUBLIC_LOGTO_APP_ID`
 - All public env vars must be prefixed with `PUBLIC_`
 
 ### Security Practices
+
 - Never commit secrets or API keys
 - Use Logto SSO for authentication
 - Validate all user inputs
@@ -171,17 +188,20 @@ pnpm dev
 ## Special Instructions
 
 ### Documentation
+
 - Update README.md when adding major features
 - Document new API patterns in code comments when they differ from existing patterns
 - Keep this copilot-instructions.md file updated with architectural changes
 
 ### Dependencies
+
 - Use pnpm for all package management
 - Prefer updating existing dependencies over adding new ones
 - Check compatibility with Node 22 and pnpm 9.12.0+
 - Test thoroughly after dependency updates
 
 ### Performance
+
 - Minimize bundle size (SvelteKit static adapter optimization)
 - Use lazy loading for routes when appropriate
 - Optimize images and assets for PWA
@@ -190,6 +210,7 @@ pnpm dev
 ## Issue Workflow
 
 When working on issues:
+
 1. Read the entire issue description and comments carefully
 2. Understand the feature requirements or bug context
 3. Check existing code patterns before implementing new solutions
@@ -202,6 +223,7 @@ When working on issues:
 ## Review Checklist
 
 Before considering work complete:
+
 - [ ] Code follows Prettier formatting (tabs, single quotes, 100 char width)
 - [ ] TypeScript strict mode passes with no errors
 - [ ] All tests pass (`pnpm test`)
