@@ -1,20 +1,36 @@
 <script lang="ts">
 	import { Car, Info } from 'lucide-svelte';
 
-	let { bundle } = $props<{
+	let { bundle, isLoading = false } = $props<{
 		bundle: { name: string; [key: string]: any } | null;
+        isLoading?: boolean;
 	}>();
 </script>
 
 <div class="h-full rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6">
 	<div class="mb-6 flex items-center gap-3">
-		<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
+		<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400" class:animate-pulse={isLoading}>
 			<Info size={20} />
 		</div>
 		<h3 class="text-lg font-bold text-white">Vehicle Details</h3>
 	</div>
 
-	{#if bundle}
+    {#if isLoading}
+        <div class="space-y-6 animate-pulse">
+            <div>
+                <div class="h-3 w-16 rounded bg-slate-700"></div>
+                <div class="mt-2 h-6 w-3/4 rounded bg-slate-700"></div>
+            </div>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {#each Array(4) as _}
+                <div>
+                    <div class="h-3 w-12 rounded bg-slate-700"></div>
+                    <div class="mt-2 h-5 w-24 rounded bg-slate-700"></div>
+                </div>
+                {/each}
+            </div>
+        </div>
+    {:else if bundle}
 		<div class="space-y-6">
 			<!-- Platform Name -->
 			<div>

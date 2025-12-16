@@ -187,7 +187,7 @@
 	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726]">
 		<!-- Navbar for mobile -->
 		<header
-			class="sticky top-0 z-10 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
+			class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
 		>
 			<div class="flex items-center justify-between gap-3">
 				<div class="flex items-center gap-3 lg:hidden">

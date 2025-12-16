@@ -41,11 +41,15 @@ export default defineConfig({
 				]
 			},
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}']
+				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+				navigateFallback: '/',
+				cleanupOutdatedCaches: true,
 			},
 			devOptions: {
 				enabled: true,
-				type: 'module'
+				type: 'module',
+				navigateFallback: '/',
+				suppressWarnings: true,
 			}
 		})
 	],

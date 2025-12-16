@@ -111,12 +111,14 @@ export async function getCarList(deviceId: string, token: string) {
 }
 
 export async function setDeviceParams(deviceId: string, params: { key: string, value: any }[], token: string) {
-    return await v0Client.POST('/settings/{deviceId}', {
+    const res = await v0Client.POST('/settings/{deviceId}', {
         params: {
             path: { deviceId }
         },
         body: params,
         headers: { Authorization: `Bearer ${token}` }
     });
+    console.log('[setDeviceParams] Response:', res);
+    return res;
 }
 

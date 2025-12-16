@@ -4,12 +4,13 @@
 	import { getCarList, setDeviceParams } from '$lib/api/device';
 	import { v1Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
-	import { decodeParamValue } from '$lib/utils/device';
+	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
     
 	import PlatformSelector from './PlatformSelector.svelte';
 	import LegendWidget from './LegendWidget.svelte';
 	import CarSelectionModal from './CarSelectionModal.svelte';
 	import VehicleMetadata from './VehicleMetadata.svelte';
+    import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 
 	let { deviceId } = $props<{ deviceId: string }>();
 
@@ -17,14 +18,23 @@
 	let isFetchingCarList = $state(false);
 	let modalOpen = $state(false);
 
+    // Confirmation Modal State
+    let confirmOpen = $state(false);
+    let isClearing = $state(false);
+
     let carPlatformBundle = $derived(deviceState.deviceValues[deviceId]?.CarPlatformBundle as { name: string, [key: string]: any } | null);
+    // let carPlatformBundle = $derived({ name: "TEST VEHICLE", make: "Test", model: "Car", year: "2024" });
     let carFingerprint = $derived(deviceState.deviceValues[deviceId]?.CarFingerprint as string || '');
+
+    // Loading state: If device is online but values are missing/empty, we might be loading.
+    let isLoadingValues = $state(true);
 
     async function fetchValues() {
         if (!deviceId || !logtoClient) return;
         const token = await logtoClient.getIdToken();
         if (!token) return;
 
+        isLoadingValues = true;
         try {
             const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
                 params: {
@@ -52,6 +62,8 @@
             }
         } catch (e) {
             console.error('Failed to fetch vehicle params', e);
+        } finally {
+            isLoadingValues = false;
         }
     }
 
@@ -79,37 +91,75 @@
 		}
 	}
 
-	async function handleClear() {
-		if (confirm('Are you sure you want to remove the manual fingerprint selection?')) {
-			try {
-                const token = await logtoClient?.getIdToken();
-                if (!token) return;
-                
-                await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: '' }], token);
-                
-                // Refresh values
-                await fetchValues();
-            } catch (e) {
-                console.error('Failed to clear fingerprint', e);
-                alert('Failed to clear fingerprint');
-            }
-		}
-	}
-    
-    async function handleSelect(platform: string, data: any) {
-        const bundle = { ...data, name: platform };
-        
+    function requestClear() {
+        confirmOpen = true;
+    }
+
+	async function handleClearConfirm() {
+        if (!deviceId) return;
+        isClearing = true;
         try {
             const token = await logtoClient?.getIdToken();
-            if (!token) return;
+            if (!token) throw new Error('Not authenticated');
             
-            await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: JSON.stringify(bundle) }], token);
+            isLoadingValues = true; // Show loading during clear
+            
+            console.log('Clearing CarPlatformBundle with empty JSON...');
+
+            // Encode an empty JSON object to clear it
+            const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: '{}', type: 'Json' });
+
+            const res = await setDeviceParams(deviceId, [{ 
+                key: 'CarPlatformBundle', 
+                value: String(encodedValue), 
+                is_compressed: false 
+            }], token);
+            
+            if (res.error) {
+                throw new Error(res.error.detail || res.error.message || 'Unknown API error');
+            }
             
             // Refresh values
             await fetchValues();
-        } catch (e) {
+            confirmOpen = false;
+        } catch (e: any) {
+            console.error('Failed to clear selection', e);
+            alert(`Failed to clear selection: ${e.message}`);
+            isLoadingValues = false;
+        } finally {
+            isClearing = false;
+        }
+	}
+    
+    async function handleSelect(bundle: CarPlatformBundle) {
+        if (!deviceId) return;
+        try {
+            const token = await logtoClient?.getIdToken();
+            if (!token) throw new Error('Not authenticated');
+            
+            isLoadingValues = true; // Show loading immediately
+            const bundleStr = JSON.stringify(bundle);
+            
+            // Encode the value using device utils
+            const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: bundleStr, type: 'String' });
+
+            const res = await setDeviceParams(deviceId, [{ 
+                key: 'CarPlatformBundle', 
+                value: String(encodedValue),
+                is_compressed: false
+            }], token);
+            
+            if (res.error) {
+                throw new Error(res.error.detail || res.error.message || 'Unknown API error');
+            }
+            
+            // Refresh values
+            await fetchValues();
+            modalOpen = false;
+        } catch (e: any) {
             console.error('Failed to set vehicle', e);
-            alert('Failed to set vehicle');
+            alert(`Failed to set vehicle: ${e.message}`);
+            isLoadingValues = false;
         }
     }
 
@@ -128,19 +178,31 @@
         <PlatformSelector
             manualBundle={carPlatformBundle}
             autoFingerprint={carFingerprint}
-            onClick={() => (carPlatformBundle ? handleClear() : handleOpen())}
+            isLoading={isLoadingValues}
+            onSelect={handleOpen}
+            onRemove={requestClear}
         />
-        <LegendWidget mode={mode} />
+        <LegendWidget mode={mode} isLoading={isLoadingValues} />
     </div>
 
     <!-- Right Column: Metadata -->
     <div>
-        <VehicleMetadata bundle={carPlatformBundle} />
+        <VehicleMetadata bundle={carPlatformBundle} isLoading={isLoadingValues} />
     </div>
     
     <CarSelectionModal 
         bind:open={modalOpen}
         carList={carList}
         onSelect={handleSelect}
+    />
+
+    <ConfirmationModal
+        bind:open={confirmOpen}
+        title="Remove Manual Selection"
+        message="Are you sure you want to remove the manual vehicle selection? This will revert the device to automatic fingerprinting."
+        confirmText="Remove"
+        variant="danger"
+        isProcessing={isClearing}
+        onConfirm={handleClearConfirm}
     />
 </div>
