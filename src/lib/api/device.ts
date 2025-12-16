@@ -78,3 +78,45 @@ export async function removeUserFromDevice(deviceId: string, userId: string, tok
         headers: { Authorization: `Bearer ${token}` }
     });
 }
+
+export async function getCarList(deviceId: string, token: string) {
+    try {
+        const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
+            params: {
+                path: { deviceId },
+                query: { paramKeys: ['CarList'] }
+            },
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data?.items) {
+            const carListParam = response.data.items.find((i) => i.key === 'CarList');
+            if (carListParam) {
+                const val = decodeParamValue(carListParam);
+                if (typeof val === 'string') {
+                    try {
+                        return JSON.parse(val);
+                    } catch (e) {
+                        console.error('Failed to parse CarList JSON', e);
+                        return null;
+                    }
+                }
+                return val;
+            }
+        }
+    } catch (e) {
+        console.error(`Failed to fetch CarList for ${deviceId}`, e);
+    }
+    return null;
+}
+
+export async function setDeviceParams(deviceId: string, params: { key: string, value: any }[], token: string) {
+    return await v0Client.POST('/settings/{deviceId}', {
+        params: {
+            path: { deviceId }
+        },
+        body: params,
+        headers: { Authorization: `Bearer ${token}` }
+    });
+}
+

@@ -23,7 +23,8 @@
 		ToggleLeft,
 		Wind,
 		Wrench,
-		ArrowLeftRight
+		ArrowLeftRight,
+		Car
 	} from 'lucide-svelte';
 
 	let { children, data } = $props();
@@ -72,6 +73,7 @@
 					...(deviceState.selectedDeviceId
 						? [
 								{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+								{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
 								{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
 								{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
 								{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
