@@ -10,7 +10,8 @@
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
-	import { AlertTriangle, ShieldAlert } from 'lucide-svelte';
+	import { AlertTriangle, ShieldAlert, ChevronRight, Folder, Check } from 'lucide-svelte';
+	import { slide } from 'svelte/transition';
 
 	let { data } = $props();
 
@@ -36,6 +37,60 @@
 			(deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'loading' ||
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
+
+	// Group models by folder
+	let groupedModels = $derived.by(() => {
+		if (!modelList) return [];
+
+		const groups: Record<string, ModelBundle[]> = {};
+
+		for (const model of modelList) {
+			const folder = model.overrides?.folder || 'Uncategorized';
+			if (!groups[folder]) {
+				groups[folder] = [];
+			}
+			groups[folder].push(model);
+		}
+
+		return Object.entries(groups)
+			.map(([name, models]) => {
+				// Sort models by index descending within the folder
+				models.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+
+				// The max index of the folder is the index of the first model (since we just sorted)
+				const maxIndex = models.length > 0 ? (models[0]?.index ?? -1) : -1;
+
+				return {
+					name,
+					models,
+					maxIndex
+				};
+			})
+			.sort((a, b) => {
+				// Sort folders by their maxIndex descending
+				return b.maxIndex - a.maxIndex;
+			});
+	});
+
+	let openFolders = $state<Record<string, boolean>>({});
+
+	function toggleFolder(name: string) {
+		openFolders[name] = !openFolders[name];
+	}
+
+	// Auto-expand folder for the selected model
+	$effect(() => {
+		if (selectedModelShortName && modelList) {
+			const model = modelList.find((m) => m.short_name === selectedModelShortName);
+			if (model) {
+				const folder = model.overrides?.folder || 'Uncategorized';
+				// If not tracked yet, open it
+				if (openFolders[folder] === undefined) {
+					openFolders[folder] = true;
+				}
+			}
+		}
+	});
 
 	// Check status on mount / device change if not already online
 	$effect(() => {
@@ -347,25 +402,85 @@
 	{:else}
 		<div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
 			<div class="space-y-6">
-				<div class="form-control w-full">
-					<div class="label">
+				<div class="space-y-3">
+					<div class="label px-0">
 						<span
 							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
 							>Available Models</span
 						>
 					</div>
-					<select
-						class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
-						bind:value={selectedModelShortName}
-						disabled={!modelList}
-					>
-						<option disabled selected value={undefined}>Select a model</option>
-						{#if modelList}
-							{#each modelList as model}
-								<option value={model.short_name}>{model.display_name}</option>
-							{/each}
+
+					<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
+						{#if groupedModels.length === 0}
+							<div class="p-6 text-center text-slate-500">
+								{#if loadingModels}
+									<span class="loading loading-spinner text-violet-500"></span>
+								{:else}
+									No models available
+								{/if}
+							</div>
+						{:else}
+							<div class="custom-scrollbar max-h-[500px] overflow-y-auto">
+								{#each groupedModels as group (group.name)}
+									<div class="border-b border-slate-700/50 last:border-0">
+										<button
+											class="flex w-full items-center gap-3 bg-slate-800/80 px-4 py-3 text-left transition-colors hover:bg-slate-800 focus:outline-none"
+											onclick={() => toggleFolder(group.name)}
+										>
+											<ChevronRight
+												size={16}
+												class="text-slate-400 transition-transform duration-200 {openFolders[
+													group.name
+												]
+													? 'rotate-90'
+													: ''}"
+											/>
+											<Folder size={16} class="text-violet-400" />
+											<span class="font-medium text-slate-200">{group.name}</span>
+											<span
+												class="ml-auto rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400"
+											>
+												{group.models.length}
+											</span>
+										</button>
+
+										{#if openFolders[group.name]}
+											<div transition:slide={{ duration: 200 }} class="bg-slate-900/50">
+												{#each group.models as model (model.short_name)}
+													<button
+														class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-slate-800/50 {selectedModelShortName ===
+														model.short_name
+															? 'bg-violet-500/10 hover:bg-violet-500/20'
+															: ''}"
+														onclick={() => (selectedModelShortName = model.short_name)}
+													>
+														{#if selectedModelShortName === model.short_name}
+															<div
+																class="absolute top-0 left-0 h-full w-0.5 bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+															></div>
+														{/if}
+
+														<span
+															class="text-sm font-medium transition-colors {selectedModelShortName ===
+															model.short_name
+																? 'text-violet-200'
+																: 'text-slate-400 group-hover:text-slate-200'}"
+														>
+															{model.display_name}
+														</span>
+
+														{#if selectedModelShortName === model.short_name}
+															<Check size={16} class="text-violet-400" />
+														{/if}
+													</button>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								{/each}
+							</div>
 						{/if}
-					</select>
+					</div>
 				</div>
 
 				{#if !isOffroad}
@@ -418,19 +533,52 @@
 						<h3 class="card-title text-xl text-white sm:text-2xl">
 							{selectedModel.display_name}
 						</h3>
-						<p class="text-sm text-slate-400">
-							{selectedModel.environment} • {selectedModel.build_time
-								? new Date(selectedModel.build_time).toLocaleDateString()
-								: 'Unknown date'}
-						</p>
-						<div class="mt-4 flex flex-col gap-2">
-							<div class="text-sm">
-								<span class="font-bold text-white">Runner:</span>
-								<span class="text-slate-400"> {selectedModel.runner ?? 'Unknown'}</span>
+
+						<div class="mt-1">
+							<code class="rounded bg-slate-800 px-2 py-1 font-mono text-xs text-violet-300">
+								{selectedModel.short_name}
+							</code>
+						</div>
+
+						<div class="mt-6 flex flex-col gap-4">
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+										Environment
+									</div>
+									<div class="mt-1 text-sm text-slate-200">{selectedModel.environment}</div>
+								</div>
+								<div>
+									<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+										Build Date
+									</div>
+									<div class="mt-1 text-sm text-slate-200">
+										{selectedModel.build_time
+											? new Date(selectedModel.build_time).toLocaleDateString(undefined, {
+													year: 'numeric',
+													month: 'short',
+													day: 'numeric'
+												})
+											: 'Unknown'}
+									</div>
+								</div>
 							</div>
-							<div class="text-sm">
-								<span class="font-bold text-white">Generation:</span>
-								<span class="text-slate-400">{selectedModel.generation ?? 'Unknown'}</span>
+
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+										Runner
+									</div>
+									<div class="mt-1 text-sm text-slate-200">{selectedModel.runner ?? 'Unknown'}</div>
+								</div>
+								<div>
+									<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+										Generation
+									</div>
+									<div class="mt-1 text-sm text-slate-200">
+										{selectedModel.generation ?? 'Unknown'}
+									</div>
+								</div>
 							</div>
 						</div>
 					{:else}
