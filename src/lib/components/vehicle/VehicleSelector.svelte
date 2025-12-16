@@ -22,7 +22,13 @@
     let confirmOpen = $state(false);
     let isClearing = $state(false);
 
-    let carPlatformBundle = $derived(deviceState.deviceValues[deviceId]?.CarPlatformBundle as { name: string, [key: string]: any } | null);
+    let carPlatformBundle = $derived.by(() => {
+        const val = deviceState.deviceValues[deviceId]?.CarPlatformBundle as { name: string, [key: string]: any } | null;
+        if (!val) return null;
+        // Check for empty object "{}"
+        if (Object.keys(val).length === 0) return null;
+        return val;
+    });
     // let carPlatformBundle = $derived({ name: "TEST VEHICLE", make: "Test", model: "Car", year: "2024" });
     let carFingerprint = $derived(deviceState.deviceValues[deviceId]?.CarFingerprint as string || '');
 
@@ -39,7 +45,7 @@
             const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
                 params: {
                     path: { deviceId },
-                    query: { paramKeys: ['CarPlatformBundle', 'CarFingerprint'] }
+                    query: { paramKeys: ['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'] }
                 },
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -57,6 +63,30 @@
                          }
                     } else if (item.key === 'CarFingerprint') {
                          deviceState.deviceValues[deviceId]['CarFingerprint'] = decodeParamValue(item);
+                    } else if (item.key === 'CarParamsPersistent') {
+                         // Attempts to extract carFingerprint from Cap'n Proto bytes
+                         try {
+                             const base64 = item.value;
+                             if (base64) {
+                                 const binary = atob(base64);
+                                 // Simple heuristic: Car fingerprints are usually uppercase, alphanumeric, underscores, min length 4
+                                 // e.g. HONDA_CIVIC, TOYOTA_RAV4_2022
+                                 // We look for the longest contiguous string matching this pattern.
+                                 const matches = binary.match(/[A-Z0-9_]{4,}/g);
+                                 if (matches) {
+                                     // Filter out likely noise (e.g. very short random matches)
+                                     // Preference for strings containing underscores (common in openpilot fingerprints)
+                                     // or just pick the longest one.
+                                     const bestMatch = matches.sort((a, b) => b.length - a.length)[0];
+                                     if (bestMatch) {
+                                         console.log('Extracted fingerprint from CarParamsPersistent:', bestMatch);
+                                         deviceState.deviceValues[deviceId]['CarFingerprint'] = bestMatch;
+                                     }
+                                 }
+                             }
+                         } catch (e) {
+                             console.warn('Failed to parse CarParamsPersistent', e);
+                         }
                     }
                 }
             }
