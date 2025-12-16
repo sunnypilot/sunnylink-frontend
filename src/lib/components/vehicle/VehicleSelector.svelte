@@ -161,17 +161,22 @@
         }
 	}
     
-    async function handleSelect(bundle: CarPlatformBundle) {
+    async function handleSelect(name: string, data: any) {
         if (!deviceId) return;
         try {
             const token = await logtoClient?.getIdToken();
             if (!token) throw new Error('Not authenticated');
-            
+
             isLoadingValues = true; // Show loading immediately
+            
+            // Construct bundle, ensuring name is set and removing internal UI id if present
+            const { id, ...rest } = data;
+            const bundle = { ...rest, name };
+            
             const bundleStr = JSON.stringify(bundle);
             
             // Encode the value using device utils
-            const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: bundleStr, type: 'String' });
+            const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: bundleStr, type: 'Json' });
 
             const res = await setDeviceParams(deviceId, [{ 
                 key: 'CarPlatformBundle', 
