@@ -49,7 +49,7 @@
                     class:text-white={mode === 'auto'}
                     class:text-slate-400={mode !== 'auto'}
                 >
-                    Fingerprinted automatically
+                    Fingerprinted in previous drive
                 </span>
             </div>
 
