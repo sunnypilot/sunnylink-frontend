@@ -23,7 +23,9 @@
 		ToggleLeft,
 		Wind,
 		Wrench,
-		ArrowLeftRight
+		ArrowLeftRight,
+		MonitorPlay,
+		Activity
 	} from 'lucide-svelte';
 
 	let { children, data } = $props();
@@ -69,6 +71,8 @@
 		authState.isAuthenticated
 			? [
 					{ icon: House, label: 'Overview', href: '/dashboard' },
+					{ icon: MonitorPlay, label: 'Local Cameras', href: '/dashboard/cameras' },
+					{ icon: Activity, label: 'sunnylive', href: '/dashboard/live' },
 					...(deviceState.selectedDeviceId
 						? [
 								{ icon: Bot, label: 'Models', href: '/dashboard/models' },
