@@ -149,12 +149,21 @@
                 throw new Error(res.error.detail || res.error.message || 'Unknown API error');
             }
             
-            // Refresh values
-            await fetchValues();
+            // Refresh values in background / after closing modal
             confirmOpen = false;
+            await fetchValues();
         } catch (e: any) {
-            console.error('Failed to clear selection', e);
-            alert(`Failed to clear selection: ${e.message}`);
+            // If it's a timeout, the device likely received the command but response was slow.
+            // We proceed to refresh values.
+            if (e.message && e.message.includes('Timeout')) {
+                console.warn('Timeout waiting for device response, but proceeding as command was likely sent.', e);
+                // Swallow error and refresh
+                await fetchValues();
+                confirmOpen = false;
+            } else {
+                console.error('Failed to clear selection', e);
+                alert(`Failed to clear selection: ${e.message}`);
+            }
             isLoadingValues = false;
         } finally {
             isClearing = false;
@@ -192,9 +201,16 @@
             await fetchValues();
             modalOpen = false;
         } catch (e: any) {
-            console.error('Failed to set vehicle', e);
-            alert(`Failed to set vehicle: ${e.message}`);
-            isLoadingValues = false;
+             // Handle timeout gracefully
+             if (e.message && e.message.includes('Timeout')) {
+                console.warn('Timeout waiting for device response during selection, assuming success.', e);
+                await fetchValues();
+                modalOpen = false;
+            } else {
+                console.error('Failed to set vehicle', e);
+                alert(`Failed to set vehicle: ${e.message}`);
+                isLoadingValues = false;
+            }
         }
     }
 

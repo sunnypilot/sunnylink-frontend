@@ -110,15 +110,28 @@ export async function getCarList(deviceId: string, token: string) {
     return null;
 }
 
-export async function setDeviceParams(deviceId: string, params: { key: string, value: any }[], token: string) {
-    const res = await v0Client.POST('/settings/{deviceId}', {
-        params: {
-            path: { deviceId }
-        },
-        body: params,
-        headers: { Authorization: `Bearer ${token}` }
-    });
-    console.log('[setDeviceParams] Response:', res);
-    return res;
+export async function setDeviceParams(
+    deviceId: string,
+    params: { key: string, value: any }[],
+    token: string,
+    timeoutMs: number = 20000 // Default 20s
+) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort('Timeout'), timeoutMs);
+
+    try {
+        const res = await v0Client.POST('/settings/{deviceId}', {
+            params: {
+                path: { deviceId }
+            },
+            body: params,
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal
+        });
+        console.log('[setDeviceParams] Response:', res);
+        return res;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 

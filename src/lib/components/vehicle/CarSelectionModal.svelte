@@ -45,6 +45,10 @@
 		onSelect(car.id, car);
 		open = false;
 	}
+
+    $effect(() => {
+        if (!open) searchQuery = '';
+    });
 </script>
 
 {#if open}
