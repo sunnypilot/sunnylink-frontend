@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { logtoClient, authState } from '$lib/logto/auth.svelte';
+	import { logtoClient, authState, initiateLogin } from '$lib/logto/auth.svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { ArrowRight, Shield, Globe, Smartphone } from 'lucide-svelte';
@@ -11,7 +11,7 @@
 			goto('/dashboard');
 		} else {
 			if (!browser || !logtoClient) return;
-			await logtoClient.signIn(`${window.location.origin}/auth/callback`);
+			await initiateLogin();
 		}
 	};
 </script>

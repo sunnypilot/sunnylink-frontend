@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 
-	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import { authState, logtoClient, initiateLogin } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
@@ -371,7 +371,7 @@
 					<button
 						type="button"
 						onclick={async () => {
-							await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							await initiateLogin();
 							closeDrawerOnMobile();
 						}}
 						class={[
