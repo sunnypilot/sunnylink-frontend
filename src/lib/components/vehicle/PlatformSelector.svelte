@@ -34,8 +34,8 @@
     let statusText = $derived.by(() => {
         if (isLoading) return 'Checking Status';
         if (manualBundle) return 'Manually selected';
-        if (!isMock) return 'Fingerprinted automatically';
-        return 'Unrecognized Vehicle';
+        if (!isMock) return 'Vehicle Detected';
+        return 'Not fingerprinted or manually selected';
     });
 
 </script>
