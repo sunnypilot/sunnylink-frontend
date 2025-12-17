@@ -7,7 +7,7 @@
 	}>();
 </script>
 
-<div class="h-full rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6">
+<div class="flex h-full flex-col rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6">
 	<div class="mb-6 flex items-center gap-3">
 		<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400" class:animate-pulse={isLoading}>
 			<Info size={20} />
@@ -79,7 +79,7 @@
              </div>
 		</div>
 	{:else}
-		<div class="flex h-full flex-col items-center justify-center py-10 text-center text-slate-500">
+		<div class="flex flex-1 flex-col items-center justify-center py-10 text-center text-slate-500">
 			<Car size={48} class="mb-4 opacity-20" />
 			<p>Select a vehicle to view its details.</p>
 		</div>
