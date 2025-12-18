@@ -43,7 +43,7 @@ export const pwaConfiguration = {
         navigateFallbackDenylist: [/^\/api\//]
     },
     devOptions: {
-        enabled: true,
+        enabled: false,
         type: 'module',
         navigateFallback: '/',
     }

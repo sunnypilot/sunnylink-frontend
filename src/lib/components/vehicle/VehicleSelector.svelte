@@ -16,6 +16,7 @@
 
 	let carList = $state<Record<string, any> | null>(null);
 	let isFetchingCarList = $state(false);
+    let hasAttemptedAutoFetch = $state(false);
 	let modalOpen = $state(false);
 
     // Confirmation Modal State
@@ -109,8 +110,9 @@
 
     // Reactive fetch for CarList whenever we have a fingerprint but no manual bundle
     $effect(() => {
-        if (carFingerprint && !carPlatformBundle && !carList && !isFetchingCarList) {
+        if (carFingerprint && !carPlatformBundle && !carList && !isFetchingCarList && !hasAttemptedAutoFetch) {
             console.log('Auto-detected vehicle (via effect), fetching CarList...');
+            hasAttemptedAutoFetch = true;
             (async () => {
                 isFetchingCarList = true;
                 try {
