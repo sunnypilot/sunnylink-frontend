@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { getCarList, setDeviceParams } from '$lib/api/device';
 	import { v1Client } from '$lib/api/client';
@@ -30,7 +30,11 @@
         return val;
     });
     // let carPlatformBundle = $derived({ name: "TEST VEHICLE", make: "Test", model: "Car", year: "2024" });
-    let carFingerprint = $derived(deviceState.deviceValues[deviceId]?.CarFingerprint as string || '');
+    let carFingerprint = $derived(
+        (deviceState.deviceValues[deviceId]?.CarFingerprint as string) || 
+        (deviceState.deviceValues[deviceId]?._ExtractedFingerprint as string) || 
+        ''
+    );
 
     // Loading state: If device is online but values are missing/empty, we might be loading.
     let isLoadingValues = $state(true);
@@ -67,6 +71,8 @@
                          // Attempts to extract carFingerprint from Cap'n Proto bytes
                          try {
                              const base64 = item.value;
+                             console.log('[VehicleSelector] CarParamsPersistent raw:', base64?.substring(0, 20) + '...', 'Length:', base64?.length);
+                             
                              if (base64) {
                                  const binary = atob(base64);
                                  // Simple heuristic: Car fingerprints are usually uppercase, alphanumeric, underscores, min length 4
@@ -79,9 +85,13 @@
                                      // or just pick the longest one.
                                      const bestMatch = matches.sort((a, b) => b.length - a.length)[0];
                                      if (bestMatch) {
-                                         console.log('Extracted fingerprint from CarParamsPersistent:', bestMatch);
-                                         deviceState.deviceValues[deviceId]['CarFingerprint'] = bestMatch;
+                                         console.log('[VehicleSelector] Extracted fingerprint from CarParamsPersistent:', bestMatch);
+                                         deviceState.deviceValues[deviceId]['_ExtractedFingerprint'] = bestMatch;
+                                     } else {
+                                         console.log('[VehicleSelector] No suitable match found in CarParamsPersistent matches:', matches);
                                      }
+                                 } else {
+                                     console.log('[VehicleSelector] No regex matches in CarParamsPersistent binary');
                                  }
                              }
                          } catch (e) {
@@ -96,6 +106,27 @@
             isLoadingValues = false;
         }
     }
+
+    // Reactive fetch for CarList whenever we have a fingerprint but no manual bundle
+    $effect(() => {
+        if (carFingerprint && !carPlatformBundle && !carList && !isFetchingCarList) {
+            console.log('Auto-detected vehicle (via effect), fetching CarList...');
+            (async () => {
+                isFetchingCarList = true;
+                try {
+                    const token = await logtoClient?.getIdToken();
+                    if (token) {
+                        const list = await getCarList(deviceId, token);
+                        if (list) carList = list;
+                    }
+                } catch (e) {
+                    console.error('Effect fetch failed', e);
+                } finally {
+                    isFetchingCarList = false;
+                }
+            })();
+        }
+    });
 
     onMount(() => {
         fetchValues();
@@ -143,7 +174,7 @@
                 key: 'CarPlatformBundle', 
                 value: String(encodedValue), 
                 is_compressed: false 
-            }], token);
+            }], token, 5000); // 5s timeout
             
             if (res.error) {
                 throw new Error(res.error.detail || res.error.message || 'Unknown API error');
@@ -191,7 +222,7 @@
                 key: 'CarPlatformBundle', 
                 value: String(encodedValue),
                 is_compressed: false
-            }], token);
+            }], token, 5000); // 5s timeout
             
             if (res.error) {
                 throw new Error(res.error.detail || res.error.message || 'Unknown API error');
@@ -238,7 +269,12 @@
 
     <!-- Right Column: Metadata -->
     <div>
-        <VehicleMetadata bundle={carPlatformBundle} isLoading={isLoadingValues} />
+        <VehicleMetadata 
+            bundle={carPlatformBundle} 
+            fingerprint={carFingerprint}
+            carList={carList}
+            isLoading={isLoadingValues || isFetchingCarList} 
+        />
     </div>
     
     <CarSelectionModal 
