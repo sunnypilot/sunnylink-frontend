@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { X, Search, ChevronRight, Car } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
+    import { browser } from '$app/environment';
 
 	let { open = $bindable(false), carList, onSelect } = $props<{
 		open: boolean;
@@ -49,11 +50,22 @@
     $effect(() => {
         if (!open) searchQuery = '';
     });
+
+    // Lock body scroll when open
+    $effect(() => {
+        if (!browser) return;
+        if (open) {
+            document.body.style.overflow = 'hidden';
+            return () => {
+                document.body.style.overflow = '';
+            };
+        }
+    });
 </script>
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
 		transition:fade={{ duration: 200 }}
 	>
 		<!-- Modal Content -->
