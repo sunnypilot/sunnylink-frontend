@@ -3,6 +3,12 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
+html,
+body {
+	background-color: #0f1726;
+	min-height: 100vh;
+}
+
 /* Fix for mobile PWA input focus */
 input,
 textarea,

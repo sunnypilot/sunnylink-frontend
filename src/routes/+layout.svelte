@@ -198,7 +198,7 @@
 					>
 						<Menu size={22} />
 					</label>
-					<p class="text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">sunnypilot</p>
+					<p class="text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]">sunnylink</p>
 				</div>
 
 				<!-- Device Selector & Search -->
@@ -216,7 +216,7 @@
 						></div>
 					{:then devices}
 						{#if devices && devices.length > 0}
-							<div class="self-end lg:self-auto">
+							<div class="flex min-w-0 flex-1 justify-end self-end lg:flex-none lg:self-auto">
 								<DeviceSelector {devices} />
 							</div>
 						{:else}
