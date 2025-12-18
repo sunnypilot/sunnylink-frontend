@@ -3,35 +3,41 @@ import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
 
+const inflightConnectivities = new Map<string, Promise<void>>();
+const inflightOffroadFetches = new Map<string, Promise<void>>();
+
+const inflightStatusChecks = new Map<string, Promise<void>>();
+const inflightSettingsFetches = new Map<string, Promise<void>>();
+
 export async function checkDeviceStatus(deviceId: string, token: string) {
     if (!deviceId || !token) return;
 
-    deviceState.onlineStatuses[deviceId] = 'loading';
+    if (inflightStatusChecks.has(deviceId)) {
+        return inflightStatusChecks.get(deviceId);
+    }
 
-    try {
-        const [settingsRes, valuesRes] = await Promise.all([
-            v1Client.GET('/v1/settings/{deviceId}', {
-                params: {
-                    path: { deviceId }
-                },
-                headers: { Authorization: `Bearer ${token}` }
-            }),
-            v1Client.GET('/v1/settings/{deviceId}/values', {
+    const promise = (async () => {
+        deviceState.onlineStatuses[deviceId] = 'loading';
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s Strict Timeout
+
+        try {
+            // Fetch Offroad params directly. If this succeeds, device is Online.
+            // If it times out or fails, device is Offline.
+            // This avoids the 27s wait for the "settings keys" call.
+            const valuesRes = await v1Client.GET('/v1/settings/{deviceId}/values', {
                 params: {
                     path: { deviceId },
                     query: { paramKeys: ['IsOffroad', 'OffroadMode'] }
                 },
-                headers: { Authorization: `Bearer ${token}` }
-            })
-        ]);
+                headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal
+            });
 
-        // Strict check: Must have items and length > 0
-        if (settingsRes.data?.items && settingsRes.data.items.length > 0) {
-            deviceState.onlineStatuses[deviceId] = 'online';
-            deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
-
-            // Process Offroad Status from valuesRes
             if (valuesRes.data?.items) {
+                deviceState.onlineStatuses[deviceId] = 'online';
+
                 const isOffroadParam = valuesRes.data.items.find((i) => i.key === 'IsOffroad');
                 const offroadModeParam = valuesRes.data.items.find((i) => i.key === 'OffroadMode');
 
@@ -49,15 +55,29 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
                 }
 
                 deviceState.offroadStatuses[deviceId] = { isOffroad, forceOffroad };
+                fetchDeviceSettings(deviceId, token);
+            } else {
+                // If we got a response but no items, technically online but maybe weird state?
+                // Assume online if 200 OK.
+                if (valuesRes.response.ok) {
+                    deviceState.onlineStatuses[deviceId] = 'online';
+                    fetchDeviceSettings(deviceId, token);
+                } else {
+                    deviceState.onlineStatuses[deviceId] = 'offline';
+                }
             }
-        } else {
-            // Empty items means we couldn't fetch settings -> likely offline or not ready
+        } catch (e) {
+            // AbortError -> Timeout
+            console.error(`Status check failed for ${deviceId}`, e);
             deviceState.onlineStatuses[deviceId] = 'offline';
+        } finally {
+            clearTimeout(timeoutId);
+            inflightStatusChecks.delete(deviceId);
         }
-    } catch (e) {
-        console.error(`Failed to check status for ${deviceId}`, e);
-        deviceState.onlineStatuses[deviceId] = 'offline';
-    }
+    })();
+
+    inflightStatusChecks.set(deviceId, promise);
+    return promise;
 }
 
 export async function deregisterDevice(deviceId: string, token: string) {
@@ -135,3 +155,31 @@ export async function setDeviceParams(
     }
 }
 
+
+export async function fetchDeviceSettings(deviceId: string, token: string) {
+    if (inflightSettingsFetches.has(deviceId)) {
+        return inflightSettingsFetches.get(deviceId);
+    }
+
+    const promise = (async () => {
+        try {
+            const settingsRes = await v1Client.GET('/v1/settings/{deviceId}', {
+                params: {
+                    path: { deviceId }
+                },
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (settingsRes.data?.items && settingsRes.data.items.length > 0) {
+                deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
+            }
+        } catch (e) {
+            console.error(`Failed to fetch settings for ${deviceId}`, e);
+        } finally {
+            inflightSettingsFetches.delete(deviceId);
+        }
+    })();
+
+    inflightSettingsFetches.set(deviceId, promise);
+    return promise;
+}
