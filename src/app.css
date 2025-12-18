@@ -3,6 +3,10 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
+@theme {
+	--font-audiowide: 'Audiowide', cursive;
+}
+
 html,
 body {
 	background-color: #0f1726;

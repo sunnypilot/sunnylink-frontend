@@ -198,7 +198,7 @@
 					>
 						<Menu size={22} />
 					</label>
-					<p class="text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]">sunnylink</p>
+					<p class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]">sunnylink</p>
 				</div>
 
 				<!-- Device Selector & Search -->
@@ -258,7 +258,7 @@
 					SP
 				</div>
 				<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-					<p class="text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">Sunnylink</p>
+					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">sunnylink</p>
 					<h1 class="text-base font-semibold">Control Center</h1>
 				</div>
 			</div>
