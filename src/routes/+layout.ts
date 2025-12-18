@@ -39,20 +39,34 @@ export const load: LayoutLoad = async () => {
 
         const items = devices.data?.items ?? [];
 
-        // 3. Parallelize the detail fetches
-        // Map the items to an array of Promises, then await them all at once
+        // 3. Parallelize the detail fetches with Caching
+        // We use a simple in-memory cache for the session.
+        // Since alias usage is rare to change outside of this client, this is safe for a session.
+        if (typeof globalThis !== 'undefined' && !(globalThis as any)._deviceDetailCache) {
+            (globalThis as any)._deviceDetailCache = new Map<string, DeviceAuthResponseModel>();
+        }
+        const cache = (globalThis as any)._deviceDetailCache as Map<string, DeviceAuthResponseModel>;
+
         const detailPromises = items.map(async (device) => {
+            const deviceId = device.device_id;
+            if (!deviceId) return null;
+
+            // Return cached if available
+            if (cache.has(deviceId)) {
+                return cache.get(deviceId);
+            }
+
             // Helper for detail fetch
             const fetchDetail = async (t: string) => {
                 return await v0Client.GET('/device/{deviceId}', {
-                    params: { path: { deviceId: device.device_id ?? '' } },
+                    params: { path: { deviceId: deviceId ?? '' } },
                     headers: { Authorization: `Bearer ${t}` }
                 });
             };
 
             let response = await fetchDetail(token || '');
 
-            // Retry detail fetch if 401 (though unlikely if list succeeded with same token)
+            // Retry detail fetch if 401
             if (response.response.status === 401) {
                 try {
                     if (logtoClient) {
@@ -67,7 +81,11 @@ export const load: LayoutLoad = async () => {
                 }
             }
 
-            return response.data; // Return the data part
+            if (response.data) {
+                cache.set(deviceId, response.data);
+                return response.data;
+            }
+            return null;
         });
 
         // Wait for all requests to finish in parallel

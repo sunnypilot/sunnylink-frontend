@@ -123,27 +123,28 @@
 	import { onMount } from 'svelte';
 
 	let devices = $state<any[]>([]);
+	let hasAuthInvalidated = $state(false);
 
-	async function checkAllDevicesStatus(devices: any[]) {
+	async function checkSelectedDeviceStatus(devices: any[]) {
 		if (!logtoClient) return;
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 
-		// Check status for all devices in parallel
-		await Promise.all(
-			devices.map((device) => {
-				if (device.device_id) {
-					return checkDeviceStatus(device.device_id, token);
-				}
-			})
-		);
+		// Only check the selected device
+		if (deviceState.selectedDeviceId) {
+			checkDeviceStatus(deviceState.selectedDeviceId, token);
+		} else if (devices.length > 0) {
+			// Optional: auto-select or just check first?
+			// For now, let's leave it as explicit selection logic.
+			// Users usually have a selected device from localStorage.
+		}
 	}
 
 	$effect(() => {
 		data.streamed.devices.then((d) => {
 			if (d && d.length > 0) {
 				devices = d;
-				checkAllDevicesStatus(d);
+				checkSelectedDeviceStatus(d);
 			}
 		});
 	});
@@ -155,7 +156,8 @@
 	});
 
 	$effect(() => {
-		if (authState.isAuthenticated) {
+		if (authState.isAuthenticated && !hasAuthInvalidated) {
+			hasAuthInvalidated = true;
 			invalidateAll();
 		}
 	});
