@@ -242,7 +242,7 @@
 		</main>
 	</div>
 
-	<div class="drawer-side z-20">
+	<div class="drawer-side z-[51]">
 		<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 		<aside
 			class={[
