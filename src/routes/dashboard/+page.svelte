@@ -3,9 +3,12 @@
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
+	import UpdateChangesModal from '$lib/components/UpdateChangesModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
+	import SettingCard from '$lib/components/SettingCard.svelte';
+	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
+	import { preferences } from '$lib/stores/preferences.svelte';
 	import {
 		Wifi,
 		WifiOff,
@@ -194,6 +197,68 @@
 		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
 		return deviceState.sortDevices(list);
 	});
+	import { inferSettingType } from '$lib/utils/settings';
+
+	// Fetch values for favorite toggles
+	$effect(() => {
+		if (onlineDevices.length > 0 && logtoClient) {
+			onlineDevices.forEach(async (device) => {
+				const deviceFavorites = SETTINGS_DEFINITIONS.filter((s) => preferences.isFavorite(s.key));
+				if (deviceFavorites.length === 0) return;
+
+				const keysToFetch = deviceFavorites.map((s) => s.key);
+				const deviceId = device.device_id;
+
+				try {
+					const token = await logtoClient.getIdToken();
+					if (!token) return;
+
+					// Only fetch if we don't have the value yet
+					const missingKeys = keysToFetch.filter(
+						(key) => deviceState.deviceValues[deviceId]?.[key] === undefined
+					);
+
+					if (missingKeys.length === 0) return;
+
+					const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
+						params: {
+							path: { deviceId },
+							query: { paramKeys: missingKeys }
+						},
+						headers: {
+							Authorization: `Bearer ${token}`
+						}
+					});
+
+					if (response.data?.items) {
+						if (!deviceState.deviceValues[deviceId]) {
+							deviceState.deviceValues[deviceId] = {};
+						}
+
+						import('$lib/utils/device').then(({ decodeParamValue }) => {
+							response.data?.items.forEach((item) => {
+								if (item.key && item.value !== undefined) {
+									const def = deviceFavorites.find((s) => s.key === item.key);
+									if (!def) return;
+
+									const type = inferSettingType(def as any); // Cast as any because RenderableSetting structure might differ slightly or strictness issues
+
+									const decoded = decodeParamValue({
+										key: item.key,
+										value: item.value,
+										type: type
+									});
+									deviceState.deviceValues[deviceId][item.key] = decoded;
+								}
+							});
+						});
+					}
+				} catch (e) {
+					console.error(`Failed to fetch favorite values for ${deviceId}`, e);
+				}
+			});
+		}
+	});
 </script>
 
 {#if authState.loading}
@@ -292,6 +357,10 @@
 						{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
 
 						{@const isSelected = deviceState.selectedDeviceId === device.device_id}
+
+						{@const deviceFavorites = SETTINGS_DEFINITIONS.filter((s) =>
+							preferences.isFavorite(s.key)
+						)}
 
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -468,6 +537,43 @@
 										</button>
 									{/if}
 								</div>
+
+								{#if deviceFavorites.length > 0}
+									<div class="mt-6 border-t border-[#1e293b] pt-6">
+										<h4
+											class="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-400 uppercase"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												class="text-yellow-400"
+												><polygon
+													points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+												/></svg
+											>
+											Quick Actions
+										</h4>
+										<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+											{#each deviceFavorites as setting}
+												{@const deviceValue =
+													deviceState.deviceValues[device.device_id]?.[setting.key]}
+												{@const inferredType = inferSettingType(setting as any, deviceValue)}
+												{@const settingWithType = {
+													...setting,
+													value: { ...setting.value, type: setting.value?.type || inferredType }
+												}}
+												<SettingCard setting={settingWithType} deviceId={device.device_id} />
+											{/each}
+										</div>
+									</div>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -667,8 +773,19 @@
 				</div>
 
 				<!-- Unsaved Changes Bar -->
-				{@const pendingChanges = getPendingChanges(devices)}
-				{#if pendingChanges.length > 0}
+				{@const pendingAliasChanges = getPendingChanges(devices)}
+				{@const pendingSettingChanges = Object.entries(deviceState.stagedChanges).flatMap(
+					([deviceId, changes]) =>
+						Object.entries(changes).map(([key, value]) => ({
+							deviceId,
+							key,
+							value,
+							originalValue: deviceState.deviceValues[deviceId]?.[key]
+						}))
+				)}
+				{@const totalChanges = pendingAliasChanges.length + pendingSettingChanges.length}
+
+				{#if totalChanges > 0}
 					<div
 						class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 duration-300"
 					>
@@ -684,17 +801,19 @@
 								<div>
 									<p class="font-medium text-white">Unsaved Changes</p>
 									<p class="text-xs text-slate-400">
-										You have modified {pendingChanges.length} device alias{pendingChanges.length ===
-										1
-											? ''
-											: 'es'}.
+										You have {totalChanges} pending change{totalChanges === 1 ? '' : 's'}.
 									</p>
 								</div>
 							</div>
 							<div class="flex items-center gap-2">
 								<button
 									class="btn text-slate-400 btn-ghost btn-sm hover:text-white"
-									onclick={clearChanges}
+									onclick={() => {
+										clearChanges();
+										Object.keys(deviceState.stagedChanges).forEach((id) =>
+											deviceState.clearChanges(id)
+										);
+									}}
 								>
 									Discard
 								</button>
@@ -708,7 +827,11 @@
 						</div>
 					</div>
 
-					<UpdateAliasModal bind:open={updateAliasModalOpen} changes={pendingChanges} />
+					<UpdateChangesModal
+						bind:open={updateAliasModalOpen}
+						aliasChanges={pendingAliasChanges}
+						settingChanges={pendingSettingChanges}
+					/>
 				{/if}
 
 				{#if deviceToDeregister}

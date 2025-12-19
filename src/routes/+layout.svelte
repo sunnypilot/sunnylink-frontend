@@ -375,7 +375,9 @@
 					<button
 						type="button"
 						onclick={async () => {
-							await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							const { PUBLIC_CALLBACK } = await import('$env/static/public');
+							const callbackUrl = PUBLIC_CALLBACK || `${window.location.origin}/auth/callback`;
+							await logtoClient?.signIn(callbackUrl);
 							closeDrawerOnMobile();
 						}}
 						class={[
