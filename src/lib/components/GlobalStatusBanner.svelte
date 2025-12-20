@@ -93,7 +93,7 @@
 			} else if (labels.includes('maintenance')) {
 				level = 'warning';
 				priority = 1;
-			} else if (labels.includes('into')) {
+			} else if (labels.includes('info')) {
 				level = 'info';
 				priority = 0;
 			}
