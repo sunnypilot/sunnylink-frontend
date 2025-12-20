@@ -16,6 +16,7 @@
 		link?: string;
 		linkText?: string;
 		id: string; // ID is required for lists
+		timestamp: string; // For accurate sorting
 		priority: number; // For sorting
 		dismissible?: boolean;
 	}
@@ -31,6 +32,7 @@
 		body: string;
 		state: 'open' | 'closed';
 		created_at: string;
+		updated_at: string;
 		closed_at?: string | null;
 		labels: GitHubLabel[];
 		html_url: string;
@@ -41,6 +43,7 @@
 		id: number;
 		body: string;
 		created_at: string;
+		updated_at: string;
 		html_url: string;
 	}
 
@@ -217,24 +220,24 @@
 
 					// Combine Issue Body and Comments
 					const updates = [
-						{ body: issue.body, created_at: issue.created_at, source: 'body' },
-						...comments.map(c => ({ body: c.body, created_at: c.created_at, source: 'comment' }))
+						{ body: issue.body, timestamp: issue.updated_at || issue.created_at, source: 'body' },
+						...comments.map(c => ({ body: c.body, timestamp: c.updated_at || c.created_at, source: 'comment' }))
 					];
 
 					// Find all matches
-					const matches: { message: string; created_at: string }[] = [];
+					const matches: { message: string; timestamp: string }[] = [];
 					for (const update of updates) {
 						const match = update.body.match(/\[Public Notification\]:\s*(.+)/);
 						if (match && match[1]) {
 							matches.push({
 								message: match[1].trim(),
-								created_at: update.created_at
+								timestamp: update.timestamp
 							});
 						}
 					}
 
-					// Sort by created_at DESC (newest first)
-					matches.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+					// Sort by timestamp DESC (newest/most recently updated first)
+					matches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
 					const latest = matches[0];
 					if (latest) {
@@ -247,7 +250,8 @@
 							level: level,
 							link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
 							linkText: 'View Status',
-							id: `${issue.number}-${latest.created_at}`, // Use compound ID to prevent collisions
+							id: `${issue.number}-${latest.timestamp}`, // Use compound ID to prevent collisions
+							timestamp: latest.timestamp, // Store raw timestamp for valid sorting
 							priority: priority,
 							dismissible: isDismissible
 						});
@@ -261,7 +265,7 @@
 			if (b.priority !== a.priority) {
 				return b.priority - a.priority;
 			}
-			return new Date(b.id).getTime() - new Date(a.id).getTime();
+			return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
 		});
 	}
 
