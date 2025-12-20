@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { AlertCircle, AlertTriangle, ExternalLink, Info, X } from 'lucide-svelte';
+	// TEST: Import mock data for local testing
+	// import { mockIssues, mockFetchComments } from './GlobalStatusBanner.test-data';
 
 	const GITHUB_ISSUES_URL = 'https://api.github.com/repos/sunnypilot/status-page/issues?state=all&labels=sunnylink';
 
@@ -44,6 +46,8 @@
 
 	let statuses = $state<StatusData[]>([]);
 	let visibleStatuses = $state<StatusData[]>([]);
+	const CACHE_KEY = 'sunnylink_global_status_cache';
+	const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 	onMount(async () => {
 		try {
@@ -55,16 +59,89 @@
 			return;
 			*/
 
+			// Check Cache
+			const cached = getCache();
+			if (cached) {
+				statuses = cached;
+				checkDismissals();
+				return;
+			}
+
 			const response = await fetch(GITHUB_ISSUES_URL);
 			if (response.ok) {
 				const issues: GitHubIssue[] = await response.json();
 				statuses = await fetchStatuses(issues);
+				setCache(statuses);
 				checkDismissals();
 			}
 		} catch (error) {
 			console.error('Failed to fetch global status:', error);
 		}
 	});
+
+	function getCache(): StatusData[] | null {
+		try {
+			const stored = localStorage.getItem(CACHE_KEY);
+			if (stored) {
+				const { timestamp, data } = JSON.parse(stored);
+				if (Date.now() - timestamp < CACHE_TTL) {
+					return data;
+				}
+			}
+		} catch (e) {
+			console.error('Failed to load cache', e);
+		}
+		return null;
+	}
+
+	function setCache(data: StatusData[]) {
+		try {
+			const cacheData = {
+				timestamp: Date.now(),
+				data
+			};
+			localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+		} catch (e) {
+			console.error('Failed to save cache', e);
+		}
+	}
+
+	async function fetchAllComments(url: string): Promise<GitHubComment[]> {
+		let allComments: GitHubComment[] = [];
+		let page = 1;
+		let hasMore = true;
+		
+		while (hasMore) {
+			try {
+				const separator = url.includes('?') ? '&' : '?';
+				const fetchUrl = `${url}${separator}per_page=100&page=${page}`;
+				const res = await fetch(fetchUrl);
+				
+				if (!res.ok) break;
+				
+				const data: GitHubComment[] = await res.json();
+				if (Array.isArray(data) && data.length > 0) {
+					allComments = allComments.concat(data);
+					// If we got fewer results than per_page, we've reached the end
+					if (data.length < 100) {
+						hasMore = false;
+					} else {
+						page++;
+					}
+				} else {
+					hasMore = false;
+				}
+				
+				// Safety break to prevent infinite loops in weird API states
+				if (page > 10) hasMore = false; 
+			} catch (e) {
+				console.error('Error fetching comments page', page, e);
+				break;
+			}
+		}
+		
+		return allComments;
+	}
 
 	async function fetchStatuses(issues: GitHubIssue[], fetchCommentsOverride?: (url: string) => Promise<GitHubComment[]>): Promise<StatusData[]> {
 		const validStatuses: StatusData[] = [];
@@ -118,10 +195,7 @@
 						if (fetchCommentsOverride) {
 							comments = await fetchCommentsOverride(issue.comments_url);
 						} else {
-							const res = await fetch(issue.comments_url);
-							if (res.ok) {
-								comments = await res.json();
-							}
+							comments = await fetchAllComments(issue.comments_url);
 						}
 					} catch (e) {
 						console.error('Failed to fetch comments for issue', issue.number, e);
