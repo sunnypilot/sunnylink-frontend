@@ -233,7 +233,7 @@
 							level: level,
 							link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
 							linkText: 'View Status',
-							id: latest.created_at, // Use timestamp of the MESSAGE as unique ID. New message = re-appears.
+							id: `${issue.number}-${latest.created_at}`, // Use compound ID to prevent collisions
 							priority: priority,
 							dismissible: isDismissible
 						});
