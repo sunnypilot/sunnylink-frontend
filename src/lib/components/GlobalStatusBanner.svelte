@@ -32,6 +32,14 @@
 		closed_at?: string | null;
 		labels: GitHubLabel[];
 		html_url: string;
+		comments_url: string;
+	}
+
+	interface GitHubComment {
+		id: number;
+		body: string;
+		created_at: string;
+		html_url: string;
 	}
 
 	let statuses = $state<StatusData[]>([]);
@@ -46,11 +54,12 @@
 					id: 1,
 					number: 101,
 					title: 'Active Error',
-					body: '[Public Notification]: Critical failure.',
+					body: '[Public Notification]: Initial failure message.',
 					state: 'open',
-					created_at: new Date().toISOString(),
+					created_at: new Date(Date.now() - 20000).toISOString(),
 					labels: [{ name: 'sunnylink' }, { name: 'status' }],
-					html_url: ''
+					html_url: '',
+					comments_url: 'mock_comments_1'
 				},
 				{
 					id: 2,
@@ -60,7 +69,8 @@
 					state: 'open',
 					created_at: new Date(Date.now() - 10000).toISOString(),
 					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
-					html_url: ''
+					html_url: '',
+					comments_url: 'mock_comments_2'
 				},
 				{
 					id: 3,
@@ -71,7 +81,8 @@
 					created_at: new Date(Date.now() - 100000).toISOString(),
 					closed_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
 					labels: [{ name: 'sunnylink' }, { name: 'info' }],
-					html_url: ''
+					html_url: '',
+					comments_url: 'mock_comments_3'
 				},
 				{
 					id: 4,
@@ -82,10 +93,34 @@
 					created_at: new Date().toISOString(),
 					closed_at: new Date().toISOString(),
 					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
-					html_url: ''
+					html_url: '',
+					comments_url: 'mock_comments_4'
 				}
 			];
-			statuses = processIssues(mockIssues);
+
+			// Mock function to simulate comment fetch
+			const mockFetchComments = async (url: string) => {
+				if (url === 'mock_comments_1') {
+					return [{
+						id: 99,
+						body: '[Public Notification]: Updated status failure message from comment.',
+						created_at: new Date().toISOString(),
+						html_url: ''
+					}];
+				}
+				if (url === 'mock_comments_2') {
+					return [{
+						id: 100,
+						body: '[Public Notification]: Degradation update from comment.',
+						created_at: new Date(Date.now() - 5000).toISOString(),
+						html_url: ''
+					}];
+				}
+				return [];
+			};
+			
+			// Inject mock fetcher if testing (requires slight code mod to inject, or just rely on API structure)
+			statuses = await fetchStatuses(mockIssues, mockFetchComments);
 			checkDismissals();
 			return;
 			*/
@@ -93,7 +128,7 @@
 			const response = await fetch(GITHUB_ISSUES_URL);
 			if (response.ok) {
 				const issues: GitHubIssue[] = await response.json();
-				statuses = processIssues(issues);
+				statuses = await fetchStatuses(issues);
 				checkDismissals();
 			}
 		} catch (error) {
@@ -101,7 +136,7 @@
 		}
 	});
 
-	function processIssues(issues: GitHubIssue[]): StatusData[] {
+	async function fetchStatuses(issues: GitHubIssue[], fetchCommentsOverride?: (url: string) => Promise<GitHubComment[]>): Promise<StatusData[]> {
 		const validStatuses: StatusData[] = [];
 		const now = new Date();
 
@@ -147,19 +182,54 @@
 				}
 
 				if (show) {
-					const messageMatch = issue.body.match(/\[Public Notification\]:\s*(.+)/);
-					if (messageMatch && messageMatch[1]) {
-						
+					// Fetch comments to find the latest update
+					let comments: GitHubComment[] = [];
+					try {
+						if (fetchCommentsOverride) {
+							comments = await fetchCommentsOverride(issue.comments_url);
+						} else {
+							const res = await fetch(issue.comments_url);
+							if (res.ok) {
+								comments = await res.json();
+							}
+						}
+					} catch (e) {
+						console.error('Failed to fetch comments for issue', issue.number, e);
+					}
+
+					// Combine Issue Body and Comments
+					const updates = [
+						{ body: issue.body, created_at: issue.created_at, source: 'body' },
+						...comments.map(c => ({ body: c.body, created_at: c.created_at, source: 'comment' }))
+					];
+
+					// Find all matches
+					const matches: { message: string; created_at: string }[] = [];
+					for (const update of updates) {
+						const match = update.body.match(/\[Public Notification\]:\s*(.+)/);
+						if (match && match[1]) {
+							matches.push({
+								message: match[1].trim(),
+								created_at: update.created_at
+							});
+						}
+					}
+
+					// Sort by created_at DESC (newest first)
+					matches.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+					const latest = matches[0];
+					if (latest) {
 						// Dismissibility: Warning and Info are dismissible. Error is NOT.
 						const isDismissible = (level !== 'error');
 
 						validStatuses.push({
 							active: true,
-							message: messageMatch[1].trim(),
+							message: latest.message,
 							level: level,
 							link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
 							linkText: 'View Status',
-							id: issue.created_at, // Use created_at as unique ID
+							id: latest.created_at, // Use timestamp of the MESSAGE as unique ID. New message = re-appears.
 							priority: priority,
 							dismissible: isDismissible
 						});
