@@ -15,7 +15,8 @@ export default defineConfig({
 				name: 'sunnylink',
 				short_name: 'sunnylink',
 				description: 'Connect with sunnypilot.',
-				theme_color: '#ffffff',
+				theme_color: '#0f1726',
+				background_color: '#0f1726',
 				display: 'standalone',
 				start_url: '/',
 				scope: '/',
@@ -41,11 +42,15 @@ export default defineConfig({
 				]
 			},
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}']
+				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+				navigateFallback: '/',
+				cleanupOutdatedCaches: true,
 			},
 			devOptions: {
 				enabled: true,
-				type: 'module'
+				type: 'module',
+				navigateFallback: '/',
+				suppressWarnings: true,
 			}
 		})
 	],

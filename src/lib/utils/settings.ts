@@ -6,12 +6,45 @@ import {
     type ExtendedDeviceParamKey
 } from '$lib/types/settings';
 
+import { browser } from '$app/environment';
+
+function getEffectiveDefinitions(): import('$lib/types/settings').SettingDefinition[] {
+    if (!browser) return SETTINGS_DEFINITIONS;
+
+    try {
+        const stored = localStorage.getItem('sunnylink_custom_definitions');
+        if (!stored) return SETTINGS_DEFINITIONS;
+
+        const parsed = JSON.parse(stored);
+        const storedMap = new Map(parsed.map((d: any) => [d.key, d]));
+
+        // 1. Merge overrides for existing defaults
+        const merged = SETTINGS_DEFINITIONS.map((def) => {
+            const storedDef = storedMap.get(def.key);
+            return storedDef ? (storedDef as import('$lib/types/settings').SettingDefinition) : def;
+        });
+
+        // 2. Add any purely new definitions from storage that aren't in defaults
+        const defaultKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
+        for (const def of parsed) {
+            if (!defaultKeys.has(def.key)) {
+                merged.push(def);
+            }
+        }
+
+        return merged;
+    } catch (e) {
+        console.error('Failed to load custom definitions', e);
+        return SETTINGS_DEFINITIONS;
+    }
+}
+
 export function getAllSettings(
     settings: ExtendedDeviceParamKey[] | undefined,
     showAdvanced: boolean = false
 ): RenderableSetting[] {
-    // 1. Get all explicit definitions
-    const explicitDefs = SETTINGS_DEFINITIONS;
+    // 1. Get all effective definitions (defaults + user overrides)
+    const explicitDefs = getEffectiveDefinitions();
 
     // 2. Find dynamic settings from device
     let dynamicDefs: RenderableSetting[] = [];

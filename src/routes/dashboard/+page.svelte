@@ -377,7 +377,7 @@
 
 							<div class="card-body p-6 lg:p-8">
 								<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-									<!-- Sunnylink ID Card -->
+									<!-- sunnylink ID Card -->
 									<button
 										class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
 										onclick={(e) => {
@@ -388,7 +388,7 @@
 										<span class="mb-2 flex items-center justify-between text-slate-400">
 											<span class="flex items-center gap-2">
 												<Cpu size={18} />
-												<span class="text-xs font-bold tracking-wider uppercase">Sunnylink ID</span>
+												<span class="text-xs font-bold tracking-wider uppercase">sunnylink ID</span>
 											</span>
 											{#if copiedDeviceId === `id-${device.device_id}`}
 												<Check size={16} class="text-emerald-400" />
@@ -550,7 +550,7 @@
 
 											<div class="card-body p-6 lg:p-8">
 												<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-													<!-- Sunnylink ID Card -->
+													<!-- sunnylink ID Card -->
 													<button
 														class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
 														onclick={(e) => {
@@ -562,7 +562,7 @@
 															<span class="flex items-center gap-2">
 																<Cpu size={18} />
 																<span class="text-xs font-bold tracking-wider uppercase"
-																	>Sunnylink ID</span
+																	>sunnylink ID</span
 																>
 															</span>
 															{#if copiedDeviceId === `id-${device.device_id}`}

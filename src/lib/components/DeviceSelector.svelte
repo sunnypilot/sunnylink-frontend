@@ -99,44 +99,44 @@
 
 <!-- Trigger -->
 <button
-	class="group flex items-center gap-2 rounded-xl border border-[#334155] bg-[#101a29] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[#1e293b] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
+	class="group flex max-w-full items-center gap-2 rounded-xl border border-[#334155] bg-[#101a29] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[#1e293b] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
 	onclick={toggleModal}
 >
 	{#if selectedDevice}
-		<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+		<div class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-primary/10 text-primary">
 			<Smartphone size={16} />
 		</div>
-		<div class="flex flex-col">
-			<span class="max-w-[100px] truncate text-xs font-bold text-white sm:max-w-[140px]">
+		<div class="min-w-0 flex-1 flex-col overflow-hidden">
+			<span class="block truncate text-xs font-bold text-white">
 				{getAlias(selectedDevice)}
 			</span>
 			<div class="flex items-center gap-1">
 				{#if deviceState.onlineStatuses[selectedDevice.device_id] === 'online'}
-					<div class="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
-					<span class="text-[10px] text-emerald-400">Online</span>
+					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-emerald-400"></div>
+					<span class="truncate text-[10px] text-emerald-400">Online</span>
 					{#if deviceState.offroadStatuses[selectedDevice.device_id]}
 						{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
 						<span class="text-[10px] text-slate-600">•</span>
 						{#if status?.forceOffroad}
-							<span class="text-[10px] font-bold text-amber-500">Forced Offroad</span>
+							<span class="truncate text-[10px] font-bold text-amber-500">Forced</span>
 						{:else if status?.isOffroad}
-							<span class="text-[10px] text-blue-400">Offroad</span>
+							<span class="truncate text-[10px] text-blue-400">Offroad</span>
 						{:else}
-							<span class="text-[10px] text-amber-400">Onroad</span>
+							<span class="truncate text-[10px] text-amber-400">Onroad</span>
 						{/if}
 					{/if}
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
-					<div class="h-1.5 w-1.5 rounded-full bg-red-400"></div>
+					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-red-400"></div>
 					<span class="text-[10px] text-red-400">Offline</span>
 				{:else}
-					<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
+					<div class="h-1.5 w-1.5 min-w-[0.375rem] animate-pulse rounded-full bg-amber-400"></div>
 					<span class="text-[10px] text-amber-400">Checking...</span>
 				{/if}
 			</div>
 		</div>
 	{:else}
 		<div
-			class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-slate-400 group-hover:text-white"
+			class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-slate-800 text-slate-400 group-hover:text-white"
 		>
 			<LayoutDashboard size={16} />
 		</div>

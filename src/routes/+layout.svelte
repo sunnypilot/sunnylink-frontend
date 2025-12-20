@@ -23,7 +23,8 @@
 		ToggleLeft,
 		Wind,
 		Wrench,
-		ArrowLeftRight
+		ArrowLeftRight,
+		Car
 	} from 'lucide-svelte';
 
 	let { children, data } = $props();
@@ -72,6 +73,7 @@
 					...(deviceState.selectedDeviceId
 						? [
 								{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+								{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
 								{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
 								{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
 								{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
@@ -116,6 +118,7 @@
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { onMount } from 'svelte';
@@ -183,9 +186,10 @@
 <div class="drawer min-h-screen bg-[#0f1726] lg:drawer-open">
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726]">
+		<GlobalStatusBanner />
 		<!-- Navbar for mobile -->
 		<header
-			class="sticky top-0 z-10 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
+			class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
 		>
 			<div class="flex items-center justify-between gap-3">
 				<div class="flex items-center gap-3 lg:hidden">
@@ -196,7 +200,7 @@
 					>
 						<Menu size={22} />
 					</label>
-					<p class="text-sm font-semibold tracking-[0.35em] text-slate-300 uppercase">sunnypilot</p>
+					<p class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]">sunnylink</p>
 				</div>
 
 				<!-- Device Selector & Search -->
@@ -214,7 +218,7 @@
 						></div>
 					{:then devices}
 						{#if devices && devices.length > 0}
-							<div class="self-end lg:self-auto">
+							<div class="flex min-w-0 flex-1 justify-end self-end lg:flex-none lg:self-auto">
 								<DeviceSelector {devices} />
 							</div>
 						{:else}
@@ -238,7 +242,7 @@
 		</main>
 	</div>
 
-	<div class="drawer-side z-20">
+	<div class="drawer-side z-[51]">
 		<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 		<aside
 			class={[
@@ -256,7 +260,7 @@
 					SP
 				</div>
 				<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-					<p class="text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">Sunnylink</p>
+					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">sunnylink</p>
 					<h1 class="text-base font-semibold">Control Center</h1>
 				</div>
 			</div>

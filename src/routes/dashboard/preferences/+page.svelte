@@ -9,7 +9,7 @@
 	import { Check, Copy, RefreshCw, Search } from 'lucide-svelte';
 	import { browser } from '$app/environment';
 
-	const isDev = import.meta.env.DEV;
+	const isDev = import.meta.env.DEV || (browser && localStorage.getItem('debug_override') === 'true');
 
 	// Load initial definitions from localStorage if available, otherwise use hardcoded defaults
 	let initialDefinitions: SettingDefinition[] = SETTINGS_DEFINITIONS;

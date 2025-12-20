@@ -34,8 +34,8 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
     // Device
     { key: 'DongleId', label: 'Dongle ID', description: 'Unique device identifier', category: 'device', readonly: true },
     { key: 'GitCommit', label: 'Git Commit', description: 'Current software version', category: 'device', readonly: true },
-    { key: 'GithubSshKeys', label: 'GitHub SSH Keys', description: 'SSH keys for GitHub access', category: 'device', hidden: true },
-    { key: 'GithubUsername', label: 'GitHub Username', description: 'Connected GitHub account', category: 'device' },
+    { key: 'GithubSshKeys', label: 'GitHub SSH Keys', description: 'SSH keys for GitHub access', category: 'device', readonly: true, hidden: true },
+    { key: 'GithubUsername', label: 'GitHub Username', description: 'Connected GitHub account', category: 'device', readonly: true },
     { key: 'GsmMetered', label: 'GSM Metered', description: 'Cellular data metering', category: 'device' },
     { key: 'IsLdwEnabled', label: 'LDW Enabled', description: 'Lane departure warnings', category: 'device' },
     { key: 'IsMetric', label: 'Metric Units', description: 'Display metric measurements', category: 'device' },
