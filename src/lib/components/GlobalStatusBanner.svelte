@@ -36,6 +36,26 @@
 
 	onMount(async () => {
 		try {
+			// TEST: Uncomment to test locally without hitting GitHub API
+			/*
+			const mockIssues: GitHubIssue[] = [
+				{
+					id: 123,
+					title: 'Test Incident',
+					body: 'Some description... [Public Notification]: This is a test system status message for local development.',
+					created_at: new Date().toISOString(),
+					labels: [{ name: 'sunnylink' }, { name: 'status' }], // Try: 'status' (error), 'maintenance' (warning), 'into' (info)
+					html_url: 'https://github.com/sunnypilot/status-page/issues/1'
+				}
+			];
+			const activeStatus = processIssues(mockIssues);
+			if (activeStatus) {
+				status = activeStatus;
+				checkDismissal();
+			}
+			return;
+			*/
+
 			const response = await fetch(GITHUB_ISSUES_URL);
 			if (response.ok) {
 				const issues: GitHubIssue[] = await response.json();
