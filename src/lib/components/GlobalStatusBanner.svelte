@@ -3,8 +3,7 @@
 	import { fade, slide } from 'svelte/transition';
 	import { AlertCircle, AlertTriangle, ExternalLink, Info, X } from 'lucide-svelte';
 
-	// TODO: Replace this with the actual URL where the status JSON is hosted
-	const STATUS_URL = 'https://sunnylink-frontend.s3.us-east-1.amazonaws.com/status/status.json';
+	const GITHUB_ISSUES_URL = 'https://api.github.com/repos/sunnypilot/status-page/issues?state=open&labels=sunnylink';
 
 	type StatusLevel = 'info' | 'warning' | 'error' | 'success';
 
@@ -18,32 +17,34 @@
 		dismissible?: boolean; // Defaults to true if undefined
 	}
 
+	interface GitHubLabel {
+		name: string;
+	}
+
+	interface GitHubIssue {
+		id: number;
+		title: string;
+		body: string;
+		created_at: string;
+		labels: GitHubLabel[];
+		html_url: string;
+	}
+
 	let status = $state<StatusData | null>(null);
 	let visible = $state(false);
 	let dismissed = $state(false);
 
 	onMount(async () => {
 		try {
-			// For testing purposes, uncomment this to simulate a banner
-			/*
-			status = {
-				active: true,
-				message: 'Sunnylink is currently experiencing intermittent issues. We are investigating.',
-				level: 'warning',
-				link: 'https://status.sunnypilot.ai',
-				linkText: 'Status Page',
-				id: 'incident-2023-12-19',
-				dismissible: false
-			};
-			checkDismissal();
-			return;
-			*/
-
-			const response = await fetch(STATUS_URL);
+			const response = await fetch(GITHUB_ISSUES_URL);
 			if (response.ok) {
-				const data = await response.json();
-				if (data && data.active) {
-					status = data;
+				const issues: GitHubIssue[] = await response.json();
+				
+				// Process issues to find the most relevant one
+				const activeStatus = processIssues(issues);
+				
+				if (activeStatus) {
+					status = activeStatus;
 					checkDismissal();
 				}
 			}
@@ -51,6 +52,58 @@
 			console.error('Failed to fetch global status:', error);
 		}
 	});
+
+	function processIssues(issues: GitHubIssue[]): StatusData | null {
+		// Define priority: error > warning > info
+		let bestIssue: StatusData | null = null;
+		let highestPriority = -1; // 0: info, 1: warning, 2: error
+
+		for (const issue of issues) {
+			const labels = issue.labels.map(l => l.name);
+			
+			// Must have 'sunnylink' (implied by API query but good to verify if we change query later)
+			if (!labels.includes('sunnylink')) continue;
+
+			let level: StatusLevel | null = null;
+			let priority = -1;
+
+			if (labels.includes('status')) {
+				level = 'error';
+				priority = 2;
+			} else if (labels.includes('maintenance')) {
+				level = 'warning';
+				priority = 1;
+			} else if (labels.includes('into')) {
+				level = 'info';
+				priority = 0;
+			}
+
+			if (level && priority > highestPriority) {
+				// Parse message
+				const messageMatch = issue.body.match(/\[Public Notification\]:\s*(.+)/);
+				
+				if (messageMatch && messageMatch[1]) {
+					highestPriority = priority;
+					
+					// Determine dismissibility
+					// Not dismissible if 'status' (error) or 'maintenance' (warning)
+					const isDismissible = !(level === 'error' || level === 'warning');
+
+					bestIssue = {
+						active: true,
+						message: messageMatch[1].trim(),
+						level: level,
+						link: issue.html_url,
+						linkText: 'View Status',
+						id: issue.created_at, // Using created_at as ID
+						dismissible: isDismissible
+					};
+				}
+			}
+		}
+
+		return bestIssue;
+	}
 
 	function checkDismissal() {
 		// Default dismissible to true if not specified
