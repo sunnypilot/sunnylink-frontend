@@ -9,6 +9,7 @@ export interface GitHubIssue {
 	body: string;
 	state: 'open' | 'closed';
 	created_at: string;
+	updated_at: string;
 	closed_at?: string | null;
 	labels: GitHubLabel[];
 	html_url: string;
@@ -19,6 +20,7 @@ export interface GitHubComment {
 	id: number;
 	body: string;
 	created_at: string;
+	updated_at: string;
 	html_url: string;
 }
 
@@ -30,6 +32,7 @@ export const mockIssues: GitHubIssue[] = [
 		body: '[Public Notification]: Critical System Failure. (Body Message)',
 		state: 'open',
 		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
 		labels: [{ name: 'sunnylink' }, { name: 'status' }],
 		html_url: '',
 		comments_url: 'mock_comments_1'
@@ -41,6 +44,7 @@ export const mockIssues: GitHubIssue[] = [
 		body: '[Public Notification]: Intermittent Degradation. (Body Message)',
 		state: 'open',
 		created_at: new Date(Date.now() - 10000).toISOString(),
+		updated_at: new Date(Date.now() - 10000).toISOString(),
 		labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
 		html_url: '',
 		comments_url: 'mock_comments_2'
@@ -52,6 +56,7 @@ export const mockIssues: GitHubIssue[] = [
 		body: '[Public Notification]: Initial Warning Message.',
 		state: 'open',
 		created_at: new Date(Date.now() - 20000).toISOString(),
+		updated_at: new Date(Date.now() - 20000).toISOString(),
 		labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
 		html_url: '',
 		comments_url: 'mock_comments_update'
@@ -63,6 +68,7 @@ export const mockIssues: GitHubIssue[] = [
 		body: '[Public Notification]: Scheduled maintenance complete.',
 		state: 'closed',
 		created_at: new Date(Date.now() - 100000).toISOString(),
+		updated_at: new Date(Date.now() - 100000).toISOString(),
 		closed_at: new Date(Date.now() - 3600000).toISOString(), // Closed 1 hour ago
 		labels: [{ name: 'sunnylink' }, { name: 'info' }],
 		html_url: '',
@@ -75,6 +81,7 @@ export const mockIssues: GitHubIssue[] = [
 		body: '[Public Notification]: Old maintenance.',
 		state: 'closed',
 		created_at: new Date(Date.now() - 200000000).toISOString(),
+		updated_at: new Date(Date.now() - 200000000).toISOString(),
 		closed_at: new Date(Date.now() - 90000000).toISOString(), // Closed > 24h ago
 		labels: [{ name: 'sunnylink' }, { name: 'info' }],
 		html_url: '',
@@ -87,6 +94,7 @@ export const mockIssues: GitHubIssue[] = [
 		body: 'Internal discussion only. No public tag.',
 		state: 'open',
 		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
 		labels: [{ name: 'sunnylink' }, { name: 'status' }],
 		html_url: '',
 		comments_url: 'mock_comments_empty'
@@ -101,6 +109,7 @@ export const mockFetchComments = async (url: string): Promise<GitHubComment[]> =
 				id: 999,
 				body: '[Public Notification]: This message comes from a COMMENT and overrides the body!',
 				created_at: new Date().toISOString(), // Newer than body
+				updated_at: new Date().toISOString(),
 				html_url: ''
 			}
 		];

@@ -59,6 +59,20 @@
 			return;
 			*/
 
+			// TEST: Test with a specific REAL GitHub Issue (fetches live data for one issue)
+			/*
+			const TEST_REAL_ISSUE_NUMBER = 15; // Set your issue number here
+			const realRes = await fetch(`https://api.github.com/repos/sunnypilot/status-page/issues/${TEST_REAL_ISSUE_NUMBER}`);
+			if (realRes.ok) {
+				const realIssue = await realRes.json();
+				// We pass this real issue to our processor. 
+				// It will use the REAL fetchAllComments (since we don't pass an override) to get comments.
+				statuses = await fetchStatuses([realIssue]); 
+				checkDismissals();
+				return;
+			}
+			*/
+
 			// Check Cache
 			const cached = getCache();
 			if (cached) {
