@@ -3,7 +3,7 @@
 	import { fade, slide } from 'svelte/transition';
 	import { AlertCircle, AlertTriangle, ExternalLink, Info, X } from 'lucide-svelte';
 
-	const GITHUB_ISSUES_URL = 'https://api.github.com/repos/sunnypilot/status-page/issues?state=open&labels=sunnylink';
+	const GITHUB_ISSUES_URL = 'https://api.github.com/repos/sunnypilot/status-page/issues?state=all&labels=sunnylink';
 
 	type StatusLevel = 'info' | 'warning' | 'error' | 'success';
 
@@ -13,8 +13,9 @@
 		level: StatusLevel;
 		link?: string;
 		linkText?: string;
-		id?: string; // Optional ID for dismissal persistence
-		dismissible?: boolean; // Defaults to true if undefined
+		id: string; // ID is required for lists
+		priority: number; // For sorting
+		dismissible?: boolean;
 	}
 
 	interface GitHubLabel {
@@ -26,14 +27,15 @@
 		number: number;
 		title: string;
 		body: string;
+		state: 'open' | 'closed';
 		created_at: string;
+		closed_at?: string | null;
 		labels: GitHubLabel[];
 		html_url: string;
 	}
 
-	let status = $state<StatusData | null>(null);
-	let visible = $state(false);
-	let dismissed = $state(false);
+	let statuses = $state<StatusData[]>([]);
+	let visibleStatuses = $state<StatusData[]>([]);
 
 	onMount(async () => {
 		try {
@@ -41,49 +43,71 @@
 			/*
 			const mockIssues: GitHubIssue[] = [
 				{
-					id: 987654321,
-					number: 1,
-					title: 'Test Incident',
-					body: 'Some description... [Public Notification]: This is a test system status message for local development.',
+					id: 1,
+					number: 101,
+					title: 'Active Error',
+					body: '[Public Notification]: Critical failure.',
+					state: 'open',
 					created_at: new Date().toISOString(),
-					labels: [{ name: 'sunnylink' }, { name: 'status' }], // Try: 'status' (error), 'maintenance' (warning), 'into' (info)
-					html_url: 'https://status.sunnypilot.ai/incident/1'
+					labels: [{ name: 'sunnylink' }, { name: 'status' }],
+					html_url: ''
+				},
+				{
+					id: 2,
+					number: 102,
+					title: 'Active Warning',
+					body: '[Public Notification]: Degradation detected.',
+					state: 'open',
+					created_at: new Date(Date.now() - 10000).toISOString(),
+					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
+					html_url: ''
+				},
+				{
+					id: 3,
+					number: 103,
+					title: 'Closed Info (Recent)',
+					body: '[Public Notification]: Maintenance complete.',
+					state: 'closed',
+					created_at: new Date(Date.now() - 100000).toISOString(),
+					closed_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+					labels: [{ name: 'sunnylink' }, { name: 'info' }],
+					html_url: ''
+				},
+				{
+					id: 4,
+					number: 104,
+					title: 'Closed Warning (Should Hide)',
+					body: '[Public Notification]: Should not see this.',
+					state: 'closed',
+					created_at: new Date().toISOString(),
+					closed_at: new Date().toISOString(),
+					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
+					html_url: ''
 				}
 			];
-			const activeStatus = processIssues(mockIssues);
-			if (activeStatus) {
-				status = activeStatus;
-				checkDismissal();
-			}
+			statuses = processIssues(mockIssues);
+			checkDismissals();
 			return;
 			*/
 
 			const response = await fetch(GITHUB_ISSUES_URL);
 			if (response.ok) {
 				const issues: GitHubIssue[] = await response.json();
-				
-				// Process issues to find the most relevant one
-				const activeStatus = processIssues(issues);
-				
-				if (activeStatus) {
-					status = activeStatus;
-					checkDismissal();
-				}
+				statuses = processIssues(issues);
+				checkDismissals();
 			}
 		} catch (error) {
 			console.error('Failed to fetch global status:', error);
 		}
 	});
 
-	function processIssues(issues: GitHubIssue[]): StatusData | null {
-		// Define priority: error > warning > info
-		let bestIssue: StatusData | null = null;
-		let highestPriority = -1; // 0: info, 1: warning, 2: error
+	function processIssues(issues: GitHubIssue[]): StatusData[] {
+		const validStatuses: StatusData[] = [];
+		const now = new Date();
 
 		for (const issue of issues) {
 			const labels = issue.labels.map(l => l.name);
 			
-			// Must have 'sunnylink' (implied by API query but good to verify if we change query later)
 			if (!labels.includes('sunnylink')) continue;
 
 			let level: StatusLevel | null = null;
@@ -91,65 +115,107 @@
 
 			if (labels.includes('status')) {
 				level = 'error';
-				priority = 2;
+				priority = 2; // Error supersedes all
 			} else if (labels.includes('maintenance')) {
 				level = 'warning';
-				priority = 1;
+				priority = 1; // Warning supersedes info
 			} else if (labels.includes('info')) {
 				level = 'info';
 				priority = 0;
 			}
 
-			if (level && priority > highestPriority) {
-				// Parse message
-				const messageMatch = issue.body.match(/\[Public Notification\]:\s*(.+)/);
-				
-				if (messageMatch && messageMatch[1]) {
-					highestPriority = priority;
-					
-					// Determine dismissibility
-					// Not dismissible if 'status' (error) or 'maintenance' (warning)
-					const isDismissible = !(level === 'error' || level === 'warning');
+			if (level) {
+				// State Logic check
+				let show = false;
 
-					bestIssue = {
-						active: true,
-						message: messageMatch[1].trim(),
-						level: level,
-						link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
-						linkText: 'View Status',
-						id: issue.created_at, // Using created_at as ID
-						dismissible: isDismissible
-					};
+				if (level === 'error' || level === 'warning') {
+					// Error/Warning: Only show if open
+					if (issue.state === 'open') {
+						show = true;
+					}
+				} else if (level === 'info') {
+					// Info: Show if open OR (closed AND closed < 24h ago)
+					if (issue.state === 'open') {
+						show = true;
+					} else if (issue.state === 'closed' && issue.closed_at) {
+						const closedDate = new Date(issue.closed_at);
+						const diffHours = (now.getTime() - closedDate.getTime()) / (1000 * 60 * 60);
+						if (diffHours < 24) {
+							show = true;
+						}
+					}
+				}
+
+				if (show) {
+					const messageMatch = issue.body.match(/\[Public Notification\]:\s*(.+)/);
+					if (messageMatch && messageMatch[1]) {
+						
+						// Dismissibility: Warning and Info are dismissible. Error is NOT.
+						const isDismissible = (level !== 'error');
+
+						validStatuses.push({
+							active: true,
+							message: messageMatch[1].trim(),
+							level: level,
+							link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
+							linkText: 'View Status',
+							id: issue.created_at, // Use created_at as unique ID
+							priority: priority,
+							dismissible: isDismissible
+						});
+					}
 				}
 			}
 		}
 
-		return bestIssue;
-	}
-
-	function checkDismissal() {
-		// Default dismissible to true if not specified
-		const isDismissible = status?.dismissible !== false;
-
-		if (isDismissible && status?.id) {
-			const dismissedId = localStorage.getItem('sunnylink_dismissed_status_id');
-			if (dismissedId === status.id) {
-				dismissed = true;
+		// Sort: Priority DESC (Error -> Warning -> Info), then Date DESC (Newest first)
+		return validStatuses.sort((a, b) => {
+			if (b.priority !== a.priority) {
+				return b.priority - a.priority;
 			}
-		} else if (!isDismissible) {
-			// If not dismissible, it surely can't be dismissed, even if an ID exists in local storage
-			dismissed = false;
-		}
-
-		if (!dismissed && status?.active) {
-			visible = true;
-		}
+			return new Date(b.id).getTime() - new Date(a.id).getTime();
+		});
 	}
 
-	function dismiss() {
-		visible = false;
-		if (status?.id) {
-			localStorage.setItem('sunnylink_dismissed_status_id', status.id);
+	function checkDismissals() {
+		// Read dismissed IDs from localStorage
+		let dismissedIds: string[] = [];
+		try {
+			const stored = localStorage.getItem('sunnylink_dismissed_status_ids');
+			if (stored) {
+				dismissedIds = JSON.parse(stored);
+				if (!Array.isArray(dismissedIds)) dismissedIds = [];
+			}
+		} catch (e) {
+			dismissedIds = [];
+		}
+
+		visibleStatuses = statuses.filter(s => {
+			// If not dismissible, always show
+			if (!s.dismissible) return true;
+			// If dismissible, show only if ID is not in dismissed list
+			return !dismissedIds.includes(s.id);
+		});
+	}
+
+	function dismiss(id: string) {
+		// Update visible list locally first for responsiveness
+		visibleStatuses = visibleStatuses.filter(s => s.id !== id);
+
+		// Persist dismissal
+		try {
+			let dismissedIds: string[] = [];
+			const stored = localStorage.getItem('sunnylink_dismissed_status_ids');
+			if (stored) {
+				dismissedIds = JSON.parse(stored);
+				if (!Array.isArray(dismissedIds)) dismissedIds = [];
+			}
+			if (!dismissedIds.includes(id)) {
+				dismissedIds.push(id);
+				localStorage.setItem('sunnylink_dismissed_status_ids', JSON.stringify(dismissedIds));
+			}
+		} catch (e) {
+			console.error('Failed to save dismissal', e);
 		}
 	}
 
@@ -168,44 +234,48 @@
 	};
 </script>
 
-{#if visible && status}
-	<div
-		transition:slide={{ duration: 300 }}
-		class="relative z-[60] w-full border-b backdrop-blur-md pt-[env(safe-area-inset-top)] {styles[status.level] || styles.info}"
-	>
-		<div class="mx-auto flex max-w-7xl items-start justify-between gap-4 p-4 sm:items-center sm:px-6 lg:px-8">
-			<div class="flex flex-1 items-start gap-3 sm:items-center">
-				{#key status.level}
-					{@const Icon = icons[status.level] || Info}
-					<Icon class="mt-0.5 h-5 w-5 shrink-0 sm:mt-0" />
-				{/key}
-				
-				<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-					<p class="font-medium">{status.message}</p>
-					
-					{#if status.link}
-						<a
-							href={status.link}
-							target="_blank"
-							rel="noreferrer"
-							class="flex w-fit items-center gap-1 rounded text-xs font-semibold underline underline-offset-2 opacity-90 transition-opacity hover:opacity-100 sm:text-sm"
+{#if visibleStatuses.length > 0}
+	<div class="flex flex-col w-full z-[60] relative">
+		{#each visibleStatuses as status (status.id)}
+			<div
+				transition:slide={{ duration: 300 }}
+				class="w-full border-b backdrop-blur-md {styles[status.level] || styles.info} first:pt-[env(safe-area-inset-top)]"
+			>
+				<div class="mx-auto flex max-w-7xl items-start justify-between gap-4 p-4 sm:items-center sm:px-6 lg:px-8">
+					<div class="flex flex-1 items-start gap-3 sm:items-center">
+						{#key status.level}
+							{@const Icon = icons[status.level] || Info}
+							<Icon class="mt-0.5 h-5 w-5 shrink-0 sm:mt-0" />
+						{/key}
+						
+						<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+							<p class="font-medium">{status.message}</p>
+							
+							{#if status.link}
+								<a
+									href={status.link}
+									target="_blank"
+									rel="noreferrer"
+									class="flex w-fit items-center gap-1 rounded text-xs font-semibold underline underline-offset-2 opacity-90 transition-opacity hover:opacity-100 sm:text-sm"
+								>
+									{status.linkText || 'Learn more'}
+									<ExternalLink size={12} />
+								</a>
+							{/if}
+						</div>
+					</div>
+
+					{#if status.dismissible}
+						<button
+							onclick={() => dismiss(status.id)}
+							class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/20"
+							aria-label="Dismiss"
 						>
-							{status.linkText || 'Learn more'}
-							<ExternalLink size={12} />
-						</a>
+							<X size={18} />
+						</button>
 					{/if}
 				</div>
 			</div>
-
-			{#if status.dismissible !== false}
-				<button
-					onclick={dismiss}
-					class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/20"
-					aria-label="Dismiss"
-				>
-					<X size={18} />
-				</button>
-			{/if}
-		</div>
+		{/each}
 	</div>
 {/if}
