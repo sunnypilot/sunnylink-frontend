@@ -10,12 +10,26 @@
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
-	import { AlertTriangle, ShieldAlert } from 'lucide-svelte';
+	import {
+		AlertTriangle,
+		ShieldAlert,
+		ChevronRight,
+		Folder,
+		Check,
+		X,
+		Search,
+		Smartphone
+	} from 'lucide-svelte';
+	import { slide, fade, fly } from 'svelte/transition';
 
 	let { data } = $props();
 
 	let modelList = $state<ModelBundle[] | undefined>();
+	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
+	let searchQuery = $state('');
+
+	let currentModel = $derived(modelList?.find((m) => m.short_name === currentModelShortName));
 	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
@@ -36,6 +50,70 @@
 			(deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'loading' ||
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
+
+	// Group models by folder
+	let groupedModels = $derived.by(() => {
+		if (!modelList) return [];
+
+		const groups: Record<string, ModelBundle[]> = {};
+
+		for (const model of modelList) {
+			if (
+				searchQuery &&
+				!model.display_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+				!model.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+			) {
+				continue;
+			}
+
+			const folder = model.overrides?.folder || 'Uncategorized';
+			if (!groups[folder]) {
+				groups[folder] = [];
+			}
+			groups[folder].push(model);
+		}
+
+		return Object.entries(groups)
+			.map(([name, models]) => {
+				// Sort models by index descending within the folder
+				models.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+
+				// The max index of the folder is the index of the first model (since we just sorted)
+				const maxIndex = models.length > 0 ? (models[0]?.index ?? -1) : -1;
+
+				return {
+					name,
+					models,
+					maxIndex
+				};
+			})
+			.sort((a, b) => {
+				// Sort folders by their maxIndex descending
+				return b.maxIndex - a.maxIndex;
+			});
+	});
+
+	let openFolders = $state<Record<string, boolean>>({});
+
+	function toggleFolder(name: string) {
+		openFolders[name] = !openFolders[name];
+	}
+
+	// Auto-expand folder for the selected model or current model if search is active
+	$effect(() => {
+		if (searchQuery && modelList) {
+			// If searching, open all folders that have matches
+			const matches = modelList.filter(
+				(m) =>
+					m.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					m.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+			);
+			for (const m of matches) {
+				const folder = m.overrides?.folder || 'Uncategorized';
+				openFolders[folder] = true;
+			}
+		}
+	});
 
 	// Check status on mount / device change if not already online
 	$effect(() => {
@@ -64,16 +142,18 @@
 		}
 	});
 
-	async function fetchModelsForDevice() {
-		modelList = undefined;
-		selectedModelShortName = undefined;
+	async function fetchModelsForDevice(silent = false) {
+		if (!silent) {
+			modelList = undefined;
+			currentModelShortName = undefined;
+			selectedModelShortName = undefined;
+			loadingModels = true;
+		}
 		// isOffroad is derived, no need to reset local state
 
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
 		try {
-			loadingModels = true;
-
 			const models = await v1Client.GET('/v1/settings/{deviceId}/values', {
 				params: {
 					path: {
@@ -149,17 +229,17 @@
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						const bundle = decodedValue as any;
 						if ('short_name' in bundle) {
-							selectedModelShortName = bundle.short_name;
+							currentModelShortName = bundle.short_name;
 						} else if ('internalName' in bundle) {
-							selectedModelShortName = bundle.internalName;
+							currentModelShortName = bundle.internalName;
 						} else {
-							selectedModelShortName = undefined;
+							currentModelShortName = undefined;
 						}
 					} else {
-						selectedModelShortName = undefined;
+						currentModelShortName = undefined;
 					}
 				} else {
-					selectedModelShortName = undefined;
+					currentModelShortName = undefined;
 				}
 			}
 		} catch (e) {
@@ -237,6 +317,14 @@
 					Authorization: `Bearer ${await logtoClient.getIdToken()}`
 				}
 			});
+
+			// On success, update the current model and close the modal
+			currentModelShortName = selectedModelShortName;
+			selectedModelShortName = undefined;
+			sendingModel = false;
+
+			// Refresh status silently
+			fetchModelsForDevice(true);
 		} catch (e) {
 			console.error('Error sending model to device:', e);
 		} finally {
@@ -345,101 +433,280 @@
 			<div class="h-48 w-full rounded bg-slate-700"></div>
 		</div>
 	{:else}
-		<div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-			<div class="space-y-6">
-				<div class="form-control w-full">
-					<div class="label">
+		<div class="space-y-6">
+			{#if currentModel}
+				<div class="overflow-hidden rounded-xl border border-violet-500/30 bg-violet-500/5">
+					<div class="border-b border-violet-500/20 bg-violet-500/10 px-4 py-3">
+						<div class="flex items-center gap-2">
+							<Smartphone size={16} class="text-violet-400" />
+							<span class="text-xs font-bold tracking-wider text-violet-300 uppercase">
+								Active On Device
+							</span>
+						</div>
+					</div>
+					<div class="p-4">
+						<div class="flex items-start justify-between gap-4">
+							<div>
+								<h3 class="text-lg font-bold text-white">{currentModel.display_name}</h3>
+								<code
+									class="mt-1 inline-block rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-xs text-violet-300"
+								>
+									{currentModel.short_name}
+								</code>
+							</div>
+							<div
+								class="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-200"
+							>
+								Active
+							</div>
+						</div>
+						<div class="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+							<div>
+								<span class="block text-xs font-medium text-slate-500 uppercase">Environment</span>
+								<span class="text-slate-300">{currentModel.environment}</span>
+							</div>
+							<div>
+								<span class="block text-xs font-medium text-slate-500 uppercase">Generation</span>
+								<span class="text-slate-300">{currentModel.generation ?? 'N/A'}</span>
+							</div>
+							<div>
+								<span class="block text-xs font-medium text-slate-500 uppercase">Runner</span>
+								<span class="text-slate-300">{currentModel.runner ?? 'N/A'}</span>
+							</div>
+							<div>
+								<span class="block text-xs font-medium text-slate-500 uppercase">Build Date</span>
+								<span class="text-slate-300">
+									{currentModel.build_time
+										? new Date(currentModel.build_time).toLocaleDateString()
+										: 'Unknown'}
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			<div class="space-y-3">
+				<div class="flex items-center justify-between gap-4">
+					<div class="label px-0">
 						<span
 							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
 							>Available Models</span
 						>
 					</div>
-					<select
-						class="select w-full border border-[#334155] bg-[#101a29] text-base text-white focus:border-violet-300"
-						bind:value={selectedModelShortName}
-						disabled={!modelList}
-					>
-						<option disabled selected value={undefined}>Select a model</option>
-						{#if modelList}
-							{#each modelList as model}
-								<option value={model.short_name}>{model.display_name}</option>
-							{/each}
-						{/if}
-					</select>
-				</div>
-
-				{#if !isOffroad}
-					<div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-						<div class="flex items-start gap-3">
-							<ShieldAlert class="mt-0.5 shrink-0 text-amber-500" size={20} />
-							<div class="space-y-2">
-								<p class="text-sm font-medium text-amber-200">Device is Onroad</p>
-								<p class="text-xs text-amber-200/80">
-									Models cannot be changed while the device is driving. Park the vehicle to change
-									models.
-								</p>
-								<div class="flex flex-wrap gap-3">
-									<button
-										class="text-xs font-semibold text-amber-500 underline decoration-amber-500/50 underline-offset-2 hover:text-amber-400"
-										onclick={() => (forceOffroadModalOpen = true)}
-									>
-										Force Offroad Mode (Danger)
-									</button>
-									<button
-										class="text-xs font-semibold text-slate-400 underline decoration-slate-500/50 underline-offset-2 hover:text-slate-300"
-										onclick={recheckStatus}
-									>
-										Recheck Status
-									</button>
-								</div>
-							</div>
+					<div class="relative w-full max-w-xs">
+						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+							<Search size={16} class="text-slate-500" />
 						</div>
+						<input
+							type="text"
+							placeholder="Search models..."
+							class="input input-sm w-full border-slate-700 bg-slate-900 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
+							bind:value={searchQuery}
+						/>
 					</div>
-				{/if}
-
-				<div class="card-actions">
-					<button
-						class="btn btn-block border-[#1e293b] bg-[#1e293b] text-sm text-white hover:bg-[#334155] sm:text-base"
-						onclick={sendModelToDevice}
-						disabled={sendingModel || !selectedModel || !isOffroad}>Send to device 🚀</button
-					>
-					{#if sendingModel}
-						<progress class="progress w-full progress-primary"></progress>
-					{/if}
 				</div>
-			</div>
 
-			<div class="card border border-[#1e293b] bg-[#0f1726]">
-				<div class="card-body p-6">
-					<p class="text-xs font-semibold tracking-[0.32em] text-slate-400 uppercase">
-						Selected Model Details
-					</p>
-					{#if selectedModel}
-						<h3 class="card-title text-xl text-white sm:text-2xl">
-							{selectedModel.display_name}
-						</h3>
-						<p class="text-sm text-slate-400">
-							{selectedModel.environment} • {selectedModel.build_time
-								? new Date(selectedModel.build_time).toLocaleDateString()
-								: 'Unknown date'}
-						</p>
-						<div class="mt-4 flex flex-col gap-2">
-							<div class="text-sm">
-								<span class="font-bold text-white">Runner:</span>
-								<span class="text-slate-400"> {selectedModel.runner ?? 'Unknown'}</span>
-							</div>
-							<div class="text-sm">
-								<span class="font-bold text-white">Generation:</span>
-								<span class="text-slate-400">{selectedModel.generation ?? 'Unknown'}</span>
-							</div>
+				<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
+					{#if groupedModels.length === 0}
+						<div class="p-6 text-center text-slate-500">
+							{#if loadingModels}
+								<span class="loading loading-spinner text-violet-500"></span>
+							{:else}
+								No models available
+							{/if}
 						</div>
 					{:else}
-						<h3 class="card-title text-xl text-white sm:text-2xl">No Model Selected</h3>
-						<p class="text-sm text-slate-400">Select a model from the list to view details.</p>
+						<div class="custom-scrollbar max-h-[calc(100vh-250px)] overflow-y-auto">
+							{#each groupedModels as group (group.name)}
+								<div class="border-b border-slate-700/50 last:border-0">
+									<button
+										class="flex w-full items-center gap-3 bg-slate-800/80 px-4 py-3 text-left transition-colors hover:bg-slate-800 focus:outline-none"
+										onclick={() => toggleFolder(group.name)}
+									>
+										<ChevronRight
+											size={16}
+											class="text-slate-400 transition-transform duration-200 {openFolders[
+												group.name
+											]
+												? 'rotate-90'
+												: ''}"
+										/>
+										<Folder size={16} class="text-violet-400" />
+										<span class="font-medium text-slate-200">{group.name}</span>
+										<span
+											class="ml-auto rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400"
+										>
+											{group.models.length}
+										</span>
+									</button>
+
+									{#if openFolders[group.name]}
+										<div transition:slide={{ duration: 200 }} class="bg-slate-900/50">
+											{#each group.models as model (model.short_name)}
+												<button
+													class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-slate-800/50 {selectedModelShortName ===
+													model.short_name
+														? 'bg-violet-500/10 hover:bg-violet-500/20'
+														: ''}"
+													onclick={() => (selectedModelShortName = model.short_name)}
+												>
+													{#if selectedModelShortName === model.short_name}
+														<div
+															class="absolute top-0 left-0 h-full w-0.5 bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+														></div>
+													{/if}
+
+													<span
+														class="text-sm font-medium transition-colors {selectedModelShortName ===
+														model.short_name
+															? 'text-violet-200'
+															: 'text-slate-400 group-hover:text-slate-200'}"
+													>
+														{model.display_name}
+													</span>
+
+													{#if selectedModelShortName === model.short_name}
+														<Check size={16} class="text-violet-400" />
+													{/if}
+												</button>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
 					{/if}
 				</div>
 			</div>
 		</div>
+
+		{#if selectedModel}
+			<!-- Backdrop -->
+			<button
+				class="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-sm transition-opacity"
+				transition:fade={{ duration: 200 }}
+				onclick={() => {
+					selectedModelShortName = undefined;
+				}}
+				aria-label="Close modal"
+			></button>
+
+			<!-- Modal -->
+			<div
+				class="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 p-4"
+				transition:fly={{ y: 20, duration: 300 }}
+			>
+				<div
+					class="relative overflow-hidden rounded-xl border border-slate-700 bg-[#0f1726] p-6 shadow-2xl"
+				>
+					<button
+						class="absolute top-4 right-4 text-slate-400 hover:text-white"
+						onclick={() => (selectedModelShortName = undefined)}
+					>
+						<X size={20} />
+					</button>
+
+					<div class="mb-6">
+						<h3 class="text-2xl font-bold text-white">
+							{selectedModel.display_name}
+						</h3>
+
+						<div class="mt-2">
+							<code class="rounded bg-slate-800 px-2 py-1 font-mono text-xs text-violet-300">
+								{selectedModel.short_name}
+							</code>
+						</div>
+					</div>
+
+					<div class="mb-8 grid grid-cols-2 gap-6">
+						<div>
+							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+								Environment
+							</div>
+							<div class="mt-1 text-sm text-slate-200">{selectedModel.environment}</div>
+						</div>
+						<div>
+							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+								Build Date
+							</div>
+							<div class="mt-1 text-sm text-slate-200">
+								{selectedModel.build_time
+									? new Date(selectedModel.build_time).toLocaleDateString(undefined, {
+											year: 'numeric',
+											month: 'short',
+											day: 'numeric'
+										})
+									: 'Unknown'}
+							</div>
+						</div>
+						<div>
+							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">Runner</div>
+							<div class="mt-1 text-sm text-slate-200">{selectedModel.runner ?? 'Unknown'}</div>
+						</div>
+						<div>
+							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+								Generation
+							</div>
+							<div class="mt-1 text-sm text-slate-200">
+								{selectedModel.generation ?? 'Unknown'}
+							</div>
+						</div>
+					</div>
+
+					{#if !isOffroad}
+						<div class="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+							<div class="flex items-start gap-3">
+								<ShieldAlert class="mt-0.5 shrink-0 text-amber-500" size={20} />
+								<div class="space-y-2">
+									<p class="text-sm font-medium text-amber-200">Device is Onroad</p>
+									<p class="text-xs text-amber-200/80">Models cannot be changed while driving.</p>
+									<div class="flex flex-wrap gap-3">
+										<button
+											class="text-xs font-semibold text-amber-500 underline decoration-amber-500/50 underline-offset-2 hover:text-amber-400"
+											onclick={() => (forceOffroadModalOpen = true)}
+										>
+											Force Offroad Mode
+										</button>
+										<button
+											class="text-xs font-semibold text-slate-400 underline decoration-slate-500/50 underline-offset-2 hover:text-slate-300"
+											onclick={recheckStatus}
+										>
+											Recheck Status
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/if}
+
+					<div class="flex gap-3">
+						<button
+							class="btn flex-1 border-[#334155] bg-[#1e293b] text-white hover:bg-[#334155]"
+							onclick={() => (selectedModelShortName = undefined)}
+						>
+							Cancel
+						</button>
+						<button
+							class="btn flex-[2] border-violet-500 bg-violet-600 text-white hover:border-violet-600 hover:bg-violet-700"
+							onclick={sendModelToDevice}
+							disabled={sendingModel || !selectedModel || !isOffroad}
+						>
+							{#if sendingModel}
+								<span class="loading loading-xs loading-spinner"></span>
+								Sending...
+							{:else}
+								Send to Device 🚀
+							{/if}
+						</button>
+					</div>
+
+					{#if sendingModel}
+						<progress class="progress mt-4 w-full progress-primary"></progress>
+					{/if}
+				</div>
+			</div>
+		{/if}
 	{/if}
 </div>
 
