@@ -15,6 +15,7 @@
 		link?: string;
 		linkText?: string;
 		id?: string; // Optional ID for dismissal persistence
+		dismissible?: boolean; // Defaults to true if undefined
 	}
 
 	let status = $state<StatusData | null>(null);
@@ -27,11 +28,12 @@
 			/*
 			status = {
 				active: true,
-				message: 'sunnylink is currently experiencing intermittent issues. We are investigating.',
+				message: 'Sunnylink is currently experiencing intermittent issues. We are investigating.',
 				level: 'warning',
 				link: 'https://status.sunnypilot.ai',
 				linkText: 'Status Page',
-				id: 'incident-2023-12-19'
+				id: 'incident-2023-12-19',
+				dismissible: false
 			};
 			checkDismissal();
 			return;
@@ -51,12 +53,19 @@
 	});
 
 	function checkDismissal() {
-		if (status?.id) {
+		// Default dismissible to true if not specified
+		const isDismissible = status?.dismissible !== false;
+
+		if (isDismissible && status?.id) {
 			const dismissedId = localStorage.getItem('sunnylink_dismissed_status_id');
 			if (dismissedId === status.id) {
 				dismissed = true;
 			}
+		} else if (!isDismissible) {
+			// If not dismissible, it surely can't be dismissed, even if an ID exists in local storage
+			dismissed = false;
 		}
+
 		if (!dismissed && status?.active) {
 			visible = true;
 		}
@@ -113,13 +122,15 @@
 				</div>
 			</div>
 
-			<button
-				onclick={dismiss}
-				class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/20"
-				aria-label="Dismiss"
-			>
-				<X size={18} />
-			</button>
+			{#if status.dismissible !== false}
+				<button
+					onclick={dismiss}
+					class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/20"
+					aria-label="Dismiss"
+				>
+					<X size={18} />
+				</button>
+			{/if}
 		</div>
 	</div>
 {/if}
