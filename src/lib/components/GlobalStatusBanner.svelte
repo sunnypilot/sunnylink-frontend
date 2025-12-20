@@ -48,92 +48,8 @@
 	onMount(async () => {
 		try {
 			// TEST: Uncomment to test locally without hitting GitHub API
+			// import { mockIssues, mockFetchComments } from './GlobalStatusBanner.test-data';
 			/*
-			const mockIssues: GitHubIssue[] = [
-				{
-					id: 1,
-					number: 101,
-					title: 'Active Error (Non-Dismissible)',
-					body: '[Public Notification]: Critical System Failure. (Body Message)',
-					state: 'open',
-					created_at: new Date().toISOString(),
-					labels: [{ name: 'sunnylink' }, { name: 'status' }],
-					html_url: '',
-					comments_url: 'mock_comments_1'
-				},
-				{
-					id: 2,
-					number: 102,
-					title: 'Active Warning (Dismissible)',
-					body: '[Public Notification]: Intermittent Degradation. (Body Message)',
-					state: 'open',
-					created_at: new Date(Date.now() - 10000).toISOString(),
-					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
-					html_url: '',
-					comments_url: 'mock_comments_2'
-				},
-				{
-					id: 3,
-					number: 103,
-					title: 'Active Warning with Comment Update',
-					body: '[Public Notification]: Initial Warning Message.',
-					state: 'open',
-					created_at: new Date(Date.now() - 20000).toISOString(),
-					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
-					html_url: '',
-					comments_url: 'mock_comments_update'
-				},
-				{
-					id: 4,
-					number: 104,
-					title: 'Recent Closed Info (Visible < 24h)',
-					body: '[Public Notification]: Scheduled maintenance complete.',
-					state: 'closed',
-					created_at: new Date(Date.now() - 100000).toISOString(),
-					closed_at: new Date(Date.now() - 3600000).toISOString(), // Closed 1 hour ago
-					labels: [{ name: 'sunnylink' }, { name: 'info' }],
-					html_url: '',
-					comments_url: 'mock_comments_empty'
-				},
-				{
-					id: 5,
-					number: 105,
-					title: 'Old Closed Info (Hidden > 24h)',
-					body: '[Public Notification]: Old maintenance.',
-					state: 'closed',
-					created_at: new Date(Date.now() - 200000000).toISOString(),
-					closed_at: new Date(Date.now() - 90000000).toISOString(), // Closed > 24h ago
-					labels: [{ name: 'sunnylink' }, { name: 'info' }],
-					html_url: '',
-					comments_url: 'mock_comments_empty'
-				},
-				{
-					id: 6,
-					number: 106,
-					title: 'Issue Missing Tag (Hidden)',
-					body: 'Internal discussion only. No public tag.',
-					state: 'open',
-					created_at: new Date().toISOString(),
-					labels: [{ name: 'sunnylink' }, { name: 'status' }],
-					html_url: '',
-					comments_url: 'mock_comments_empty'
-				}
-			];
-
-			// Mock function to simulate comment fetch
-			const mockFetchComments = async (url: string) => {
-				if (url === 'mock_comments_update') {
-					return [{
-						id: 999,
-						body: '[Public Notification]: This message comes from a COMMENT and overrides the body!',
-						created_at: new Date().toISOString(), // Newer than body
-						html_url: ''
-					}];
-				}
-				return [];
-			};
-			
-			// Inject mock fetcher if testing
 			statuses = await fetchStatuses(mockIssues, mockFetchComments);
 			checkDismissals();
 			return;
@@ -156,7 +72,7 @@
 
 		for (const issue of issues) {
 			const labels = issue.labels.map(l => l.name);
-			
+
 			if (!labels.includes('sunnylink')) continue;
 
 			let level: StatusLevel | null = null;
@@ -314,7 +230,7 @@
 		info: Info,
 		warning: AlertTriangle,
 		error: AlertCircle,
-		success: Info 
+		success: Info
 	};
 </script>
 
@@ -331,10 +247,10 @@
 							{@const Icon = icons[status.level] || Info}
 							<Icon class="mt-0.5 h-5 w-5 shrink-0 sm:mt-0" />
 						{/key}
-						
+
 						<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
 							<p class="font-medium">{status.message}</p>
-							
+
 							{#if status.link}
 								<a
 									href={status.link}
