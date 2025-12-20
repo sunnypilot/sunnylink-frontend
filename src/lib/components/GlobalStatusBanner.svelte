@@ -23,6 +23,7 @@
 
 	interface GitHubIssue {
 		id: number;
+		number: number;
 		title: string;
 		body: string;
 		created_at: string;
@@ -40,12 +41,13 @@
 			/*
 			const mockIssues: GitHubIssue[] = [
 				{
-					id: 123,
+					id: 987654321,
+					number: 1,
 					title: 'Test Incident',
 					body: 'Some description... [Public Notification]: This is a test system status message for local development.',
 					created_at: new Date().toISOString(),
 					labels: [{ name: 'sunnylink' }, { name: 'status' }], // Try: 'status' (error), 'maintenance' (warning), 'into' (info)
-					html_url: 'https://github.com/sunnypilot/status-page/issues/1'
+					html_url: 'https://status.sunnypilot.ai/incident/1'
 				}
 			];
 			const activeStatus = processIssues(mockIssues);
@@ -113,7 +115,7 @@
 						active: true,
 						message: messageMatch[1].trim(),
 						level: level,
-						link: issue.html_url,
+						link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
 						linkText: 'View Status',
 						id: issue.created_at, // Using created_at as ID
 						dismissible: isDismissible
