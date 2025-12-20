@@ -53,10 +53,10 @@
 				{
 					id: 1,
 					number: 101,
-					title: 'Active Error',
-					body: '[Public Notification]: Initial failure message.',
+					title: 'Active Error (Non-Dismissible)',
+					body: '[Public Notification]: Critical System Failure. (Body Message)',
 					state: 'open',
-					created_at: new Date(Date.now() - 20000).toISOString(),
+					created_at: new Date().toISOString(),
 					labels: [{ name: 'sunnylink' }, { name: 'status' }],
 					html_url: '',
 					comments_url: 'mock_comments_1'
@@ -64,8 +64,8 @@
 				{
 					id: 2,
 					number: 102,
-					title: 'Active Warning',
-					body: '[Public Notification]: Degradation detected.',
+					title: 'Active Warning (Dismissible)',
+					body: '[Public Notification]: Intermittent Degradation. (Body Message)',
 					state: 'open',
 					created_at: new Date(Date.now() - 10000).toISOString(),
 					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
@@ -75,51 +75,65 @@
 				{
 					id: 3,
 					number: 103,
-					title: 'Closed Info (Recent)',
-					body: '[Public Notification]: Maintenance complete.',
-					state: 'closed',
-					created_at: new Date(Date.now() - 100000).toISOString(),
-					closed_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-					labels: [{ name: 'sunnylink' }, { name: 'info' }],
+					title: 'Active Warning with Comment Update',
+					body: '[Public Notification]: Initial Warning Message.',
+					state: 'open',
+					created_at: new Date(Date.now() - 20000).toISOString(),
+					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
 					html_url: '',
-					comments_url: 'mock_comments_3'
+					comments_url: 'mock_comments_update'
 				},
 				{
 					id: 4,
 					number: 104,
-					title: 'Closed Warning (Should Hide)',
-					body: '[Public Notification]: Should not see this.',
+					title: 'Recent Closed Info (Visible < 24h)',
+					body: '[Public Notification]: Scheduled maintenance complete.',
 					state: 'closed',
-					created_at: new Date().toISOString(),
-					closed_at: new Date().toISOString(),
-					labels: [{ name: 'sunnylink' }, { name: 'maintenance' }],
+					created_at: new Date(Date.now() - 100000).toISOString(),
+					closed_at: new Date(Date.now() - 3600000).toISOString(), // Closed 1 hour ago
+					labels: [{ name: 'sunnylink' }, { name: 'info' }],
 					html_url: '',
-					comments_url: 'mock_comments_4'
+					comments_url: 'mock_comments_empty'
+				},
+				{
+					id: 5,
+					number: 105,
+					title: 'Old Closed Info (Hidden > 24h)',
+					body: '[Public Notification]: Old maintenance.',
+					state: 'closed',
+					created_at: new Date(Date.now() - 200000000).toISOString(),
+					closed_at: new Date(Date.now() - 90000000).toISOString(), // Closed > 24h ago
+					labels: [{ name: 'sunnylink' }, { name: 'info' }],
+					html_url: '',
+					comments_url: 'mock_comments_empty'
+				},
+				{
+					id: 6,
+					number: 106,
+					title: 'Issue Missing Tag (Hidden)',
+					body: 'Internal discussion only. No public tag.',
+					state: 'open',
+					created_at: new Date().toISOString(),
+					labels: [{ name: 'sunnylink' }, { name: 'status' }],
+					html_url: '',
+					comments_url: 'mock_comments_empty'
 				}
 			];
 
 			// Mock function to simulate comment fetch
 			const mockFetchComments = async (url: string) => {
-				if (url === 'mock_comments_1') {
+				if (url === 'mock_comments_update') {
 					return [{
-						id: 99,
-						body: '[Public Notification]: Updated status failure message from comment.',
-						created_at: new Date().toISOString(),
-						html_url: ''
-					}];
-				}
-				if (url === 'mock_comments_2') {
-					return [{
-						id: 100,
-						body: '[Public Notification]: Degradation update from comment.',
-						created_at: new Date(Date.now() - 5000).toISOString(),
+						id: 999,
+						body: '[Public Notification]: This message comes from a COMMENT and overrides the body!',
+						created_at: new Date().toISOString(), // Newer than body
 						html_url: ''
 					}];
 				}
 				return [];
 			};
 			
-			// Inject mock fetcher if testing (requires slight code mod to inject, or just rely on API structure)
+			// Inject mock fetcher if testing
 			statuses = await fetchStatuses(mockIssues, mockFetchComments);
 			checkDismissals();
 			return;
