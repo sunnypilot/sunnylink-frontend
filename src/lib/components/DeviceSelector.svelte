@@ -3,7 +3,15 @@
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
-	import { ChevronDown, X, WifiOff, Check, Smartphone, LayoutDashboard } from 'lucide-svelte';
+	import {
+		ChevronDown,
+		X,
+		WifiOff,
+		Check,
+		Smartphone,
+		LayoutDashboard,
+		TriangleAlert
+	} from 'lucide-svelte';
 	import { fade, fly, slide } from 'svelte/transition';
 	import { ChevronRight } from 'lucide-svelte';
 
@@ -26,7 +34,9 @@
 		deviceState.sortDevices(
 			devices.filter((d: any) => {
 				const status = deviceState.onlineStatuses[d.device_id];
-				return status === 'online' || status === 'loading' || status === undefined;
+				return (
+					status === 'online' || status === 'loading' || status === 'error' || status === undefined
+				);
 			})
 		)
 	);
@@ -103,7 +113,9 @@
 	onclick={toggleModal}
 >
 	{#if selectedDevice}
-		<div class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-primary/10 text-primary">
+		<div
+			class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-primary/10 text-primary"
+		>
 			<Smartphone size={16} />
 		</div>
 		<div class="min-w-0 flex-1 flex-col overflow-hidden">
@@ -128,6 +140,12 @@
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-red-400"></div>
 					<span class="text-[10px] text-red-400">Offline</span>
+				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'error'}
+					<TriangleAlert size={10} class="text-amber-500" />
+					<span
+						class="truncate text-[10px] text-amber-500"
+						title={deviceState.lastErrorMessages[selectedDevice.device_id]}>Error</span
+					>
 				{:else}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] animate-pulse rounded-full bg-amber-400"></div>
 					<span class="text-[10px] text-amber-400">Checking...</span>
@@ -244,6 +262,12 @@
 								{:else if status === 'offline'}
 									<div class="h-1.5 w-1.5 rounded-full bg-red-400"></div>
 									<span class="text-xs text-red-400">Offline</span>
+								{:else if status === 'error'}
+									<TriangleAlert size={12} class="text-amber-500" />
+									<span
+										class="text-xs text-amber-500"
+										title={deviceState.lastErrorMessages[device.device_id]}>Error</span
+									>
 								{:else}
 									<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
 									<span class="text-xs text-amber-400">Checking...</span>
