@@ -45,6 +45,11 @@
 			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'offline'
 	);
 
+	let isError = $derived(
+		deviceState.selectedDeviceId &&
+			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'error'
+	);
+
 	let isCheckingStatus = $derived(
 		deviceState.selectedDeviceId &&
 			(deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'loading' ||
@@ -432,6 +437,42 @@
 			<div class="h-12 w-full rounded bg-slate-700"></div>
 			<div class="h-48 w-full rounded bg-slate-700"></div>
 		</div>
+	{:else if isError}
+		{#await data.streamed.devices then devices}
+			{@const selectedDevice = devices?.find(
+				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
+			)}
+			<div class="flex flex-col items-center justify-center py-12 text-center">
+				<div class="mb-4 rounded-full bg-amber-500/10 p-4">
+					<!-- AlertTriangle is already imported -->
+					<AlertTriangle class="h-12 w-12 text-amber-500" />
+				</div>
+				<h3 class="text-xl font-semibold text-white">Connection Error</h3>
+				<p class="mt-2 max-w-md text-slate-400">
+					{deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] ||
+						'Failed to connect to device.'}
+				</p>
+				<div class="mt-6">
+					<button
+						class="btn btn-sm btn-primary"
+						onclick={async () => {
+							if (deviceState.selectedDeviceId && logtoClient) {
+								const token = await logtoClient.getIdToken();
+								if (token) {
+									await checkDeviceStatus(deviceState.selectedDeviceId, token);
+								}
+							}
+						}}
+					>
+						Retry Connection
+					</button>
+					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
+					{#if devices}
+						<DeviceSelector {devices} />
+					{/if}
+				</div>
+			</div>
+		{/await}
 	{:else}
 		<div class="space-y-6">
 			{#if currentModel}
