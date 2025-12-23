@@ -18,7 +18,8 @@
 		Check,
 		X,
 		Search,
-		Smartphone
+		Smartphone,
+		RefreshCw
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 
@@ -263,6 +264,49 @@
 		}
 	}
 
+	async function refreshModels() {
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+
+		try {
+			loadingModels = true;
+			const token = await logtoClient.getIdToken();
+
+			// 1. Clear the cache to force a re-download/update
+			await v0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: deviceState.selectedDeviceId
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_ClearCache',
+						value: encodeParamValue({
+							key: 'ModelManager_ClearCache',
+							value: '1',
+							type: 'Bool'
+						})
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			// 2. Wait a moment for the device to process and potentially update
+			// We can't really know when it's done, but giving it a few seconds helps.
+			// Ideally we would poll ModelManager_LastSyncTime, but for now a delay + fetch is a good start.
+			await new Promise((resolve) => setTimeout(resolve, 2000));
+
+			// 3. Fetch the fresh list
+			await fetchModelsForDevice(true);
+		} catch (e) {
+			console.error('Error refreshing models:', e);
+		} finally {
+			loadingModels = false;
+		}
+	}
+
 	async function sendModelToDevice() {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
@@ -347,6 +391,14 @@
 
 		<!-- Device Selector if needed, though global one exists -->
 		<!-- We can rely on the global device selector in the header -->
+		<button
+			class="btn btn-square text-slate-400 btn-ghost hover:text-white"
+			onclick={refreshModels}
+			disabled={loadingModels}
+			aria-label="Refresh models"
+		>
+			<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
+		</button>
 	</div>
 
 	{#if authState.loading}
