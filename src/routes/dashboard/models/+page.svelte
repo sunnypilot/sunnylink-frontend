@@ -40,6 +40,7 @@
 	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
 	let searchQuery = $state('');
+	let lastSearchQuery = '';
 
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
@@ -143,22 +144,25 @@
 		openFolders[name] = !openFolders[name];
 	}
 
-	// Auto-expand folder for the selected model or current model if search is active
+	// Auto-expand folder for the matches if search is active
 	$effect(() => {
 		if (searchQuery && modelList) {
-			// If searching, open all folders that have matches
-			const matches = modelList.filter(
-				(m) =>
-					m.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					m.short_name.toLowerCase().includes(searchQuery.toLowerCase())
-			);
-			for (const m of matches) {
-				const folder = m.overrides?.folder || 'Uncategorized';
-				openFolders[folder] = true;
-				if (favorites.has(m.ref)) {
-					openFolders['Favorites'] = true;
+			const q = searchQuery.toLowerCase();
+			const nextOpen: Record<string, boolean> = {};
+			modelList.forEach((m) => {
+				if (m.display_name.toLowerCase().includes(q) || m.short_name.toLowerCase().includes(q)) {
+					const folder = m.overrides?.folder || 'Uncategorized';
+					nextOpen[folder] = true;
+					if (favorites.has(m.ref)) {
+						nextOpen['Favorites'] = true;
+					}
 				}
-			}
+			});
+			openFolders = nextOpen;
+			lastSearchQuery = searchQuery;
+		} else if (!searchQuery && lastSearchQuery !== '') {
+			openFolders = {};
+			lastSearchQuery = '';
 		}
 	});
 
