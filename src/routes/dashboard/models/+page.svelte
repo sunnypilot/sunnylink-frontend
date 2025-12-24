@@ -466,18 +466,20 @@
 			'Release models are the models that made release for OpenPilot so ideally they should be what a user wants for a "stable" Experience',
 		master:
 			'Master models are the models that made it to OpenPilot master which every new model there should ideally be better than the prior model there.',
+		pre_world:
+			'These are the experimental MLSIM models that may have not made it to commas master  branch, and are considered experimental by nature',
 		world:
-			'World models are the models built on the "World" acrchitecture that may have not made it to commas master  branch, and are considered experimental by nature',
+			'These are the experimental models built using self-supervision & world-model that may have not made it to commas master  branch, and are considered experimental by nature',
 		legacy:
 			'Legacy models are old models that users may want to drive but these are considered less context aware of the environment and may not provide the best experience.',
 		custom:
 			'Custom merge models are sunnypilot experimental models created by discounchubbs by merging together weights of diferent upstream models.'
 	};
 
-	function getFolderExplanation(name: string) {
+	function getFolderExplanation(name: string) {``
 		const lowerName = name.toLowerCase();
 		for (const [key, explanation] of Object.entries(FOLDER_EXPLANATIONS)) {
-			if (lowerName.includes(key.toLowerCase())) {
+			if (lowerName.includes(key.toLowerCase().replace("_", " "))) {
 				return explanation;
 			}
 		}
