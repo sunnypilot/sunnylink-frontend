@@ -20,7 +20,8 @@
 		X,
 		Search,
 		Smartphone,
-		RotateCcw
+		RotateCcw,
+		Star
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 
@@ -41,6 +42,8 @@
 
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
+	let updatingFavShortName = $state<string | null>(null);
+	let favorites = $state<Set<string>>(new Set());
 
 	let currentModel = $derived(
 		modelList?.find((m) => m.short_name === currentModelShortName) ??
@@ -79,14 +82,19 @@
 		if (!modelList) return [];
 
 		const groups: Record<string, ModelBundle[]> = {};
+		const favModels: ModelBundle[] = [];
 
 		for (const model of modelList) {
-			if (
-				searchQuery &&
-				!model.display_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-				!model.short_name.toLowerCase().includes(searchQuery.toLowerCase())
-			) {
-				continue;
+			const matchesSearch =
+				!searchQuery ||
+				model.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				model.short_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+			if (!matchesSearch) continue;
+
+			// Add to favorites group if applicable
+			if (favorites.has(model.ref)) {
+				favModels.push(model);
 			}
 
 			const folder = model.overrides?.folder || 'Uncategorized';
@@ -96,7 +104,7 @@
 			groups[folder].push(model);
 		}
 
-		return Object.entries(groups)
+		const result = Object.entries(groups)
 			.map(([name, models]) => {
 				// Sort models by index descending within the folder
 				models.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
@@ -114,6 +122,18 @@
 				// Sort folders by their maxIndex descending
 				return b.maxIndex - a.maxIndex;
 			});
+
+		// Insert Favorites folder at the top if it has models
+		if (favModels.length > 0) {
+			favModels.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+			result.unshift({
+				name: 'Favorites',
+				models: favModels,
+				maxIndex: 999999 // Ensure it stays at the top if we used index sorting, but unshift does it anyway
+			});
+		}
+
+		return result;
 	});
 
 	let openFolders = $state<Record<string, boolean>>({});
@@ -134,6 +154,9 @@
 			for (const m of matches) {
 				const folder = m.overrides?.folder || 'Uncategorized';
 				openFolders[folder] = true;
+				if (favorites.has(m.ref)) {
+					openFolders['Favorites'] = true;
+				}
 			}
 		}
 	});
@@ -187,7 +210,8 @@
 							'ModelManager_ModelsCache',
 							'ModelManager_ActiveBundle',
 							'IsOffroad',
-							'OffroadMode'
+							'OffroadMode',
+							'ModelManager_Favs'
 						]
 					}
 				},
@@ -205,6 +229,14 @@
 				);
 				const isOffroadParam = models.data.items.find((i) => i.key === 'IsOffroad');
 				const offroadModeParam = models.data.items.find((i) => i.key === 'OffroadMode');
+				const favsParam = models.data.items.find((i) => i.key === 'ModelManager_Favs');
+
+				if (favsParam) {
+					const decodedFavs = decodeParamValue(favsParam);
+					if (typeof decodedFavs === 'string') {
+						favorites = new Set(decodedFavs.split(';').filter((f) => f.length > 0));
+					}
+				}
 
 				let isOffroadVal = false;
 				if (isOffroadParam) {
@@ -376,6 +408,52 @@
 	async function resetToDefaultModel() {
 		await pushModelToDevice(DEFAULT_MODEL);
 		resetModalOpen = false;
+	}
+
+	async function toggleFavorite(bundle: ModelBundle, event?: Event) {
+		if (event) {
+			event.stopPropagation();
+		}
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+
+		const newFavorites = new Set(favorites);
+		if (newFavorites.has(bundle.ref)) {
+			newFavorites.delete(bundle.ref);
+		} else {
+			newFavorites.add(bundle.ref);
+		}
+
+		const favString = Array.from(newFavorites).join(';');
+
+		try {
+			updatingFavShortName = bundle.short_name;
+			await v0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: deviceState.selectedDeviceId
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_Favs',
+						value: encodeParamValue({
+							key: 'ModelManager_Favs',
+							value: favString,
+							type: 'string'
+						}),
+						is_compressed: false
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${await logtoClient.getIdToken()}`
+				}
+			});
+			favorites = newFavorites;
+		} catch (e) {
+			console.error('Error updating favorites:', e);
+		} finally {
+			updatingFavShortName = null;
+		}
 	}
 </script>
 
@@ -626,7 +704,11 @@
 												? 'rotate-90'
 												: ''}"
 										/>
-										<Folder size={16} class="text-violet-400" />
+										{#if group.name === 'Favorites'}
+											<Star size={16} class="fill-amber-400 text-amber-400" />
+										{:else}
+											<Folder size={16} class="text-violet-400" />
+										{/if}
 										<span class="font-medium text-slate-200">{group.name}</span>
 										<span
 											class="ml-auto rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400"
@@ -638,12 +720,11 @@
 									{#if openFolders[group.name]}
 										<div transition:slide={{ duration: 200 }} class="bg-slate-900/50">
 											{#each group.models as model (model.short_name)}
-												<button
+												<div
 													class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-slate-800/50 {selectedModelShortName ===
 													model.short_name
 														? 'bg-violet-500/10 hover:bg-violet-500/20'
 														: ''}"
-													onclick={() => (selectedModelShortName = model.short_name)}
 												>
 													{#if selectedModelShortName === model.short_name}
 														<div
@@ -651,19 +732,45 @@
 														></div>
 													{/if}
 
-													<span
-														class="text-sm font-medium transition-colors {selectedModelShortName ===
-														model.short_name
-															? 'text-violet-200'
-															: 'text-slate-400 group-hover:text-slate-200'}"
+													<button
+														class="flex flex-1 items-center gap-3 py-1 text-left focus:outline-none"
+														onclick={() => (selectedModelShortName = model.short_name)}
 													>
-														{model.display_name}
-													</span>
+														<span
+															class="text-sm font-medium transition-colors {selectedModelShortName ===
+															model.short_name
+																? 'text-violet-200'
+																: 'text-slate-400 group-hover:text-slate-200'}"
+														>
+															{model.display_name}
+														</span>
+													</button>
 
-													{#if selectedModelShortName === model.short_name}
-														<Check size={16} class="text-violet-400" />
-													{/if}
-												</button>
+													<div class="flex items-center gap-3">
+														<button
+															class="p-1.5 text-slate-500 transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
+															updatingFavShortName === model.short_name
+																? 'animate-pulse-slow'
+																: ''}"
+															onclick={(e) => toggleFavorite(model, e)}
+															disabled={updatingFavShortName !== null}
+															title={favorites.has(model.ref)
+																? 'Remove from Favorites'
+																: 'Add to Favorites'}
+														>
+															<Star
+																size={16}
+																class={favorites.has(model.ref)
+																	? 'fill-amber-400 text-amber-400'
+																	: ''}
+															/>
+														</button>
+
+														{#if selectedModelShortName === model.short_name}
+															<Check size={16} class="text-violet-400" />
+														{/if}
+													</div>
+												</div>
 											{/each}
 										</div>
 									{/if}
@@ -702,9 +809,27 @@
 					</button>
 
 					<div class="mb-6">
-						<h3 class="text-2xl font-bold text-white">
-							{selectedModel.display_name}
-						</h3>
+						<div class="flex items-center justify-between gap-4">
+							<h3 class="text-2xl font-bold text-white">
+								{selectedModel.display_name}
+							</h3>
+							<button
+								class="rounded-full p-2 text-slate-400 transition-all hover:bg-slate-800 hover:text-amber-400 active:scale-95 disabled:opacity-50 {updatingFavShortName &&
+								updatingFavShortName === selectedModel.short_name
+									? 'animate-pulse-slow'
+									: ''}"
+								onclick={() => toggleFavorite(selectedModel!)}
+								disabled={updatingFavShortName !== null}
+								title={favorites.has(selectedModel.ref)
+									? 'Remove from Favorites'
+									: 'Add to Favorites'}
+							>
+								<Star
+									size={24}
+									class={favorites.has(selectedModel.ref) ? 'fill-amber-400 text-amber-400' : ''}
+								/>
+							</button>
+						</div>
 
 						<div class="mt-2">
 							<code class="rounded bg-slate-800 px-2 py-1 font-mono text-xs text-violet-300">
@@ -821,3 +946,21 @@
 	isProcessing={sendingModel}
 	onConfirm={resetToDefaultModel}
 />
+
+<style>
+	@keyframes pulse-slow {
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.5;
+			transform: scale(0.9);
+		}
+	}
+
+	:global(.animate-pulse-slow) {
+		animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	}
+</style>
