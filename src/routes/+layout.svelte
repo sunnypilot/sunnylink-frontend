@@ -4,7 +4,12 @@
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 
-	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import {
+		authState,
+		logtoClient,
+		isNetlifyPreview,
+		PRODUCTION_ORIGIN
+	} from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
@@ -200,7 +205,11 @@
 					>
 						<Menu size={22} />
 					</label>
-					<p class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]">sunnylink</p>
+					<p
+						class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]"
+					>
+						sunnylink
+					</p>
 				</div>
 
 				<!-- Device Selector & Search -->
@@ -260,7 +269,9 @@
 					SP
 				</div>
 				<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">sunnylink</p>
+					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">
+						sunnylink
+					</p>
 					<h1 class="text-base font-semibold">Control Center</h1>
 				</div>
 			</div>
@@ -375,7 +386,11 @@
 					<button
 						type="button"
 						onclick={async () => {
-							await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							if (isNetlifyPreview) {
+								window.location.href = `${PRODUCTION_ORIGIN}/auth/proxy-init?origin=${window.location.origin}`;
+							} else {
+								await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							}
 							closeDrawerOnMobile();
 						}}
 						class={[

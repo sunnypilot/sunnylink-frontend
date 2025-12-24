@@ -8,6 +8,13 @@ const config = {
 	resources: []
 };
 
+export const PRODUCTION_ORIGIN = 'localhost:5173';
+
+export const isNetlifyPreview =
+	browser &&
+	window.location.origin.includes('netlify.app') &&
+	!window.location.origin.includes('www.sunnylink.ai');
+
 export const logtoClient = browser ? new LogtoClient(config) : undefined;
 
 class AuthState {
