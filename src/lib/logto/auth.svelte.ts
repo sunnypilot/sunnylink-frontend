@@ -8,7 +8,7 @@ const config = {
 	resources: []
 };
 
-export const PRODUCTION_ORIGIN = 'localhost:5173';
+export const PRODUCTION_ORIGIN = 'http://localhost:5173';
 
 export const isNetlifyPreview =
 	browser &&
