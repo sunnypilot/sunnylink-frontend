@@ -708,7 +708,7 @@
 						<div class="p-6 text-center text-slate-500">
 							<span class="loading loading-spinner text-violet-500"></span>
 						</div>
-					{:else if groupedModels.length === 0 && searchQuery && !'default model'.includes(searchQuery.toLowerCase())}
+					{:else if groupedModels.length === 0 && searchQuery}
 						<div class="p-6 text-center text-slate-500">
 							No models available matching "{searchQuery}"
 						</div>
