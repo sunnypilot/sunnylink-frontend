@@ -31,7 +31,7 @@
 		display_name: 'Default Model',
 		is_20hz: false,
 		ref: 'default',
-		environment: 'stock',
+		environment: 'N/A',
 		models: []
 	};
 
