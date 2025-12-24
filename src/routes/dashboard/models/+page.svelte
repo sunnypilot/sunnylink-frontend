@@ -697,15 +697,15 @@
 						>
 					</div>
 					<div class="relative w-full max-w-xs">
-						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-							<Search size={16} class="text-slate-500" />
-						</div>
 						<input
 							type="text"
 							placeholder="Search models..."
 							class="input input-sm w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
 							bind:value={searchQuery}
 						/>
+						<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
+							<Search size={14} class="text-slate-500" />
+						</div>
 						{#if searchQuery}
 							<button
 								type="button"
