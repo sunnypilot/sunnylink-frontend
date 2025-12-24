@@ -10,6 +10,7 @@
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
+	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import {
 		AlertTriangle,
 		ShieldAlert,
@@ -18,7 +19,8 @@
 		Check,
 		X,
 		Search,
-		Smartphone
+		Smartphone,
+		RotateCcw
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 
@@ -54,6 +56,7 @@
 			: false
 	);
 	let forceOffroadModalOpen = $state(false);
+	let resetModalOpen = $state(false);
 
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
@@ -278,10 +281,9 @@
 		}
 	}
 
-	async function sendModelToDevice() {
+	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
-		if (!selectedModel) return;
 
 		try {
 			sendingModel = true;
@@ -317,13 +319,13 @@
 			}
 
 			const params = [];
-			if (selectedModel.short_name === 'default') {
+			if (bundle.short_name === 'default') {
 				params.push({
 					key: 'ModelManager_ActiveBundle',
 					value: encodeParamValue({
 						key: 'ModelManager_ActiveBundle',
-						value: '',
-						type: 'String'
+						value: '{}',
+						type: 'string'
 					}),
 					is_compressed: false
 				});
@@ -332,7 +334,7 @@
 					key: 'ModelManager_DownloadIndex',
 					value: encodeParamValue({
 						key: 'ModelManager_DownloadIndex',
-						value: String(selectedModel.index ?? ''),
+						value: String(bundle.index ?? ''),
 						type: 'String'
 					}),
 					is_compressed: false
@@ -351,8 +353,8 @@
 				}
 			});
 
-			// On success, update the current model and close the modal
-			currentModelShortName = selectedModelShortName;
+			// On success, update the current model and clear selection
+			currentModelShortName = bundle.short_name === 'default' ? undefined : bundle.short_name;
 			selectedModelShortName = undefined;
 			sendingModel = false;
 
@@ -364,6 +366,17 @@
 			sendingModel = false;
 		}
 	}
+
+	async function sendModelToDevice() {
+		if (selectedModel) {
+			await pushModelToDevice(selectedModel);
+		}
+	}
+
+	async function resetToDefaultModel() {
+		await pushModelToDevice(DEFAULT_MODEL);
+		resetModalOpen = false;
+	}
 </script>
 
 <div class="space-y-6">
@@ -373,8 +386,20 @@
 			<p class="text-slate-400">Manage and switch driving models for your device.</p>
 		</div>
 
-		<!-- Device Selector if needed, though global one exists -->
-		<!-- We can rely on the global device selector in the header -->
+		{#if currentModelShortName !== undefined && !loadingModels}
+			<button
+				class="btn border-slate-700 bg-slate-800 text-slate-200 transition-all btn-sm hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
+				onclick={() => (resetModalOpen = true)}
+				disabled={sendingModel || !isOffroad}
+			>
+				{#if sendingModel}
+					<span class="loading loading-xs loading-spinner"></span>
+				{:else}
+					<RotateCcw size={14} class="mr-1.5" />
+				{/if}
+				Reset to Default Model
+			</button>
+		{/if}
 	</div>
 
 	{#if authState.loading}
@@ -785,4 +810,14 @@
 		// Refresh status
 		await recheckStatus();
 	}}
+/>
+
+<ConfirmationModal
+	bind:open={resetModalOpen}
+	title="Reset to Default Model"
+	message="Are you sure you want to reset to the default driving model? This will clear the active bundle on the device."
+	confirmText="Reset to Default"
+	variant="danger"
+	isProcessing={sendingModel}
+	onConfirm={resetToDefaultModel}
 />
