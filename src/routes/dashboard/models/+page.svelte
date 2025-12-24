@@ -476,10 +476,10 @@
 			'Custom merge models are sunnypilot experimental models created by discounchubbs by merging together weights of diferent upstream models.'
 	};
 
-	function getFolderExplanation(name: string) {``
+	function getFolderExplanation(name: string) {
 		const lowerName = name.toLowerCase();
 		for (const [key, explanation] of Object.entries(FOLDER_EXPLANATIONS)) {
-			if (lowerName.includes(key.toLowerCase().replace("_", " "))) {
+			if (lowerName.includes(key.toLowerCase().replace('_', ' '))) {
 				return explanation;
 			}
 		}
@@ -703,9 +703,19 @@
 						<input
 							type="text"
 							placeholder="Search models..."
-							class="input input-sm w-full border-slate-700 bg-slate-900 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
+							class="input input-sm w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
 							bind:value={searchQuery}
 						/>
+						{#if searchQuery}
+							<button
+								type="button"
+								class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
+								onclick={() => (searchQuery = '')}
+								aria-label="Clear search"
+							>
+								<X size={14} />
+							</button>
+						{/if}
 					</div>
 				</div>
 
