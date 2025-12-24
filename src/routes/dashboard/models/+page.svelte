@@ -21,7 +21,8 @@
 		Search,
 		Smartphone,
 		RotateCcw,
-		Star
+		Star,
+		CircleHelp
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 
@@ -455,6 +456,29 @@
 			updatingFavShortName = null;
 		}
 	}
+
+	const FOLDER_EXPLANATIONS: Record<string, string> = {
+		release:
+			'Release models are the models that made release for OpenPilot so ideally they should be what a user wants for a "stable" Experience',
+		master:
+			'Master models are the models that made it to OpenPilot master which every new model there should ideally be better than the prior model there.',
+		world:
+			'World models are the models built on the "World" acrchitecture that may have not made it to commas master  branch, and are considered experimental by nature',
+		legacy:
+			'Legacy models are old models that users may want to drive but these are considered less context aware of the environment and may not provide the best experience.',
+		custom:
+			'Custom merge models are sunnypilot experimental models created by discounchubbs by merging together weights of diferent upstream models.'
+	};
+
+	function getFolderExplanation(name: string) {
+		const lowerName = name.toLowerCase();
+		for (const [key, explanation] of Object.entries(FOLDER_EXPLANATIONS)) {
+			if (lowerName.includes(key.toLowerCase())) {
+				return explanation;
+			}
+		}
+		return null;
+	}
 </script>
 
 <div class="space-y-6">
@@ -709,7 +733,20 @@
 										{:else}
 											<Folder size={16} class="text-violet-400" />
 										{/if}
-										<span class="font-medium text-slate-200">{group.name}</span>
+										<div class="flex items-center gap-2">
+											<span class="font-medium text-slate-200">{group.name}</span>
+											{#if getFolderExplanation(group.name)}
+												<div
+													class="tooltip tooltip-right flex items-center"
+													data-tip={getFolderExplanation(group.name)}
+												>
+													<CircleHelp
+														size={14}
+														class="text-slate-500 transition-colors hover:text-slate-300"
+													/>
+												</div>
+											{/if}
+										</div>
 										<span
 											class="ml-auto rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400"
 										>
