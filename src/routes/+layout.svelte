@@ -388,9 +388,8 @@
 						onclick={async () => {
 							if (isNetlifyPreview) {
 								window.location.href = `${PRODUCTION_ORIGIN}/auth/proxy-init?origin=${window.location.origin}`;
-							} else {
-								await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
 							}
+							await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
 							closeDrawerOnMobile();
 						}}
 						class={[
