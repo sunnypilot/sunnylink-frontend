@@ -22,17 +22,32 @@
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 
-	let { data } = $props();
+	const DEFAULT_MODEL: ModelBundle = {
+		short_name: 'default',
+		display_name: 'Default Model',
+		is_20hz: false,
+		ref: 'default',
+		environment: 'stock',
+		models: []
+	};
 
+	let { data } = $props();
 	let modelList = $state<ModelBundle[] | undefined>();
 	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
 	let searchQuery = $state('');
 
-	let currentModel = $derived(modelList?.find((m) => m.short_name === currentModelShortName));
-	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
+
+	let currentModel = $derived(
+		modelList?.find((m) => m.short_name === currentModelShortName) ??
+			(currentModelShortName === undefined && !loadingModels && modelList
+				? DEFAULT_MODEL
+				: undefined)
+	);
+	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
+
 	let isOffroad = $derived(
 		deviceState.selectedDeviceId
 			? (deviceState.offroadStatuses[deviceState.selectedDeviceId]?.isOffroad ?? false)
@@ -301,23 +316,36 @@
 				throw new Error('Device is Onroad. Cannot push model.');
 			}
 
+			const params = [];
+			if (selectedModel.short_name === 'default') {
+				params.push({
+					key: 'ModelManager_ActiveBundle',
+					value: encodeParamValue({
+						key: 'ModelManager_ActiveBundle',
+						value: '',
+						type: 'String'
+					}),
+					is_compressed: false
+				});
+			} else {
+				params.push({
+					key: 'ModelManager_DownloadIndex',
+					value: encodeParamValue({
+						key: 'ModelManager_DownloadIndex',
+						value: String(selectedModel.index ?? ''),
+						type: 'String'
+					}),
+					is_compressed: false
+				});
+			}
+
 			await v0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId
 					}
 				},
-				body: [
-					{
-						key: 'ModelManager_DownloadIndex',
-						value: encodeParamValue({
-							key: 'ModelManager_DownloadIndex',
-							value: String(selectedModel.index ?? ''),
-							type: 'String'
-						}),
-						is_compressed: false
-					}
-				],
+				body: params,
 				headers: {
 					Authorization: `Bearer ${await logtoClient.getIdToken()}`
 				}
@@ -519,7 +547,7 @@
 								<span class="text-slate-300">
 									{currentModel.build_time
 										? new Date(currentModel.build_time).toLocaleDateString()
-										: 'Unknown'}
+										: 'N/A'}
 								</span>
 							</div>
 						</div>
@@ -549,13 +577,13 @@
 				</div>
 
 				<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
-					{#if groupedModels.length === 0}
+					{#if loadingModels && !modelList}
 						<div class="p-6 text-center text-slate-500">
-							{#if loadingModels}
-								<span class="loading loading-spinner text-violet-500"></span>
-							{:else}
-								No models available
-							{/if}
+							<span class="loading loading-spinner text-violet-500"></span>
+						</div>
+					{:else if groupedModels.length === 0 && searchQuery && !'default model'.includes(searchQuery.toLowerCase())}
+						<div class="p-6 text-center text-slate-500">
+							No models available matching "{searchQuery}"
 						</div>
 					{:else}
 						<div class="custom-scrollbar max-h-[calc(100vh-250px)] overflow-y-auto">
