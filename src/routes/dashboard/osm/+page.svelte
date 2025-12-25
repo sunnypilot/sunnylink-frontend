@@ -295,13 +295,15 @@
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 
+		toastState.show('Checking for updates...', 'info');
+
 		try {
 			await setDeviceParams(
 				deviceState.selectedDeviceId,
 				[{ key: 'OsmDbUpdatesCheck', value: '1' }],
 				token
 			);
-			toastState.show('Checking for updates...', 'success');
+			toastState.show('Update initiated on device', 'success');
 			fetchOsmParams(deviceState.selectedDeviceId, token, true);
 			checkDownloadProgress(false);
 		} catch (e) {
@@ -475,7 +477,7 @@
 
 						<div class="mt-6 flex flex-col gap-3 sm:flex-row">
 							<button
-								class="btn flex-1 border-[#334155] bg-[#0f1726] text-xs font-medium text-slate-300 btn-sm hover:border-indigo-500 hover:text-white"
+								class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-white/40"
 								onclick={handleCheckForUpdates}
 								disabled={isDownloading}
 							>
@@ -527,7 +529,7 @@
 
 					<div class="flex flex-col gap-3 pt-4 sm:flex-row">
 						<button
-							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700"
+							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-white/40"
 							disabled={!selectedCountry ||
 								(selectedCountry === 'US' && !selectedState) ||
 								isDownloading}
