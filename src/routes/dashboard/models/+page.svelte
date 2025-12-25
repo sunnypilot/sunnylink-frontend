@@ -23,7 +23,8 @@
 		RotateCcw,
 		Star,
 		CircleHelp,
-		Trash2
+		Trash2,
+		RefreshCw
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 	import { toastState } from '$lib/stores/toast.svelte';
@@ -347,6 +348,49 @@
 		}
 	}
 
+	async function refreshModels() {
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+
+		try {
+			loadingModels = true;
+			const token = await logtoClient.getIdToken();
+
+			// 1. Clear the last update time to force a refresh
+			await v0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: deviceState.selectedDeviceId
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_LastSyncTime',
+						value: encodeParamValue({
+							key: 'ModelManager_LastSyncTime',
+							value: '0',
+							type: 'String'
+						})
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			// 2. Wait a moment for the device to process and potentially update
+			// We can't really know when it's done, but giving it a few seconds helps.
+			// Ideally we would poll ModelManager_LastSyncTime, but for now a delay + fetch is a good start.
+			await new Promise((resolve) => setTimeout(resolve, 2000));
+
+			// 3. Fetch the fresh list
+			await fetchModelsForDevice(true);
+		} catch (e) {
+			console.error('Error refreshing models:', e);
+		} finally {
+			loadingModels = false;
+		}
+	}
+
 	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
@@ -563,7 +607,7 @@
 			<button
 				class="btn border-red-500/30 bg-red-500/10 text-red-400 transition-all btn-md hover:border-red-500/50 hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
 				onclick={() => (clearCacheModalOpen = true)}
-				disabled={clearingCache || sendingModel || !isOffroad}
+				disabled={clearingCache || sendingModel || loadingModels || !isOffroad}
 			>
 				{#if clearingCache}
 					<span class="loading loading-xs loading-spinner"></span>
@@ -572,11 +616,11 @@
 				{/if}
 				Clear Cache
 			</button>
-			{#if currentModelShortName !== undefined && !loadingModels}
+			{#if currentModelShortName !== undefined && (!loadingModels || modelList)}
 				<button
 					class="btn border-slate-700 bg-slate-800 text-slate-200 transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
 					onclick={() => (resetModalOpen = true)}
-					disabled={sendingModel || clearingCache || !isOffroad}
+					disabled={sendingModel || clearingCache || loadingModels || !isOffroad}
 				>
 					{#if sendingModel}
 						<span class="loading loading-xs loading-spinner"></span>
@@ -775,29 +819,43 @@
 							>Available Models</span
 						>
 					</div>
-					<div class="relative w-full max-w-xs">
-						<input
-							type="text"
-							placeholder="Search models..."
-							class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
-							bind:value={rawSearchQuery}
-						/>
-						<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
-							<Search size={14} class="text-slate-500" />
-						</div>
-						{#if rawSearchQuery}
-							<button
-								type="button"
-								class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
-								onclick={() => {
-									rawSearchQuery = '';
-									searchQuery = '';
-								}}
-								aria-label="Clear search"
+					<div class="flex items-center gap-2">
+						<div class="relative w-full max-w-md">
+							<input
+								type="text"
+								placeholder="Search models..."
+								class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
+								bind:value={rawSearchQuery}
+							/>
+							<div
+								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
 							>
-								<X size={14} />
-							</button>
-						{/if}
+								<Search size={14} class="text-slate-500" />
+							</div>
+							{#if rawSearchQuery}
+								<button
+									type="button"
+									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
+									onclick={() => {
+										rawSearchQuery = '';
+										searchQuery = '';
+									}}
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</button>
+							{/if}
+						</div>
+						<button
+							type="button"
+							class="btn border-slate-700 bg-slate-800 text-slate-200 btn-ghost transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
+							onclick={refreshModels}
+							disabled={loadingModels}
+							aria-label="Fetch Latest"
+						>
+							<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
+							Fetch Latest
+						</button>
 					</div>
 				</div>
 
