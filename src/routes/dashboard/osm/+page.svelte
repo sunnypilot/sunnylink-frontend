@@ -302,7 +302,7 @@
 				token
 			);
 			toastState.show('Checking for updates...', 'success');
-			fetchOsmParams(deviceState.selectedDeviceId, token, false);
+			fetchOsmParams(deviceState.selectedDeviceId, token, true);
 			checkDownloadProgress(false);
 		} catch (e) {
 			toastState.show('Failed to check for updates', 'error');
@@ -405,132 +405,153 @@
 			<div class="h-64 w-full rounded bg-slate-700"></div>
 		</div>
 	{:else}
-		<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 backdrop-blur-sm">
-			<div class="mb-4 flex items-center justify-between">
-				<h3 class="font-medium text-white">Current Map</h3>
-				{#if currentCountryName && !loadingOsmParams}
-					<div class="text-xs text-slate-400">
-						Last updated: <span class="text-slate-300">{formatTimeAgo(downloadedDateParam)}</span>
-					</div>
-				{/if}
-			</div>
-
+		<div class="space-y-6">
 			{#if loadingOsmParams}
-				<div class="flex flex-col items-center justify-center py-8 text-center" transition:fade>
-					<Loader2 size={32} class="animate-spin text-indigo-400" />
-					<p class="mt-4 text-sm text-slate-400">Fetching map details...</p>
-				</div>
-			{:else if currentCountryName}
-				<!-- Current Map Details -->
 				<div
-					class="mb-6 flex items-center gap-3 rounded-lg border border-[#334155] bg-[#0f1726] p-4"
+					class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-12 backdrop-blur-sm"
 					transition:fade
 				>
-					<div
-						class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400"
-					>
-						<MapIcon size={20} />
+					<div class="flex flex-col items-center justify-center text-center">
+						<Loader2 size={32} class="animate-spin text-indigo-400" />
+						<p class="mt-4 text-sm text-slate-400">Fetching map details...</p>
 					</div>
-					<div class="flex-1">
-						<p class="text-sm font-medium text-white">
-							{deviceState.selectedDeviceId
-								? getParamValue(deviceState.selectedDeviceId, 'OsmLocationTitle') ||
-									currentCountryName
-								: currentCountryName}
-						</p>
-						{#if currentStateName}
-							<p class="text-sm font-medium text-slate-500">
-								{deviceState.selectedDeviceId
-									? getParamValue(deviceState.selectedDeviceId, 'OsmStateTitle') || currentStateName
-									: currentStateName}
-							</p>
-						{/if}
-					</div>
-					{#if isDownloading}
-						<span
-							class="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400"
-						>
-							<Loader2 size={12} class="animate-spin" />
-							Downloading {downloadProgress}
-						</span>
-					{/if}
 				</div>
+			{:else if currentCountryName}
+				<div
+					class="overflow-hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5"
+					transition:fade
+				>
+					<div class="border-b border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								{#if isDownloading}
+									<Loader2 size={16} class="animate-spin text-indigo-400" />
+								{:else}
+									<MapIcon size={16} class="text-indigo-400" />
+								{/if}
+								<span class="text-xs font-bold tracking-wider text-indigo-300 uppercase">
+									{#if isDownloading}
+										Downloading
+									{:else}
+										Downloaded
+									{/if}
+									On Device
+								</span>
+							</div>
+							{#if isDownloading}
+								<div
+									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
+								>
+									Downloading {downloadProgress}
+								</div>
+							{:else}
+								<div
+									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
+								>
+									Last Updated {formatTimeAgo(downloadedDateParam)}
+								</div>
+							{/if}
+						</div>
+					</div>
+					<div class="p-4">
+						<div class="flex items-start justify-between gap-4">
+							<div>
+								<h3 class="text-lg font-bold text-white">
+									{deviceState.selectedDeviceId
+										? getParamValue(deviceState.selectedDeviceId, 'OsmLocationTitle') ||
+											currentCountryName
+										: currentCountryName}
+								</h3>
+								{#if currentStateName}
+									<p class="mt-1 text-sm font-medium text-slate-400">
+										{deviceState.selectedDeviceId
+											? getParamValue(deviceState.selectedDeviceId, 'OsmStateTitle') ||
+												currentStateName
+											: currentStateName}
+									</p>
+								{/if}
+							</div>
+						</div>
 
-				<div class="flex flex-col gap-3 sm:flex-row" transition:fade>
-					<button
-						class="btn flex-1 border-[#334155] bg-[#0f1726] text-sm font-medium text-slate-300 hover:border-indigo-500 hover:text-white"
-						onclick={handleCheckForUpdates}
-						disabled={isDownloading}
-					>
-						<RefreshCw size={18} />
-						Check for Updates
-					</button>
+						<div class="mt-6 flex flex-col gap-3 sm:flex-row">
+							<button
+								class="btn flex-1 border-[#334155] bg-[#0f1726] text-xs font-medium text-slate-300 btn-sm hover:border-indigo-500 hover:text-white"
+								onclick={handleCheckForUpdates}
+								disabled={isDownloading}
+							>
+								<RefreshCw size={14} />
+								Check for Updates
+							</button>
+						</div>
+					</div>
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-8 text-center" transition:fade>
-					<div class="mb-3 rounded-full bg-slate-800 p-3">
-						<MapIcon class="h-6 w-6 text-slate-500" />
+				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 backdrop-blur-sm">
+					<div class="flex flex-col items-center justify-center text-center" transition:fade>
+						<div class="mb-3 rounded-full bg-slate-800 p-3">
+							<MapIcon class="h-6 w-6 text-slate-500" />
+						</div>
+						<p class="text-sm text-slate-400">No offline map downloaded on this device</p>
 					</div>
-					<p class="text-sm text-slate-400">No offline map downloaded on this device</p>
 				</div>
 			{/if}
-		</div>
 
-		<!-- Configuration/Download Form -->
-		<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 backdrop-blur-sm">
-			<div class="mb-6 flex items-center justify-between">
-				<h3 class="font-medium text-white">Download New Map</h3>
-			</div>
-
-			<div class="space-y-4">
-				<div class="form-control">
-					<ComboBox
-						label="Country"
-						placeholder="Select a country"
-						options={countries.map((c) => ({ value: c.ref, label: c.display_name }))}
-						bind:value={selectedCountry}
-						disabled={isDownloading || loadingRegions}
-					/>
+			<!-- Configuration/Download Form -->
+			<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 backdrop-blur-sm">
+				<div class="mb-6 flex items-center justify-between">
+					<h3 class="font-medium text-white">Download New Map</h3>
 				</div>
 
-				{#if selectedCountry === 'US'}
-					<div class="form-control" transition:fade>
+				<div class="space-y-4">
+					<div class="form-control">
 						<ComboBox
-							label="State"
-							placeholder="Select a state"
-							options={states.map((s) => ({ value: s.ref, label: s.display_name }))}
-							bind:value={selectedState}
+							label="Country"
+							placeholder="Select a country"
+							options={countries.map((c) => ({ value: c.ref, label: c.display_name }))}
+							bind:value={selectedCountry}
 							disabled={isDownloading || loadingRegions}
 						/>
 					</div>
-				{/if}
 
-				<div class="flex flex-col gap-3 pt-4 sm:flex-row">
-					<button
-						class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700"
-						disabled={!selectedCountry ||
-							(selectedCountry === 'US' && !selectedState) ||
-							isDownloading}
-						onclick={handleSaveAndDownload}
-					>
-						{#if downloading}
-							<Loader2 size={18} class="animate-spin" />
-						{:else}
-							<Download size={18} />
-						{/if}
-						Download Map
-					</button>
-				</div>
+					{#if selectedCountry === 'US'}
+						<div class="form-control" transition:fade>
+							<ComboBox
+								label="State"
+								placeholder="Select a state"
+								options={states.map((s) => ({ value: s.ref, label: s.display_name }))}
+								bind:value={selectedState}
+								disabled={isDownloading || loadingRegions}
+							/>
+						</div>
+					{/if}
 
-				{#if selectedCountry === 'US' && !selectedState}
-					<p class="flex items-center gap-1 text-xs text-amber-400">
-						<AlertCircle size={12} />
-						State selection is required for US maps
+					<div class="flex flex-col gap-3 pt-4 sm:flex-row">
+						<button
+							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700"
+							disabled={!selectedCountry ||
+								(selectedCountry === 'US' && !selectedState) ||
+								isDownloading}
+							onclick={handleSaveAndDownload}
+						>
+							{#if downloading}
+								<Loader2 size={18} class="animate-spin" />
+							{:else}
+								<Download size={18} />
+							{/if}
+							Download Map
+						</button>
+					</div>
+
+					{#if selectedCountry === 'US' && !selectedState}
+						<p class="flex items-center gap-1 text-xs text-amber-400">
+							<AlertCircle size={12} />
+							State selection is required for US maps
+						</p>
+					{/if}
+					<p class="text-xs text-slate-500">
+						Map downloads can be large (up to several GB). Wi-Fi connection is recommended.
 					</p>
-				{/if}
-				<p class="text-xs text-slate-500">
-					Map downloads can be large (up to several GB). Wi-Fi connection is recommended.
-				</p>
+				</div>
 			</div>
 		</div>
 	{/if}
