@@ -46,13 +46,24 @@ export function getAllSettings(
     // 1. Get all effective definitions (defaults + user overrides)
     const explicitDefs = getEffectiveDefinitions();
 
-    // 2. Find dynamic settings from device
+    // 2. Create a Map for O(1) lookups of settings by key
+    const settingsMap = new Map<string, ExtendedDeviceParamKey>();
+    if (settings) {
+        for (const setting of settings) {
+            if (setting.key) {
+                settingsMap.set(setting.key, setting);
+            }
+        }
+    }
+
+    // 3. Build defined keys Set for O(1) lookups
+    const definedKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
+
+    // 4. Find dynamic settings from device
     let dynamicDefs: RenderableSetting[] = [];
     if (settings) {
-        const definedKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
-        dynamicDefs = settings
-            .filter((s) => s.key && !definedKeys.has(s.key))
-            .map((s) => {
+        for (const s of settings) {
+            if (s.key && !definedKeys.has(s.key)) {
                 let decodedValue = s;
                 if (s.default_value) {
                     try {
@@ -62,9 +73,9 @@ export function getAllSettings(
                         console.warn(`Failed to decode default value for ${s.key}`, e);
                     }
                 }
-                return {
-                    key: s.key!,
-                    label: s.key!,
+                dynamicDefs.push({
+                    key: s.key,
+                    label: s.key,
                     description: 'Unknown setting from device',
                     category: 'other' as SettingCategory,
                     value: decodedValue,
@@ -72,42 +83,47 @@ export function getAllSettings(
                     advanced: false,
                     readonly: false,
                     hidden: false
-                };
-            });
+                });
+            }
+        }
     }
 
-    // 3. Combine and map values
+    // 5. Combine and map values in a single pass with filtering
+    const result: RenderableSetting[] = [];
     const allDefs = [...explicitDefs, ...dynamicDefs];
 
-    return (
-        allDefs
-            .map((def) => {
-                const settingValue = settings?.find((s) => s.key === def.key);
-                let decodedValue = settingValue;
+    for (const def of allDefs) {
+        // Skip hidden settings early
+        if (def.hidden) continue;
+        
+        // Skip advanced settings if not showing them
+        if (!showAdvanced && def.advanced) continue;
 
-                if (settingValue?.default_value) {
-                    try {
-                        decodedValue = { ...settingValue };
-                        decodedValue.default_value = atob(settingValue.default_value);
-                    } catch (e) {
-                        console.warn(`Failed to decode default value for ${def.key}`, e);
-                    }
-                } else if ((def as unknown as RenderableSetting).value) {
-                    decodedValue = (def as unknown as RenderableSetting).value;
-                }
+        const settingValue = settingsMap.get(def.key);
+        let decodedValue = settingValue;
 
-                return {
-                    ...def,
-                    _extra: settingValue?._extra,
-                    value: decodedValue
-                };
-            })
-            // Filter out those that have no value AND no default value?
-            // Keeping consistent with original logic: show if we have a value (from device or default).
-            .filter((s) => s.value !== undefined)
-            .filter((s) => !s.hidden)
-            .filter((s) => showAdvanced || !s.advanced)
-    );
+        if (settingValue?.default_value) {
+            try {
+                decodedValue = { ...settingValue };
+                decodedValue.default_value = atob(settingValue.default_value);
+            } catch (e) {
+                console.warn(`Failed to decode default value for ${def.key}`, e);
+            }
+        } else if ((def as unknown as RenderableSetting).value) {
+            decodedValue = (def as unknown as RenderableSetting).value;
+        }
+
+        // Skip if no value
+        if (decodedValue === undefined) continue;
+
+        result.push({
+            ...def,
+            _extra: settingValue?._extra,
+            value: decodedValue
+        });
+    }
+
+    return result;
 }
 
 export interface DeviceSettingsBackup {
@@ -148,17 +164,9 @@ export async function fetchAllSettings(
 ): Promise<Record<string, any>> {
     // 1. Get all known keys
     const explicitKeys = SETTINGS_DEFINITIONS.map(d => d.key);
+    const keysToFetch = [...explicitKeys];
 
-    // 2. Get dynamic keys if available in store (passed as part of currentValues or we assume caller handles definitions)
-    // Ideally we should fetch definitions first if we want to be 100% sure, but for now let's rely on definitions being loaded 
-    // or just fetch what we know.
-    // Actually, let's fetch definitions to be safe if we can, but that requires more deps.
-    // Let's stick to SETTINGS_DEFINITIONS for now as that covers most. 
-    // If we want dynamic ones, we should rely on what's in deviceState.deviceSettings.
-
-    const keysToFetch = [...explicitKeys]; // Add dynamic ones if we can access them here
-
-    // 3. Filter out keys we already have
+    // 2. Filter out keys we already have
     const missingKeys = keysToFetch.filter(key => currentValues[key] === undefined);
 
     if (missingKeys.length === 0) {
@@ -166,47 +174,46 @@ export async function fetchAllSettings(
         return currentValues;
     }
 
-    // 4. Fetch missing values in chunks
-    const newValues = { ...currentValues };
-    const chunkedKeys = [];
-    for (let i = 0; i < missingKeys.length; i += 10) {
-        chunkedKeys.push(missingKeys.slice(i, i + 10));
+    // 3. Build a Map for O(1) type lookups
+    const typeMap = new Map<string, string>();
+    for (const def of SETTINGS_DEFINITIONS) {
+        typeMap.set(def.key, 'String'); // Default type
     }
 
+    // 4. Fetch missing values in chunks with optimized concurrency
+    const newValues = { ...currentValues };
+    const chunkSize = 10;
     let processedCount = 0;
     const totalCount = missingKeys.length;
-    let successCount = 0;
     let failCount = 0;
 
-    // Process in chunks with limited concurrency to avoid overwhelming the device/connection
-    // but faster than sequential.
     const CONCURRENCY = 3;
-    const activePromises: Promise<void>[] = [];
+    const activePromises = new Set<Promise<void>>();
 
-    for (const chunk of chunkedKeys) {
+    for (let i = 0; i < missingKeys.length; i += chunkSize) {
         if (signal?.aborted) {
             throw new Error('Backup cancelled');
         }
 
+        const chunk = missingKeys.slice(i, i + chunkSize);
+        
         const promise = (async () => {
-            if (signal?.aborted) return;
-
             try {
+                if (signal?.aborted) return;
+
                 const response = await client.GET('/v1/settings/{deviceId}/values', {
                     params: {
                         path: { deviceId },
                         query: { paramKeys: chunk }
                     },
                     headers: { Authorization: `Bearer ${token}` },
-                    signal // Pass signal to fetch if supported by client, otherwise we check manually
+                    signal
                 });
 
                 if (response.data?.items) {
                     for (const item of response.data.items) {
                         if (item.key && item.value !== undefined) {
-                            const def = SETTINGS_DEFINITIONS.find(d => d.key === item.key);
-                            const type = (def as any)?.value?.type ?? 'String';
-
+                            const type = typeMap.get(item.key) ?? 'String';
                             newValues[item.key] = decodeParamValue({
                                 key: item.key,
                                 value: item.value,
@@ -214,13 +221,11 @@ export async function fetchAllSettings(
                             });
                         }
                     }
-                    successCount += chunk.length;
                 } else {
                     failCount += chunk.length;
                 }
             } catch (e: any) {
                 if (e.name === 'AbortError' || signal?.aborted) {
-                    // Ignore abort errors
                     return;
                 }
                 console.error(`Failed to fetch chunk for ${deviceId}`, e);
@@ -235,12 +240,14 @@ export async function fetchAllSettings(
                     // Small delay to let UI breathe
                     await new Promise(r => setTimeout(r, 10));
                 }
+                // Always clean up from the Set when done
+                activePromises.delete(promise);
             }
         })();
 
-        activePromises.push(promise);
+        activePromises.add(promise);
 
-        if (activePromises.length >= CONCURRENCY) {
+        if (activePromises.size >= CONCURRENCY) {
             await Promise.race(activePromises);
         }
     }
@@ -254,7 +261,6 @@ export async function fetchAllSettings(
 
     if (failCount > 0) {
         onProgress?.(100, `Completed with ${failCount} errors.`);
-        // Give user time to see the error
         await new Promise(r => setTimeout(r, 1000));
     } else {
         onProgress?.(100, 'Finalizing backup...');
