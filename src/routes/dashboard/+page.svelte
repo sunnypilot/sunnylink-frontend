@@ -20,7 +20,8 @@
 		Copy,
 		Check,
 		Trash2,
-		Download
+		Download,
+		TriangleAlert
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
@@ -180,7 +181,9 @@
 		if (!devices) return [];
 		const list = devices.filter((d) => {
 			const status = deviceState.onlineStatuses[d.device_id];
-			return status === 'online' || status === 'loading' || status === undefined;
+			return (
+				status === 'online' || status === 'loading' || status === 'error' || status === undefined
+			);
 		});
 		return deviceState.sortDevices(list);
 	});
@@ -312,6 +315,14 @@
 											<Loader2 size={14} class="animate-spin" />
 											<span>Checking...</span>
 										</div>
+									{:else if status === 'error'}
+										<div
+											class="flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-500"
+											title={deviceState.lastErrorMessages[device.device_id]}
+										>
+											<TriangleAlert size={14} />
+											<span>Error</span>
+										</div>
 									{:else}
 										<div
 											class="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400"
@@ -415,6 +426,10 @@
 												<span class="flex items-center gap-2">
 													<Loader2 size={16} class="animate-spin" />
 													Checking...
+												</span>
+											{:else if status === 'error'}
+												<span class="text-sm text-amber-500">
+													{deviceState.lastErrorMessages[device.device_id] || 'Connection Error'}
 												</span>
 											{:else}
 												Connected

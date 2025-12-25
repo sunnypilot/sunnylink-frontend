@@ -119,6 +119,7 @@
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { onMount } from 'svelte';
@@ -186,6 +187,7 @@
 <div class="drawer min-h-screen bg-[#0f1726] lg:drawer-open">
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726]">
+		<GlobalStatusBanner />
 		<!-- Navbar for mobile -->
 		<header
 			class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"

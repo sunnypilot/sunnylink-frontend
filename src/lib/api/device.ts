@@ -25,10 +25,24 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
             })
         ]);
 
+        if (settingsRes.error) {
+            const status = settingsRes.response?.status || 500;
+            if (status === 404) {
+                deviceState.onlineStatuses[deviceId] = 'offline';
+            } else {
+                deviceState.onlineStatuses[deviceId] = 'error';
+                // @ts-expect-error - Checking generic error detail
+                deviceState.lastErrorMessages[deviceId] = settingsRes.error.detail || settingsRes.error.message || `Error ${status}`;
+            }
+            return;
+        }
+
         // Strict check: Must have items and length > 0
         if (settingsRes.data?.items && settingsRes.data.items.length > 0) {
             deviceState.onlineStatuses[deviceId] = 'online';
             deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
+            // Clear any previous error
+            delete deviceState.lastErrorMessages[deviceId];
 
             // Process Offroad Status from valuesRes
             if (valuesRes.data?.items) {
@@ -52,11 +66,15 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
             }
         } else {
             // Empty items means we couldn't fetch settings -> likely offline or not ready
+            // If it was a 200 OK but empty, treat as offline or specialized empty state?
+            // Existing logic treated as offline.
             deviceState.onlineStatuses[deviceId] = 'offline';
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error(`Failed to check status for ${deviceId}`, e);
-        deviceState.onlineStatuses[deviceId] = 'offline';
+        // Network errors or other exceptions are definitely errors, not just "offline"
+        deviceState.onlineStatuses[deviceId] = 'error';
+        deviceState.lastErrorMessages[deviceId] = e.message || 'Connection failed';
     }
 }
 
