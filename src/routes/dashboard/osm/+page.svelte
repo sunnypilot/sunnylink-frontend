@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { Map as MapIcon, Download, Trash2, AlertCircle, Loader2, RefreshCw } from 'lucide-svelte';
+	import { Map as MapIcon, Download, AlertCircle, Loader2, RefreshCw } from 'lucide-svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { setDeviceParams, checkDeviceStatus } from '$lib/api/device';
 	import { v1Client } from '$lib/api/client';
@@ -11,15 +11,12 @@
 	import { toastState } from '$lib/stores/toast.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ComboBox from '$lib/components/ComboBox.svelte';
-	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 
 	let countries: OSMRegion[] = $state([]);
 	let states: OSMRegion[] = $state([]);
 	let loadingRegions = $state(false);
 	let downloading = $state(false);
-	let isDeleting = $state(false);
-	let showDeleteConfirm = $state(false);
 	let loadingOsmParams = $state(false);
 	let error = $state<string | null>(null);
 
@@ -39,55 +36,31 @@
 	// Check status on mount / device change if not already online
 	$effect(() => {
 		const deviceId = deviceState.selectedDeviceId;
-		if (deviceId && authState.isAuthenticated) {
-			untrack(() => {
-				const status = deviceState.onlineStatuses[deviceId];
-				if (status === undefined || status === 'offline') {
-					loadingOsmParams = true;
-					logtoClient?.getIdToken().then((token) => {
-						if (token && deviceState.selectedDeviceId === deviceId) {
-							checkDeviceStatus(deviceId, token).finally(() => {
-								if (deviceState.selectedDeviceId === deviceId) {
-									fetchOsmParams(deviceId, token);
-								} else {
-									loadingOsmParams = false;
-								}
-							});
-						} else {
-							loadingOsmParams = false;
-						}
-					});
-				} else if (status === 'online') {
-					// Refresh params if online (checkDeviceStatus not needed)
-					loadingOsmParams = true;
-					logtoClient?.getIdToken().then((token) => {
-						if (token && deviceState.selectedDeviceId === deviceId) {
-							fetchOsmParams(deviceId, token);
-						} else {
-							loadingOsmParams = false;
-						}
-					});
-				}
-			});
-		}
+		logtoClient?.getIdToken().then((token) => {
+			if (token && deviceId) {
+				fetchOsmParams(deviceId, token);
+			}
+		});
 	});
 
-	async function fetchOsmParams(deviceId: string, token: string) {
-		loadingOsmParams = true;
+	async function fetchOsmParams(deviceId: string, token: string, redrawUI: boolean = true) {
+		loadingOsmParams = true && redrawUI;
 		try {
+			const osmParams = new Set([
+				'OsmLocationName',
+				'OsmLocationTitle',
+				'OsmStateName',
+				'OsmStateTitle',
+				'OSMDownloadProgress',
+				'OsmDbUpdatesCheck',
+				'OsmDownloadedDate'
+			]);
+
 			const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
 				params: {
 					path: { deviceId },
 					query: {
-						paramKeys: [
-							'OsmLocationName',
-							'OsmLocationTitle',
-							'OsmStateName',
-							'OsmStateTitle',
-							'OsmDownloadedDate',
-							'OSMDownloadProgress',
-							'OsmDbUpdatesCheck'
-						]
+						paramKeys: Array.from(osmParams)
 					}
 				},
 				headers: { Authorization: `Bearer ${token}` }
@@ -101,18 +74,7 @@
 				// Map new items to dictionary for easy lookup
 				const newItemsMap = new Map(res.data.items.map((i) => [i.key, i]));
 
-				// Create new list: filter out old versions of these keys, then append new ones
-				const keysToUpdate = new Set([
-					'OsmLocationName',
-					'OsmLocationTitle',
-					'OsmStateName',
-					'OsmStateTitle',
-					'OSMDownloadProgress',
-					'OsmDbUpdatesCheck',
-					'OsmDownloadedDate'
-				]);
-
-				const filtered = existing.filter((i) => !keysToUpdate.has(i.key));
+				const filtered = existing.filter((i) => !osmParams.has(i.key));
 				const updated = [...filtered, ...res.data.items];
 
 				deviceState.deviceSettings[deviceId] = updated;
@@ -164,20 +126,53 @@
 	);
 
 	// Computed status
-	let isDownloading = $derived.by(() => {
-		if (dbUpdatesCheck === '1' || dbUpdatesCheck === true || dbUpdatesCheck === 'true') return true;
-		// Try to parse progress if it exists
+	let downloadProgress = $derived.by(() => {
 		if (downloadProgressParam) {
 			try {
 				const prog =
 					typeof downloadProgressParam === 'string'
 						? JSON.parse(downloadProgressParam)
 						: downloadProgressParam;
-				return prog.total_files > 0 && prog.downloaded_files < prog.total_files;
-			} catch {}
+				if (prog.total_files > 0 && prog.downloaded_files < prog.total_files) {
+					return `${prog.downloaded_files}/${prog.total_files}`;
+				}
+				return '';
+			} catch {
+				return '';
+			}
 		}
+		return '';
+	});
+
+	let isDownloading = $derived.by(() => {
+		if (
+			dbUpdatesCheck === '1' ||
+			dbUpdatesCheck === true ||
+			dbUpdatesCheck === 'true' ||
+			downloadProgress !== ''
+		)
+			return true;
 		return false;
 	});
+
+	$effect(() => {
+		if (isDownloading) {
+			checkDownloadProgress(false);
+		}
+	});
+
+	async function checkDownloadProgress(redrawUI: boolean = true) {
+		logtoClient?.getIdToken().then((token) => {
+			// Poll download progress every 3 seconds
+			const interval = setInterval(() => {
+				if (deviceState.selectedDeviceId && token && isDownloading) {
+					fetchOsmParams(deviceState.selectedDeviceId, token, redrawUI);
+				} else {
+					clearInterval(interval);
+				}
+			}, 5000);
+		});
+	}
 
 	onMount(async () => {
 		await fetchCountries();
@@ -286,56 +281,12 @@
 			}, 1000);
 
 			// Poll progress
-			const interval = setInterval(() => {
-				if (deviceState.selectedDeviceId && token && downloading) {
-					fetchOsmParams(deviceState.selectedDeviceId, token);
-				} else {
-					clearInterval(interval);
-				}
-			}, 3000);
+			checkDownloadProgress(true);
 		} catch (e) {
 			console.error('Failed to start download', e);
 			toastState.show('Failed to start download', 'error');
 		} finally {
 			downloading = false;
-		}
-	}
-
-	async function handleDeleteMaps() {
-		showDeleteConfirm = true;
-	}
-
-	async function confirmDeleteMaps() {
-		if (!deviceState.selectedDeviceId || !logtoClient) return;
-
-		const token = await logtoClient.getIdToken();
-		if (!token) return;
-
-		isDeleting = true;
-		try {
-			const paramsToSet = [
-				{ key: 'OsmLocationName', value: '' },
-				{ key: 'OsmLocationTitle', value: '' },
-				{ key: 'OsmStateName', value: '' },
-				{ key: 'OsmStateTitle', value: '' },
-				{ key: 'OsmLocal', value: '0' },
-				{ key: 'OsmDownloadedDate', value: '' }
-			];
-
-			await setDeviceParams(deviceState.selectedDeviceId, paramsToSet, token);
-
-			selectedCountry = '';
-			selectedState = '';
-			toastState.show('Map configuration cleared', 'success');
-			showDeleteConfirm = false;
-			setTimeout(() => {
-				if (deviceState.selectedDeviceId && token)
-					fetchOsmParams(deviceState.selectedDeviceId, token);
-			}, 2000);
-		} catch (e) {
-			toastState.show('Failed to delete maps', 'error');
-		} finally {
-			isDeleting = false;
 		}
 	}
 
@@ -351,6 +302,8 @@
 				token
 			);
 			toastState.show('Checking for updates...', 'success');
+			fetchOsmParams(deviceState.selectedDeviceId, token, false);
+			checkDownloadProgress(false);
 		} catch (e) {
 			toastState.show('Failed to check for updates', 'error');
 		}
@@ -387,7 +340,7 @@
 				<MapIcon size={24} />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-white">Maps & Navigation</h1>
+				<h1 class="text-2xl font-bold text-white">OpenStreetMap</h1>
 				<p class="text-slate-400">Manage offline maps</p>
 			</div>
 		</div>
@@ -498,7 +451,7 @@
 							class="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400"
 						>
 							<Loader2 size={12} class="animate-spin" />
-							Updating
+							Downloading {downloadProgress}
 						</span>
 					{/if}
 				</div>
@@ -511,15 +464,6 @@
 					>
 						<RefreshCw size={18} />
 						Check for Updates
-					</button>
-
-					<button
-						class="btn flex-1 border-[#334155] bg-[#0f1726] text-sm font-medium text-red-400 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500"
-						onclick={handleDeleteMaps}
-						disabled={isDownloading}
-					>
-						<Trash2 size={18} />
-						Delete Map
 					</button>
 				</div>
 			{:else}
@@ -590,14 +534,4 @@
 			</div>
 		</div>
 	{/if}
-
-	<ConfirmationModal
-		bind:open={showDeleteConfirm}
-		title="Delete Maps"
-		message="Are you sure you want to delete all downloaded maps? This action cannot be undone."
-		confirmText="Delete Maps"
-		variant="danger"
-		onConfirm={confirmDeleteMaps}
-		isProcessing={isDeleting}
-	/>
 </div>
