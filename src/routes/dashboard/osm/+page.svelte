@@ -43,20 +43,28 @@
 			untrack(() => {
 				const status = deviceState.onlineStatuses[deviceId];
 				if (status === undefined || status === 'offline') {
+					loadingOsmParams = true;
 					logtoClient?.getIdToken().then((token) => {
 						if (token && deviceState.selectedDeviceId === deviceId) {
 							checkDeviceStatus(deviceId, token).finally(() => {
 								if (deviceState.selectedDeviceId === deviceId) {
 									fetchOsmParams(deviceId, token);
+								} else {
+									loadingOsmParams = false;
 								}
 							});
+						} else {
+							loadingOsmParams = false;
 						}
 					});
 				} else if (status === 'online') {
 					// Refresh params if online (checkDeviceStatus not needed)
+					loadingOsmParams = true;
 					logtoClient?.getIdToken().then((token) => {
 						if (token && deviceState.selectedDeviceId === deviceId) {
 							fetchOsmParams(deviceId, token);
+						} else {
+							loadingOsmParams = false;
 						}
 					});
 				}
@@ -76,9 +84,9 @@
 							'OsmLocationTitle',
 							'OsmStateName',
 							'OsmStateTitle',
+							'OsmDownloadedDate',
 							'OSMDownloadProgress',
-							'OsmDbUpdatesCheck',
-							'OsmDownloadedDate'
+							'OsmDbUpdatesCheck'
 						]
 					}
 				},
@@ -173,14 +181,20 @@
 
 	onMount(async () => {
 		await fetchCountries();
-		// Initialize selection from params if available
-		if (currentCountryName) {
+	});
+
+	// Sync selection from params when they become available (e.g. after refresh)
+	$effect(() => {
+		if (currentCountryName && !selectedCountry) {
 			selectedCountry = currentCountryName;
-			if (currentCountryName === 'US') {
-				await fetchStates();
-				if (currentStateName) {
-					selectedState = currentStateName;
-				}
+			if (currentCountryName === 'US' && states.length === 0) {
+				fetchStates().then(() => {
+					if (currentStateName && !selectedState) {
+						selectedState = currentStateName;
+					}
+				});
+			} else if (currentStateName && !selectedState) {
+				selectedState = currentStateName;
 			}
 		}
 	});
@@ -364,7 +378,6 @@
 	}
 </script>
 
-```svelte
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-4">
@@ -588,4 +601,3 @@
 		isProcessing={isDeleting}
 	/>
 </div>
-```
