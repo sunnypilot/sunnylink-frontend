@@ -392,12 +392,13 @@
 		<!-- Device Selector if needed, though global one exists -->
 		<!-- We can rely on the global device selector in the header -->
 		<button
-			class="btn btn-square text-slate-400 btn-ghost hover:text-white"
+			class="btn text-slate-400 btn-ghost btn-md hover:border-violet-600 hover:bg-violet-700 hover:text-white"
 			onclick={refreshModels}
 			disabled={loadingModels}
 			aria-label="Refresh models"
 		>
 			<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
+			Fetch Latest
 		</button>
 	</div>
 
