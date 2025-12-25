@@ -438,19 +438,6 @@
 									On Device
 								</span>
 							</div>
-							{#if isDownloading}
-								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
-								>
-									Downloading {downloadProgress}
-								</div>
-							{:else}
-								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
-								>
-									Last Updated {formatTimeAgo(downloadedDateParam)}
-								</div>
-							{/if}
 						</div>
 					</div>
 					<div class="p-4">
@@ -471,6 +458,19 @@
 									</p>
 								{/if}
 							</div>
+							{#if isDownloading}
+								<div
+									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
+								>
+									Downloading {downloadProgress}
+								</div>
+							{:else}
+								<div
+									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
+								>
+									Last Updated {formatTimeAgo(downloadedDateParam)}
+								</div>
+							{/if}
 						</div>
 
 						<div class="mt-6 flex flex-col gap-3 sm:flex-row">
