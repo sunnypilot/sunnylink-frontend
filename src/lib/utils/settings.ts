@@ -110,6 +110,23 @@ export function getAllSettings(
     );
 }
 
+export function inferSettingType(setting: RenderableSetting, value?: any): ExtendedDeviceParamKey['type'] {
+    if (setting.value?.type) return setting.value.type;
+
+    // Heuristic 1: Category
+    if (setting.category === 'toggles') return 'Bool';
+
+    // Heuristic 2: Key Prefix
+    const boolPrefixes = ['Is', 'Enable', 'Disable', 'Record', 'Allow'];
+    if (boolPrefixes.some(prefix => setting.key.startsWith(prefix))) return 'Bool';
+
+    // Heuristic 3: Value Type
+    if (typeof value === 'boolean') return 'Bool';
+    if (typeof value === 'number') return 'Int';
+
+    return 'String';
+}
+
 export interface DeviceSettingsBackup {
     version: number;
     timestamp: number;
