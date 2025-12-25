@@ -22,9 +22,11 @@
 		Smartphone,
 		RotateCcw,
 		Star,
-		CircleHelp
+		CircleHelp,
+		Trash2
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
+	import { toastState } from '$lib/stores/toast.svelte';
 
 	const DEFAULT_MODEL: ModelBundle = {
 		short_name: 'default',
@@ -39,8 +41,16 @@
 	let modelList = $state<ModelBundle[] | undefined>();
 	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
-	let searchQuery = $state('');
+	let rawSearchQuery = $state('');
+	let searchQuery = $state(''); // This is now the debounced value used for filtering
 	let lastSearchQuery = '';
+
+	$effect(() => {
+		const handler = setTimeout(() => {
+			searchQuery = rawSearchQuery;
+		}, 300);
+		return () => clearTimeout(handler);
+	});
 
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
@@ -62,6 +72,8 @@
 	);
 	let forceOffroadModalOpen = $state(false);
 	let resetModalOpen = $state(false);
+	let clearCacheModalOpen = $state(false);
+	let clearingCache = $state(false);
 
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
@@ -79,21 +91,15 @@
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
 
-	// Group models by folder
-	let groupedModels = $derived.by(() => {
+	// 1. First, group all models and sort them within groups. This is the expensive operation.
+	// We re-run this only when modelList or favorites change.
+	const allGroups = $derived.by(() => {
 		if (!modelList) return [];
 
 		const groups: Record<string, ModelBundle[]> = {};
 		const favModels: ModelBundle[] = [];
 
 		for (const model of modelList) {
-			const matchesSearch =
-				!searchQuery ||
-				model.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				model.short_name.toLowerCase().includes(searchQuery.toLowerCase());
-
-			if (!matchesSearch) continue;
-
 			// Add to favorites group if applicable
 			if (favorites.has(model.ref)) {
 				favModels.push(model);
@@ -106,36 +112,59 @@
 			groups[folder].push(model);
 		}
 
-		const result = Object.entries(groups)
-			.map(([name, models]) => {
-				// Sort models by index descending within the folder
-				models.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+		const result = Object.entries(groups).map(([name, models]) => {
+			// Sort models by index descending within the folder
+			const sortedModels = [...models].sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
 
-				// The max index of the folder is the index of the first model (since we just sorted)
-				const maxIndex = models.length > 0 ? (models[0]?.index ?? -1) : -1;
+			// The max index of the folder is the index of the first model
+			const maxIndex = sortedModels.length > 0 ? (sortedModels[0]?.index ?? -1) : -1;
 
-				return {
-					name,
-					models,
-					maxIndex
-				};
-			})
-			.sort((a, b) => {
-				// Sort folders by their maxIndex descending
-				return b.maxIndex - a.maxIndex;
-			});
+			return {
+				name,
+				models: sortedModels,
+				maxIndex
+			};
+		});
 
 		// Insert Favorites folder at the top if it has models
 		if (favModels.length > 0) {
-			favModels.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+			const sortedFavs = [...favModels].sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
 			result.unshift({
 				name: 'Favorites',
-				models: favModels,
-				maxIndex: 999999 // Ensure it stays at the top if we used index sorting, but unshift does it anyway
+				models: sortedFavs,
+				maxIndex: 999999
 			});
 		}
 
-		return result;
+		// Initial sort by maxIndex for the default view
+		return result.sort((a, b) => b.maxIndex - a.maxIndex);
+	});
+
+	// 2. Then filter the groups based on search query. This is fast.
+	const groupedModels = $derived.by(() => {
+		if (!searchQuery) return allGroups;
+
+		const q = searchQuery.toLowerCase();
+		return allGroups
+			.map((group) => {
+				const filteredModels = group.models.filter(
+					(m) => m.display_name.toLowerCase().includes(q) || m.short_name.toLowerCase().includes(q)
+				);
+
+				if (filteredModels.length === 0) return null;
+
+				// Recalculate maxIndex for sorting relevance in search results
+				// (Optional: we could just keep original order to avoid jumping)
+				const maxIndex = filteredModels[0]?.index ?? -1;
+
+				return {
+					name: group.name,
+					models: filteredModels,
+					maxIndex
+				};
+			})
+			.filter((g) => g !== null)
+			.sort((a, b) => b.maxIndex - a.maxIndex);
 	});
 
 	let openFolders = $state<Record<string, boolean>>({});
@@ -195,7 +224,7 @@
 
 	async function fetchModelsForDevice(silent = false) {
 		if (!silent) {
-			modelList = undefined;
+			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
 			currentModelShortName = undefined;
 			selectedModelShortName = undefined;
 			loadingModels = true;
@@ -415,6 +444,42 @@
 		resetModalOpen = false;
 	}
 
+	async function clearModelsCache() {
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+
+		try {
+			clearingCache = true;
+			await v0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: deviceState.selectedDeviceId
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_ClearCache',
+						value: encodeParamValue({
+							key: 'ModelManager_ClearCache',
+							value: '1',
+							type: 'bool'
+						}),
+						is_compressed: false
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${await logtoClient.getIdToken()}`
+				}
+			});
+			toastState.show('Models cache cleared successfully!', 'success');
+		} catch (e) {
+			console.error('Error clearing models cache:', e);
+			toastState.show('Failed to clear models cache.', 'error');
+		} finally {
+			clearingCache = false;
+			clearCacheModalOpen = false;
+		}
+	}
+
 	async function toggleFavorite(bundle: ModelBundle, event?: Event) {
 		if (event) {
 			event.stopPropagation();
@@ -494,20 +559,34 @@
 			<p class="text-slate-400">Manage and switch driving models for your device.</p>
 		</div>
 
-		{#if currentModelShortName !== undefined && !loadingModels}
+		<div class="flex items-center gap-2">
 			<button
-				class="btn border-slate-700 bg-slate-800 text-slate-200 transition-all btn-sm hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
-				onclick={() => (resetModalOpen = true)}
-				disabled={sendingModel || !isOffroad}
+				class="btn border-red-500/30 bg-red-500/10 text-red-400 transition-all btn-md hover:border-red-500/50 hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
+				onclick={() => (clearCacheModalOpen = true)}
+				disabled={clearingCache || sendingModel || !isOffroad}
 			>
-				{#if sendingModel}
+				{#if clearingCache}
 					<span class="loading loading-xs loading-spinner"></span>
 				{:else}
-					<RotateCcw size={14} class="mr-1.5" />
+					<Trash2 size={14} class="mr-1.5" />
 				{/if}
-				Reset to Default Model
+				Clear Cache
 			</button>
-		{/if}
+			{#if currentModelShortName !== undefined && !loadingModels}
+				<button
+					class="btn border-slate-700 bg-slate-800 text-slate-200 transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
+					onclick={() => (resetModalOpen = true)}
+					disabled={sendingModel || clearingCache || !isOffroad}
+				>
+					{#if sendingModel}
+						<span class="loading loading-xs loading-spinner"></span>
+					{:else}
+						<RotateCcw size={14} class="mr-1.5" />
+					{/if}
+					Reset to Default Model
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if authState.loading}
@@ -587,7 +666,7 @@
 				</div>
 			</div>
 		{/await}
-	{:else if loadingModels || isCheckingStatus}
+	{:else if (loadingModels || isCheckingStatus) && !modelList}
 		<div class="animate-pulse space-y-6">
 			{#if isCheckingStatus}
 				<div class="flex items-center gap-2 text-slate-400">
@@ -700,17 +779,20 @@
 						<input
 							type="text"
 							placeholder="Search models..."
-							class="input input-sm w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
-							bind:value={searchQuery}
+							class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
+							bind:value={rawSearchQuery}
 						/>
 						<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
 							<Search size={14} class="text-slate-500" />
 						</div>
-						{#if searchQuery}
+						{#if rawSearchQuery}
 							<button
 								type="button"
 								class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
-								onclick={() => (searchQuery = '')}
+								onclick={() => {
+									rawSearchQuery = '';
+									searchQuery = '';
+								}}
 								aria-label="Clear search"
 							>
 								<X size={14} />
@@ -719,7 +801,15 @@
 					</div>
 				</div>
 
-				<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
+				<div class="relative overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
+					{#if loadingModels && modelList}
+						<div
+							class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/50 backdrop-blur-[1px]"
+							transition:fade={{ duration: 200 }}
+						>
+							<span class="loading loading-lg loading-spinner text-violet-500"></span>
+						</div>
+					{/if}
 					{#if loadingModels && !modelList}
 						<div class="p-6 text-center text-slate-500">
 							<span class="loading loading-spinner text-violet-500"></span>
@@ -998,6 +1088,16 @@
 	variant="danger"
 	isProcessing={sendingModel}
 	onConfirm={resetToDefaultModel}
+/>
+
+<ConfirmationModal
+	bind:open={clearCacheModalOpen}
+	title="Clear Models Cache"
+	message="Are you sure you want to clear the models cache on this device? This will remove all downloaded models except the active one."
+	confirmText="Clear Cache"
+	variant="danger"
+	isProcessing={clearingCache}
+	onConfirm={clearModelsCache}
 />
 
 <style>
