@@ -42,16 +42,8 @@
 	let modelList = $state<ModelBundle[] | undefined>();
 	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
-	let rawSearchQuery = $state('');
-	let searchQuery = $state(''); // This is now the debounced value used for filtering
+	let searchQuery = $state('');
 	let lastSearchQuery = '';
-
-	$effect(() => {
-		const handler = setTimeout(() => {
-			searchQuery = rawSearchQuery;
-		}, 300);
-		return () => clearTimeout(handler);
-	});
 
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
@@ -92,15 +84,21 @@
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
 
-	// 1. First, group all models and sort them within groups. This is the expensive operation.
-	// We re-run this only when modelList or favorites change.
-	const allGroups = $derived.by(() => {
+	// Group models by folder
+	let groupedModels = $derived.by(() => {
 		if (!modelList) return [];
 
 		const groups: Record<string, ModelBundle[]> = {};
 		const favModels: ModelBundle[] = [];
 
 		for (const model of modelList) {
+			const matchesSearch =
+				!searchQuery ||
+				model.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				model.short_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+			if (!matchesSearch) continue;
+
 			// Add to favorites group if applicable
 			if (favorites.has(model.ref)) {
 				favModels.push(model);
@@ -113,59 +111,36 @@
 			groups[folder].push(model);
 		}
 
-		const result = Object.entries(groups).map(([name, models]) => {
-			// Sort models by index descending within the folder
-			const sortedModels = [...models].sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+		const result = Object.entries(groups)
+			.map(([name, models]) => {
+				// Sort models by index descending within the folder
+				models.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
 
-			// The max index of the folder is the index of the first model
-			const maxIndex = sortedModels.length > 0 ? (sortedModels[0]?.index ?? -1) : -1;
-
-			return {
-				name,
-				models: sortedModels,
-				maxIndex
-			};
-		});
-
-		// Insert Favorites folder at the top if it has models
-		if (favModels.length > 0) {
-			const sortedFavs = [...favModels].sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
-			result.unshift({
-				name: 'Favorites',
-				models: sortedFavs,
-				maxIndex: 999999
-			});
-		}
-
-		// Initial sort by maxIndex for the default view
-		return result.sort((a, b) => b.maxIndex - a.maxIndex);
-	});
-
-	// 2. Then filter the groups based on search query. This is fast.
-	const groupedModels = $derived.by(() => {
-		if (!searchQuery) return allGroups;
-
-		const q = searchQuery.toLowerCase();
-		return allGroups
-			.map((group) => {
-				const filteredModels = group.models.filter(
-					(m) => m.display_name.toLowerCase().includes(q) || m.short_name.toLowerCase().includes(q)
-				);
-
-				if (filteredModels.length === 0) return null;
-
-				// Recalculate maxIndex for sorting relevance in search results
-				// (Optional: we could just keep original order to avoid jumping)
-				const maxIndex = filteredModels[0]?.index ?? -1;
+				// The max index of the folder is the index of the first model (since we just sorted)
+				const maxIndex = models.length > 0 ? (models[0]?.index ?? -1) : -1;
 
 				return {
-					name: group.name,
-					models: filteredModels,
+					name,
+					models,
 					maxIndex
 				};
 			})
-			.filter((g) => g !== null)
-			.sort((a, b) => b.maxIndex - a.maxIndex);
+			.sort((a, b) => {
+				// Sort folders by their maxIndex descending
+				return b.maxIndex - a.maxIndex;
+			});
+
+		// Insert Favorites folder at the top if it has models
+		if (favModels.length > 0) {
+			favModels.sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+			result.unshift({
+				name: 'Favorites',
+				models: favModels,
+				maxIndex: 999999 // Ensure it stays at the top if we used index sorting, but unshift does it anyway
+			});
+		}
+
+		return result;
 	});
 
 	let openFolders = $state<Record<string, boolean>>({});
@@ -597,13 +572,13 @@
 </script>
 
 <div class="space-y-6">
-	<div class="flex items-center justify-between">
+	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
 		<div>
 			<h1 class="text-2xl font-bold text-white">Models</h1>
 			<p class="text-slate-400">Manage and switch driving models for your device.</p>
 		</div>
 
-		<div class="flex items-center gap-2">
+		<div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
 			<button
 				class="btn border-red-500/30 bg-red-500/10 text-red-400 transition-all btn-md hover:border-red-500/50 hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
 				onclick={() => (clearCacheModalOpen = true)}
@@ -812,40 +787,16 @@
 			{/if}
 
 			<div class="space-y-3">
-				<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 					<div class="label px-0">
 						<span
 							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
 							>Available Models</span
 						>
 					</div>
-					<div class="flex items-center gap-2">
-						<div class="relative w-full max-w-md">
-							<input
-								type="text"
-								placeholder="Search models..."
-								class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
-								bind:value={rawSearchQuery}
-							/>
-							<div
-								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
-							>
-								<Search size={14} class="text-slate-500" />
-							</div>
-							{#if rawSearchQuery}
-								<button
-									type="button"
-									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
-									onclick={() => {
-										rawSearchQuery = '';
-										searchQuery = '';
-									}}
-									aria-label="Clear search"
-								>
-									<X size={14} />
-								</button>
-							{/if}
-						</div>
+					<div
+						class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
+					>
 						<button
 							type="button"
 							class="btn border-slate-700 bg-slate-800 text-slate-200 btn-ghost transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
@@ -856,6 +807,31 @@
 							<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
 							Fetch Latest
 						</button>
+						<div class="relative w-full">
+							<input
+								type="text"
+								placeholder="Search models..."
+								class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
+								bind:value={searchQuery}
+							/>
+							<div
+								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
+							>
+								<Search size={14} class="text-slate-500" />
+							</div>
+							{#if searchQuery}
+								<button
+									type="button"
+									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
+									onclick={() => {
+										searchQuery = '';
+									}}
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</button>
+							{/if}
+						</div>
 					</div>
 				</div>
 
