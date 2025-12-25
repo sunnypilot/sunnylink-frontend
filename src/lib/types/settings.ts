@@ -243,7 +243,6 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
     { key: 'CameraDebugExpTime', label: 'Cam Debug Time', description: 'Camera exposure time', category: 'developer', readonly: true, hidden: true },
     { key: 'FirmwareQueryDone', label: 'Firmware Query Done', description: 'Firmware check complete', category: 'developer', readonly: true, hidden: true },
     { key: 'ModelManager_DownloadIndex', label: 'Model Download Index', description: 'Download queue index', category: 'developer', readonly: true, hidden: true },
-    { key: 'ModelManager_ClearCache', label: 'Clear Model Cache', description: 'Delete downloaded models', category: 'developer', advanced: true },
     { key: 'CurrentBootlog', label: 'Current Bootlog', description: 'Log of current boot', category: 'developer', readonly: true, hidden: true },
     { key: 'Offroad_ExcessiveActuation', label: 'Excessive Actuation', description: 'Controls saturation detected', category: 'developer', readonly: true, hidden: true },
     { key: 'LastManagerExitReason', label: 'Exit Reason', description: 'Reason for last process exit', category: 'developer', readonly: true, hidden: true },
@@ -301,5 +300,6 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
     { key: 'NextMapSpeedLimit', label: 'Next Map Speed', description: 'Upcoming speed limit', category: 'other', readonly: true, hidden: true },
     { key: 'OsmStateTitle', label: 'State Region', description: 'Current OSM region', category: 'other', readonly: true, hidden: true },
     { key: 'LastSunnylinkPingTime', label: 'LastSunnylinkPingTime', description: 'Unknown setting from device', category: 'other', hidden: true },
+    { key: 'ModelManager_ClearCache', label: 'Clear Model Cache', description: 'Delete downloaded models', category: 'other', hidden: true },
 
 ];
