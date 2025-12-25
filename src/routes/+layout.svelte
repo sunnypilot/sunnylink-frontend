@@ -73,6 +73,7 @@
 					...(deviceState.selectedDeviceId
 						? [
 								{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+								{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
 								{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
 								{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
 								{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
@@ -200,7 +201,11 @@
 					>
 						<Menu size={22} />
 					</label>
-					<p class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]">sunnylink</p>
+					<p
+						class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]"
+					>
+						sunnylink
+					</p>
 				</div>
 
 				<!-- Device Selector & Search -->
@@ -260,7 +265,9 @@
 					SP
 				</div>
 				<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">sunnylink</p>
+					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">
+						sunnylink
+					</p>
 					<h1 class="text-base font-semibold">Control Center</h1>
 				</div>
 			</div>
