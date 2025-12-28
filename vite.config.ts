@@ -54,18 +54,6 @@ export default defineConfig({
 			}
 		})
 	],
-	server: {
-		proxy: {
-			'/v1': {
-				target: 'https://stg.api.sunnypilot.ai',
-				changeOrigin: true
-			},
-			'/device': {
-				target: 'https://stg.api.sunnypilot.ai',
-				changeOrigin: true
-			}
-		}
-	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
