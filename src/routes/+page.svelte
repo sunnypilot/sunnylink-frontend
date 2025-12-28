@@ -214,7 +214,7 @@
 		<div class="mx-auto max-w-7xl px-6 lg:px-8">
 			<div class="mx-auto max-w-2xl text-center mb-16">
 				<h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Everything you need to manage your device</h2>
-				<p class="mt-4 text-lg text-slate-400">Advanced features designed for enthusiasts and fleet managers alike.</p>
+				<p class="mt-4 text-lg text-slate-400">Essential tools for every user. Simplify device management, whether you're a daily driver or an advanced user.</p>
 			</div>
 
 			<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -269,32 +269,64 @@
 				<!-- Connecting Line (Desktop) -->
 				<div class="hidden lg:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-[#594AE2]/0 via-[#594AE2]/30 to-[#594AE2]/0 border-t border-dashed border-white/20"></div>
 
-				<!-- Step 1 -->
-				<div class="relative flex flex-col items-center text-center">
-					<div class="relative mb-6 z-10 flex h-24 w-24 items-center justify-center rounded-full border border-[#594AE2]/30 bg-[#0f1726] shadow-lg shadow-[#594AE2]/20">
-						<Download class="h-10 w-10 text-[#594AE2]" />
-					</div>
-					<h3 class="text-xl font-semibold text-white">1. Install sunnypilot</h3>
-					<p class="mt-2 text-slate-400">Install sunnypilot to your comma device to unlock sunnylink capabilities.</p>
-				</div>
-
-				<!-- Step 2 -->
-				<div class="relative flex flex-col items-center text-center">
-					<div class="relative mb-6 z-10 flex h-24 w-24 items-center justify-center rounded-full border border-blue-500/30 bg-[#0f1726] shadow-lg shadow-blue-500/20">
-						<LinkIcon class="h-10 w-10 text-blue-500" />
-					</div>
-					<h3 class="text-xl font-semibold text-white">2. Pair via sunnylink</h3>
-					<p class="mt-2 text-slate-400">Scan the QR code on your comma device to instantly pair with your account.</p>
-				</div>
-
-				<!-- Step 3 -->
-				<div class="relative flex flex-col items-center text-center">
-					<div class="relative mb-6 z-10 flex h-24 w-24 items-center justify-center rounded-full border border-emerald-500/30 bg-[#0f1726] shadow-lg shadow-emerald-500/20">
-						<Car class="h-10 w-10 text-emerald-500" />
-					</div>
-					<h3 class="text-xl font-semibold text-white">3. Manage & Drive</h3>
-					<p class="mt-2 text-slate-400">View stats, change settings securely, and enjoy your drive.</p>
-				</div>
+				{#each [
+					{
+						title: '1. Install sunnypilot',
+						description: 'Flash sunnypilot to your device to unlock sunnylink capabilities.',
+						icon: Download,
+						color: 'text-[#594AE2]',
+						borderColor: 'border-[#594AE2]/30',
+						shadowColor: 'shadow-[#594AE2]/20',
+						hoverBorder: 'group-hover:border-[#594AE2]/50',
+						hoverShadow: 'group-hover:shadow-[0_0_30px_-5px_#594AE2]',
+						hoverText: 'group-hover:text-[#594AE2]',
+						link: 'https://community.sunnypilot.ai/t/recommended-branch-installations/235',
+						target: '_blank'
+					},
+					{
+						title: '2. Pair via sunnylink',
+						description: 'Scan the QR code on your device to instantly pair with your account.',
+						icon: LinkIcon,
+						color: 'text-blue-500',
+						borderColor: 'border-blue-500/30',
+						shadowColor: 'shadow-blue-500/20',
+						hoverBorder: 'group-hover:border-blue-500/50',
+						hoverShadow: 'group-hover:shadow-[0_0_30px_-5px_#3b82f6]',
+						hoverText: 'group-hover:text-blue-500',
+						link: null 
+					},
+					{
+						title: '3. Manage & Drive',
+						description: 'View stats, change settings securely, and enjoy your drive.',
+						icon: Car,
+						color: 'text-emerald-500',
+						borderColor: 'border-emerald-500/30',
+						shadowColor: 'shadow-emerald-500/20',
+						hoverBorder: 'group-hover:border-emerald-500/50',
+						hoverShadow: 'group-hover:shadow-[0_0_30px_-5px_#10b981]',
+						hoverText: 'group-hover:text-emerald-500',
+						link: '/dashboard'
+					}
+				] as step}
+					<svelte:element 
+						this={step.link ? 'a' : 'div'} 
+						href={step.link}
+						target={step.target}
+						class="group relative flex flex-col items-center text-center transition-transform hover:-translate-y-1 {step.link ? 'cursor-pointer' : ''}"
+					>
+						<div 
+							class="relative mb-6 z-10 flex h-24 w-24 items-center justify-center rounded-full border bg-[#0f1726] shadow-lg transition-all {step.borderColor} {step.shadowColor} {step.hoverShadow} {step.hoverBorder}"
+						>
+							<svelte:component this={step.icon} class="h-10 w-10 {step.color}" />
+						</div>
+						<h3 
+							class="text-xl font-semibold text-white transition-colors {step.hoverText}"
+						>
+							{step.title}
+						</h3>
+						<p class="mt-2 text-slate-400">{step.description}</p>
+					</svelte:element>
+				{/each}
 			</div>
 		</div>
 	</section>
