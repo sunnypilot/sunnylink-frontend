@@ -272,7 +272,7 @@
 				{#each [
 					{
 						title: '1. Install sunnypilot',
-						description: 'Flash sunnypilot to your device to unlock sunnylink capabilities.',
+						description: 'Install sunnypilot to your comma device to unlock its potential with sunnylink.',
 						icon: Download,
 						color: 'text-[#594AE2]',
 						borderColor: 'border-[#594AE2]/30',
@@ -285,7 +285,7 @@
 					},
 					{
 						title: '2. Pair via sunnylink',
-						description: 'Scan the QR code on your device to instantly pair with your account.',
+						description: 'Scan the QR code on your comma device to pair with your account.',
 						icon: LinkIcon,
 						color: 'text-blue-500',
 						borderColor: 'border-blue-500/30',
@@ -297,7 +297,7 @@
 					},
 					{
 						title: '3. Manage & Drive',
-						description: 'View stats, change settings securely, and enjoy your drive.',
+						description: 'Change settings securely, view stats, and enjoy your drive.',
 						icon: Car,
 						color: 'text-emerald-500',
 						borderColor: 'border-emerald-500/30',
