@@ -177,6 +177,7 @@
 			});
 		}
 	});
+	let isLandingPage = $derived(pathname === '/');
 </script>
 
 <svelte:head>
@@ -184,11 +185,12 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="drawer min-h-screen bg-[#0f1726] lg:drawer-open">
+<div class="drawer min-h-screen bg-[#0f1726] {!isLandingPage ? 'lg:drawer-open' : 'h-auto overflow-visible'}">
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
-	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726]">
+	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726] {isLandingPage ? 'h-auto overflow-visible' : ''}">
 		<GlobalStatusBanner />
 		<!-- Navbar for mobile -->
+		{#if !isLandingPage}
 		<header
 			class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
 		>
@@ -240,13 +242,15 @@
 				</div>
 			{/if}
 		</header>
+		{/if}
 
 		<!-- Page content -->
-		<main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+		<main class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-10'}">
 			{@render children()}
 		</main>
 	</div>
-
+	
+	{#if !isLandingPage}
 	<div class="drawer-side z-[51]">
 		<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 		<aside
@@ -406,6 +410,7 @@
 			</div>
 		</aside>
 	</div>
+	{/if}
 </div>
 
 <BackupStatusIndicator />
@@ -422,7 +427,7 @@
 <ForceOffroadBanner />
 <Toast />
 <ForceOffroadBanner />
-{#if isIOS}
+{#if isIOS && !isLandingPage}
 	<PWAPrompt
 		copyTitle="Add to Home Screen"
 		copyBody="This website has app functionality. Add it to your home screen to use it in fullscreen and while offline."

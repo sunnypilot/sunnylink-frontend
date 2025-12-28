@@ -3,10 +3,19 @@ import { logtoClient } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
-export const load: LayoutLoad = async () => {
+export const load: LayoutLoad = async ({ url }) => {
+    if (url.pathname === '/') {
+        return {
+            streamed: {
+                devices: Promise.resolve([])
+            }
+        };
+    }
+
     // Define the heavy logic as a standalone async function
     const fetchAllDeviceData = async () => {
-        if (!logtoClient) return [];
+        if (url.pathname === '/') return [];
+        if (!logtoClient || !(await logtoClient.isAuthenticated())) return [];
 
         // 1. Get the token
         let token = await logtoClient.getIdToken();
