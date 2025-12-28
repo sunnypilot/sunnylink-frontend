@@ -275,7 +275,7 @@
 						<Download class="h-10 w-10 text-[#594AE2]" />
 					</div>
 					<h3 class="text-xl font-semibold text-white">1. Install sunnypilot</h3>
-					<p class="mt-2 text-slate-400">Flash sunnypilot to your device to unlock sunnylink capabilities.</p>
+					<p class="mt-2 text-slate-400">Install sunnypilot to your comma device to unlock sunnylink capabilities.</p>
 				</div>
 
 				<!-- Step 2 -->
@@ -284,7 +284,7 @@
 						<LinkIcon class="h-10 w-10 text-blue-500" />
 					</div>
 					<h3 class="text-xl font-semibold text-white">2. Pair via sunnylink</h3>
-					<p class="mt-2 text-slate-400">Scan the QR code on your device to instantly pair with your account.</p>
+					<p class="mt-2 text-slate-400">Scan the QR code on your comma device to instantly pair with your account.</p>
 				</div>
 
 				<!-- Step 3 -->
