@@ -29,7 +29,7 @@ export const mockIssues: GitHubIssue[] = [
 		id: 1,
 		number: 101,
 		title: 'Active Error (Non-Dismissible)',
-		body: '[Public Notification]: Critical System Failure. (Body Message)',
+		body: 'Public Notification: Critical System Failure. (Body Message)',
 		state: 'open',
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString(),
@@ -41,7 +41,7 @@ export const mockIssues: GitHubIssue[] = [
 		id: 2,
 		number: 102,
 		title: 'Active Warning (Dismissible)',
-		body: '[Public Notification]: Intermittent Degradation. (Body Message)',
+		body: 'Public Notification: Intermittent Degradation. (Body Message)',
 		state: 'open',
 		created_at: new Date(Date.now() - 10000).toISOString(),
 		updated_at: new Date(Date.now() - 10000).toISOString(),
@@ -53,7 +53,7 @@ export const mockIssues: GitHubIssue[] = [
 		id: 3,
 		number: 103,
 		title: 'Active Warning with Comment Update',
-		body: '[Public Notification]: Initial Warning Message.',
+		body: 'Public Notification: Initial Warning Message.',
 		state: 'open',
 		created_at: new Date(Date.now() - 20000).toISOString(),
 		updated_at: new Date(Date.now() - 20000).toISOString(),
@@ -65,7 +65,7 @@ export const mockIssues: GitHubIssue[] = [
 		id: 4,
 		number: 104,
 		title: 'Recent Closed Info (Visible < 24h)',
-		body: '[Public Notification]: Scheduled maintenance complete.',
+		body: 'Public Notification: Scheduled maintenance complete.',
 		state: 'closed',
 		created_at: new Date(Date.now() - 100000).toISOString(),
 		updated_at: new Date(Date.now() - 100000).toISOString(),
@@ -78,7 +78,7 @@ export const mockIssues: GitHubIssue[] = [
 		id: 5,
 		number: 105,
 		title: 'Old Closed Info (Hidden > 24h)',
-		body: '[Public Notification]: Old maintenance.',
+		body: 'Public Notification: Old maintenance.',
 		state: 'closed',
 		created_at: new Date(Date.now() - 200000000).toISOString(),
 		updated_at: new Date(Date.now() - 200000000).toISOString(),
@@ -107,7 +107,7 @@ export const mockFetchComments = async (url: string): Promise<GitHubComment[]> =
 		return [
 			{
 				id: 999,
-				body: '[Public Notification]: This message comes from a COMMENT and overrides the body!',
+				body: 'Public Notification: This message comes from a COMMENT and overrides the body!',
 				created_at: new Date().toISOString(), // Newer than body
 				updated_at: new Date().toISOString(),
 				html_url: ''
