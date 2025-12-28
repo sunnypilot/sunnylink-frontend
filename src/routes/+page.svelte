@@ -53,7 +53,6 @@
 	<nav class="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0f1726]/80 backdrop-blur-md">
 		<div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
 			<div class="flex items-center gap-2">
-				<span class="mr-2 rounded-md bg-[#594AE2] px-2 py-1 font-mono text-xs font-bold text-white">SP</span>
 				<span class="font-audiowide text-sm font-semibold tracking-widest text-slate-300 uppercase">sunnylink</span>
 			</div>
 			
@@ -305,18 +304,14 @@
 		<div class="mx-auto max-w-7xl px-6 lg:px-8">
 			<div class="flex flex-col items-center justify-between gap-8 md:flex-row">
 				<div class="flex items-center gap-2">
-					<div class="rounded-md bg-[#594AE2] px-2 py-1 font-mono text-xs font-bold text-white">SP</div>
-					<span class="font-semibold text-white">sunnylink</span>
+					<span class="font-audiowide font-semibold text-white">sunnylink</span>
 				</div>
 				<div class="flex gap-8 text-sm text-slate-400">
-					<a href="/terms" class="hover:text-white transition-colors">Terms</a>
-					<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
-					<a href="https://github.com/sunnypilot/sunnylink" target="_blank" class="hover:text-white transition-colors flex items-center gap-2">
-						<Github size={16} /> GitHub
-					</a>
+					<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
+					<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
 				</div>
 				<div class="text-sm text-slate-500">
-					© {new Date().getFullYear()} sunnylink. All rights reserved.
+					© {new Date().getFullYear()} sunnypilot. All rights reserved.
 				</div>
 			</div>
 		</div>

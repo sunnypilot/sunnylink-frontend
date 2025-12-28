@@ -263,11 +263,7 @@
 		>
 			<!-- Logo Area -->
 			<div class="flex h-16 items-center gap-3 px-3 sm:h-20 sm:gap-4 sm:px-4 lg:px-6">
-				<div
-					class="badge h-8 w-8 rounded-md border-[#334155] p-0 font-mono text-[0.6rem] tracking-widest text-white badge-neutral"
-				>
-					SP
-				</div>
+
 				<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 					<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">
 						sunnylink
