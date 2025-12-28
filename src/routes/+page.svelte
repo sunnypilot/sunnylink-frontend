@@ -339,8 +339,8 @@
 					<span class="font-audiowide font-semibold text-white">sunnylink</span>
 				</div>
 				<div class="flex gap-8 text-sm text-slate-400">
-					<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
-					<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
+					<a href="https://www.sunnypilot.ai/terms" class="hover:text-white transition-colors">Terms of Service</a>
+					<a href="https://www.sunnypilot.ai/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
 					<a href="https://github.com/sunnypilot/sunnypilot" target="_blank" class="hover:text-white transition-colors flex items-center gap-2">
 						<Github size={16} /> GitHub
 					</a>
