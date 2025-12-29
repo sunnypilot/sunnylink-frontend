@@ -28,7 +28,7 @@ export function decodeParamValue(param: DeviceParam): unknown {
 			case 'Int':
 				return parseInt(decodedString, 10);
 			case 'Float':
-				return parseFloat(decodedString);
+				return parseFloat(parseFloat(decodedString).toFixed(2));
 			case 'Json':
 				return JSON.parse(decodedString);
 			case 'Time':
