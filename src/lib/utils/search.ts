@@ -20,22 +20,11 @@ export function searchSettings(
     for (const setting of settings) {
         let score = 0;
 
+        // Cache lowercase conversions to avoid repeated calls
         const key = setting.key.toLowerCase();
         const title = (setting._extra?.title || setting.label).toLowerCase();
         const description = (setting._extra?.description || setting.description).toLowerCase();
         const category = setting.category.toLowerCase();
-
-        // Value matching
-        let valueStr = '';
-        const currentValue = values?.[setting.key];
-
-        if (currentValue !== undefined && currentValue !== null) {
-            valueStr = String(currentValue).toLowerCase();
-        } else if (setting.value?.default_value !== undefined && setting.value?.default_value !== null) {
-            // Try to use default value if current value is not available
-            valueStr = String(setting.value.default_value).toLowerCase();
-        }
-
 
         // 1. Internal param name (Key) - Highest priority
         if (key === normalizedQuery) {
@@ -61,8 +50,17 @@ export function searchSettings(
         }
 
         // 4. The value of the param
-        if (valueStr && valueStr.includes(normalizedQuery)) {
-            score += 20;
+        const currentValue = values?.[setting.key];
+        if (currentValue !== undefined && currentValue !== null) {
+            const valueStr = String(currentValue).toLowerCase();
+            if (valueStr.includes(normalizedQuery)) {
+                score += 20;
+            }
+        } else if (setting.value?.default_value !== undefined && setting.value?.default_value !== null) {
+            const valueStr = String(setting.value.default_value).toLowerCase();
+            if (valueStr.includes(normalizedQuery)) {
+                score += 20;
+            }
         }
 
         // 5. The category of the param

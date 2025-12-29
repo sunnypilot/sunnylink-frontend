@@ -94,14 +94,6 @@
 		}
 	});
 
-	function chunkArray<T>(array: T[], size: number): T[][] {
-		const result = [];
-		for (let i = 0; i < array.length; i += size) {
-			result.push(array.slice(i, i + size));
-		}
-		return result;
-	}
-
 	async function fetchCurrentValues() {
 		if (!deviceId || !logtoClient) return;
 
@@ -117,9 +109,17 @@
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
 
-			const chunks = chunkArray(keysToFetch, 10);
+			// Build lookup map for O(1) access to setting types
+			const settingsTypeMap = new Map<string, string>();
+			for (const setting of categorySettings) {
+				settingsTypeMap.set(setting.key, setting.value?.type ?? 'String');
+			}
 
-			for (const chunk of chunks) {
+			// Process keys in chunks of 10
+			const chunkSize = 10;
+			for (let i = 0; i < keysToFetch.length; i += chunkSize) {
+				const chunk = keysToFetch.slice(i, i + chunkSize);
+
 				try {
 					const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
 						params: {
@@ -140,9 +140,7 @@
 						// Update store with fetched values
 						for (const item of response.data.items) {
 							if (item.key && item.value !== undefined) {
-								// Find definition to get the type
-								const def = categorySettings.find((s) => s.key === item.key);
-								const type = def?.value?.type ?? 'String'; // Default to String if unknown
+								const type = settingsTypeMap.get(item.key) ?? 'String';
 
 								// Decode the value
 								const decoded = decodeParamValue({
@@ -171,27 +169,26 @@
 		}
 	}
 
+	// Pre-compiled regex for JSON syntax highlighting
+	const JSON_TOKEN_REGEX = /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g;
+
 	function syntaxHighlightJson(json: string): string {
 		if (!json) return '';
-		json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-		return json.replace(
-			/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-			function (match) {
-				let cls = 'text-orange-400'; // number
-				if (/^"/.test(match)) {
-					if (/:$/.test(match)) {
-						cls = 'text-blue-400'; // key
-					} else {
-						cls = 'text-green-400'; // string
-					}
-				} else if (/true|false/.test(match)) {
-					cls = 'text-purple-400'; // boolean
-				} else if (/null/.test(match)) {
-					cls = 'text-gray-400'; // null
-				}
-				return '<span class="' + cls + '">' + match + '</span>';
+		// Escape HTML entities once
+		const escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		
+		return escaped.replace(JSON_TOKEN_REGEX, (match) => {
+			let cls = 'text-orange-400'; // number
+			const firstChar = match[0];
+			if (firstChar === '"') {
+				cls = match[match.length - 1] === ':' ? 'text-blue-400' : 'text-green-400';
+			} else if (match === 'true' || match === 'false') {
+				cls = 'text-purple-400';
+			} else if (match === 'null') {
+				cls = 'text-gray-400';
 			}
-		);
+			return `<span class="${cls}">${match}</span>`;
+		});
 	}
 
 	function openJsonModal(title: string, content: any) {
