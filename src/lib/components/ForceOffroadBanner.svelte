@@ -49,10 +49,8 @@
 </script>
 
 {#if isForceOffroad}
-	<div class="animate-in slide-in-from-bottom-4 fade-in fixed right-4 bottom-4 z-50 duration-300">
-		<div
-			class="flex items-center gap-4 rounded-lg border border-amber-500/50 bg-[#1e293b] p-4 shadow-2xl shadow-amber-900/20"
-		>
+	<div class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[#1e293b]">
+		<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 sm:px-6 lg:px-8">
 			<div class="flex items-center gap-3">
 				<div
 					class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-500"
@@ -66,7 +64,7 @@
 			</div>
 			<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
 				{#if stopping}
-					<Loader2 size={14} class="animate-spin" />
+					<Loader2 size={20} class="animate-spin text-white mr-2" title="Stopping..." />
 				{:else}
 					Stop Forcing
 				{/if}
