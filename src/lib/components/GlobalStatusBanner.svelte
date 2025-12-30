@@ -227,7 +227,7 @@
 					// Find all matches
 					const matches: { message: string; timestamp: string }[] = [];
 					for (const update of updates) {
-						const match = update.body.match(/\[Public Notification\]:\s*(.+)/);
+						const match = update.body.match(/Public Notification:\s*(.+)/);
 						if (match && match[1]) {
 							matches.push({
 								message: match[1].trim(),
