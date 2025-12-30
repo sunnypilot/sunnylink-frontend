@@ -132,77 +132,17 @@
 					</div>
 				</div>
 
-				<!-- Dashboard Mockup (CSS) -->
+				<!-- Landing Dashboard (Image) -->
 				<div class="relative hidden lg:block" in:fly={{ y: 50, duration: 1000, delay: 400 }}>
 					<!-- Floating animation container -->
-					<div class="relative animate-[float_6s_ease-in-out_infinite] rounded-2xl border border-white/10 bg-[#162032] p-2 shadow-2xl backdrop-blur-xl">
-						<div class="absolute inset-0 -z-10 rounded-2xl bg-gradient-to-tr from-[#594AE2]/20 to-blue-500/20 blur-xl"></div>
+					<div class="relative animate-[float_6s_ease-in-out_infinite] rounded-xl bg-[#162032] p-2 shadow-2xl backdrop-blur-xl border border-white/10">
+						<div class="absolute inset-0 -z-10 rounded-xl bg-gradient-to-tr from-[#594AE2]/20 to-blue-500/20 blur-xl"></div>
 						
-						<!-- Header -->
-						<div class="mb-4 flex items-center justify-between rounded-t-xl bg-[#0f1726]/50 px-4 py-3 border-b border-white/5">
-							<div class="flex gap-2">
-								<div class="h-3 w-3 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center"><div class="h-1.5 w-1.5 rounded-full bg-current"></div></div>
-								<div class="h-3 w-3 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center"><div class="h-1.5 w-1.5 rounded-full bg-current"></div></div>
-								<div class="h-3 w-3 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center"><div class="h-1.5 w-1.5 rounded-full bg-current"></div></div>
-							</div>
-							<div class="h-2 w-32 rounded-full bg-white/10"></div>
-						</div>
-
-						<!-- Main Content Grid -->
-						<div class="grid grid-cols-12 gap-4 px-4 pb-4">
-							<!-- Sidebar -->
-							<div class="col-span-3 space-y-3">
-								<div class="h-10 rounded-lg bg-[#594AE2]/20 border border-[#594AE2]/30"></div>
-								<div class="h-10 rounded-lg bg-white/5"></div>
-								<div class="h-10 rounded-lg bg-white/5"></div>
-								<div class="mt-8 h-32 rounded-lg bg-white/5 p-3 space-y-2">
-									<div class="h-2 w-16 bg-white/10 rounded"></div>
-									<div class="h-2 w-24 bg-white/10 rounded"></div>
-									<div class="h-12 w-full bg-[#594AE2]/10 rounded mt-2 relative overflow-hidden">
-										<div class="absolute inset-x-0 bottom-0 h-8 bg-[#594AE2]/20 rounded-b"></div>
-									</div>
-								</div>
-							</div>
-
-							<!-- Main Map Area -->
-							<div class="col-span-9 space-y-4">
-								<div class="relative aspect-video rounded-xl bg-[#0a0f18] border border-white/5 overflow-hidden">
-									<!-- Imitate Map -->
-									<div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800/50 via-slate-900 to-slate-950"></div>
-									<div class="absolute top-1/2 left-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#594AE2] shadow-[0_0_20px_#594AE2]"></div>
-									<!-- Map paths -->
-									<svg class="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
-										<path d="M0 50 Q 25 40 50 50 T 100 50" stroke="#594AE2" stroke-width="0.5" fill="none" />
-									</svg>
-									
-									<!-- Quick Stats Overlay -->
-									<div class="absolute top-4 right-4 flex gap-2">
-										<div class="rounded-lg bg-black/40 backdrop-blur px-3 py-1.5 border border-white/10">
-											<div class="text-[0.6rem] text-slate-400">STATUS</div>
-											<div class="text-xs font-bold text-emerald-400">ONLINE</div>
-										</div>
-									</div>
-								</div>
-
-								<!-- Bottom Stats -->
-								<div class="grid grid-cols-3 gap-4">
-									<div class="rounded-xl bg-white/5 p-3 border border-white/5">
-										<div class="mb-1 text-[10px] text-slate-400">STORAGE</div>
-										<div class="h-1.5 w-full rounded-full bg-white/10 mb-1">
-											<div class="h-full w-[65%] rounded-full bg-blue-500"></div>
-										</div>
-									</div>
-									<div class="rounded-xl bg-white/5 p-3 border border-white/5">
-										<div class="mb-1 text-[10px] text-slate-400">TEMP</div>
-										<div class="text-sm font-mono text-white">42°C</div>
-									</div>
-									<div class="rounded-xl bg-white/5 p-3 border border-white/5">
-										<div class="mb-1 text-[10px] text-slate-400">UPTIME</div>
-										<div class="text-sm font-mono text-white">12d 4h</div>
-									</div>
-								</div>
-							</div>
-						</div>
+						<img 
+							src="/landing-dashboard.png"
+							alt="Sunnylink Dashboard Interface" 
+							class="w-full rounded-lg shadow-inner"
+						/>
 					</div>
 				</div>
 			</div>
