@@ -53,7 +53,7 @@
 	<nav class="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0f1726]/80 backdrop-blur-md">
 		<div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
 			<div class="flex items-center gap-2">
-				<span class="font-audiowide text-sm font-semibold tracking-widest text-slate-300 uppercase">sunnylink</span>
+				<span class="font-audiowide text-xl font-semibold tracking-widest text-slate-300">sunnylink</span>
 			</div>
 			
 			<!-- Mobile Menu Button -->
