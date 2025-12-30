@@ -57,8 +57,39 @@
 		return results.map((r) => r.setting);
 	});
 
-	let writableSettings = $derived(categorySettings.filter((s) => !s.readonly));
-	let readonlySettings = $derived(categorySettings.filter((s) => s.readonly));
+	let writableSettings = $derived.by(() => {
+		let currentSection: RenderableSetting | null = null;
+		let result: RenderableSetting[] = [];
+		for (const s of categorySettings) {
+			if (s.isSection) {
+				currentSection = s;
+			} else if (!s.readonly) {
+				if (currentSection) {
+					result.push(currentSection);
+					currentSection = null;
+				}
+				result.push(s);
+			}
+		}
+		return result;
+	});
+
+	let readonlySettings = $derived.by(() => {
+		let currentSection: RenderableSetting | null = null;
+		let result: RenderableSetting[] = [];
+		for (const s of categorySettings) {
+			if (s.isSection) {
+				currentSection = s;
+			} else if (s.readonly) {
+				if (currentSection) {
+					result.push(currentSection);
+					currentSection = null;
+				}
+				result.push(s);
+			}
+		}
+		return result;
+	});
 
 	import { v1Client } from '$lib/api/client';
 
@@ -375,8 +406,8 @@
 					}}
 				>
 					<span class="mb-4 w-full">
-						<span class="flex items-start justify-between">
-							<h3 class="font-medium break-all text-white">
+						<span class="flex items-start justify-between gap-4">
+							<h3 class="min-w-0 flex-1 font-medium break-words text-white">
 								{title}
 								{#if setting.readonly}
 									<span
@@ -439,7 +470,7 @@
 				>
 					<div class="mb-4">
 						<div class="flex items-start justify-between">
-							<h3 class="font-medium break-all text-white">
+							<h3 class="min-w-0 flex-1 font-medium break-words text-white">
 								{title}
 								{#if setting.readonly}
 									<span
@@ -632,7 +663,22 @@
 
 		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
 			{#each writableSettings as setting}
-				{@render settingCard(setting)}
+				{#if setting.isSection}
+					<div class="col-span-full mt-8 mb-2 first:mt-0">
+						<div class="flex items-center gap-4">
+							{#if setting.label}
+								<h3
+									class="text-sm font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase"
+								>
+									{setting.label}
+								</h3>
+							{/if}
+							<div class="h-px w-full bg-slate-800"></div>
+						</div>
+					</div>
+				{:else}
+					{@render settingCard(setting)}
+				{/if}
 			{/each}
 		</div>
 
@@ -660,7 +706,22 @@
 					class="grid grid-cols-1 gap-4 border-t border-[#334155] p-4 lg:grid-cols-2 xl:grid-cols-3"
 				>
 					{#each readonlySettings as setting}
-						{@render settingCard(setting)}
+						{#if setting.isSection}
+							<div class="col-span-full mt-4 mb-2 first:mt-0">
+								<div class="flex items-center gap-4">
+									{#if setting.label}
+										<h3
+											class="text-xs font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase"
+										>
+											{setting.label}
+										</h3>
+									{/if}
+									<div class="h-px w-full bg-slate-800"></div>
+								</div>
+							</div>
+						{:else}
+							{@render settingCard(setting)}
+						{/if}
 					{/each}
 				</div>
 			</details>
