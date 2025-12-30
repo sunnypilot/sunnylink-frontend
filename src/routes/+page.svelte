@@ -104,7 +104,7 @@
 		<!-- Mobile Menu -->
 		{#if isMenuOpen}
 			<div
-				class="absolute top-full right-0 left-0 mx-4 mt-2 rounded-2xl border border-white/10 bg-[#0f1726]/90 p-4 shadow-xl backdrop-blur-xl lg:hidden"
+				class="absolute top-full right-0 left-0 mx-4 mt-2 rounded-2xl border border-white/10 bg-[#0f1726]/99 p-4 shadow-xl backdrop-blur-xl lg:hidden"
 				transition:fly={{ y: -10, duration: 200 }}
 			>
 				<div class="flex flex-col gap-2">
