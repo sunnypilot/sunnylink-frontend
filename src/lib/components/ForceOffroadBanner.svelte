@@ -62,13 +62,13 @@
 					<p class="text-xs text-slate-400">Vehicle engagement is disabled.</p>
 				</div>
 			</div>
-			<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
-				{#if stopping}
-					<Loader2 size={20} class="animate-spin text-white mr-2" title="Stopping..." />
-				{:else}
-					Stop Forcing
-				{/if}
-			</button>
+			{#if stopping}
+				<Loader2 size={30} class="animate-spin text-white mr-2"/>
+			{:else}
+				<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
+						Stop Forcing
+				</button>
+			{/if}
 		</div>
 	</div>
 {/if}
