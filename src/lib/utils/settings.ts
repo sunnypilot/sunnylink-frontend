@@ -104,7 +104,7 @@ export function getAllSettings(
             })
             // Filter out those that have no value AND no default value?
             // Keeping consistent with original logic: show if we have a value (from device or default).
-            .filter((s) => s.value !== undefined)
+            .filter((s) => s.value !== undefined || s.isSection)
             .filter((s) => !s.hidden)
             .filter((s) => showAdvanced || !s.advanced)
     );
