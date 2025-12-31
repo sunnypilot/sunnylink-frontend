@@ -1,14 +1,12 @@
 <script lang="ts">
-	import { Search } from 'lucide-svelte';
+	import { Search, X } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
-	import { preferences } from '$lib/stores/preferences.svelte';
 	import { getAllSettings } from '$lib/utils/settings';
 	import { searchSettings, type SearchResult } from '$lib/utils/search';
 	import { goto } from '$app/navigation';
 
-	let query = $state('');
 	let isOpen = $state(false);
 	let isFocused = $state(false);
 	let inputRef: HTMLInputElement;
@@ -18,18 +16,7 @@
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 
 	// Get all settings using the shared utility
-	let allSettings = $derived(getAllSettings(settings, true)); // Always search advanced settings? Or respect preference?
-	// Always search advanced settings? Or respect preference?
-	// Let's respect preference for now, but maybe search should find everything?
-	// The user requirement didn't specify, but usually search finds hidden things too.
-	// But getAllSettings filters by showAdvanced. Let's pass true to search everything if we want,
-	// or pass preferences.showAdvanced.
-	// Let's stick to what the user can see for now to avoid confusion, or maybe show them but indicate they are advanced?
-	// For now, let's just use the utility as is, which filters based on the 2nd arg.
-	// Actually, I'll pass `true` to getAllSettings to get EVERYTHING, and then maybe filter or show badges in the UI.
-	// Wait, getAllSettings takes `showAdvanced`. If I pass true, I get advanced settings.
-	// If I want to search *everything* even if hidden, I might need to adjust getAllSettings or just pass true.
-	// Let's pass `true` so search is powerful.
+	let allSettings = $derived(getAllSettings(settings, true));
 
 	let searchableSettings = $derived(getAllSettings(settings, true));
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
@@ -37,7 +24,7 @@
 	$effect(() => {
 		if (searchState.query.trim()) {
 			results = searchSettings(searchState.query, searchableSettings, deviceValues);
-			isOpen = true;
+			if (isFocused) isOpen = true;
 		} else {
 			results = [];
 			isOpen = false;
@@ -45,21 +32,21 @@
 	});
 
 	function handleSelect(result: SearchResult) {
-		// Do NOT clear query, so the page can filter
 		isOpen = false;
 		isFocused = false;
-		// Navigate to the setting
-		// We need to know the route. It's /dashboard/settings/[category]
-		// And we can add a hash to scroll to it.
+		inputRef?.blur();
 		goto(`/dashboard/settings/${result.setting.category}#${result.setting.key}`);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
-			isOpen = false;
-			isFocused = false;
-			searchState.query = '';
-			inputRef?.blur();
+			if (isOpen) {
+				isOpen = false;
+			} else {
+				isFocused = false;
+				searchState.query = '';
+				inputRef?.blur();
+			}
 		}
 	}
 
@@ -73,7 +60,6 @@
 		) {
 			isOpen = false;
 			isFocused = false;
-			searchState.query = '';
 		}
 	}
 </script>
@@ -89,12 +75,11 @@
 		onclick={() => {
 			isFocused = false;
 			isOpen = false;
-			searchState.query = '';
 		}}
 	></div>
 {/if}
 
-<div class="relative w-full max-w-md {isFocused ? 'z-50' : ''}">
+<div class="relative w-full {isFocused ? 'z-50' : ''}">
 	<div class="relative">
 		<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 			<Search class="h-5 w-5 text-slate-400" />
@@ -104,12 +89,25 @@
 			type="text"
 			bind:value={searchState.query}
 			placeholder="Search settings..."
-			class="input-bordered input w-full bg-[#1e293b] pl-10 text-sm text-white placeholder-slate-400 focus:border-primary focus:outline-none"
+			class="input-bordered input w-full bg-[#1e293b] pr-10 pl-10 text-sm text-white placeholder-slate-400 focus:border-primary focus:outline-none"
 			onfocus={() => {
 				isFocused = true;
 				if (searchState.query.trim()) isOpen = true;
 			}}
 		/>
+		{#if searchState.query}
+			<button
+				class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white"
+				onclick={() => {
+					searchState.query = '';
+					results = [];
+					isOpen = false;
+					isFocused = false;
+				}}
+			>
+				<X class="h-4 w-4" />
+			</button>
+		{/if}
 	</div>
 
 	{#if isOpen && results.length > 0}
