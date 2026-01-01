@@ -74,7 +74,7 @@
 				// Map new items to dictionary for easy lookup
 				const newItemsMap = new Map(res.data.items.map((i) => [i.key, i]));
 
-				const filtered = existing.filter((i) => !osmParams.has(i.key));
+				const filtered = existing.filter((i) => i.key && !osmParams.has(i.key));
 				const updated = [...filtered, ...res.data.items];
 
 				deviceState.deviceSettings[deviceId] = updated;

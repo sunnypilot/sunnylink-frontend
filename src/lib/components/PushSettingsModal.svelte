@@ -100,15 +100,14 @@
 			const payload = Object.entries(changes).map(([key, value]) => {
 				const def = SETTINGS_DEFINITIONS.find((d) => d.key === key);
 				const deviceSetting = deviceState.deviceSettings[deviceId!]?.find((s) => s.key === key);
-				const type = deviceSetting?.value?.type || 'String';
+				const type = deviceSetting?.type || 'String';
 
 				// We use encodeParamValue to ensure it matches what the device expects
 				const encodedValue = encodeParamValue({ key, value, type });
 
 				return {
 					key,
-					value: String(encodedValue),
-					is_compressed: false
+					value: String(encodedValue)
 				};
 			});
 

@@ -44,13 +44,13 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
 				navigateFallback: '/',
-				cleanupOutdatedCaches: true,
+				cleanupOutdatedCaches: true
 			},
 			devOptions: {
 				enabled: true,
 				type: 'module',
 				navigateFallback: '/',
-				suppressWarnings: true,
+				suppressWarnings: true
 			}
 		})
 	],

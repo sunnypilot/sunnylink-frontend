@@ -63,10 +63,10 @@
 				</div>
 			</div>
 			{#if stopping}
-				<Loader2 size={30} class="animate-spin text-white mr-2"/>
+				<Loader2 size={30} class="mr-2 animate-spin text-white" />
 			{:else}
 				<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
-						Stop Forcing
+					Stop Forcing
 				</button>
 			{/if}
 		</div>
