@@ -159,6 +159,9 @@ export async function activateDemoMode(resetSelection = false) {
 		applyDevicesToStore(true);
 	}
 	await wait(randomDelay());
+	if (!deviceState.selectedDeviceId && demoDevices.length > 0) {
+		deviceState.setSelectedDevice(demoDevices[0].device_id);
+	}
 	return demoDevices;
 }
 
