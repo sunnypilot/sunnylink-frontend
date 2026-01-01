@@ -2,7 +2,7 @@ import createClient from 'openapi-fetch';
 import type { paths as v1Paths } from '../../sunnylink/v1/schema';
 import type { paths as v0Paths } from '../../sunnylink/v0/schema';
 import { browser } from '$app/environment';
-import { logtoClient } from '$lib/logto/auth.svelte';
+import { getAccessTokenWithCache, logtoClient } from '$lib/logto/auth.svelte';
 
 const customFetch: typeof fetch = async (input, init) => {
 	const response = await fetch(input, init);
@@ -11,8 +11,8 @@ const customFetch: typeof fetch = async (input, init) => {
 		if (browser && logtoClient) {
 			try {
 				// Attempt to refresh the token
-				// Calling getAccessToken usually triggers a silent renewal if needed or returns a valid access token
-				await logtoClient.getAccessToken();
+				// Helper will reuse cached tokens when possible and fall back to refresh token
+				await getAccessTokenWithCache(true);
 				const newToken = await logtoClient.getIdToken();
 
 				if (newToken) {
