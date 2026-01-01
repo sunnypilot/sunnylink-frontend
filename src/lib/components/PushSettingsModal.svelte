@@ -107,7 +107,8 @@
 
 				return {
 					key,
-					value: String(encodedValue)
+					value: String(encodedValue),
+					is_compressed: false
 				};
 			});
 

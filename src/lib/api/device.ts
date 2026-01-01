@@ -131,7 +131,7 @@ export async function getCarList(deviceId: string, token: string) {
 
 export async function setDeviceParams(
 	deviceId: string,
-	params: { key: string; value: any }[],
+	params: { key: string; value: any; is_compressed?: boolean }[],
 	token: string,
 	timeoutMs: number = 20000 // Default 20s
 ) {

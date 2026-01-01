@@ -202,7 +202,8 @@
 				[
 					{
 						key: 'CarPlatformBundle',
-						value: String(encodedValue)
+						value: String(encodedValue),
+						is_compressed: false
 					}
 				],
 				token,
@@ -267,7 +268,8 @@
 				[
 					{
 						key: 'CarPlatformBundle',
-						value: String(encodedValue)
+						value: String(encodedValue),
+						is_compressed: false
 					}
 				],
 				token,
