@@ -1,5 +1,5 @@
 import { v1Client, v0Client } from '$lib/api/client';
-import { logtoClient } from '$lib/logto/auth.svelte';
+import { getAccessTokenWithCache, isIdTokenExpiring, logtoClient } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
@@ -28,23 +28,25 @@ export const load: LayoutLoad = async ({ url }) => {
             });
         };
 
+		const shouldRefreshToken = () => !token || isIdTokenExpiring(token);
+
         // 2. Fetch the list with retry
         let devices = await fetchList(token || '');
 
         // If 401, try to refresh token and retry
-        if (devices.response.status === 401) {
-            try {
-                // Force a token refresh (getAccessToken usually handles this)
-                await logtoClient.getAccessToken();
-                // Get the potentially new ID token
-                token = await logtoClient.getIdToken();
-                if (token) {
-                    devices = await fetchList(token);
-                }
-            } catch (e) {
-                console.error('Failed to refresh token after 401:', e);
-            }
-        }
+		if (devices.response.status === 401) {
+			if (shouldRefreshToken()) {
+				try {
+					await getAccessTokenWithCache(true);
+					token = await logtoClient.getIdToken();
+					if (token) {
+						devices = await fetchList(token);
+					}
+				} catch (e) {
+					console.error('Failed to refresh token after 401:', e);
+				}
+			}
+		}
 
         const items = devices.data?.items ?? [];
 
@@ -62,19 +64,21 @@ export const load: LayoutLoad = async ({ url }) => {
             let response = await fetchDetail(token || '');
 
             // Retry detail fetch if 401 (though unlikely if list succeeded with same token)
-            if (response.response.status === 401) {
-                try {
-                    if (logtoClient) {
-                        await logtoClient.getAccessToken();
-                        token = await logtoClient.getIdToken();
-                        if (token) {
-                            response = await fetchDetail(token);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to refresh token for detail fetch:', e);
-                }
-            }
+			if (response.response.status === 401) {
+				if (shouldRefreshToken()) {
+					try {
+						if (logtoClient) {
+							await getAccessTokenWithCache(true);
+							token = await logtoClient.getIdToken();
+							if (token) {
+								response = await fetchDetail(token);
+							}
+						}
+					} catch (e) {
+						console.error('Failed to refresh token for detail fetch:', e);
+					}
+				}
+			}
 
             return response.data; // Return the data part
         });
