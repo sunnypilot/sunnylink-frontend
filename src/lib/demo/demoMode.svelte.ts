@@ -1,5 +1,7 @@
 import { demoContext } from './demoContext.svelte';
 import { deviceState } from '$lib/stores/device.svelte';
+import type { ExtendedDeviceParamKey } from '$lib/types/settings';
+import type { ModelBundle } from '$lib/types/models';
 
 type DemoDeviceState = 'online' | 'offline' | 'error' | 'onroad';
 
@@ -52,6 +54,64 @@ let demoDevices: DemoDevice[] = [];
 const randomDelay = () => 100 + Math.floor(Math.random() * 800);
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const demoSettingsList: ExtendedDeviceParamKey[] = [
+	{ key: 'OffroadMode', type: 'Bool', default_value: false, required: false },
+	{ key: 'IsOffroad', type: 'Bool', default_value: false, required: false },
+	{ key: 'OpenpilotEnabledToggle', type: 'Bool', default_value: true, required: false },
+	{ key: 'Mads', type: 'Bool', default_value: true, required: false },
+	{ key: 'LanguageSetting', type: 'String', default_value: 'en-US', required: false },
+	{ key: 'DisablePowerDown', type: 'Bool', default_value: false, required: false },
+	{ key: 'NeuralNetworkLateralControl', type: 'Bool', default_value: true, required: false },
+	{ key: 'AlwaysOnDM', type: 'Bool', default_value: false, required: false }
+];
+
+const demoSettingValues: Record<string, string | number | boolean> = {
+	OffroadMode: false,
+	IsOffroad: false,
+	OpenpilotEnabledToggle: true,
+	Mads: true,
+	LanguageSetting: 'en-US',
+	DisablePowerDown: false,
+	NeuralNetworkLateralControl: true,
+	AlwaysOnDM: false
+};
+
+const demoModelBundles: ModelBundle[] = [
+	{
+		short_name: 'sunny-vision',
+		display_name: 'Sunny Vision',
+		ref: 'sunny-vision',
+		environment: 'Road',
+		is_20hz: true,
+		index: 3,
+		overrides: { folder: 'Recommended' },
+		models: []
+	},
+	{
+		short_name: 'night-runner',
+		display_name: 'Night Runner',
+		ref: 'night-runner',
+		environment: 'Road',
+		is_20hz: false,
+		index: 2,
+		overrides: { folder: 'Experiments' },
+		models: []
+	},
+	{
+		short_name: 'classic',
+		display_name: 'Classic Openpilot',
+		ref: 'classic-openpilot',
+		environment: 'Road',
+		is_20hz: false,
+		index: 1,
+		overrides: { folder: 'Stock' },
+		models: []
+	}
+];
+
+let demoActiveModelShortName: string | undefined = 'sunny-vision';
+let demoFavoriteRefs = new Set<string>(['sunny-vision']);
+
 function cloneDevices() {
 	return baseDevices.map((d) => ({ ...d }));
 }
@@ -80,6 +140,9 @@ function applyDevicesToStore(resetSelection = false) {
 			forceOffroad: Boolean(device.forceOffroad)
 		};
 		deviceState.aliases[device.device_id] = device.alias;
+
+		deviceState.deviceSettings[device.device_id] = demoSettingsList;
+		deviceState.deviceValues[device.device_id] = { ...demoSettingValues };
 	}
 
 	if (resetSelection) {
@@ -140,6 +203,8 @@ export async function demoCheckDeviceStatus(deviceId: string) {
 		isOffroad: device.state !== 'onroad',
 		forceOffroad: Boolean(device.forceOffroad)
 	};
+	deviceState.deviceSettings[deviceId] = demoSettingsList;
+	deviceState.deviceValues[deviceId] = { ...demoSettingValues };
 	deviceState.version++;
 }
 
@@ -161,6 +226,8 @@ export async function demoSetDeviceParams(
 			const offroad = param.value === true || param.value === '1' || param.value === 'true';
 			device.state = offroad ? 'online' : 'onroad';
 		}
+		deviceState.deviceValues[deviceId] = deviceState.deviceValues[deviceId] || {};
+		(deviceState.deviceValues[deviceId] as Record<string, unknown>)[param.key] = param.value;
 		if (param.key === 'CarPlatformBundle') {
 			deviceState.deviceValues[deviceId] = {
 				...(deviceState.deviceValues[deviceId] || {}),
@@ -204,4 +271,20 @@ export async function demoGetCarList() {
 
 export function getDemoDevicesSnapshot() {
 	return demoDevices;
+}
+
+export function getDemoModelData() {
+	return {
+		bundles: demoModelBundles,
+		activeShortName: demoActiveModelShortName,
+		favorites: new Set(demoFavoriteRefs)
+	};
+}
+
+export function setDemoActiveModel(shortName: string | undefined) {
+	demoActiveModelShortName = shortName;
+}
+
+export function setDemoFavorites(refs: Set<string>) {
+	demoFavoriteRefs = new Set(refs);
 }

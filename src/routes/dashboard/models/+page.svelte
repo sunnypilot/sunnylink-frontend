@@ -3,6 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import { demoContext } from '$lib/demo/demoContext.svelte';
+	import {
+		getDemoModelData,
+		setDemoActiveModel,
+		setDemoFavorites
+	} from '$lib/demo/demoMode.svelte';
 	import { v0Client, v1Client } from '$lib/api/client';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
@@ -207,6 +213,15 @@
 		}
 		// isOffroad is derived, no need to reset local state
 
+		if (demoContext.isActive) {
+			const data = getDemoModelData();
+			modelList = data.bundles;
+			favorites = new Set(data.favorites);
+			currentModelShortName = data.activeShortName;
+			loadingModels = false;
+			return;
+		}
+
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
 		try {
@@ -315,6 +330,10 @@
 	}
 
 	async function recheckStatus() {
+		if (demoContext.isActive) {
+			await fetchModelsForDevice(true);
+			return;
+		}
 		if (!deviceState.selectedDeviceId || !logtoClient) return;
 		const token = await logtoClient.getIdToken();
 		if (token) {
@@ -324,6 +343,10 @@
 	}
 
 	async function refreshModels() {
+		if (demoContext.isActive) {
+			await fetchModelsForDevice(true);
+			return;
+		}
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
 
 		try {
@@ -367,6 +390,12 @@
 	}
 
 	async function pushModelToDevice(bundle: ModelBundle) {
+		if (demoContext.isActive) {
+			currentModelShortName = bundle.short_name === 'default' ? undefined : bundle.short_name;
+			selectedModelShortName = undefined;
+			setDemoActiveModel(currentModelShortName);
+			return;
+		}
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
 
@@ -464,6 +493,11 @@
 	}
 
 	async function clearModelsCache() {
+		if (demoContext.isActive) {
+			toastState.show('Models cache cleared (demo).', 'success');
+			clearCacheModalOpen = false;
+			return;
+		}
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
 
 		try {
@@ -502,6 +536,17 @@
 	async function toggleFavorite(bundle: ModelBundle, event?: Event) {
 		if (event) {
 			event.stopPropagation();
+		}
+		if (demoContext.isActive) {
+			const newFavorites = new Set(favorites);
+			if (newFavorites.has(bundle.ref)) {
+				newFavorites.delete(bundle.ref);
+			} else {
+				newFavorites.add(bundle.ref);
+			}
+			favorites = newFavorites;
+			setDemoFavorites(newFavorites);
+			return;
 		}
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
 
