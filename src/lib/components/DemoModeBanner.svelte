@@ -18,7 +18,7 @@
 	};
 </script>
 
-<div class="border-b border-[#1e293b] bg-[#0a1424] px-4 py-3 sm:px-6">
+<div class="sticky top-0 z-[65] mb-4 border-b border-[#1e293b] bg-[#0a1424]/95 px-4 py-3 shadow-lg shadow-black/20 backdrop-blur sm:px-6">
 	<div class="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 		<div class="flex items-start gap-3">
 			<div class="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
