@@ -1,32 +1,51 @@
 import { v1Client, v0Client } from '$lib/api/client';
+import { activateDemoMode, deactivateDemoMode, ensureDemoDevices } from '$lib/demo/demoMode.svelte';
 import { getAccessTokenWithCache, isIdTokenExpiring, logtoClient } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
 export const load: LayoutLoad = async ({ url }) => {
-    if (url.pathname === '/') {
-        return {
-            streamed: {
-                devices: Promise.resolve([])
-            }
-        };
-    }
+	const isDemoPath = url.pathname.startsWith('/demo');
+	const isAuthenticated = logtoClient ? await logtoClient.isAuthenticated() : false;
+	const useDemo = isDemoPath || !isAuthenticated;
 
-    // Define the heavy logic as a standalone async function
-    const fetchAllDeviceData = async () => {
-        if (url.pathname === '/') return [];
-        if (!logtoClient || !(await logtoClient.isAuthenticated())) return [];
+	if (useDemo) {
+		await activateDemoMode(true);
+	} else {
+		deactivateDemoMode();
+	}
 
-        // 1. Get the token
-        let token = await logtoClient.getIdToken();
+	if (url.pathname === '/') {
+		return {
+			streamed: {
+				devices: Promise.resolve([])
+			}
+		};
+	}
 
-        // Helper to fetch list
-        const fetchList = async (t: string) => {
-            return await v1Client.GET('/v1/users/{userId}/devices', {
-                params: { path: { userId: 'self' } },
-                headers: { Authorization: `Bearer ${t}` }
-            });
-        };
+	if (useDemo) {
+		return {
+			streamed: {
+				devices: ensureDemoDevices()
+			}
+		};
+	}
+
+	// Define the heavy logic as a standalone async function
+	const fetchAllDeviceData = async () => {
+		if (url.pathname === '/') return [];
+		if (!logtoClient || !isAuthenticated) return [];
+
+		// 1. Get the token
+		let token = await logtoClient.getIdToken();
+
+		// Helper to fetch list
+		const fetchList = async (t: string) => {
+			return await v1Client.GET('/v1/users/{userId}/devices', {
+				params: { path: { userId: 'self' } },
+				headers: { Authorization: `Bearer ${t}` }
+			});
+		};
 
 		const shouldRefreshToken = () => !token || isIdTokenExpiring(token);
 

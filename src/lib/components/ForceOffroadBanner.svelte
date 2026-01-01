@@ -2,6 +2,8 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { v0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
+	import { demoContext } from '$lib/demo/demoContext.svelte';
+	import { demoCheckDeviceStatus, demoSetDeviceParams } from '$lib/demo/demoMode.svelte';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { AlertTriangle, Loader2 } from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
@@ -16,6 +18,11 @@
 		if (!deviceId) return;
 		stopping = true;
 		try {
+			if (demoContext.isActive) {
+				await demoSetDeviceParams(deviceId, [{ key: 'OffroadMode', value: false }]);
+				await demoCheckDeviceStatus(deviceId);
+				return;
+			}
 			const token = await logtoClient?.getIdToken();
 			if (!token) return;
 

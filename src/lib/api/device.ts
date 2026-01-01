@@ -1,10 +1,21 @@
 import { v1Client, v0Client } from '$lib/api/client';
+import { demoContext } from '$lib/demo/demoContext.svelte';
+import {
+	demoCheckDeviceStatus,
+	demoDeregisterDevice,
+	demoGetCarList,
+	demoSetDeviceParams
+} from '$lib/demo/demoMode.svelte';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
 
 export async function checkDeviceStatus(deviceId: string, token: string) {
-    if (!deviceId || !token) return;
+	if (demoContext.isActive) {
+		await demoCheckDeviceStatus(deviceId);
+		return;
+	}
+	if (!deviceId || !token) return;
 
     deviceState.onlineStatuses[deviceId] = 'loading';
 
@@ -79,28 +90,37 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 }
 
 export async function deregisterDevice(deviceId: string, token: string) {
-    // Real implementation:
-    return await v0Client.DELETE('/device/{deviceId}', {
-        params: {
-            path: { deviceId }
-        },
-        headers: { Authorization: `Bearer ${token}` }
-    });
+	if (demoContext.isActive) {
+		return demoDeregisterDevice(deviceId);
+	}
+	// Real implementation:
+	return await v0Client.DELETE('/device/{deviceId}', {
+		params: {
+			path: { deviceId }
+		},
+		headers: { Authorization: `Bearer ${token}` }
+	});
 }
 
 export async function removeUserFromDevice(deviceId: string, userId: string, token: string) {
-    return await v0Client.DELETE('/device/{deviceId}/users/{userId}', {
-        params: {
-            path: { deviceId, userId }
-        },
-        headers: { Authorization: `Bearer ${token}` }
-    });
+	if (demoContext.isActive) {
+		return { ok: true };
+	}
+	return await v0Client.DELETE('/device/{deviceId}/users/{userId}', {
+		params: {
+			path: { deviceId, userId }
+		},
+		headers: { Authorization: `Bearer ${token}` }
+	});
 }
 
 export async function getCarList(deviceId: string, token: string) {
-    try {
-        const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
-            params: {
+	if (demoContext.isActive) {
+		return demoGetCarList();
+	}
+	try {
+		const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
+			params: {
                 path: { deviceId },
                 query: { paramKeys: ['CarList'] }
             },
@@ -134,6 +154,9 @@ export async function setDeviceParams(
     token: string,
     timeoutMs: number = 20000 // Default 20s
 ) {
+	if (demoContext.isActive) {
+		return demoSetDeviceParams(deviceId, params);
+	}
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort('Timeout'), timeoutMs);
 
@@ -152,4 +175,3 @@ export async function setDeviceParams(
         clearTimeout(timeoutId);
     }
 }
-

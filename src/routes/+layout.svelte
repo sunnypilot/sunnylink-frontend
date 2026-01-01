@@ -5,6 +5,8 @@
 	import { invalidateAll } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import { demoContext } from '$lib/demo/demoContext.svelte';
+	import { demoCheckDeviceStatus } from '$lib/demo/demoMode.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
@@ -67,7 +69,7 @@
 	});
 
 	let navItems = $derived(
-		authState.isAuthenticated
+		authState.isAuthenticated || demoContext.isActive
 			? [
 					{ icon: House, label: 'Overview', href: '/dashboard' },
 					...(deviceState.selectedDeviceId
@@ -99,7 +101,9 @@
 				: null,
 			{ icon: LifeBuoy, label: 'Support', href: 'https://community.sunnypilot.ai/c/bug-reports/8' },
 			{ icon: Settings, label: 'Preferences', href: '/dashboard/preferences' },
-			authState.isAuthenticated ? { icon: LogOut, label: 'Logout', action: handleLogout } : null
+			authState.isAuthenticated
+				? { icon: LogOut, label: 'Logout', action: handleLogout }
+				: null
 		].filter((item) => item !== null)
 	);
 
@@ -114,6 +118,7 @@
 		].join(' ');
 	import { checkDeviceStatus } from '$lib/api/device';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+	import DemoModeBanner from '$lib/components/DemoModeBanner.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
@@ -127,6 +132,17 @@
 	let devices = $state<any[]>([]);
 
 	async function checkAllDevicesStatus(devices: any[]) {
+		if (demoContext.isActive) {
+			await Promise.all(
+				devices.map((device) => {
+					if (device.device_id) {
+						return demoCheckDeviceStatus(device.device_id);
+					}
+				})
+			);
+			return;
+		}
+
 		if (!logtoClient) return;
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
@@ -193,6 +209,9 @@
 	<div class="drawer-content flex min-h-screen flex-col bg-[#0f1726] {isLandingPage ? 'h-auto overflow-visible' : ''}">
 
 		<GlobalStatusBanner />
+		{#if demoContext.isActive}
+			<DemoModeBanner />
+		{/if}
 		<!-- Navbar for mobile -->
 		{#if !isLandingPage}
 		<header
