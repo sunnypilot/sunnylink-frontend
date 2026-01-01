@@ -166,10 +166,13 @@
 		const { pwaInfo } = await import('virtual:pwa-info');
 		if (pwaInfo) {
 			const { registerSW } = await import('virtual:pwa-register');
-			registerSW({
+			const updateSW = registerSW({
 				immediate: true,
 				onRegistered(r) {
 					console.log(`SW Registered: ${r}`);
+				},
+				onNeedRefresh() {
+					updateSW(true);
 				},
 				onRegisterError(error) {
 					console.log('SW registration error', error);
