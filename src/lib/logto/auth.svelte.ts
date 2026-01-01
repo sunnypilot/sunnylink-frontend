@@ -34,6 +34,7 @@ export const pickValidAccessToken = (
 
 const readCachedAccessToken = () => {
 	if (!browser) return undefined;
+	// Tokens refreshed by LogtoClient are persisted to localStorage under this key
 	const raw = localStorage.getItem(accessTokenStorageKey);
 	if (!raw) return undefined;
 
@@ -57,14 +58,9 @@ export const getAccessTokenWithCache = async (forceRefresh = false) => {
 	if (refreshPromise) return refreshPromise;
 
 	console.info('Refreshing Logto access token with refresh token');
-	refreshPromise = logtoClient
-		.getAccessToken()
-		.catch((error) => {
-			throw error;
-		})
-		.finally(() => {
-			refreshPromise = undefined;
-		});
+	refreshPromise = logtoClient.getAccessToken().finally(() => {
+		refreshPromise = undefined;
+	});
 
 	return refreshPromise;
 };
