@@ -14,6 +14,7 @@ type StoredAccessToken = { token?: string; expiresAt?: number };
 
 const accessTokenStorageKey = `logto:${PUBLIC_LOGTO_APP_ID}:accessToken`;
 const expirySkewSeconds = 60;
+const idTokenExpirySkewSeconds = 60;
 let refreshPromise: Promise<string | undefined> | undefined;
 
 export const pickValidAccessToken = (
@@ -57,7 +58,6 @@ export const getAccessTokenWithCache = async (forceRefresh = false) => {
 
 	if (refreshPromise) return refreshPromise;
 
-	console.info('Refreshing Logto access token with refresh token');
 	const pending = logtoClient.getAccessToken();
 	refreshPromise = pending;
 	pending.finally(() => {
@@ -67,6 +67,26 @@ export const getAccessTokenWithCache = async (forceRefresh = false) => {
 	});
 
 	return refreshPromise;
+};
+
+export const isIdTokenExpiring = (token?: string | null, skew = idTokenExpirySkewSeconds) => {
+	if (!token || typeof token !== 'string') return true;
+	const parts = token.split('.');
+	if (parts.length < 2) return true;
+
+	const normalize = (value: string) => {
+		const paddedLength = Math.ceil(value.length / 4) * 4;
+		return value.padEnd(paddedLength, '=').replace(/-/g, '+').replace(/_/g, '/');
+	};
+
+	try {
+		const payload = JSON.parse(atob(normalize(parts[1])));
+		const exp = payload?.exp;
+		if (typeof exp !== 'number') return true;
+		return exp - skew <= Date.now() / 1000;
+	} catch (error) {
+		return true;
+	}
 };
 
 class AuthState {
