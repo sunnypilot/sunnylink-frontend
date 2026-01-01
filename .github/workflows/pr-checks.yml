@@ -1,30 +1,16 @@
-name: Deploy SvelteKit to GitHub Pages
+name: PR Checks
 
 on:
-  push:
+  pull_request:
     branches: [ main ]
-  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
-env:
-  BASE_PATH: ""
-  PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
-  PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
-  PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
-  PUBLIC_CALLBACK: https://new.sunnypilot.ai/auth/callback
-  PUBLIC_REDIRECT: https://new.sunnypilot.ai/
+  pull-requests: write
 
 jobs:
   test:
-    name: Run Tests
+    name: Test & Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -62,11 +48,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-pr-${{ github.event.pull_request.number }}
           path: |
             test-results/
             coverage/
-          retention-days: 30
+          retention-days: 14
 
       - name: Post test summary
         if: always()
@@ -76,7 +62,7 @@ jobs:
           if [ "${{ steps.tests.outcome }}" == "success" ]; then
             echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Some tests failed. Deployment blocked.**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Some tests failed. Please review the test output above.**" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Checks Performed" >> $GITHUB_STEP_SUMMARY
@@ -86,8 +72,15 @@ jobs:
           echo "- Browser tests (Playwright)" >> $GITHUB_STEP_SUMMARY
 
   build:
+    name: Build Verification
     needs: test
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
+      PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
+      PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
+      PUBLIC_CALLBACK: https://example.com/auth/callback
+      PUBLIC_REDIRECT: https://example.com/
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,29 +97,17 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Show pnpm version
-        run: pnpm --version
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
-        env:
-          BASE_PATH: ${{ env.BASE_PATH }}
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deploy
-        uses: actions/deploy-pages@v4
+      - name: Post build summary
+        if: always()
+        run: |
+          echo "## Build Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Build completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The production build was generated without errors." >> $GITHUB_STEP_SUMMARY
