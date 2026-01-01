@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import { demoContext } from '$lib/demo/demoContext.svelte';
+	import { demoCheckDeviceStatus, demoSetDeviceParams } from '$lib/demo/demoMode.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
@@ -43,6 +45,16 @@
 		if (!deviceId || deviceState.backupState.isDownloading) return;
 
 		deviceState.startBackup(deviceId);
+
+		if (demoContext.isActive) {
+			deviceState.setBackupProgress(35, 'Preparing simulated backup...');
+			await new Promise((resolve) => setTimeout(resolve, 300 + Math.random() * 400));
+			deviceState.setBackupProgress(85, 'Finalizing demo backup...');
+			await new Promise((resolve) => setTimeout(resolve, 150 + Math.random() * 200));
+			deviceState.finishBackup(true, 'Demo backup ready');
+			setTimeout(() => deviceState.closeBackupModal(), 600);
+			return;
+		}
 
 		try {
 			const token = await logtoClient?.getIdToken();
@@ -90,7 +102,7 @@
 	}
 
 	$effect(() => {
-		if (!authState.loading && !authState.isAuthenticated) {
+		if (!authState.loading && !authState.isAuthenticated && !demoContext.isActive) {
 			goto('/');
 		}
 	});
@@ -646,6 +658,10 @@
 														class="btn text-red-400 btn-ghost btn-xs hover:bg-red-500/10"
 														onclick={async (e) => {
 															e.stopPropagation();
+															if (demoContext.isActive) {
+																await demoCheckDeviceStatus(device.device_id);
+																return;
+															}
 															if (logtoClient) {
 																const token = await logtoClient.getIdToken();
 																if (token) {

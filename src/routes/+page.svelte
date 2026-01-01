@@ -32,6 +32,10 @@
 		}
 	};
 
+	const handleDemoAction = () => {
+		goto('/demo');
+	};
+
 	function blurfade(node: Element, { duration = 800 }: { duration?: number }) {
 		return {
 			duration,
@@ -93,6 +97,12 @@
 
 			<div class="hidden items-center gap-4 lg:flex">
 				<button
+					onclick={handleDemoAction}
+					class="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/5 active:scale-95"
+				>
+					Try Demo
+				</button>
+				<button
 					onclick={handleMainAction}
 					class="rounded-full bg-[#594AE2] px-5 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#4839cf] hover:shadow-[0_0_20px_-5px_#594AE2] active:scale-95"
 				>
@@ -125,6 +135,15 @@
 						onclick={() => (isMenuOpen = false)}>Community</a
 					>
 					<div class="my-1 h-px bg-white/5"></div>
+					<button
+						onclick={() => {
+							isMenuOpen = false;
+							handleDemoAction();
+						}}
+						class="w-full rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:border-white/30 hover:bg-white/5"
+					>
+						Try Demo
+					</button>
 					<button
 						onclick={handleMainAction}
 						class="w-full rounded-lg bg-[#594AE2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4839cf]"
@@ -173,6 +192,12 @@
 						>
 							{authState.isAuthenticated ? 'Go to sunnylink Dashboard' : 'Sign in via sunnylink'}
 							<ArrowRight class="h-5 w-5 transition-transform group-hover:translate-x-1" />
+						</button>
+						<button
+							onclick={handleDemoAction}
+							class="group flex items-center justify-center gap-2 rounded-xl border border-white/10 px-8 py-4 text-base font-semibold text-white transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/5"
+						>
+							Try the demo
 						</button>
 						<a
 							href="https://community.sunnypilot.ai"

@@ -3,6 +3,8 @@
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
+	import { demoContext } from '$lib/demo/demoContext.svelte';
+	import { demoCheckDeviceStatus } from '$lib/demo/demoMode.svelte';
 	import {
 		ChevronDown,
 		X,
@@ -53,6 +55,11 @@
 	}
 
 	async function checkStatus(deviceId: string) {
+		if (demoContext.isActive) {
+			await demoCheckDeviceStatus(deviceId);
+			return;
+		}
+
 		if (logtoClient) {
 			const token = await logtoClient.getIdToken();
 			if (token) {

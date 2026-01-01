@@ -1,5 +1,6 @@
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { v1Client } from '$lib/api/client';
+import { demoContext } from '$lib/demo/demoContext.svelte';
 import { fetchAllSettings } from '$lib/utils/settings';
 
 export const deviceState = $state({
@@ -19,12 +20,12 @@ export const deviceState = $state({
     migrationTargetDeviceId: '',
 
     // Helper to set selected device
-    setSelectedDevice(deviceId: string) {
-        this.selectedDeviceId = deviceId;
-        if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('selectedDeviceId', deviceId);
-        }
-    },
+	setSelectedDevice(deviceId: string) {
+		this.selectedDeviceId = deviceId;
+		if (!demoContext.isActive && typeof localStorage !== 'undefined') {
+			localStorage.setItem('selectedDeviceId', deviceId);
+		}
+	},
 
     // Helper to stage a change
     stageChange(deviceId: string, key: string, value: unknown, originalValue: unknown) {

@@ -2,6 +2,8 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { v0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
+	import { demoContext } from '$lib/demo/demoContext.svelte';
+	import { demoCheckDeviceStatus, demoSetDeviceParams } from '$lib/demo/demoMode.svelte';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { AlertTriangle, Loader2 } from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
@@ -16,6 +18,11 @@
 		if (!deviceId) return;
 		stopping = true;
 		try {
+			if (demoContext.isActive) {
+				await demoSetDeviceParams(deviceId, [{ key: 'OffroadMode', value: false }]);
+				await demoCheckDeviceStatus(deviceId);
+				return;
+			}
 			const token = await logtoClient?.getIdToken();
 			if (!token) return;
 
@@ -49,7 +56,12 @@
 </script>
 
 {#if isForceOffroad}
-	<div class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[#1e293b]">
+	<div
+		class={[
+			'sticky z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[#1e293b]',
+			demoContext.isActive ? 'top-14' : 'top-0'
+		].join(' ')}
+	>
 		<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 sm:px-6 lg:px-8">
 			<div class="flex items-center gap-3">
 				<div
