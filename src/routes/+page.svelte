@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { logtoClient, authState } from '$lib/logto/auth.svelte';
+	import {
+		logtoClient,
+		authState,
+		isNetlifyPreview,
+		PRODUCTION_ORIGIN
+	} from '$lib/logto/auth.svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import {
@@ -28,7 +33,12 @@
 			goto('/dashboard');
 		} else {
 			if (!browser || !logtoClient) return;
-			await logtoClient.signIn(`${window.location.origin}/auth/callback`);
+
+			if (isNetlifyPreview) {
+				window.location.href = `${PRODUCTION_ORIGIN}/auth/proxy-init?origin=${window.location.origin}`;
+			} else {
+				await logtoClient.signIn(`${window.location.origin}/auth/callback`);
+			}
 		}
 	};
 

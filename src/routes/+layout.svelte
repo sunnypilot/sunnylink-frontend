@@ -4,7 +4,12 @@
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 
-	import { authState, logtoClient } from '$lib/logto/auth.svelte';
+	import {
+		authState,
+		logtoClient,
+		isNetlifyPreview,
+		PRODUCTION_ORIGIN
+	} from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
@@ -384,7 +389,11 @@
 					<button
 						type="button"
 						onclick={async () => {
-							await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							if (isNetlifyPreview) {
+								window.location.href = `${PRODUCTION_ORIGIN}/auth/proxy-init?origin=${window.location.origin}`;
+							} else {
+								await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+							}
 							closeDrawerOnMobile();
 						}}
 						class={[
