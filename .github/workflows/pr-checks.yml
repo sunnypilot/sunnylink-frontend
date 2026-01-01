@@ -101,6 +101,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        id: build
         run: pnpm build
 
       - name: Post build summary
@@ -108,6 +109,10 @@ jobs:
         run: |
           echo "## Build Results Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Build completed successfully!**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The production build was generated without errors." >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.build.outcome }}" == "success" ]; then
+            echo "✅ **Build completed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The production build was generated without errors." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build failed. Please review the build output above.**" >> $GITHUB_STEP_SUMMARY
+          fi
