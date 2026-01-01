@@ -7,10 +7,10 @@ import type { DeviceAuthResponseModel } from '../sunnylink/types';
 export const load: LayoutLoad = async ({ url }) => {
 	const isDemoPath = url.pathname.startsWith('/demo');
 	const isAuthenticated = logtoClient ? await logtoClient.isAuthenticated() : false;
-	const useDemo = isDemoPath || !isAuthenticated;
+	const useDemo = isDemoPath;
 
 	if (useDemo) {
-		await activateDemoMode(true);
+		await activateDemoMode(!demoContext.isActive);
 	} else {
 		deactivateDemoMode();
 	}

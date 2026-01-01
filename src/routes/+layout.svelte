@@ -215,7 +215,7 @@
 		<!-- Navbar for mobile -->
 		{#if !isLandingPage}
 		<header
-			class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
+			class={`sticky ${demoContext.isActive ? 'top-14' : 'top-0'} z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6`}
 		>
 		<ForceOffroadBanner />
 			<div class="flex items-center justify-between gap-3">
