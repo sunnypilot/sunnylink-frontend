@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { decodeParamValue } from '$lib/utils/device';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import type { RenderableSetting } from '$lib/types/settings';
@@ -24,14 +25,26 @@
 	let currentValue = $derived(
 		value !== undefined ? value : deviceState.deviceValues[deviceId]?.[setting.key]
 	);
+
+	let decodedDefaultValue = $derived.by(() => {
+		const def = setting.value?.default_value;
+		if (def === undefined || def === null) return undefined;
+
+		if (typeof def === 'string' && setting.value?.type) {
+			const decoded = decodeParamValue({
+				key: setting.key,
+				value: def,
+				type: setting.value.type
+			});
+			return decoded !== null ? decoded : def;
+		}
+		return def;
+	});
+
 	let stagedValue = $derived(deviceState.getChange(deviceId, setting.key));
 	let hasStaged = $derived(stagedValue !== undefined);
 	let displayValue = $derived(
-		hasStaged
-			? stagedValue
-			: currentValue !== undefined
-				? currentValue
-				: setting.value?.default_value
+		hasStaged ? stagedValue : currentValue !== undefined ? currentValue : decodedDefaultValue
 	);
 
 	let isBool = $derived(setting.value?.type === 'Bool');
@@ -50,7 +63,7 @@
 	let step = $derived(setting._extra?.step);
 
 	function handleChange(newValue: any) {
-		let original = currentValue !== undefined ? currentValue : setting.value?.default_value;
+		let original = currentValue !== undefined ? currentValue : decodedDefaultValue;
 
 		// For booleans, undefined should be treated as false for the original value check
 		// to avoid "undefined -> true" showing as a change if it was effectively false (off).
@@ -113,12 +126,12 @@
 				</span>
 			</span>
 			<p class="mt-1 text-sm text-slate-400">{description}</p>
-			{#if setting.value?.default_value !== undefined && setting.value?.default_value !== null && !isLoading}
+			{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
 				<p class="mt-2 text-xs text-slate-500">
 					Default: {options
-						? options.find((o) => String(o.value) === String(setting.value?.default_value))
-								?.label || setting.value.default_value
-						: setting.value.default_value}
+						? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
+							decodedDefaultValue
+						: decodedDefaultValue}
 				</p>
 			{/if}
 		</span>
@@ -169,16 +182,18 @@
 				</h3>
 			</div>
 			<p class="mt-1 text-sm text-slate-400">{description}</p>
-			{#if setting.value?.default_value !== undefined && setting.value?.default_value !== null && !isLoading}
+			{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
 				<p class="mt-2 text-xs text-slate-500">
 					Default: {options
-						? options.find((o) => String(o.value) === String(setting.value?.default_value))
-								?.label || setting.value.default_value
+						? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
+							decodedDefaultValue
 						: isJson
 							? '(JSON)'
-							: String(setting.value.default_value).length > 50
-								? String(setting.value.default_value).slice(0, 50) + '...'
-								: setting.value.default_value}
+							: String(decodedDefaultValue).length > 50
+								? String(decodedDefaultValue).slice(0, 50) + '...'
+								: setting.value?.type === 'Float' && typeof decodedDefaultValue === 'number'
+									? decodedDefaultValue.toFixed(2)
+									: decodedDefaultValue}
 				</p>
 			{/if}
 		</div>
@@ -220,8 +235,10 @@
 							<span class="text-lg font-bold text-primary">
 								{#if setting.value?.type === 'Float' && typeof displayValue === 'number'}
 									{displayValue.toFixed(2)}
+								{:else if setting.value?.type === 'Float' && typeof decodedDefaultValue === 'number'}
+									{decodedDefaultValue.toFixed(2)}
 								{:else}
-									{displayValue !== undefined ? displayValue : setting.value?.default_value || min}
+									{displayValue !== undefined ? displayValue : decodedDefaultValue || min}
 								{/if}
 							</span>
 							<span class="text-xs font-medium text-slate-400">
@@ -236,7 +253,7 @@
 									let current =
 										displayValue !== undefined
 											? Number(displayValue)
-											: Number(setting.value?.default_value || min);
+											: Number(decodedDefaultValue || min);
 									let newValue = Math.max(min, current - (step || 1));
 									handleChange(newValue);
 								}}
@@ -258,9 +275,7 @@
 								{min}
 								{max}
 								step={step || 1}
-								value={displayValue !== undefined
-									? displayValue
-									: setting.value?.default_value || min}
+								value={displayValue !== undefined ? displayValue : decodedDefaultValue || min}
 								class="range flex-1 range-primary range-xs"
 								oninput={(e: Event & { currentTarget: HTMLInputElement }) => {
 									const val = e.currentTarget.value;
@@ -277,7 +292,7 @@
 									let current =
 										displayValue !== undefined
 											? Number(displayValue)
-											: Number(setting.value?.default_value || min);
+											: Number(decodedDefaultValue || min);
 									let newValue = Math.min(max, current + (step || 1));
 									handleChange(newValue);
 								}}
@@ -301,7 +316,7 @@
 						type={isNumber ? 'number' : 'text'}
 						value={displayValue !== undefined ? displayValue : ''}
 						class="input input-sm w-full bg-[#0f1726] text-white focus:border-primary focus:outline-none"
-						placeholder={setting.value?.default_value ? String(setting.value.default_value) : ''}
+						placeholder={decodedDefaultValue !== undefined ? String(decodedDefaultValue) : ''}
 						{min}
 						{max}
 						{step}
