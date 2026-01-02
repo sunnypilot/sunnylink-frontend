@@ -98,9 +98,9 @@
 		if (!deviceDef && !staticDef) return undefined;
 		return {
 			...staticDef,
-			value: deviceDef || staticDef?.value,
+			value: deviceDef,
 			key,
-			_extra: deviceDef?._extra || staticDef?._extra
+			_extra: deviceDef?._extra
 		} as RenderableSetting;
 	}
 
@@ -887,7 +887,7 @@
 								/>
 							{/if}
 
-							{#if lagdToggleDelayParam}
+							{#if lagdToggleDelayParam && !lagdToggleParam}
 								<SettingCard
 									deviceId={deviceState.selectedDeviceId!}
 									setting={lagdToggleDelayParam}
