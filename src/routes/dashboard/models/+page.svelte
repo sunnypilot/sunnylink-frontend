@@ -2,10 +2,12 @@
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
+	import { getAllSettings } from '$lib/utils/settings';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { v0Client, v1Client } from '$lib/api/client';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
+	import { SETTINGS_DEFINITIONS, type ExtendedDeviceParamKey } from '$lib/types/settings';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
@@ -49,6 +51,21 @@
 	let sendingModel = $state(false);
 	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
+	let cameraOffsetValue = $state<number | undefined>(undefined);
+	let settingCameraOffset = $state(false);
+
+	let cameraOffsetParam = $derived.by(() => {
+		const deviceId = deviceState.selectedDeviceId;
+		if (!deviceId) return undefined;
+		const deviceDef = deviceState.deviceSettings[deviceId]?.find((s) => s.key === 'CameraOffset');
+		const staticDef = SETTINGS_DEFINITIONS.find((s) => s.key === 'CameraOffset');
+		if (!deviceDef && !staticDef) return undefined;
+		return {
+			...staticDef,
+			...deviceDef,
+			_extra: deviceDef?._extra
+		};
+	});
 
 	let currentModel = $derived(
 		modelList?.find((m) => m.short_name === currentModelShortName) ??
@@ -221,7 +238,8 @@
 							'ModelManager_ActiveBundle',
 							'IsOffroad',
 							'OffroadMode',
-							'ModelManager_Favs'
+							'ModelManager_Favs',
+							'CameraOffset'
 						]
 					}
 				},
@@ -240,6 +258,15 @@
 				const isOffroadParam = models.data.items.find((i) => i.key === 'IsOffroad');
 				const offroadModeParam = models.data.items.find((i) => i.key === 'OffroadMode');
 				const favsParam = models.data.items.find((i) => i.key === 'ModelManager_Favs');
+				const cameraOffsetItem = models.data.items.find((i) => i.key === 'CameraOffset');
+
+				if (cameraOffsetItem) {
+					const val = decodeParamValue(cameraOffsetItem);
+					const num = parseFloat(String(val));
+					if (!isNaN(num)) {
+						cameraOffsetValue = num;
+					}
+				}
 
 				if (favsParam) {
 					const decodedFavs = decodeParamValue(favsParam);
@@ -780,6 +807,202 @@
 										? new Date(currentModel.build_time).toLocaleDateString()
 										: 'N/A'}
 								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			{#if currentModel !== DEFAULT_MODEL && cameraOffsetParam}
+				{@const min = cameraOffsetParam._extra?.min ?? -1}
+				{@const max = cameraOffsetParam._extra?.max ?? 1}
+				{@const step = cameraOffsetParam._extra?.step ?? 0.01}
+				{@const title = cameraOffsetParam._extra?.title ?? cameraOffsetParam.label}
+				{@const description =
+					cameraOffsetParam._extra?.description ?? cameraOffsetParam.description}
+
+				<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+					<div class="border-b border-slate-700 bg-slate-800/50 px-4 py-3">
+						<div class="flex items-center gap-2">
+							<RotateCcw size={16} class="text-slate-400" />
+							<span class="text-xs font-bold tracking-wider text-slate-300 uppercase">
+								Calibration
+							</span>
+						</div>
+					</div>
+					<div class="p-4">
+						<div class="flex w-full flex-col gap-2">
+							<div class="flex items-center justify-between">
+								<div>
+									<h3 class="font-medium text-white">{title}</h3>
+									<p class="text-xs text-slate-400">{description}</p>
+								</div>
+								<div class="flex items-center gap-3">
+									<span class="text-xs font-medium text-slate-400">{min.toFixed(2)}</span>
+									<span class="font-mono text-lg font-bold text-primary">
+										{cameraOffsetValue?.toFixed(2) ?? '0.00'}
+									</span>
+									<span class="text-xs font-medium text-slate-400">{max.toFixed(2)}</span>
+								</div>
+							</div>
+							<div class="mt-2 flex items-center gap-4">
+								<button
+									class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
+									aria-label="Decrease value"
+									disabled={settingCameraOffset}
+									onclick={async () => {
+										if (
+											cameraOffsetValue !== undefined &&
+											logtoClient &&
+											deviceState.selectedDeviceId
+										) {
+											const newValue = Math.max(min, cameraOffsetValue - step);
+											cameraOffsetValue = newValue;
+											settingCameraOffset = true;
+											try {
+												await v0Client.POST('/settings/{deviceId}', {
+													params: {
+														path: {
+															deviceId: deviceState.selectedDeviceId
+														}
+													},
+													body: [
+														{
+															key: 'CameraOffset',
+															value: encodeParamValue({
+																key: 'CameraOffset',
+																value: newValue,
+																type: 'Float'
+															}),
+															is_compressed: false
+														}
+													],
+													headers: {
+														Authorization: `Bearer ${await logtoClient.getIdToken()}`
+													}
+												});
+												// await fetchModelsForDevice(true); // Maybe not needed for just visual update if we trust local state
+											} catch (e) {
+												console.error('Error setting CameraOffset', e);
+											} finally {
+												settingCameraOffset = false;
+											}
+										}
+									}}
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"><path d="M5 12h14" /></svg
+									>
+								</button>
+								<input
+									type="range"
+									{min}
+									{max}
+									{step}
+									value={cameraOffsetValue ?? 0}
+									class="range flex-1 range-primary range-xs"
+									disabled={settingCameraOffset}
+									oninput={async (e) => {
+										const val = parseFloat(e.currentTarget.value);
+										cameraOffsetValue = val;
+									}}
+									onchange={async (e) => {
+										const val = parseFloat(e.currentTarget.value);
+										if (logtoClient && deviceState.selectedDeviceId) {
+											settingCameraOffset = true;
+											try {
+												await v0Client.POST('/settings/{deviceId}', {
+													params: {
+														path: {
+															deviceId: deviceState.selectedDeviceId
+														}
+													},
+													body: [
+														{
+															key: 'CameraOffset',
+															value: encodeParamValue({
+																key: 'CameraOffset',
+																value: val,
+																type: 'Float'
+															}),
+															is_compressed: false
+														}
+													],
+													headers: {
+														Authorization: `Bearer ${await logtoClient.getIdToken()}`
+													}
+												});
+											} catch (e) {
+												console.error('Error setting CameraOffset', e);
+											} finally {
+												settingCameraOffset = false;
+											}
+										}
+									}}
+								/>
+								<button
+									class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
+									aria-label="Increase value"
+									disabled={settingCameraOffset}
+									onclick={async () => {
+										if (
+											cameraOffsetValue !== undefined &&
+											logtoClient &&
+											deviceState.selectedDeviceId
+										) {
+											const newValue = Math.min(max, cameraOffsetValue + step);
+											cameraOffsetValue = newValue;
+											settingCameraOffset = true;
+											try {
+												await v0Client.POST('/settings/{deviceId}', {
+													params: {
+														path: {
+															deviceId: deviceState.selectedDeviceId
+														}
+													},
+													body: [
+														{
+															key: 'CameraOffset',
+															value: encodeParamValue({
+																key: 'CameraOffset',
+																value: newValue,
+																type: 'Float'
+															}),
+															is_compressed: false
+														}
+													],
+													headers: {
+														Authorization: `Bearer ${await logtoClient.getIdToken()}`
+													}
+												});
+											} catch (e) {
+												console.error('Error setting CameraOffset', e);
+											} finally {
+												settingCameraOffset = false;
+											}
+										}
+									}}
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg
+									>
+								</button>
 							</div>
 						</div>
 					</div>

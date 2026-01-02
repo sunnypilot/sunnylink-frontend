@@ -157,6 +157,13 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'device',
 		advanced: true
 	},
+	{
+		key: 'CameraOffset',
+		label: 'Camera Offset',
+		description: 'Adjust the camera offset value',
+		category: 'device',
+		hidden: true
+	},
 	// Readonly
 	{ isSection: true, key: '_sec', label: '', description: '', category: 'device' },
 	{
