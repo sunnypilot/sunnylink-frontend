@@ -816,58 +816,47 @@
 							</div>
 						</div>
 					</div>
-				</div>
-			{/if}
-
-			{#if currentModel !== DEFAULT_MODEL && cameraOffsetParam}
-				<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
-					<div class="border-b border-slate-700 bg-slate-800/50 px-4 py-3">
-						<div class="flex items-center gap-2">
-							<RotateCcw size={16} class="text-slate-400" />
-							<span class="text-xs font-bold tracking-wider text-slate-300 uppercase">
-								Calibration
-							</span>
-						</div>
-					</div>
-					<div class="p-4">
-						<SettingCard
-							deviceId={deviceState.selectedDeviceId!}
-							setting={cameraOffsetParam}
-							value={cameraOffsetValue}
-							onValueChange={async (key: string, value: any) => {
-								if (!logtoClient || !deviceState.selectedDeviceId) return;
-								cameraOffsetValue = value;
-								settingCameraOffset = true;
-								try {
-									await v0Client.POST('/settings/{deviceId}', {
-										params: {
-											path: {
-												deviceId: deviceState.selectedDeviceId
-											}
-										},
-										body: [
-											{
-												key: 'CameraOffset',
-												value: encodeParamValue({
-													key: 'CameraOffset',
-													value: value,
-													type: 'Float'
-												}),
-												is_compressed: false
-											}
-										],
-										headers: {
-											Authorization: `Bearer ${await logtoClient.getIdToken()}`
+					{#if currentModel !== DEFAULT_MODEL && cameraOffsetParam}
+						<div class="p-4">
+								<SettingCard
+									deviceId={deviceState.selectedDeviceId!}
+									setting={cameraOffsetParam}
+									value={cameraOffsetValue}
+									onValueChange={async (key: string, value: any) => {
+										if (!logtoClient || !deviceState.selectedDeviceId) return;
+										cameraOffsetValue = value;
+										settingCameraOffset = true;
+										try {
+											await v0Client.POST('/settings/{deviceId}', {
+												params: {
+													path: {
+														deviceId: deviceState.selectedDeviceId
+													}
+												},
+												body: [
+													{
+														key: 'CameraOffset',
+														value: encodeParamValue({
+															key: 'CameraOffset',
+															value: value,
+															type: 'Float'
+														}),
+														is_compressed: false
+													}
+												],
+												headers: {
+													Authorization: `Bearer ${await logtoClient.getIdToken()}`
+												}
+											});
+										} catch (e) {
+											console.error('Error setting CameraOffset', e);
+										} finally {
+											settingCameraOffset = false;
 										}
-									});
-								} catch (e) {
-									console.error('Error setting CameraOffset', e);
-								} finally {
-									settingCameraOffset = false;
-								}
-							}}
-						/>
-					</div>
+									}}
+								/>
+							</div>
+					{/if}
 				</div>
 			{/if}
 
