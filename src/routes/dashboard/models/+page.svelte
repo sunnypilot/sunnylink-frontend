@@ -880,50 +880,48 @@
 							</div>
 						</div>
 					</div>
-					{#if currentModel !== DEFAULT_MODEL}
-						<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
-							{#if cameraOffsetParam}
-								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
-									setting={cameraOffsetParam}
-									value={cameraOffsetValue}
-									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
-								/>
-							{/if}
+					<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
+						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
+							<SettingCard
+								deviceId={deviceState.selectedDeviceId!}
+								setting={cameraOffsetParam}
+								value={cameraOffsetValue}
+								onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
+							/>
+						{/if}
 
-							{#if lagdToggleParam}
-								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
-									setting={lagdToggleParam}
-									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
-								/>
-							{/if}
+						{#if lagdToggleParam}
+							<SettingCard
+								deviceId={deviceState.selectedDeviceId!}
+								setting={lagdToggleParam}
+								onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
+							/>
+						{/if}
 
-							{#if lagdToggleDelayParam && lagdToggleValue === false}
-								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
-									setting={lagdToggleDelayParam}
-									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
-								/>
-							{/if}
+						{#if lagdToggleDelayParam && lagdToggleValue === false}
+							<SettingCard
+								deviceId={deviceState.selectedDeviceId!}
+								setting={lagdToggleDelayParam}
+								onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
+							/>
+						{/if}
 
-							{#if laneTurnDesireParam}
-								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
-									setting={laneTurnDesireParam}
-									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
-								/>
-							{/if}
+						{#if laneTurnDesireParam}
+							<SettingCard
+								deviceId={deviceState.selectedDeviceId!}
+								setting={laneTurnDesireParam}
+								onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
+							/>
+						{/if}
 
-							{#if laneTurnValueParam && laneTurnDesireParamValue === true}
-								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
-									setting={laneTurnValueParam}
-									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
-								/>
-							{/if}
-						</div>
-					{/if}
+						{#if laneTurnValueParam && laneTurnDesireParamValue === true}
+							<SettingCard
+								deviceId={deviceState.selectedDeviceId!}
+								setting={laneTurnValueParam}
+								onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
+							/>
+						{/if}
+					</div>
 				</div>
 			{/if}
 
