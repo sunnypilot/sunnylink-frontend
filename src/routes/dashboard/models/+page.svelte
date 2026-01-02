@@ -60,6 +60,18 @@
 	let settingCameraOffset = $state(false);
 	let savingModelSettings = $state<Record<string, boolean>>({});
 
+	let lagdToggleValue = $derived(
+		deviceState.selectedDeviceId
+			? deviceState.deviceValues[deviceState.selectedDeviceId]?.['LagdToggle']
+			: undefined
+	);
+
+	let laneTurnDesireParamValue = $derived(
+		deviceState.selectedDeviceId
+			? deviceState.deviceValues[deviceState.selectedDeviceId]?.['LaneTurnDesire']
+			: undefined
+	);
+
 	async function saveModelSetting(key: string, value: any, type: string) {
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
 		const deviceId = deviceState.selectedDeviceId;
@@ -69,7 +81,8 @@
 		// Update local state and cache immediately
 		if (key === 'CameraOffset') cameraOffsetValue = value;
 		if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-		deviceState.deviceValues[deviceId][key] = value;
+		const values = deviceState.deviceValues[deviceId];
+		if (values) values[key] = value;
 
 		try {
 			await v0Client.POST('/settings/{deviceId}', {
@@ -267,7 +280,8 @@
 		}
 		// isOffroad is derived, no need to reset local state
 
-		if (!logtoClient) return;
+		const client = logtoClient;
+		if (!client) return;
 		if (!deviceState.selectedDeviceId) return;
 		try {
 			const models = await v1Client.GET('/v1/settings/{deviceId}/values', {
@@ -291,7 +305,7 @@
 					}
 				},
 				headers: {
-					Authorization: `Bearer ${await logtoClient!.getIdToken()}`
+					Authorization: `Bearer ${await client.getIdToken()}`
 				}
 			});
 
@@ -320,9 +334,10 @@
 				if (!deviceState.deviceValues[deviceId]) {
 					deviceState.deviceValues[deviceId] = {};
 				}
+				const values = deviceState.deviceValues[deviceId];
 				models.data.items.forEach((item) => {
-					if (item.key) {
-						deviceState.deviceValues[deviceId][item.key] = decodeParamValue(item);
+					if (item.key && values) {
+						values[item.key] = decodeParamValue(item);
 					}
 				});
 
@@ -719,7 +734,7 @@
 	{:else if isOffline}
 		{#await data.streamed.devices then devices}
 			{@const selectedDevice = devices?.find(
-				(d: { device_id: String | null }) => d.device_id === deviceState.selectedDeviceId
+				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<div class="mb-4 rounded-full bg-red-500/10 p-4">
@@ -784,7 +799,7 @@
 	{:else if isError}
 		{#await data.streamed.devices then devices}
 			{@const selectedDevice = devices?.find(
-				(d: { device_id: String | null }) => d.device_id === deviceState.selectedDeviceId
+				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<div class="mb-4 rounded-full bg-amber-500/10 p-4">
@@ -872,7 +887,7 @@
 						<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
 							{#if cameraOffsetParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId}
+									deviceId={deviceState.selectedDeviceId!}
 									setting={cameraOffsetParam}
 									value={cameraOffsetValue}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
@@ -881,15 +896,15 @@
 
 							{#if lagdToggleParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId}
+									deviceId={deviceState.selectedDeviceId!}
 									setting={lagdToggleParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
 								/>
 							{/if}
 
-							{#if lagdToggleDelayParam && !lagdToggleParam}
+							{#if lagdToggleDelayParam && lagdToggleValue === false}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId}
+									deviceId={deviceState.selectedDeviceId!}
 									setting={lagdToggleDelayParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
 								/>
@@ -897,15 +912,15 @@
 
 							{#if laneTurnDesireParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId}
+									deviceId={deviceState.selectedDeviceId!}
 									setting={laneTurnDesireParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
 								/>
 							{/if}
 
-							{#if laneTurnValueParam}
+							{#if laneTurnValueParam && laneTurnDesireParamValue === true}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId}
+									deviceId={deviceState.selectedDeviceId!}
 									setting={laneTurnValueParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
 								/>
