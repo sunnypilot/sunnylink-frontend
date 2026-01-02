@@ -58,20 +58,57 @@
 	let favorites = $state<Set<string>>(new Set());
 	let cameraOffsetValue = $state<number | undefined>(undefined);
 	let settingCameraOffset = $state(false);
+	let savingModelSettings = $state<Record<string, boolean>>({});
 
-	let cameraOffsetParam = $derived.by(() => {
+	async function saveModelSetting(key: string, value: any, type: string) {
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		const deviceId = deviceState.selectedDeviceId;
+
+		savingModelSettings[key] = true;
+
+		// Update local state and cache immediately
+		if (key === 'CameraOffset') cameraOffsetValue = value;
+		if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+		deviceState.deviceValues[deviceId][key] = value;
+
+		try {
+			await v0Client.POST('/settings/{deviceId}', {
+				params: { path: { deviceId } },
+				body: [
+					{
+						key,
+						value: encodeParamValue({ key, value, type }),
+						is_compressed: false
+					}
+				],
+				headers: { Authorization: `Bearer ${await logtoClient.getIdToken()}` }
+			});
+		} catch (e) {
+			console.error(`Error saving ${key}`, e);
+		} finally {
+			savingModelSettings[key] = false;
+		}
+	}
+
+	function getModelSetting(key: string) {
 		const deviceId = deviceState.selectedDeviceId;
 		if (!deviceId) return undefined;
-		const deviceDef = deviceState.deviceSettings[deviceId]?.find((s) => s.key === 'CameraOffset');
-		const staticDef = SETTINGS_DEFINITIONS.find((s) => s.key === 'CameraOffset');
+		const deviceDef = deviceState.deviceSettings[deviceId]?.find((s) => s.key === key);
+		const staticDef = SETTINGS_DEFINITIONS.find((s) => s.key === key);
 		if (!deviceDef && !staticDef) return undefined;
 		return {
 			...staticDef,
 			value: deviceDef || staticDef?.value,
-			key: 'CameraOffset',
+			key,
 			_extra: deviceDef?._extra || staticDef?._extra
 		} as RenderableSetting;
-	});
+	}
+
+	let cameraOffsetParam = $derived(getModelSetting('CameraOffset'));
+	let lagdToggleParam = $derived(getModelSetting('LagdToggle'));
+	let lagdToggleDelayParam = $derived(getModelSetting('LagdToggleDelay'));
+	let laneTurnDesireParam = $derived(getModelSetting('LaneTurnDesire'));
+	let laneTurnValueParam = $derived(getModelSetting('LaneTurnValue'));
 
 	let currentModel = $derived(
 		modelList?.find((m) => m.short_name === currentModelShortName) ??
@@ -245,12 +282,16 @@
 							'IsOffroad',
 							'OffroadMode',
 							'ModelManager_Favs',
-							'CameraOffset'
+							'CameraOffset',
+							'LagdToggle',
+							'LagdToggleDelay',
+							'LaneTurnDesire',
+							'LaneTurnValue'
 						]
 					}
 				},
 				headers: {
-					Authorization: `Bearer ${await logtoClient.getIdToken()}`
+					Authorization: `Bearer ${await logtoClient!.getIdToken()}`
 				}
 			});
 
@@ -273,6 +314,17 @@
 						cameraOffsetValue = num;
 					}
 				}
+
+				// Populate deviceValues for the other settings too to ensure they are available
+				const deviceId = deviceState.selectedDeviceId!;
+				if (!deviceState.deviceValues[deviceId]) {
+					deviceState.deviceValues[deviceId] = {};
+				}
+				models.data.items.forEach((item) => {
+					if (item.key) {
+						deviceState.deviceValues[deviceId][item.key] = decodeParamValue(item);
+					}
+				});
 
 				if (favsParam) {
 					const decodedFavs = decodeParamValue(favsParam);
@@ -816,46 +868,49 @@
 							</div>
 						</div>
 					</div>
-					{#if currentModel !== DEFAULT_MODEL && cameraOffsetParam}
-						<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 p-4">
+					{#if currentModel !== DEFAULT_MODEL}
+						<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
+							{#if cameraOffsetParam}
 								<SettingCard
 									deviceId={deviceState.selectedDeviceId!}
 									setting={cameraOffsetParam}
 									value={cameraOffsetValue}
-									onValueChange={async (key: string, value: any) => {
-										if (!logtoClient || !deviceState.selectedDeviceId) return;
-										cameraOffsetValue = value;
-										settingCameraOffset = true;
-										try {
-											await v0Client.POST('/settings/{deviceId}', {
-												params: {
-													path: {
-														deviceId: deviceState.selectedDeviceId
-													}
-												},
-												body: [
-													{
-														key: 'CameraOffset',
-														value: encodeParamValue({
-															key: 'CameraOffset',
-															value: value,
-															type: 'Float'
-														}),
-														is_compressed: false
-													}
-												],
-												headers: {
-													Authorization: `Bearer ${await logtoClient.getIdToken()}`
-												}
-											});
-										} catch (e) {
-											console.error('Error setting CameraOffset', e);
-										} finally {
-											settingCameraOffset = false;
-										}
-									}}
+									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
 								/>
-							</div>
+							{/if}
+
+							{#if lagdToggleParam}
+								<SettingCard
+									deviceId={deviceState.selectedDeviceId!}
+									setting={lagdToggleParam}
+									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
+								/>
+							{/if}
+
+							{#if lagdToggleDelayParam}
+								<SettingCard
+									deviceId={deviceState.selectedDeviceId!}
+									setting={lagdToggleDelayParam}
+									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
+								/>
+							{/if}
+
+							{#if laneTurnDesireParam}
+								<SettingCard
+									deviceId={deviceState.selectedDeviceId!}
+									setting={laneTurnDesireParam}
+									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
+								/>
+							{/if}
+
+							{#if laneTurnValueParam}
+								<SettingCard
+									deviceId={deviceState.selectedDeviceId!}
+									setting={laneTurnValueParam}
+									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
+								/>
+							{/if}
+						</div>
 					{/if}
 				</div>
 			{/if}
