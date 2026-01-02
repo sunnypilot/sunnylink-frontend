@@ -65,7 +65,25 @@ pnpm check
 
 # Run tests
 pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
 ```
+
+## Code Coverage
+
+This project uses Vitest for code coverage reporting. Coverage is automatically generated in all GitHub Actions workflows:
+
+- **Pull Requests**: Coverage reports are posted as PR comments and added to the Actions summary
+- **Main Branch**: Coverage reports are included in the deployment workflow
+- **Local Development**: Run `pnpm test:coverage` to generate coverage locally
+
+Coverage reports include:
+- Percentage summary (statements, branches, functions, lines)
+- Per-file/module breakdown (download artifacts from GitHub Actions)
+- HTML report for detailed analysis (available in `coverage/index.html` after running locally)
+
+The coverage tool is configured to be non-blocking by default (0% thresholds), but can be adjusted in `vite.config.ts` if stricter requirements are needed.
 
 ## Project Structure
 
