@@ -67,7 +67,10 @@ export default defineConfig({
 				'**/*.config.{js,ts}',
 				'**/node_modules/**',
 				'**/dist/**',
-				'**/.svelte-kit/**'
+				'**/.svelte-kit/**',
+				'**/test-data.ts',
+				'**/sunnylink/**/*.d.ts',
+				'src/app.d.ts'
 			],
 			all: true,
 			lines: 0,
