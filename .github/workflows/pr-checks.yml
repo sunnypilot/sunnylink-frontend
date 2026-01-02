@@ -1,30 +1,23 @@
-name: Deploy SvelteKit to GitHub Pages
+name: PR Checks
 
 on:
-  push:
+  pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  pull-requests: write
 
 env:
-  BASE_PATH: ''
   PUBLIC_API_URL: https://stg.api.sunnypilot.ai/
   PUBLIC_LOGTO_ENDPOINT: https://logto.sunnypilot.ai/
   PUBLIC_LOGTO_APP_ID: 6mjzxmevkp3ly5c6asvu8
-  PUBLIC_CALLBACK: https://new.sunnypilot.ai/auth/callback
-  PUBLIC_REDIRECT: https://new.sunnypilot.ai/
+  PUBLIC_CALLBACK: https://example.com/auth/callback
+  PUBLIC_REDIRECT: https://example.com/
 
 jobs:
   test:
-    name: Run Tests
+    name: Test & Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -62,11 +55,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-pr-${{ github.event.pull_request.number }}
           path: |
             test-results/
             coverage/
-          retention-days: 30
+          retention-days: 14
 
       - name: Generate coverage summary
         if: always()
@@ -98,7 +91,7 @@ jobs:
           if [ "${{ steps.tests.outcome }}" == "success" ]; then
             echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Some tests failed. Deployment blocked.**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Some tests failed. Please review the test output above.**" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Checks Performed" >> $GITHUB_STEP_SUMMARY
@@ -122,7 +115,66 @@ jobs:
             echo "📊 [View detailed coverage report in artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Comment PR with coverage
+        if: always() && steps.coverage.outputs.has_coverage == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const statements = '${{ steps.coverage.outputs.statements }}';
+            const branches = '${{ steps.coverage.outputs.branches }}';
+            const functions = '${{ steps.coverage.outputs.functions }}';
+            const lines = '${{ steps.coverage.outputs.lines }}';
+
+            const body = `## 📊 Code Coverage Report
+
+            | Metric | Coverage |
+            |--------|----------|
+            | Statements | ${statements}% |
+            | Branches | ${branches}% |
+            | Functions | ${functions}% |
+            | Lines | ${lines}% |
+
+            <details>
+            <summary>How to view detailed coverage</summary>
+
+            1. Go to the [Actions tab](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            2. Download the \`test-results-pr-${{ github.event.pull_request.number }}\` artifact
+            3. Extract and open \`coverage/index.html\` in your browser
+
+            </details>
+            `;
+
+            // Find existing coverage comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const coverageComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && comment.body.includes('📊 Code Coverage Report')
+            );
+
+            if (coverageComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: coverageComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
   build:
+    name: Build Verification
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -141,29 +193,22 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Show pnpm version
-        run: pnpm --version
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        id: build
         run: pnpm build
-        env:
-          BASE_PATH: ${{ env.BASE_PATH }}
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deploy
-        uses: actions/deploy-pages@v4
+      - name: Post build summary
+        if: always()
+        run: |
+          echo "## Build Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.build.outcome }}" == "success" ]; then
+            echo "✅ **Build completed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The production build was generated without errors." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build failed. Please review the build output above.**" >> $GITHUB_STEP_SUMMARY
+          fi

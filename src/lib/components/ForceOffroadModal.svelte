@@ -6,10 +6,7 @@
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
 
-	let {
-		open = $bindable(false),
-		onSuccess
-	} = $props<{
+	let { open = $bindable(false), onSuccess } = $props<{
 		open: boolean;
 		onSuccess: () => void;
 	}>();
@@ -119,10 +116,12 @@
 						WARNING: This action will immediately stop the vehicle from engaging.
 					</p>
 					<p>
-						Forcing offroad mode while driving is extremely dangerous and will cause openpilot to disengage immediately.
+						Forcing offroad mode while driving is extremely dangerous and will cause openpilot to
+						disengage immediately.
 					</p>
 					<p>
-						Only proceed if the vehicle is parked and you need to force the device into offroad mode for maintenance or updates.
+						Only proceed if the vehicle is parked and you need to force the device into offroad mode
+						for maintenance or updates.
 					</p>
 				</div>
 
@@ -135,11 +134,7 @@
 
 				<div class="form-control">
 					<label class="label cursor-pointer justify-start gap-3">
-						<input
-							type="checkbox"
-							bind:checked={confirmed}
-							class="checkbox checkbox-error"
-						/>
+						<input type="checkbox" bind:checked={confirmed} class="checkbox checkbox-error" />
 						<span class="label-text text-white">I understand the risks and want to proceed</span>
 					</label>
 				</div>
@@ -154,7 +149,7 @@
 					Cancel
 				</button>
 				<button
-					class="btn btn-error min-w-[140px]"
+					class="btn min-w-[140px] btn-error"
 					onclick={handleForceOffroad}
 					disabled={!confirmed || countdown > 0 || pushing}
 				>

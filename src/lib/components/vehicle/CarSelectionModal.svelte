@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { X, Search, ChevronRight, Car } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
-    import { browser } from '$app/environment';
+	import { browser } from '$app/environment';
 
-	let { open = $bindable(false), carList, onSelect } = $props<{
+	let {
+		open = $bindable(false),
+		carList,
+		onSelect
+	} = $props<{
 		open: boolean;
 		carList: Record<string, any> | null;
 		onSelect: (platform: string, data: any) => void;
@@ -21,11 +25,12 @@
 		for (const platform of platforms) {
 			const data = carList[platform];
 			const make = data.make || 'Unknown';
-			
+
 			// Filter based on search
 			if (searchQuery.trim()) {
 				const query = searchQuery.toLowerCase();
-				const searchTags = `${platform} ${make} ${(data.year || []).join(' ')} ${data.model || ''}`.toLowerCase();
+				const searchTags =
+					`${platform} ${make} ${(data.year || []).join(' ')} ${data.model || ''}`.toLowerCase();
 				if (!searchTags.includes(query)) continue;
 			}
 
@@ -47,20 +52,20 @@
 		open = false;
 	}
 
-    $effect(() => {
-        if (!open) searchQuery = '';
-    });
+	$effect(() => {
+		if (!open) searchQuery = '';
+	});
 
-    // Lock body scroll when open
-    $effect(() => {
-        if (!browser) return;
-        if (open) {
-            document.body.style.overflow = 'hidden';
-            return () => {
-                document.body.style.overflow = '';
-            };
-        }
-    });
+	// Lock body scroll when open
+	$effect(() => {
+		if (!browser) return;
+		if (open) {
+			document.body.style.overflow = 'hidden';
+			return () => {
+				document.body.style.overflow = '';
+			};
+		}
+	});
 </script>
 
 {#if open}
@@ -92,12 +97,12 @@
 			<!-- Search -->
 			<div class="border-b border-slate-800 p-4">
 				<div class="relative">
-					<Search class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+					<Search class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-slate-500" />
 					<input
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search make, model, year (e.g. 'Toyota Corolla 2021')"
-						class="w-full rounded-xl border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+						class="w-full rounded-xl border border-slate-700 bg-slate-900 py-3 pr-4 pl-10 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 						autofocus
 					/>
 				</div>
@@ -107,9 +112,7 @@
 			<div class="flex-1 overflow-y-auto p-2">
 				{#if !carList}
 					<div class="flex h-40 items-center justify-center text-slate-500">
-						<span class="flex items-center gap-2">
-							Loading vehicle list...
-						</span>
+						<span class="flex items-center gap-2"> Loading vehicle list... </span>
 					</div>
 				{:else if groupedCars.length === 0}
 					<div class="flex h-40 items-center justify-center text-slate-500">
@@ -119,7 +122,9 @@
 					<div class="space-y-4 p-2">
 						{#each groupedCars as group (group.make)}
 							<div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
-								<div class="bg-slate-800/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+								<div
+									class="bg-slate-800/50 px-4 py-2 text-xs font-bold tracking-wider text-slate-400 uppercase"
+								>
 									{group.make}
 								</div>
 								<div class="divide-y divide-slate-800">
@@ -129,7 +134,9 @@
 											onclick={() => handleSelect(car)}
 										>
 											<div class="flex items-center gap-3">
-												<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-slate-400">
+												<div
+													class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-slate-400"
+												>
 													<Car size={20} />
 												</div>
 												<div>

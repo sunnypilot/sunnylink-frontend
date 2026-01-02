@@ -1,305 +1,1976 @@
 import type { components } from '../../sunnylink/v1/schema';
 
 export interface ParamExtra {
-    title?: string;
-    description?: string;
-    min?: number;
-    max?: number;
-    step?: number;
-    options?: { value: number | string; label: string }[];
+	title?: string;
+	description?: string;
+	min?: number;
+	max?: number;
+	step?: number;
+	options?: { value: number | string; label: string }[];
 }
 
 export type ExtendedDeviceParamKey = components['schemas']['DeviceParamKey'] & {
-    _extra?: ParamExtra;
+	_extra?: ParamExtra;
 };
 
-export type SettingCategory = 'device' | 'toggles' | 'steering' | 'cruise' | 'visuals' | 'developer' | 'other';
+export type SettingCategory =
+	| 'device'
+	| 'toggles'
+	| 'steering'
+	| 'cruise'
+	| 'visuals'
+	| 'developer'
+	| 'other';
 
 export interface SettingDefinition {
-    key: string;
-    label: string;
-    description: string;
-    category: SettingCategory;
-    advanced?: boolean;
-    readonly?: boolean;
-    hidden?: boolean;
+	key: string;
+	label: string;
+	description: string;
+	category: SettingCategory;
+	advanced?: boolean;
+	readonly?: boolean;
+	hidden?: boolean;
+	isSection?: boolean;
 }
 
 export interface RenderableSetting extends SettingDefinition {
-    value?: ExtendedDeviceParamKey;
-    _extra?: ParamExtra;
+	value?: ExtendedDeviceParamKey;
+	_extra?: ParamExtra;
 }
 
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
-    // Device
-    { key: 'DongleId', label: 'Dongle ID', description: 'Unique device identifier', category: 'device', readonly: true },
-    { key: 'GitCommit', label: 'Git Commit', description: 'Current software version', category: 'device', readonly: true },
-    { key: 'GithubSshKeys', label: 'GitHub SSH Keys', description: 'SSH keys for GitHub access', category: 'device', readonly: true, hidden: true },
-    { key: 'GithubUsername', label: 'GitHub Username', description: 'Connected GitHub account', category: 'device', readonly: true },
-    { key: 'GsmMetered', label: 'GSM Metered', description: 'Cellular data metering', category: 'device' },
-    { key: 'IsLdwEnabled', label: 'LDW Enabled', description: 'Lane departure warnings', category: 'device' },
-    { key: 'IsMetric', label: 'Metric Units', description: 'Display metric measurements', category: 'device' },
-    { key: 'LanguageSetting', label: 'Language', description: 'UI language', category: 'device' },
-    { key: 'OpenpilotEnabledToggle', label: 'sunnypilot Enabled', description: 'Master sunnypilot toggle', category: 'device' },
-    { key: 'RecordFront', label: 'Record Front', description: 'Front camera recording', category: 'device' },
-    { key: 'IsRHD', label: 'Right-Hand Drive', description: 'RHD vehicle configuration', category: 'device' },
-    { key: 'Version', label: 'Version', description: 'Software version number', category: 'device', readonly: true },
-    { key: 'QuietMode', label: 'Quiet Mode', description: 'Minimize sound notifications', category: 'device' },
-    { key: 'MaxTimeOffroad', label: 'Max Time Offroad', description: 'Max idle time before shutdown', category: 'device', advanced: true },
-    { key: 'NetworkMetered', label: 'Network Metered', description: 'Metered connection', category: 'device', advanced: true, hidden: true },
-    { key: 'NetworkType', label: 'Network Type', description: 'Connection type', category: 'device', advanced: true, readonly: true, hidden: true },
-    { key: 'BackupManager_CreateBackup', label: 'Create Backup', description: 'Backup current settings', category: 'device', advanced: true },
-    { key: 'DeviceBootMode', label: 'Boot Mode', description: 'Current device boot mode', category: 'device', readonly: true, hidden: true },
-    { key: 'UpdaterLastFetchTime', label: 'Last Update Check', description: 'Time of last update check', category: 'device', readonly: true, hidden: true },
-    { key: 'GitRemote', label: 'Git Remote', description: 'Git remote origin URL', category: 'device', readonly: true, hidden: true },
-    { key: 'GsmRoaming', label: 'GSM Roaming', description: 'Allow cellular roaming', category: 'device' },
-    { key: 'IsRhdDetected', label: 'RHD Detected', description: 'System detected RHD status', category: 'device', readonly: true, hidden: true },
-    { key: 'GitDiff', label: 'Git Diff', description: 'Local file modifications', category: 'device', readonly: true, hidden: true },
-    { key: 'GitBranch', label: 'Git Branch', description: 'Current git branch', category: 'device', readonly: true },
-    { key: 'ForcePowerDown', label: 'Force Power Down', description: 'Force immediate shutdown', category: 'device', advanced: true },
-    { key: 'UptimeOffroad', label: 'Uptime Offroad', description: 'System idle time', category: 'device', readonly: true },
-    { key: 'GsmApn', label: 'GSM APN', description: 'Access Point Name', category: 'device', advanced: true },
-    { key: 'RecordFrontLock', label: 'Lock Front Recording', description: 'Prevent deleting front recordings', category: 'device', advanced: true },
-    { key: 'HasAcceptedTerms', label: 'Accepted Terms', description: 'User accepted terms', category: 'device', readonly: true, hidden: true },
-    { key: 'HardwareSerial', label: 'Hardware Serial', description: 'Hardware serial number', category: 'device', readonly: true },
-    { key: 'DoReboot', label: 'Reboot Device', description: 'Restart the device immediately', category: 'device', advanced: true },
-    { key: 'DoUninstall', label: 'Uninstall Software', description: 'Uninstall sunnypilot', category: 'device', advanced: true },
-    { key: 'RouteCount', label: 'Route Count', description: 'Total number of routes', category: 'device', readonly: true },
-    { key: 'GitCommitDate', label: 'Commit Date', description: 'Date of current commit', category: 'device', readonly: true },
-    { key: 'UptimeOnroad', label: 'Uptime Onroad', description: 'Session driving time', category: 'device', readonly: true },
-    { key: 'DoShutdown', label: 'Shutdown Device', description: 'Power off the device immediately', category: 'device', advanced: true },
-    { key: 'OffroadMode', label: 'Force Offroad Mode', description: 'Forced offroad mode', category: 'device' },
-    { key: 'RecordAudioFeedback', label: 'Record Audio Feedback', description: 'Audio feedback status', category: 'device', hidden: true },
-    { key: 'BackupManager_RestoreVersion', label: 'Restore Backup', description: 'Restore settings from backup', category: 'device', advanced: true },
-    { key: 'RecordAudio', label: 'Record Audio', description: 'Record cabin audio', category: 'device' },
+	// Device
+	{
+		key: 'OffroadMode',
+		label: 'Force Offroad Mode',
+		description: 'Forced offroad mode',
+		category: 'device'
+	},
+	{
+		key: 'DeviceBootMode',
+		label: 'Boot Mode',
+		description: 'Boot/Wake-Up in Offroad or Normal mode',
+		category: 'device'
+	},
+	{
+		key: 'IsMetric',
+		label: 'Metric Units',
+		description: 'Display metric measurements',
+		category: 'device'
+	},
+	{
+		key: 'QuietMode',
+		label: 'Quiet Mode',
+		description: 'Minimize sound notifications',
+		category: 'device'
+	},
+	{
+		key: 'OnroadUploads',
+		label: 'Onroad Uploads',
+		description: 'Enable Onroad Uploads',
+		category: 'device'
+	},
+	{ key: 'LanguageSetting', label: 'Language', description: 'UI language', category: 'device' },
+	{
+		key: 'RecordFront',
+		label: 'Record Front',
+		description: 'Front camera recording',
+		category: 'device'
+	},
+	{
+		key: 'RecordAudio',
+		label: 'Record Audio',
+		description: 'Record cabin audio',
+		category: 'device'
+	},
 
-    // Toggles
-    { key: 'DisableLogging', label: 'Disable Logging', description: 'Stop data logging', category: 'toggles', advanced: true },
-    { key: 'DisableOnroadUploads', label: 'Disable Onroad Uploads', description: 'No uploads while driving', category: 'toggles' },
-    { key: 'DisablePowerDown', label: 'Disable Power Down', description: 'Stay on after ignition off', category: 'toggles', advanced: true },
-    { key: 'DisableUpdates', label: 'Disable Updates', description: 'Skip software updates', category: 'toggles', advanced: true },
-    { key: 'EnableWideCamera', label: 'Wide Camera', description: 'Use wide-angle camera', category: 'toggles', advanced: true },
-    { key: 'SubaruStopAndGoManualParkingBrake', label: 'Subaru S&G Manual Brake', description: 'Subaru Stop&Go manual brake', category: 'toggles', advanced: true },
-    { key: 'DriverTooDistracted', label: 'Driver is too Distracted', description: 'Currently the driver is considered too distracted', category: 'toggles', readonly: true, hidden: true },
-    { key: 'AlwaysOnDM', label: 'Always On DM', description: 'Always on Driver Monitoring', category: 'toggles' },
-    { key: 'SubaruStopAndGo', label: 'Subaru Stop & Go', description: 'Enable Subaru Stop & Go', category: 'toggles', advanced: true },
-    { key: 'ExperimentalModeConfirmed', label: 'Exp Mode Confirmed', description: 'User confirmed exp mode', category: 'toggles', readonly: true, hidden: true },
-    { key: 'DisengageOnAccelerator', label: 'Disengage on Gas', description: 'Disengage when gas pressed', category: 'toggles' },
+	{ isSection: true, key: '_sec', label: 'Network', description: '', category: 'device' },
+	{
+		key: 'GsmMetered',
+		label: 'GSM Metered',
+		description: 'Cellular data metering',
+		category: 'device'
+	},
+	{
+		key: 'GsmRoaming',
+		label: 'GSM Roaming',
+		description: 'Allow cellular roaming',
+		category: 'device'
+	},
+	{
+		key: 'GsmApn',
+		label: 'GSM APN',
+		description: 'Access Point Name',
+		category: 'device',
+		advanced: true
+	},
 
-    // Steering
-    { key: 'EndToEndLong', label: 'End-to-End Long', description: 'E2E longitudinal control', category: 'steering' },
-    { key: 'LongitudinalPersonality', label: 'Personality', description: 'Driving style preference', category: 'steering' },
-    { key: 'LiveTorqueParamsToggle', label: 'Live Torque Params', description: 'Auto-tune torque parameters', category: 'steering', advanced: true },
-    { key: 'EnforceTorqueControl', label: 'Enforce Torque Control', description: 'Force torque controller usage', category: 'steering' },
-    { key: 'NeuralNetworkLateralControl', label: 'NN Lateral Control', description: 'Neural network steering control', category: 'steering' },
-    { key: 'MadsSteeringMode', label: 'MADS Steering Mode', description: 'MADS specific steering behavior', category: 'steering' },
-    { key: 'MadsMainCruiseAllowed', label: 'MADS Cruise Sync', description: 'Allow MADS with main cruise', category: 'steering' },
-    { key: 'Mads', label: 'Enable MADS', description: 'Modular Automated Driving System', category: 'steering' },
-    { key: 'MadsUnifiedEngagementMode', label: 'Unified Engagement', description: 'Engage MADS with Cruise', category: 'steering' },
-    { key: 'HyundaiLongitudinalTuning', label: 'Hyundai Long. Tuning', description: 'Longitudinal tuning for Hyundai', category: 'steering', advanced: true },
-    { key: 'HkgTuningOverridingCycles', label: 'HKG Override Cycles', description: 'Tuning override cycles', category: 'steering', advanced: true },
-    { key: 'HkgTuningAngleActiveTorqueReductionGain', label: 'HKG Active Torque Red.', description: 'Active torque reduction gain', category: 'steering', advanced: true },
-    { key: 'HkgTuningAngleMinTorqueReductionGain', label: 'HKG Min Torque Red.', description: 'Minimum torque reduction gain', category: 'steering', advanced: true },
-    { key: 'EnableHkgTuningAngleSmoothingFactor', label: 'HKG Angle Smoothing', description: 'Enable angle smoothing', category: 'steering', advanced: true },
-    { key: 'LiveTorqueParamsRelaxedToggle', label: 'Relaxed Torque Params', description: 'Slower torque learning', category: 'steering', advanced: true },
-    { key: 'LaneTurnValue', label: 'Lane Turn Value', description: 'Detected lane turn status', category: 'steering', readonly: true, hidden: true },
-    { key: 'TorqueParamsOverrideLatAccelFactor', label: 'Override Lat Accel', description: 'Manual lateral accel factor', category: 'steering', advanced: true, hidden: true },
-    { key: 'CustomTorqueParams', label: 'Custom Torque Params', description: 'Use manual torque values', category: 'steering', advanced: true },
-    { key: 'BlinkerMinLateralControlSpeed', label: 'Blinker Min Lat Speed', description: 'Min speed for lat control with blinker', category: 'steering', advanced: true },
-    { key: 'TorqueParamsOverrideEnabled', label: 'Override Torque Params', description: 'Enable manual torque override', category: 'steering', advanced: true },
-    { key: 'BlinkerPauseLateralControl', label: 'Pause Lat on Blinker', description: 'Pause steering when blinking', category: 'steering' },
-    { key: 'TeslaCoopSteering', label: 'Tesla Coop Steering', description: 'Allow driver steering input', category: 'steering', advanced: true },
-    { key: 'LiveTorqueParameters', label: 'Live Torque Params', description: 'Current torque parameters', category: 'steering', readonly: true, hidden: true },
-    { key: 'LongitudinalManeuverMode', label: 'Maneuver Mode', description: 'Specialized maneuver handling', category: 'steering', advanced: true },
-    { key: 'LaneTurnDesire', label: 'Lane Turn Desire', description: 'Model turn intention', category: 'steering', readonly: true, hidden: true },
-    { key: 'DynamicExperimentalControl', label: 'Dynamic Experimental', description: 'Auto-toggle experimental mode', category: 'steering', advanced: true },
-    { key: 'HkgTuningAngleMaxTorqueReductionGain', label: 'HKG Max Torque Red.', description: 'Maximum torque reduction gain', category: 'steering', advanced: true },
-    { key: 'TorqueParamsOverrideFriction', label: 'Override Friction', description: 'Manual steering friction', category: 'steering', advanced: true },
+	{ isSection: true, key: '_sec', label: 'Software', description: '', category: 'device' },
+	{
+		key: 'BackupManager_CreateBackup',
+		label: 'Create Backup',
+		description: 'Backup current settings',
+		category: 'device',
+		advanced: true
+	},
+	{
+		key: 'BackupManager_RestoreVersion',
+		label: 'Restore Backup',
+		description: 'Restore settings from backup',
+		category: 'device',
+		advanced: true
+	},
+	{
+		key: 'DoUninstall',
+		label: 'Uninstall Software',
+		description: 'Uninstall sunnypilot',
+		category: 'device',
+		advanced: true
+	},
 
-    // Cruise
-    { key: 'ExperimentalMode', label: 'Experimental Mode', description: 'Enable experimental features', category: 'cruise' },
-    { key: 'SmartCruiseControlVision', label: 'SCC-V', description: 'Vision-based smart cruise', category: 'cruise' },
-    { key: 'SpeedLimitPolicy', label: 'Speed Limit Policy', description: 'Policy for speed limit handling', category: 'cruise' },
-    { key: 'SpeedLimitOffsetType', label: 'Speed Limit Offset', description: 'Offset type (fixed/%)', category: 'cruise' },
-    { key: 'SmartCruiseControlMap', label: 'SCC-M', description: 'Map-based smart cruise', category: 'cruise' },
-    { key: 'MapAdvisorySpeedLimit', label: 'Map Advisory Speed', description: 'Respect map advisory limits', category: 'cruise' },
-    { key: 'CustomAccLongPressIncrement', label: 'Long Press Increment', description: 'Speed change on long press', category: 'cruise' },
-    { key: 'CustomAccIncrementsEnabled', label: 'Custom ACC Increments', description: 'Enable custom speed steps', category: 'cruise' },
-    { key: 'AutoLaneChangeBsmDelay', label: 'BSM Safety Delay', description: 'Blind spot monitoring delay', category: 'cruise', advanced: true },
-    { key: 'IntelligentCruiseButtonManagement', label: 'Intelligent Cruise Btns', description: 'Enhanced cruise button logic', category: 'cruise' },
-    { key: 'AlphaLongitudinalEnabled', label: 'Alpha Longitudinal', description: 'Alpha longitudinal control', category: 'cruise', advanced: true },
-    { key: 'SpeedLimitMode', label: 'Speed Limit Mode', description: 'How speed limits are handled', category: 'cruise' },
-    { key: 'CustomAccShortPressIncrement', label: 'Short Press Increment', description: 'Speed change on short press', category: 'cruise' },
-    { key: 'SpeedLimitValueOffset', label: 'Speed Offset Value', description: 'Value for speed offset', category: 'cruise' },
-    { key: 'AutoLaneChangeTimer', label: 'Auto Lane Change Delay', description: 'Wait time before auto change', category: 'cruise' },
+	{ isSection: true, key: '_sec', label: 'Power Management', description: '', category: 'device' },
+	{
+		key: 'MaxTimeOffroad',
+		label: 'Max Time Offroad',
+		description: 'Max idle time before shutdown',
+		category: 'device',
+		advanced: true
+	},
+	{
+		key: 'ForcePowerDown',
+		label: 'Force Power Down',
+		description: 'Force immediate shutdown',
+		category: 'device',
+		advanced: true
+	},
+	{
+		key: 'DoReboot',
+		label: 'Reboot Device',
+		description: 'Restart the device immediately',
+		category: 'device',
+		advanced: true
+	},
+	{
+		key: 'DoShutdown',
+		label: 'Shutdown Device',
+		description: 'Power off the device immediately',
+		category: 'device',
+		advanced: true
+	},
+	// Readonly
+	{ isSection: true, key: '_sec', label: '', description: '', category: 'device' },
+	{
+		key: 'DongleId',
+		label: 'Dongle ID',
+		description: 'Unique device identifier',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'GitCommit',
+		label: 'Git Commit',
+		description: 'Current software version',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'GithubUsername',
+		label: 'GitHub Username',
+		description: 'Connected GitHub account',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'Version',
+		label: 'Version',
+		description: 'Software version number',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'GitBranch',
+		label: 'Git Branch',
+		description: 'Current git branch',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'UptimeOffroad',
+		label: 'Uptime Offroad',
+		description: 'System idle time',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'HardwareSerial',
+		label: 'Hardware Serial',
+		description: 'Hardware serial number',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'RouteCount',
+		label: 'Route Count',
+		description: 'Total number of routes',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'GitCommitDate',
+		label: 'Commit Date',
+		description: 'Date of current commit',
+		category: 'device',
+		readonly: true
+	},
+	{
+		key: 'UptimeOnroad',
+		label: 'Uptime Onroad',
+		description: 'Session driving time',
+		category: 'device',
+		readonly: true
+	},
 
-    // Visuals
-    { key: 'Brightness', label: 'Brightness', description: 'Screen brightness level', category: 'visuals' },
-    { key: 'BrightnessOff', label: 'Brightness (Off)', description: 'Screen brightness when off', category: 'visuals' },
-    { key: 'RoadNameToggle', label: 'Show Road Name', description: 'Display current road name', category: 'visuals' },
-    { key: 'RoadName', label: 'Road Name', description: 'Current road name', category: 'visuals', readonly: true, hidden: true },
-    { key: 'BlindSpot', label: 'Blind Spot', description: 'Blind spot detection enabled', category: 'visuals', readonly: true },
-    { key: 'StandstillTimer', label: 'Standstill Timer', description: 'Display time spent at standstill', category: 'visuals' },
-    { key: 'RainbowMode', label: 'Rainbow Mode', description: 'Display rainbow road visualization', category: 'visuals' },
-    { key: 'OnroadScreenOffTimer', label: 'Screen Off Timer', description: 'Time before screen turns off', category: 'visuals' },
-    { key: 'OnroadScreenOffControl', label: 'Screen Off Control', description: 'Screen off logic control', category: 'visuals' },
-    { key: 'OnroadScreenOffBrightness', label: 'Screen Off Brightness', description: 'Brightness when screen is off', category: 'visuals' },
-    { key: 'InteractivityTimeout', label: 'Interactivity Timeout', description: 'Timeout for UI interaction', category: 'visuals', advanced: true },
-    { key: 'GreenLightAlert', label: 'Green Light Alert', description: 'Alert on green light', category: 'visuals' },
-    { key: 'DevUIInfo', label: 'Dev UI Info', description: 'Developer UI overlay data', category: 'visuals', readonly: true, hidden: true },
-    { key: 'ChevronInfo', label: 'Chevron Info', description: 'Lead vehicle distance info', category: 'visuals', readonly: true, hidden: true },
-    { key: 'ShowTurnSignals', label: 'Show Turn Signals', description: 'Visualize turn signals', category: 'visuals' },
-    { key: 'IsDriverViewEnabled', label: 'Driver View', description: 'Show driver monitoring camera', category: 'visuals' },
-    { key: 'HideVEgoUI', label: 'Hide Speed UI', description: 'Hide velocity readout', category: 'visuals' },
-    { key: 'ShowDebugInfo', label: 'Show Debug Info', description: 'Display developer metrics', category: 'visuals', advanced: true },
-    { key: 'LeadDepartAlert', label: 'Lead Depart Alert', description: 'Alert when lead car moves', category: 'visuals' },
-    { key: 'TrueVEgoUI', label: 'True Speed UI', description: 'Show raw vehicle speed', category: 'visuals' },
+	// Toggles
+	{
+		key: 'OpenpilotEnabledToggle',
+		label: 'sunnypilot Enabled',
+		description: 'Master sunnypilot toggle',
+		category: 'toggles'
+	},
+	{
+		key: 'LongitudinalPersonality',
+		label: 'Personality',
+		description: 'Driving style preference',
+		category: 'toggles'
+	},
+	{
+		key: 'IsLdwEnabled',
+		label: 'LDW Enabled',
+		description: 'Lane departure warnings',
+		category: 'toggles'
+	},
+	{
+		key: 'DisengageOnAccelerator',
+		label: 'Disengage on Gas',
+		description: 'Disengage when gas pressed',
+		category: 'toggles'
+	},
+	{
+		key: 'EnableWideCamera',
+		label: 'Wide Camera',
+		description: 'Use wide-angle camera',
+		category: 'toggles',
+		advanced: true
+	},
+	{
+		key: 'AlwaysOnDM',
+		label: 'Always On DM',
+		description: 'Always on Driver Monitoring',
+		category: 'toggles'
+	},
+	{
+		key: 'DisableLogging',
+		label: 'Disable Logging',
+		description: 'Stop data logging',
+		category: 'toggles',
+		advanced: true
+	},
+	{
+		key: 'DisableOnroadUploads',
+		label: 'Disable Onroad Uploads',
+		description: 'No uploads while driving',
+		category: 'toggles'
+	},
+	{
+		key: 'DisablePowerDown',
+		label: 'Disable Power Down',
+		description: 'Stay on after ignition off',
+		category: 'toggles',
+		advanced: true
+	},
+	{
+		key: 'DisableUpdates',
+		label: 'Disable Updates',
+		description: 'Skip software updates',
+		category: 'toggles',
+		advanced: true
+	},
 
-    // Developer
-    { key: 'ApiCache_DriveStats', label: 'API Cache: Drive Stats', description: 'Drive stats cache', category: 'developer', advanced: true, readonly: true, hidden: true },
-    { key: 'ApiCache_Device', label: 'API Cache: Device', description: 'Device info cache', category: 'developer', advanced: true, readonly: true, hidden: true },
-    { key: 'ApiCache_NavDestinations', label: 'API Cache: Nav Destinations', description: 'Navigation cache', category: 'developer', advanced: true, readonly: true, hidden: true },
-    { key: 'AthenadPid', label: 'Athena PID', description: 'Athena process ID', category: 'developer', readonly: true, hidden: true },
-    { key: 'BootCount', label: 'Boot Count', description: 'Number of boots', category: 'developer', advanced: true, readonly: true },
-    { key: 'CalibrationParams', label: 'Calibration Params', description: 'Camera calibration data', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarBatteryCapacity', label: 'Car Battery Capacity', description: 'Battery size in kWh', category: 'developer', advanced: true, readonly: true },
-    { key: 'CarParams', label: 'Car Params', description: 'Vehicle parameters', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarParamsCache', label: 'Car Params Cache', description: 'Cached vehicle params', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarVin', label: 'Car VIN', description: 'Vehicle identification', category: 'developer', advanced: true, readonly: true },
-    { key: 'CompletedTrainingVersion', label: 'Training Version', description: 'Last completed training', category: 'developer', advanced: true, readonly: true },
-    { key: 'ControlsReady', label: 'Controls Ready', description: 'System ready status', category: 'developer', readonly: true, hidden: true },
-    { key: 'CurrentRoute', label: 'Current Route', description: 'Active drive route', category: 'developer', readonly: true, hidden: true },
-    { key: 'IMEI', label: 'IMEI', description: 'Cellular modem ID', category: 'developer', advanced: true, readonly: true },
-    { key: 'InstallDate', label: 'Install Date', description: 'Installation timestamp', category: 'developer', advanced: true, readonly: true },
-    { key: 'IsEngaged', label: 'Is Engaged', description: 'Currently engaged', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsFcwEnabled', label: 'FCW Enabled', description: 'Forward collision warning', category: 'developer', advanced: true, readonly: true },
-    { key: 'IsOffroad', label: 'Is Offroad', description: 'Not currently driving', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsOnroad', label: 'Is Onroad', description: 'Currently driving', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsReleaseBranch', label: 'Is Release Branch', description: 'On release software', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsTestedBranch', label: 'Is Tested Branch', description: 'On tested software', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsUpdateAvailable', label: 'Update Available', description: 'Update pending', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastAthenaPingTime', label: 'Last Athena Ping', description: 'Last server contact', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastGPSPosition', label: 'Last GPS Position', description: 'GPS coordinates', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastOffroadStatusPacket', label: 'Last Offroad Packet', description: 'Last status update', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastUpdateException', label: 'Last Update Exception', description: 'Update error info', category: 'developer', advanced: true, readonly: true },
-    { key: 'LastUpdateTime', label: 'Last Update Time', description: 'Last update timestamp', category: 'developer', advanced: true, readonly: true },
-    { key: 'LiveParameters', label: 'Live Parameters', description: 'Runtime parameters', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_BadNvme', label: 'Offroad: Bad NVMe', description: 'Storage error', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_CarUnrecognized', label: 'Offroad: Car Unrecognized', description: 'Unknown vehicle', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_ConnectivityNeeded', label: 'Offroad: Connectivity Needed', description: 'Internet required', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_InvalidTime', label: 'Offroad: Invalid Time', description: 'Time sync error', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_IsTakingSnapshot', label: 'Offroad: Taking Snapshot', description: 'Snapshot in progress', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_NeosUpdate', label: 'Offroad: NEOS Update', description: 'OS update required', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_NoFirmware', label: 'Offroad: No Firmware', description: 'Firmware missing', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_StorageMissing', label: 'Offroad: Storage Missing', description: 'Storage not found', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_TemperatureTooHigh', label: 'Offroad: Temperature High', description: 'Overheating', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_UnofficialHardware', label: 'Offroad: Unofficial Hardware', description: 'Unsupported device', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_UpdateFailed', label: 'Offroad: Update Failed', description: 'Update error', category: 'developer', readonly: true, hidden: true },
-    { key: 'Passive', label: 'Passive', description: 'Passive mode', category: 'developer', readonly: true, hidden: true },
-    { key: 'PrimeRedirected', label: 'Prime Redirected', description: 'Prime redirect status', category: 'developer', readonly: true, hidden: true },
-    { key: 'PrimeType', label: 'Prime Type', description: 'Prime subscription type', category: 'developer', readonly: true, hidden: true },
-    { key: 'SnoozeUpdate', label: 'Snooze Update', description: 'Update snooze timer', category: 'developer', readonly: true, hidden: true },
-    { key: 'SshEnabled', label: 'SSH Enabled', description: 'SSH access enabled', category: 'developer', advanced: true },
-    { key: 'TermsVersion', label: 'Terms Version', description: 'Accepted terms version', category: 'developer', readonly: true, hidden: true },
-    { key: 'TrainingVersion', label: 'Training Version', description: 'Training software version', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdateAvailable', label: 'Update Available', description: 'Update ready', category: 'developer', advanced: true, readonly: true },
-    { key: 'UpdateFailedCount', label: 'Update Failed Count', description: 'Failed update attempts', category: 'developer', advanced: true, readonly: true },
-    { key: 'UpdaterAvailableBranches', label: 'Available Branches', description: 'Update branches', category: 'developer', advanced: true, readonly: true },
-    { key: 'UpdaterCurrentDescription', label: 'Current Description', description: 'Current branch info', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdaterCurrentReleaseNotes', label: 'Current Release Notes', description: 'Release notes', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdaterFetchAvailable', label: 'Updater Fetch Available', description: 'Update check ready', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdaterNewDescription', label: 'New Description', description: 'New version info', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdaterNewReleaseNotes', label: 'New Release Notes', description: 'New release notes', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdaterState', label: 'Updater State', description: 'Update system state', category: 'developer', readonly: true, hidden: true },
-    { key: 'UpdaterTargetBranch', label: 'Target Branch', description: 'Update target branch', category: 'developer', advanced: true, readonly: true },
-    { key: 'LagdToggleDelay', label: 'LAQD Toggle Delay', description: 'Delay for LAQD toggle', category: 'developer', advanced: true },
-    { key: 'LagdToggle', label: 'LAQD Toggle', description: 'Lightweight AQD Toggle', category: 'developer', advanced: true },
-    { key: 'ModelManager_Favs', label: 'Model Favorites', description: 'Favorite drive models', category: 'developer', advanced: true, readonly: true, hidden: true },
-    { key: 'ModelManager_ActiveBundle', label: 'Active Model Bundle', description: 'Currently active model', category: 'developer', advanced: true, readonly: true },
-    { key: 'ShowAdvancedControls', label: 'Show Advanced Controls', description: 'Unlock advanced settings', category: 'developer', advanced: true },
-    { key: 'QuickBootToggle', label: 'Quick Boot', description: 'Enable quick boot', category: 'developer', advanced: true },
-    { key: 'ModelManager_ModelsCache', label: 'Model Cache', description: 'Cached model list', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_TiciSupport', label: 'TiCi Support', description: 'TiCi hardware support status', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsReleaseSpBranch', label: 'SP Release Branch', description: 'On Sunnypilot release branch', category: 'developer', readonly: true, hidden: true },
-    { key: 'SunnylinkEnabled', label: 'sunnylink Enabled', description: 'Enable sunnylink services', category: 'developer', hidden: true },
-    { key: 'EnableCopyparty', label: 'Enable File Server', description: 'Start Copyparty file server', category: 'developer', advanced: true },
-    { key: 'CarParamsSPCache', label: 'SP Car Params Cache', description: 'Cached Sunnypilot car params', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarParamsSP', label: 'SP Car Params', description: 'Sunnypilot vehicle parameters', category: 'developer', readonly: true, hidden: true },
-    { key: 'ModelRunnerTypeCache', label: 'Model Runner Type', description: 'Inference engine type', category: 'developer', readonly: true, hidden: true },
-    { key: 'OnroadCycleRequested', label: 'Onroad Cycle', description: 'Cycle start requested', category: 'developer', readonly: true, hidden: true },
-    { key: 'GithubRunnerSufficientVoltage', label: 'Runner Voltage Check', description: 'Check voltage for GitHub runner', category: 'developer', advanced: true },
-    { key: 'CameraDebugExpGain', label: 'Cam Debug Gain', description: 'Camera exposure gain', category: 'developer', readonly: true, hidden: true },
-    { key: 'ApiCache_FirehoseStats', label: 'Firehose Stats', description: 'Cached streaming stats', category: 'developer', readonly: true, hidden: true },
-    { key: 'JoystickDebugMode', label: 'Joystick Debug', description: 'Enable joystick debugging', category: 'developer', advanced: true },
-    { key: 'ModelManager_LastSyncTime', label: 'Model Sync Time', description: 'Last model list sync', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsDevelopmentBranch', label: 'Dev Branch', description: 'On development channel', category: 'developer', readonly: true, hidden: true },
-    { key: 'AthenadUploadQueue', label: 'Upload Queue', description: 'Files queued for upload', category: 'developer', readonly: true, hidden: true },
-    { key: 'AssistNowToken', label: 'AssistNow Token', description: 'GPS assist token', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarParamsPrevRoute', label: 'Previous Route Params', description: 'Params from previous route', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarPlatformBundle', label: 'Car Platform Bundle', description: 'Platform specific code', category: 'developer', readonly: true, hidden: true },
-    { key: 'AdbEnabled', label: 'ADB Enabled', description: 'Android Debug Bridge', category: 'developer', advanced: true },
-    { key: 'ObdMultiplexingChanged', label: 'OBD Multiplex Changed', description: 'Multiplexing setting changed', category: 'developer', readonly: true, hidden: true },
-    { key: 'EnableSunnylinkUploader', label: 'sunnylink Uploader', description: 'Upload drives to sunnylink', category: 'developer' },
-    { key: 'CameraDebugExpTime', label: 'Cam Debug Time', description: 'Camera exposure time', category: 'developer', readonly: true, hidden: true },
-    { key: 'FirmwareQueryDone', label: 'Firmware Query Done', description: 'Firmware check complete', category: 'developer', readonly: true, hidden: true },
-    { key: 'ModelManager_DownloadIndex', label: 'Model Download Index', description: 'Download queue index', category: 'developer', readonly: true, hidden: true },
-    { key: 'ModelManager_ClearCache', label: 'Clear Model Cache', description: 'Delete downloaded models', category: 'developer', advanced: true },
-    { key: 'CurrentBootlog', label: 'Current Bootlog', description: 'Log of current boot', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_ExcessiveActuation', label: 'Excessive Actuation', description: 'Controls saturation detected', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastManagerExitReason', label: 'Exit Reason', description: 'Reason for last process exit', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarParamsSPPersistent', label: 'Car Params SP Persist', description: 'Persistent SP params', category: 'developer', readonly: true, hidden: true },
-    { key: 'SecOCKey', label: 'SecOC Key', description: 'Security key', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastPowerDropDetected', label: 'Power Drop', description: 'Last power drop event', category: 'developer', readonly: true, hidden: true },
-    { key: 'OnroadUploads', label: 'Onroad Uploads', description: 'Upload status', category: 'developer', readonly: true, hidden: true },
-    { key: 'LiveParametersV2', label: 'Live Parameters V2', description: 'Runtime vehicle params V2', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastUpdateRouteCount', label: 'Last Update Route Count', description: 'Routes since last update', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastUpdateUptimeOnroad', label: 'Last Update Uptime', description: 'Driving time since update', category: 'developer', readonly: true, hidden: true },
-    { key: 'LagdValueCache', label: 'LAQD Value Cache', description: 'Cached LAQD values', category: 'developer', readonly: true, hidden: true },
-    { key: 'EnableGithubRunner', label: 'GitHub Runner', description: 'Enable CI/CD runner', category: 'developer', advanced: true },
-    { key: 'LiveDelay', label: 'Live Delay', description: 'Communication delay', category: 'developer', readonly: true, hidden: true },
-    { key: 'LocationFilterInitialState', label: 'Loc Filter Init', description: 'Location filter state', category: 'developer', readonly: true, hidden: true },
-    { key: 'PandaHeartbeatLost', label: 'Panda Heartbeat Lost', description: 'Comms loss status', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_ConnectivityNeededPrompt', label: 'Conn Needed Prompt', description: 'Prompt for internet', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_Recalibration', label: 'Recalibration', description: 'Recalibration required', category: 'developer', readonly: true, hidden: true },
-    { key: 'Offroad_UnregisteredHardware', label: 'Unregistered', description: 'Device not registered', category: 'developer', readonly: true, hidden: true },
-    { key: 'LastGPSPositionLLK', label: 'Last GPS LLK', description: 'Last precise GPS loc', category: 'developer', readonly: true, hidden: true },
-    { key: 'ObdMultiplexingEnabled', label: 'OBD Multiplexing', description: 'Enable OBD multiplexing', category: 'developer', advanced: true },
-    { key: 'Offroad_DriverMonitoringUncertain', label: 'DM Uncertain', description: 'Driver monitoring checking', category: 'developer', readonly: true, hidden: true },
-    { key: 'PandaSomResetTriggered', label: 'Panda Reset Triggered', description: 'Reset trigger status', category: 'developer', readonly: true, hidden: true },
-    { key: 'PandaSignatures', label: 'Panda Signatures', description: 'Firmware signatures', category: 'developer', readonly: true, hidden: true },
-    { key: 'UbloxAvailable', label: 'Ublox GPS Available', description: 'GPS hardware status', category: 'developer', readonly: true, hidden: true },
-    { key: 'CarParamsPersistent', label: 'Car Params Persistent', description: 'Persistent vehicle params', category: 'developer', readonly: true, hidden: true },
-    { key: 'IsTakingSnapshot', label: 'Snapshotting', description: 'Camera capturing', category: 'developer', readonly: true, hidden: true },
+	{ isSection: true, key: '_sec', label: 'Model Settings', description: '', category: 'toggles' },
+	{
+		key: 'LagdToggle',
+		label: 'LAGD Toggle',
+		description: 'Live Learning Steer Delay',
+		category: 'toggles',
+		advanced: true
+	},
+	{
+		key: 'LagdToggleDelay',
+		label: 'LAGD Toggle Delay',
+		description: 'Adjust the software delay when Live Learning Steer Delay is toggled off',
+		category: 'toggles',
+		advanced: true
+	},
+	{
+		key: 'LaneTurnDesire',
+		label: 'Lane Turn Desire',
+		description: 'Use Lane Turn Desires',
+		category: 'toggles'
+	},
+	{
+		key: 'LaneTurnValue',
+		label: 'Adjust Lane Turn Speed',
+		description: 'Adjust Lane Turn Desire Activation Speed',
+		category: 'toggles'
+	},
 
-    // Other
-    { key: 'NavDestination', label: 'Nav Destination', description: 'Navigation target', category: 'other', readonly: true, hidden: true },
-    { key: 'NavSettingLeftSide', label: 'Nav Left Side', description: 'Left-side navigation', category: 'other', advanced: true, hidden: true },
-    { key: 'NavSettingTime24h', label: 'Nav 24h Time', description: '24-hour time format', category: 'other', advanced: true, hidden: true },
-    { key: 'NavdRender', label: 'Nav Render', description: 'Navigation rendering', category: 'other', advanced: true, hidden: true },
-    { key: 'OsmStateName', label: 'State Code', description: 'Current OSM state code', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmLocationTitle', label: 'Location Title', description: 'Current location title', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmLocationName', label: 'Location Name', description: 'Current location details', category: 'other', readonly: true, hidden: true },
-    { key: 'OSMDownloadProgress', label: 'Map Download Progress', description: 'Map download status', category: 'other', readonly: true, hidden: true },
-    { key: 'OSMDownloadLocations', label: 'Map Download Locations', description: 'Queued map downloads', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmDownloadedDate', label: 'Map Data Date', description: 'Date of downloaded maps', category: 'other', readonly: true, hidden: true },
-    { key: 'Offroad_OSMUpdateRequired', label: 'Map Update Required', description: 'OSM maps need update', category: 'other', readonly: true, hidden: true },
-    { key: 'MapdVersion', label: 'Mapd Version', description: 'Map daemon version', category: 'other', readonly: true, hidden: true },
-    { key: 'SunnylinkTempFault', label: 'sunnylink Fault', description: 'Temporary connection fault', category: 'other', readonly: true, hidden: true },
-    { key: 'SunnylinkCache_Users', label: 'sunnylink User Cache', description: 'Cached user data', category: 'other', readonly: true, hidden: true },
-    { key: 'SunnylinkCache_Roles', label: 'sunnylink Role Cache', description: 'Cached role data', category: 'other', readonly: true, hidden: true },
-    { key: 'SunnylinkDongleId', label: 'sunnylink ID', description: 'sunnylink device identifier', category: 'other', readonly: true },
-    { key: 'MapSpeedLimit', label: 'Map Speed Limit', description: 'Current speed limit from map', category: 'other', readonly: true, hidden: true },
-    { key: 'OSMDownloadBounds', label: 'Map Download Bounds', description: 'Map area boundaries', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmDbUpdatesCheck', label: 'Map Updates Check', description: 'Last map update check', category: 'other', readonly: true, hidden: true },
-    { key: 'AthenadRecentlyViewedRoutes', label: 'Recent Routes', description: 'Recently viewed routes cache', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmLocationUrl', label: 'Location URL', description: 'OSM Location Link', category: 'other', readonly: true, hidden: true },
-    { key: 'AccessToken', label: 'Access Token', description: 'API Access Token', category: 'other', readonly: true, hidden: true },
-    { key: 'SunnylinkdPid', label: 'sunnylink PID', description: 'sunnylink process ID', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmLocal', label: 'Local OSM', description: 'Use local OSM server', category: 'other', advanced: true, hidden: true },
-    { key: 'MapTargetVelocities', label: 'Map Target Velocities', description: 'Map-based velocity targets', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmWayTest', label: 'OSM Way Test', description: 'Debug OSM way query', category: 'other', advanced: true, hidden: true },
-    { key: 'NextMapSpeedLimit', label: 'Next Map Speed', description: 'Upcoming speed limit', category: 'other', readonly: true, hidden: true },
-    { key: 'OsmStateTitle', label: 'State Region', description: 'Current OSM region', category: 'other', readonly: true, hidden: true },
-    { key: 'LastSunnylinkPingTime', label: 'LastSunnylinkPingTime', description: 'Unknown setting from device', category: 'other', hidden: true },
+	{ isSection: true, key: '_sec', label: 'Subaru', description: '', category: 'toggles' },
+	{
+		key: 'SubaruStopAndGo',
+		label: 'Subaru Stop & Go',
+		description: 'Enable Subaru Stop & Go',
+		category: 'toggles',
+		advanced: true
+	},
+	{
+		key: 'SubaruStopAndGoManualParkingBrake',
+		label: 'Subaru S&G Manual Brake',
+		description: 'Subaru Stop&Go manual brake',
+		category: 'toggles',
+		advanced: true
+	},
 
+	// Steering
+	{ isSection: true, key: '_sec', label: 'MADS', description: '', category: 'steering' },
+	{
+		key: 'Mads',
+		label: 'Enable MADS',
+		description: 'Modular Automated Driving System',
+		category: 'steering'
+	},
+	{
+		key: 'MadsSteeringMode',
+		label: 'MADS Steering Mode',
+		description: 'MADS specific steering behavior',
+		category: 'steering'
+	},
+	{
+		key: 'MadsMainCruiseAllowed',
+		label: 'MADS Cruise Sync',
+		description: 'Allow MADS with main cruise',
+		category: 'steering'
+	},
+	{
+		key: 'MadsUnifiedEngagementMode',
+		label: 'Unified Engagement',
+		description: 'Engage MADS with Cruise',
+		category: 'steering'
+	},
+
+	{ isSection: true, key: '_sec', label: 'Torque Tuning', description: '', category: 'steering' },
+	{
+		key: 'EnforceTorqueControl',
+		label: 'Enforce Torque Control',
+		description: 'Force torque controller usage',
+		category: 'steering'
+	},
+	{
+		key: 'LiveTorqueParamsToggle',
+		label: 'Live Torque Params',
+		description: 'Self-tune torque parameters',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'LiveTorqueParamsRelaxedToggle',
+		label: 'Relaxed Torque Params',
+		description: 'Less restrictive settings for self-tune',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'CustomTorqueParams',
+		label: 'Custom Torque Params',
+		description: 'Use manual torque values',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'TorqueParamsOverrideEnabled',
+		label: 'Override Torque Params',
+		description: 'Enable manual real-time tuning override',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'TorqueParamsOverrideLatAccelFactor',
+		label: 'Override Lat Accel',
+		description: 'Manual lateral accel factor',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'TorqueParamsOverrideFriction',
+		label: 'Override Friction',
+		description: 'Manual steering friction',
+		category: 'steering',
+		advanced: true
+	},
+
+	{ isSection: true, key: '_sec', label: 'Other Settings', description: '', category: 'steering' },
+	{
+		key: 'NeuralNetworkLateralControl',
+		label: 'NN Lateral Control',
+		description: 'Neural network steering control',
+		category: 'steering'
+	},
+	{
+		key: 'BlinkerMinLateralControlSpeed',
+		label: 'Blinker Min Lat Speed',
+		description: 'Min speed for lat control with blinker',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'BlinkerPauseLateralControl',
+		label: 'Pause Lat on Blinker',
+		description: 'Pause steering when blinking',
+		category: 'steering'
+	},
+	{
+		key: 'AutoLaneChangeTimer',
+		label: 'Auto Lane Change Delay',
+		description: 'Wait time before auto change',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'AutoLaneChangeBsmDelay',
+		label: 'BSM Safety Delay',
+		description: 'Blind spot monitoring delay',
+		category: 'steering',
+		advanced: true
+	},
+
+	{ isSection: true, key: '_sec', label: 'Hyundai', description: '', category: 'steering' },
+	{
+		key: 'HkgTuningOverridingCycles',
+		label: 'HKG Override Cycles',
+		description: 'Tuning override cycles',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'HkgTuningAngleActiveTorqueReductionGain',
+		label: 'HKG Active Torque Red.',
+		description: 'Active torque reduction gain',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'HkgTuningAngleMinTorqueReductionGain',
+		label: 'HKG Min Torque Red.',
+		description: 'Minimum torque reduction gain',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'EnableHkgTuningAngleSmoothingFactor',
+		label: 'HKG Angle Smoothing',
+		description: 'Enable angle smoothing',
+		category: 'steering',
+		advanced: true
+	},
+	{
+		key: 'HkgTuningAngleMaxTorqueReductionGain',
+		label: 'HKG Max Torque Red.',
+		description: 'Maximum torque reduction gain',
+		category: 'steering',
+		advanced: true
+	},
+
+	{ isSection: true, key: '_sec', label: 'Tesla', description: '', category: 'steering' },
+	{
+		key: 'TeslaCoopSteering',
+		label: 'Tesla Coop Steering',
+		description: 'Allow driver steering input',
+		category: 'steering',
+		advanced: true
+	},
+
+	// Cruise
+	{
+		key: 'AlphaLongitudinalEnabled',
+		label: 'Alpha Longitudinal',
+		description: 'Alpha longitudinal control',
+		category: 'cruise',
+		advanced: true
+	},
+	{
+		key: 'ExperimentalMode',
+		label: 'Experimental Mode',
+		description: 'Enable experimental features',
+		category: 'cruise'
+	},
+	{
+		key: 'DynamicExperimentalControl',
+		label: 'Dynamic Experimental',
+		description: 'Auto-toggle experimental mode',
+		category: 'cruise',
+		advanced: true
+	},
+
+	{
+		isSection: true,
+		key: '_sec',
+		label: 'Speed Limit Assist',
+		description: '',
+		category: 'cruise'
+	},
+	{
+		key: 'SpeedLimitMode',
+		label: 'Speed Limit Mode',
+		description: 'How speed limits are handled',
+		category: 'cruise'
+	},
+	{
+		key: 'SpeedLimitPolicy',
+		label: 'Speed Limit Policy',
+		description: 'Policy for speed limit handling',
+		category: 'cruise'
+	},
+	{
+		key: 'SpeedLimitOffsetType',
+		label: 'Speed Limit Offset',
+		description: 'Offset type (fixed/%)',
+		category: 'cruise'
+	},
+	{
+		key: 'SpeedLimitValueOffset',
+		label: 'Speed Limit Offset Value',
+		description: 'Value for speed offset',
+		category: 'cruise'
+	},
+
+	{
+		isSection: true,
+		key: '_sec',
+		label: 'Smart Cruise Control',
+		description: '',
+		category: 'cruise'
+	},
+	{
+		key: 'SmartCruiseControlVision',
+		label: 'SCC-V',
+		description: 'Vision-based smart cruise',
+		category: 'cruise'
+	},
+	{
+		key: 'SmartCruiseControlMap',
+		label: 'SCC-M',
+		description: 'Map-based smart cruise',
+		category: 'cruise'
+	},
+
+	{ isSection: true, key: '_sec', label: '', description: '', category: 'cruise' },
+	{
+		key: 'CustomAccIncrementsEnabled',
+		label: 'Custom ACC Increments',
+		description: 'Enable custom speed steps',
+		category: 'cruise'
+	},
+	{
+		key: 'CustomAccShortPressIncrement',
+		label: 'Short Press Increment',
+		description: 'Speed change on short press',
+		category: 'cruise'
+	},
+	{
+		key: 'CustomAccLongPressIncrement',
+		label: 'Long Press Increment',
+		description: 'Speed change on long press',
+		category: 'cruise'
+	},
+	{
+		key: 'IntelligentCruiseButtonManagement',
+		label: 'Intelligent Cruise Btns',
+		description: 'Enhanced cruise button logic',
+		category: 'cruise'
+	},
+
+	{ isSection: true, key: '_sec', label: 'Hyundai', description: '', category: 'cruise' },
+	{
+		key: 'HyundaiLongitudinalTuning',
+		label: 'Hyundai Long. Tuning',
+		description: 'Longitudinal tuning for Hyundai',
+		category: 'cruise',
+		advanced: true
+	},
+
+	// Visuals
+	{ isSection: true, key: '_sec', label: 'Display', description: '', category: 'visuals' },
+	{
+		key: 'InteractivityTimeout',
+		label: 'Interactivity Timeout',
+		description: 'Timeout for UI interaction',
+		category: 'visuals',
+		advanced: true
+	},
+	{
+		key: 'Brightness',
+		label: 'Global Brightness',
+		description: 'Screen brightness level',
+		category: 'visuals'
+	},
+	{
+		key: 'OnroadScreenOffControl',
+		label: 'Onroad Brightness Control',
+		description: 'Onroad brightness control',
+		category: 'visuals'
+	},
+	{
+		key: 'OnroadScreenOffBrightness',
+		label: 'Onroad Brightness',
+		description: 'Onroad Brightness',
+		category: 'visuals'
+	},
+	{
+		key: 'OnroadScreenOffTimer',
+		label: 'Onroad Brightness Timer',
+		description: 'Time before onroad brightness is lowered',
+		category: 'visuals'
+	},
+
+	{ isSection: true, key: '_sec', label: 'Onroad Visuals', description: '', category: 'visuals' },
+	{
+		key: 'RainbowMode',
+		label: 'Rainbow Mode',
+		description: 'Display rainbow road visualization',
+		category: 'visuals'
+	},
+	{
+		key: 'RoadNameToggle',
+		label: 'Show Road Name',
+		description: 'Display current road name',
+		category: 'visuals'
+	},
+	{
+		key: 'DevUIInfo',
+		label: 'Dev UI Info',
+		description: 'Developer UI overlay data',
+		category: 'visuals'
+	},
+	{
+		key: 'ChevronInfo',
+		label: 'Lead Car Chevron Info',
+		description: 'Lead vehicle info',
+		category: 'visuals'
+	},
+	{
+		key: 'BlindSpot',
+		label: 'Blind Spot',
+		description: 'Blind spot detection enabled',
+		category: 'visuals'
+	},
+	{
+		key: 'StandstillTimer',
+		label: 'Standstill Timer',
+		description: 'Display time spent at standstill',
+		category: 'visuals'
+	},
+	{
+		key: 'GreenLightAlert',
+		label: 'Green Light Alert',
+		description: 'Alert on green light',
+		category: 'visuals'
+	},
+	{
+		key: 'LeadDepartAlert',
+		label: 'Lead Depart Alert',
+		description: 'Alert when lead car moves',
+		category: 'visuals'
+	},
+	{
+		key: 'ShowTurnSignals',
+		label: 'Show Turn Signals',
+		description: 'Visualize turn signals',
+		category: 'visuals'
+	},
+	{
+		key: 'HideVEgoUI',
+		label: 'Hide Speed UI',
+		description: 'Hide velocity readout',
+		category: 'visuals'
+	},
+	{
+		key: 'ShowDebugInfo',
+		label: 'Show Debug Info',
+		description: 'Display developer metrics',
+		category: 'visuals',
+		advanced: true
+	},
+	{
+		key: 'TrueVEgoUI',
+		label: 'True Speed UI',
+		description: 'Show raw vehicle speed',
+		category: 'visuals'
+	},
+
+	// Developer
+	{
+		key: 'SshEnabled',
+		label: 'SSH Enabled',
+		description: 'SSH access enabled',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'AdbEnabled',
+		label: 'ADB Enabled',
+		description: 'Android Debug Bridge',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'EnableSunnylinkUploader',
+		label: 'sunnylink Uploader',
+		description: 'Upload drives to sunnylink',
+		category: 'developer'
+	},
+	{
+		key: 'ShowAdvancedControls',
+		label: 'Show Advanced Controls',
+		description: 'Show advanced controls on device',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'QuickBootToggle',
+		label: 'Quick Boot',
+		description: 'Enable quick boot',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'EnableCopyparty',
+		label: 'Enable File Server',
+		description: 'Enable Copyparty file server',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'JoystickDebugMode',
+		label: 'Joystick Debug',
+		description: 'Enable joystick debugging',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'LongitudinalManeuverMode',
+		label: 'Maneuver Mode',
+		description: 'Specialized maneuver handling',
+		category: 'developer',
+		advanced: true
+	},
+
+	{
+		isSection: true,
+		key: '_sec',
+		label: 'sunnypilot CI Settings',
+		description: '',
+		category: 'developer'
+	},
+	{
+		key: 'EnableGithubRunner',
+		label: 'GitHub Runner',
+		description: 'Enable CI/CD runner',
+		category: 'developer',
+		advanced: true
+	},
+	{
+		key: 'GithubRunnerSufficientVoltage',
+		label: 'Runner Voltage Check',
+		description: 'Check voltage for GitHub runner',
+		category: 'developer',
+		advanced: true
+	},
+
+	// Readonly
+	{
+		key: 'BootCount',
+		label: 'Boot Count',
+		description: 'Number of boots',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'CarBatteryCapacity',
+		label: 'Car Battery Capacity',
+		description: 'Battery size in kWh',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'CarVin',
+		label: 'Car VIN',
+		description: 'Vehicle identification',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'CompletedTrainingVersion',
+		label: 'Training Version',
+		description: 'Last completed training',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'IMEI',
+		label: 'IMEI',
+		description: 'Cellular modem ID',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'InstallDate',
+		label: 'Install Date',
+		description: 'Installation timestamp',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'IsFcwEnabled',
+		label: 'FCW Enabled',
+		description: 'Forward collision warning',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'LastUpdateException',
+		label: 'Last Update Exception',
+		description: 'Update error info',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'LastUpdateTime',
+		label: 'Last Update Time',
+		description: 'Last update timestamp',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'UpdateAvailable',
+		label: 'Update Available',
+		description: 'Update ready',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'UpdateFailedCount',
+		label: 'Update Failed Count',
+		description: 'Failed update attempts',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'UpdaterAvailableBranches',
+		label: 'Available Branches',
+		description: 'Update branches',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'UpdaterTargetBranch',
+		label: 'Target Branch',
+		description: 'Update target branch',
+		category: 'developer',
+		advanced: true,
+		readonly: true
+	},
+	{
+		key: 'SunnylinkDongleId',
+		label: 'sunnylink ID',
+		description: 'sunnylink device identifier',
+		category: 'developer',
+		readonly: true
+	},
+
+	// Hidden Settings
+	{
+		key: 'ObdMultiplexingEnabled',
+		label: 'OBD Multiplexing',
+		description: 'Enable OBD multiplexing',
+		category: 'developer',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'IsDriverViewEnabled',
+		label: 'Driver View',
+		description: 'Show driver monitoring camera',
+		category: 'visuals',
+		hidden: true
+	},
+	{
+		key: 'MapAdvisorySpeedLimit',
+		label: 'Map Advisory Speed',
+		description: 'Respect map advisory limits',
+		category: 'cruise',
+		hidden: true
+	},
+	{
+		key: 'RecordFrontLock',
+		label: 'Lock Front Recording',
+		description: 'Prevent deleting front recordings',
+		category: 'device',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'NetworkMetered',
+		label: 'Network Metered',
+		description: 'Metered connection',
+		category: 'device',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'RecordAudioFeedback',
+		label: 'Record Audio Feedback',
+		description: 'Audio feedback status',
+		category: 'device',
+		hidden: true
+	},
+	{
+		key: 'GithubSshKeys',
+		label: 'GitHub SSH Keys',
+		description: 'SSH keys for GitHub access',
+		category: 'device',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'NetworkType',
+		label: 'Network Type',
+		description: 'Connection type',
+		category: 'device',
+		advanced: true,
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterLastFetchTime',
+		label: 'Last Update Check',
+		description: 'Time of last update check',
+		category: 'device',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'GitRemote',
+		label: 'Git Remote',
+		description: 'Git remote origin URL',
+		category: 'device',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsRhdDetected',
+		label: 'RHD Detected',
+		description: 'System detected RHD status',
+		category: 'device',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'GitDiff',
+		label: 'Git Diff',
+		description: 'Local file modifications',
+		category: 'device',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'HasAcceptedTerms',
+		label: 'Accepted Terms',
+		description: 'User accepted terms',
+		category: 'device',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'DriverTooDistracted',
+		label: 'Driver is too Distracted',
+		description: 'Currently the driver is considered too distracted',
+		category: 'toggles',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ExperimentalModeConfirmed',
+		label: 'Exp Mode Confirmed',
+		description: 'User confirmed exp mode',
+		category: 'toggles',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'RoadName',
+		label: 'Road Name',
+		description: 'Current road name',
+		category: 'visuals',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LiveTorqueParameters',
+		label: 'Live Torque Params',
+		description: 'Current torque parameters',
+		category: 'steering',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SunnylinkEnabled',
+		label: 'sunnylink Enabled',
+		description: 'Enable sunnylink services',
+		category: 'developer',
+		hidden: true
+	},
+	{
+		key: 'ApiCache_DriveStats',
+		label: 'API Cache: Drive Stats',
+		description: 'Drive stats cache',
+		category: 'developer',
+		advanced: true,
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ApiCache_Device',
+		label: 'API Cache: Device',
+		description: 'Device info cache',
+		category: 'developer',
+		advanced: true,
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ApiCache_NavDestinations',
+		label: 'API Cache: Nav Destinations',
+		description: 'Navigation cache',
+		category: 'developer',
+		advanced: true,
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'AthenadPid',
+		label: 'Athena PID',
+		description: 'Athena process ID',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CalibrationParams',
+		label: 'Calibration Params',
+		description: 'Camera calibration data',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParams',
+		label: 'Car Params',
+		description: 'Vehicle parameters',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParamsCache',
+		label: 'Car Params Cache',
+		description: 'Cached vehicle params',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ControlsReady',
+		label: 'Controls Ready',
+		description: 'System ready status',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CurrentRoute',
+		label: 'Current Route',
+		description: 'Active drive route',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsEngaged',
+		label: 'Is Engaged',
+		description: 'Currently engaged',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsOffroad',
+		label: 'Is Offroad',
+		description: 'Not currently driving',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsOnroad',
+		label: 'Is Onroad',
+		description: 'Currently driving',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsReleaseBranch',
+		label: 'Is Release Branch',
+		description: 'On release software',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsTestedBranch',
+		label: 'Is Tested Branch',
+		description: 'On tested software',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsUpdateAvailable',
+		label: 'Update Available',
+		description: 'Update pending',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastAthenaPingTime',
+		label: 'Last Athena Ping',
+		description: 'Last server contact',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastGPSPosition',
+		label: 'Last GPS Position',
+		description: 'GPS coordinates',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastOffroadStatusPacket',
+		label: 'Last Offroad Packet',
+		description: 'Last status update',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LiveParameters',
+		label: 'Live Parameters',
+		description: 'Runtime parameters',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_BadNvme',
+		label: 'Offroad: Bad NVMe',
+		description: 'Storage error',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_CarUnrecognized',
+		label: 'Offroad: Car Unrecognized',
+		description: 'Unknown vehicle',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_ConnectivityNeeded',
+		label: 'Offroad: Connectivity Needed',
+		description: 'Internet required',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_InvalidTime',
+		label: 'Offroad: Invalid Time',
+		description: 'Time sync error',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_IsTakingSnapshot',
+		label: 'Offroad: Taking Snapshot',
+		description: 'Snapshot in progress',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_NeosUpdate',
+		label: 'Offroad: NEOS Update',
+		description: 'OS update required',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_NoFirmware',
+		label: 'Offroad: No Firmware',
+		description: 'Firmware missing',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_StorageMissing',
+		label: 'Offroad: Storage Missing',
+		description: 'Storage not found',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_TemperatureTooHigh',
+		label: 'Offroad: Temperature High',
+		description: 'Overheating',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_UnofficialHardware',
+		label: 'Offroad: Unofficial Hardware',
+		description: 'Unsupported device',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_UpdateFailed',
+		label: 'Offroad: Update Failed',
+		description: 'Update error',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Passive',
+		label: 'Passive',
+		description: 'Passive mode',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'PrimeRedirected',
+		label: 'Prime Redirected',
+		description: 'Prime redirect status',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'PrimeType',
+		label: 'Prime Type',
+		description: 'Prime subscription type',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SnoozeUpdate',
+		label: 'Snooze Update',
+		description: 'Update snooze timer',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'TermsVersion',
+		label: 'Terms Version',
+		description: 'Accepted terms version',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'TrainingVersion',
+		label: 'Training Version',
+		description: 'Training software version',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterCurrentDescription',
+		label: 'Current Description',
+		description: 'Current branch info',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterCurrentReleaseNotes',
+		label: 'Current Release Notes',
+		description: 'Release notes',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterFetchAvailable',
+		label: 'Updater Fetch Available',
+		description: 'Update check ready',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterNewDescription',
+		label: 'New Description',
+		description: 'New version info',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterNewReleaseNotes',
+		label: 'New Release Notes',
+		description: 'New release notes',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UpdaterState',
+		label: 'Updater State',
+		description: 'Update system state',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ModelManager_Favs',
+		label: 'Model Favorites',
+		description: 'Favorite drive models',
+		category: 'developer',
+		advanced: true,
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ModelManager_ModelsCache',
+		label: 'Model Cache',
+		description: 'Cached model list',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_TiciSupport',
+		label: 'TiCi Support',
+		description: 'TiCi hardware support status',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsReleaseSpBranch',
+		label: 'SP Release Branch',
+		description: 'On Sunnypilot release branch',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParamsSPCache',
+		label: 'SP Car Params Cache',
+		description: 'Cached Sunnypilot car params',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParamsSP',
+		label: 'SP Car Params',
+		description: 'Sunnypilot vehicle parameters',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ModelRunnerTypeCache',
+		label: 'Model Runner Type',
+		description: 'Inference engine type',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OnroadCycleRequested',
+		label: 'Onroad Cycle',
+		description: 'Cycle start requested',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CameraDebugExpGain',
+		label: 'Cam Debug Gain',
+		description: 'Camera exposure gain',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ApiCache_FirehoseStats',
+		label: 'Firehose Stats',
+		description: 'Cached streaming stats',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ModelManager_LastSyncTime',
+		label: 'Model Sync Time',
+		description: 'Last model list sync',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsDevelopmentBranch',
+		label: 'Dev Branch',
+		description: 'On development channel',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'AthenadUploadQueue',
+		label: 'Upload Queue',
+		description: 'Files queued for upload',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'AssistNowToken',
+		label: 'AssistNow Token',
+		description: 'GPS assist token',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParamsPrevRoute',
+		label: 'Previous Route Params',
+		description: 'Params from previous route',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarPlatformBundle',
+		label: 'Car Platform Bundle',
+		description: 'Platform specific code',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ObdMultiplexingChanged',
+		label: 'OBD Multiplex Changed',
+		description: 'Multiplexing setting changed',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CameraDebugExpTime',
+		label: 'Cam Debug Time',
+		description: 'Camera exposure time',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'FirmwareQueryDone',
+		label: 'Firmware Query Done',
+		description: 'Firmware check complete',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ModelManager_DownloadIndex',
+		label: 'Model Download Index',
+		description: 'Download queue index',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'ModelManager_ActiveBundle',
+		label: 'Active Model Bundle',
+		description: 'Currently active model',
+		category: 'developer',
+		advanced: true,
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CurrentBootlog',
+		label: 'Current Bootlog',
+		description: 'Log of current boot',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_ExcessiveActuation',
+		label: 'Excessive Actuation',
+		description: 'Controls saturation detected',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastManagerExitReason',
+		label: 'Exit Reason',
+		description: 'Reason for last process exit',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParamsSPPersistent',
+		label: 'Car Params SP Persist',
+		description: 'Persistent SP params',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SecOCKey',
+		label: 'SecOC Key',
+		description: 'Security key',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastPowerDropDetected',
+		label: 'Power Drop',
+		description: 'Last power drop event',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LiveParametersV2',
+		label: 'Live Parameters V2',
+		description: 'Runtime vehicle params V2',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastUpdateRouteCount',
+		label: 'Last Update Route Count',
+		description: 'Routes since last update',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastUpdateUptimeOnroad',
+		label: 'Last Update Uptime',
+		description: 'Driving time since update',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LagdValueCache',
+		label: 'LAQD Value Cache',
+		description: 'Cached LAQD values',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LiveDelay',
+		label: 'Live Delay',
+		description: 'Communication delay',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LocationFilterInitialState',
+		label: 'Loc Filter Init',
+		description: 'Location filter state',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'PandaHeartbeatLost',
+		label: 'Panda Heartbeat Lost',
+		description: 'Comms loss status',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_ConnectivityNeededPrompt',
+		label: 'Conn Needed Prompt',
+		description: 'Prompt for internet',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_Recalibration',
+		label: 'Recalibration',
+		description: 'Recalibration required',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_UnregisteredHardware',
+		label: 'Unregistered',
+		description: 'Device not registered',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'LastGPSPositionLLK',
+		label: 'Last GPS LLK',
+		description: 'Last precise GPS loc',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_DriverMonitoringUncertain',
+		label: 'DM Uncertain',
+		description: 'Driver monitoring checking',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'PandaSomResetTriggered',
+		label: 'Panda Reset Triggered',
+		description: 'Reset trigger status',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'PandaSignatures',
+		label: 'Panda Signatures',
+		description: 'Firmware signatures',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'UbloxAvailable',
+		label: 'Ublox GPS Available',
+		description: 'GPS hardware status',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CarParamsPersistent',
+		label: 'Car Params Persistent',
+		description: 'Persistent vehicle params',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'IsTakingSnapshot',
+		label: 'Snapshotting',
+		description: 'Camera capturing',
+		category: 'developer',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'NavSettingLeftSide',
+		label: 'Nav Left Side',
+		description: 'Left-side navigation',
+		category: 'other',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'NavSettingTime24h',
+		label: 'Nav 24h Time',
+		description: '24-hour time format',
+		category: 'other',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'NavdRender',
+		label: 'Nav Render',
+		description: 'Navigation rendering',
+		category: 'other',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'OsmLocal',
+		label: 'Local OSM',
+		description: 'Use local OSM server',
+		category: 'other',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'OsmWayTest',
+		label: 'OSM Way Test',
+		description: 'Debug OSM way query',
+		category: 'other',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'LastSunnylinkPingTime',
+		label: 'LastSunnylinkPingTime',
+		description: 'Unknown setting from device',
+		category: 'other',
+		hidden: true
+	},
+	{
+		key: 'ModelManager_ClearCache',
+		label: 'Clear Model Cache',
+		description: 'Delete downloaded models',
+		category: 'other',
+		hidden: true
+	},
+	{
+		key: 'NavDestination',
+		label: 'Nav Destination',
+		description: 'Navigation target',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmStateName',
+		label: 'State Code',
+		description: 'Current OSM state code',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmLocationTitle',
+		label: 'Location Title',
+		description: 'Current location title',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmLocationName',
+		label: 'Location Name',
+		description: 'Current location details',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OSMDownloadProgress',
+		label: 'Map Download Progress',
+		description: 'Map download status',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OSMDownloadLocations',
+		label: 'Map Download Locations',
+		description: 'Queued map downloads',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmDownloadedDate',
+		label: 'Map Data Date',
+		description: 'Date of downloaded maps',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'Offroad_OSMUpdateRequired',
+		label: 'Map Update Required',
+		description: 'OSM maps need update',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'MapdVersion',
+		label: 'Mapd Version',
+		description: 'Map daemon version',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SunnylinkTempFault',
+		label: 'sunnylink Fault',
+		description: 'Temporary connection fault',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SunnylinkCache_Users',
+		label: 'sunnylink User Cache',
+		description: 'Cached user data',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SunnylinkCache_Roles',
+		label: 'sunnylink Role Cache',
+		description: 'Cached role data',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'MapSpeedLimit',
+		label: 'Map Speed Limit',
+		description: 'Current speed limit from map',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OSMDownloadBounds',
+		label: 'Map Download Bounds',
+		description: 'Map area boundaries',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmDbUpdatesCheck',
+		label: 'Map Updates Check',
+		description: 'Last map update check',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'AthenadRecentlyViewedRoutes',
+		label: 'Recent Routes',
+		description: 'Recently viewed routes cache',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmLocationUrl',
+		label: 'Location URL',
+		description: 'OSM Location Link',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'AccessToken',
+		label: 'Access Token',
+		description: 'API Access Token',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'SunnylinkdPid',
+		label: 'sunnylink PID',
+		description: 'sunnylink process ID',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'MapTargetVelocities',
+		label: 'Map Target Velocities',
+		description: 'Map-based velocity targets',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'NextMapSpeedLimit',
+		label: 'Next Map Speed',
+		description: 'Upcoming speed limit',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'OsmStateTitle',
+		label: 'State Region',
+		description: 'Current OSM region',
+		category: 'other',
+		readonly: true,
+		hidden: true
+	}
 ];

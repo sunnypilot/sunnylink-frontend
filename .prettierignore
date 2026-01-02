@@ -5,5 +5,11 @@ yarn.lock
 bun.lock
 bun.lockb
 
+# GitHub Actions
+.github/workflows/
+
+# Documentation
+*.md
+
 # Miscellaneous
 /static/

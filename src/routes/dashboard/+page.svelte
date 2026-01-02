@@ -3,7 +3,7 @@
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import UpdateChangesModal from '$lib/components/UpdateChangesModal.svelte';
+	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
 	import SettingCard from '$lib/components/SettingCard.svelte';
@@ -28,7 +28,7 @@
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
-	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
+	import { downloadSettingsBackup, fetchAllSettings, inferSettingType } from '$lib/utils/settings';
 	import { v1Client } from '$lib/api/client';
 
 	let { data } = $props();
@@ -196,68 +196,6 @@
 		if (!devices) return [];
 		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
 		return deviceState.sortDevices(list);
-	});
-	import { inferSettingType } from '$lib/utils/settings';
-
-	// Fetch values for favorite toggles
-	$effect(() => {
-		if (onlineDevices.length > 0 && logtoClient) {
-			onlineDevices.forEach(async (device) => {
-				const deviceFavorites = SETTINGS_DEFINITIONS.filter((s) => preferences.isFavorite(s.key));
-				if (deviceFavorites.length === 0) return;
-
-				const keysToFetch = deviceFavorites.map((s) => s.key);
-				const deviceId = device.device_id;
-
-				try {
-					const token = await logtoClient.getIdToken();
-					if (!token) return;
-
-					// Only fetch if we don't have the value yet
-					const missingKeys = keysToFetch.filter(
-						(key) => deviceState.deviceValues[deviceId]?.[key] === undefined
-					);
-
-					if (missingKeys.length === 0) return;
-
-					const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
-						params: {
-							path: { deviceId },
-							query: { paramKeys: missingKeys }
-						},
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					});
-
-					if (response.data?.items) {
-						if (!deviceState.deviceValues[deviceId]) {
-							deviceState.deviceValues[deviceId] = {};
-						}
-
-						import('$lib/utils/device').then(({ decodeParamValue }) => {
-							response.data?.items.forEach((item) => {
-								if (item.key && item.value !== undefined) {
-									const def = deviceFavorites.find((s) => s.key === item.key);
-									if (!def) return;
-
-									const type = inferSettingType(def as any); // Cast as any because RenderableSetting structure might differ slightly or strictness issues
-
-									const decoded = decodeParamValue({
-										key: item.key,
-										value: item.value,
-										type: type
-									});
-									deviceState.deviceValues[deviceId][item.key] = decoded;
-								}
-							});
-						});
-					}
-				} catch (e) {
-					console.error(`Failed to fetch favorite values for ${deviceId}`, e);
-				}
-			});
-		}
 	});
 </script>
 
@@ -773,19 +711,8 @@
 				</div>
 
 				<!-- Unsaved Changes Bar -->
-				{@const pendingAliasChanges = getPendingChanges(devices)}
-				{@const pendingSettingChanges = Object.entries(deviceState.stagedChanges).flatMap(
-					([deviceId, changes]) =>
-						Object.entries(changes).map(([key, value]) => ({
-							deviceId,
-							key,
-							value,
-							originalValue: deviceState.deviceValues[deviceId]?.[key]
-						}))
-				)}
-				{@const totalChanges = pendingAliasChanges.length + pendingSettingChanges.length}
-
-				{#if totalChanges > 0}
+				{@const pendingChanges = getPendingChanges(devices)}
+				{#if pendingChanges.length > 0}
 					<div
 						class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 duration-300"
 					>
@@ -801,19 +728,17 @@
 								<div>
 									<p class="font-medium text-white">Unsaved Changes</p>
 									<p class="text-xs text-slate-400">
-										You have {totalChanges} pending change{totalChanges === 1 ? '' : 's'}.
+										You have modified {pendingChanges.length} device alias{pendingChanges.length ===
+										1
+											? ''
+											: 'es'}.
 									</p>
 								</div>
 							</div>
 							<div class="flex items-center gap-2">
 								<button
 									class="btn text-slate-400 btn-ghost btn-sm hover:text-white"
-									onclick={() => {
-										clearChanges();
-										Object.keys(deviceState.stagedChanges).forEach((id) =>
-											deviceState.clearChanges(id)
-										);
-									}}
+									onclick={clearChanges}
 								>
 									Discard
 								</button>
@@ -827,11 +752,7 @@
 						</div>
 					</div>
 
-					<UpdateChangesModal
-						bind:open={updateAliasModalOpen}
-						aliasChanges={pendingAliasChanges}
-						settingChanges={pendingSettingChanges}
-					/>
+					<UpdateAliasModal bind:open={updateAliasModalOpen} changes={pendingChanges} />
 				{/if}
 
 				{#if deviceToDeregister}

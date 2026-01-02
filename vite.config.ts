@@ -44,18 +44,35 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
 				navigateFallback: '/',
-				cleanupOutdatedCaches: true,
+				cleanupOutdatedCaches: true
 			},
 			devOptions: {
 				enabled: true,
 				type: 'module',
 				navigateFallback: '/',
-				suppressWarnings: true,
+				suppressWarnings: true
 			}
 		})
 	],
 	test: {
 		expect: { requireAssertions: true },
+		coverage: {
+			provider: 'v8',
+			reporter: ['text', 'json', 'html', 'json-summary'],
+			include: ['src/**/*.{js,ts,svelte}'],
+			exclude: [
+				'src/**/*.{test,spec}.{js,ts}',
+				'src/**/*.svelte.{test,spec}.{js,ts}',
+				'src/demo.spec.ts',
+				'**/*.config.{js,ts}',
+				'**/node_modules/**',
+				'**/dist/**',
+				'**/.svelte-kit/**',
+				'**/test-data.ts',
+				'**/sunnylink/**/*.d.ts',
+				'src/app.d.ts'
+			]
+		},
 		projects: [
 			{
 				extends: './vite.config.ts',

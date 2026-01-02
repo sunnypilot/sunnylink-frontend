@@ -1,11 +1,11 @@
 export const searchState = $state({
-    query: '',
+	query: '',
 
-    setQuery(q: string) {
-        this.query = q;
-    },
+	setQuery(q: string) {
+		this.query = q;
+	},
 
-    clear() {
-        this.query = '';
-    }
+	clear() {
+		this.query = '';
+	}
 });
