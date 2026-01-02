@@ -71,7 +71,7 @@ export default defineConfig({
 				'**/test-data.ts',
 				'**/sunnylink/**/*.d.ts',
 				'src/app.d.ts'
-			],
+			]
 		},
 		projects: [
 			{
