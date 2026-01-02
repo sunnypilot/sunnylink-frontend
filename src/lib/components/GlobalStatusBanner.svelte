@@ -5,7 +5,8 @@
 	// TEST: Import mock data for local testing
 	// import { mockIssues, mockFetchComments } from './GlobalStatusBanner.test-data';
 
-	const GITHUB_ISSUES_URL = 'https://api.github.com/repos/sunnypilot/status-page/issues?state=all&labels=sunnylink';
+	const GITHUB_ISSUES_URL =
+		'https://api.github.com/repos/sunnypilot/status-page/issues?state=all&labels=sunnylink';
 
 	type StatusLevel = 'info' | 'warning' | 'error' | 'success';
 
@@ -127,15 +128,15 @@
 		let allComments: GitHubComment[] = [];
 		let page = 1;
 		let hasMore = true;
-		
+
 		while (hasMore) {
 			try {
 				const separator = url.includes('?') ? '&' : '?';
 				const fetchUrl = `${url}${separator}per_page=100&page=${page}`;
 				const res = await fetch(fetchUrl);
-				
+
 				if (!res.ok) break;
-				
+
 				const data: GitHubComment[] = await res.json();
 				if (Array.isArray(data) && data.length > 0) {
 					allComments = allComments.concat(data);
@@ -148,24 +149,27 @@
 				} else {
 					hasMore = false;
 				}
-				
+
 				// Safety break to prevent infinite loops in weird API states
-				if (page > 10) hasMore = false; 
+				if (page > 10) hasMore = false;
 			} catch (e) {
 				console.error('Error fetching comments page', page, e);
 				break;
 			}
 		}
-		
+
 		return allComments;
 	}
 
-	async function fetchStatuses(issues: GitHubIssue[], fetchCommentsOverride?: (url: string) => Promise<GitHubComment[]>): Promise<StatusData[]> {
+	async function fetchStatuses(
+		issues: GitHubIssue[],
+		fetchCommentsOverride?: (url: string) => Promise<GitHubComment[]>
+	): Promise<StatusData[]> {
 		const validStatuses: StatusData[] = [];
 		const now = new Date();
 
 		for (const issue of issues) {
-			const labels = issue.labels.map(l => l.name);
+			const labels = issue.labels.map((l) => l.name);
 
 			if (!labels.includes('sunnylink')) continue;
 
@@ -221,7 +225,11 @@
 					// Combine Issue Body and Comments
 					const updates = [
 						{ body: issue.body, timestamp: issue.updated_at || issue.created_at, source: 'body' },
-						...comments.map(c => ({ body: c.body, timestamp: c.updated_at || c.created_at, source: 'comment' }))
+						...comments.map((c) => ({
+							body: c.body,
+							timestamp: c.updated_at || c.created_at,
+							source: 'comment'
+						}))
 					];
 
 					// Find all matches
@@ -242,13 +250,16 @@
 					const latest = matches[0];
 					if (latest) {
 						// Dismissibility: Warning and Info are dismissible. Error is NOT.
-						const isDismissible = (level !== 'error');
+						const isDismissible = level !== 'error';
 
 						validStatuses.push({
 							active: true,
 							message: latest.message,
 							level: level,
-							link: level === 'info' ? undefined : `https://status.sunnypilot.ai/incident/${issue.number}`,
+							link:
+								level === 'info'
+									? undefined
+									: `https://status.sunnypilot.ai/incident/${issue.number}`,
 							linkText: 'View Status',
 							id: `${issue.number}-${latest.timestamp}`, // Use compound ID to prevent collisions
 							timestamp: latest.timestamp, // Store raw timestamp for valid sorting
@@ -282,7 +293,7 @@
 			dismissedIds = [];
 		}
 
-		visibleStatuses = statuses.filter(s => {
+		visibleStatuses = statuses.filter((s) => {
 			// If not dismissible, always show
 			if (!s.dismissible) return true;
 			// If dismissible, show only if ID is not in dismissed list
@@ -292,7 +303,7 @@
 
 	function dismiss(id: string) {
 		// Update visible list locally first for responsiveness
-		visibleStatuses = visibleStatuses.filter(s => s.id !== id);
+		visibleStatuses = visibleStatuses.filter((s) => s.id !== id);
 
 		// Persist dismissal
 		try {
@@ -327,13 +338,16 @@
 </script>
 
 {#if visibleStatuses.length > 0}
-	<div class="flex flex-col w-full z-[60] relative">
+	<div class="relative z-[60] flex w-full flex-col">
 		{#each visibleStatuses as status (status.id)}
 			<div
 				transition:slide={{ duration: 300 }}
-				class="w-full border-b backdrop-blur-md {styles[status.level] || styles.info} first:pt-[env(safe-area-inset-top)]"
+				class="w-full border-b backdrop-blur-md {styles[status.level] ||
+					styles.info} first:pt-[env(safe-area-inset-top)]"
 			>
-				<div class="mx-auto flex max-w-7xl items-start justify-between gap-4 p-4 sm:items-center sm:px-6 lg:px-8">
+				<div
+					class="mx-auto flex max-w-7xl items-start justify-between gap-4 p-4 sm:items-center sm:px-6 lg:px-8"
+				>
 					<div class="flex flex-1 items-start gap-3 sm:items-center">
 						{#key status.level}
 							{@const Icon = icons[status.level] || Info}
@@ -360,7 +374,7 @@
 					{#if status.dismissible}
 						<button
 							onclick={() => dismiss(status.id)}
-							class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/20"
+							class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:ring-2 focus:ring-white/20 focus:outline-none"
 							aria-label="Dismiss"
 						>
 							<X size={18} />

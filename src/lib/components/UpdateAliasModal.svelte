@@ -49,10 +49,13 @@
 					}
 				});
 
-				if (response.error) {
-					throw new Error(
-						`Failed to update alias for ${change.deviceId}: ${response.error.detail || 'Unknown error'}`
-					);
+				if ((response as any).error) {
+					const err = (response as any).error;
+					const errorMsg =
+						typeof err === 'object' && err !== null
+							? err.detail || 'Unknown error'
+							: 'Unknown error';
+					throw new Error(`Failed to update alias for ${change.deviceId}: ${errorMsg}`);
 				}
 
 				// Update local state immediately for this device

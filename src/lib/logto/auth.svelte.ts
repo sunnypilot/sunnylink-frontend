@@ -80,7 +80,7 @@ export const isIdTokenExpiring = (token?: string | null, skew = idTokenExpirySke
 	};
 
 	try {
-		const payload = JSON.parse(atob(normalize(parts[1])));
+		const payload = JSON.parse(atob(normalize(parts[1] ?? '')));
 		const exp = payload?.exp;
 		if (typeof exp !== 'number') return true;
 		return exp - skew <= Date.now() / 1000;

@@ -39,8 +39,7 @@ describe('pickValidAccessToken', () => {
 
 describe('isIdTokenExpiring', () => {
 	const buildToken = (exp: number) => {
-		const encode = (value: object) =>
-			Buffer.from(JSON.stringify(value)).toString('base64url');
+		const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 		return `${encode({ alg: 'HS256' })}.${encode({ exp })}.sig`;
 	};
 
