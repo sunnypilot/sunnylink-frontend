@@ -1981,5 +1981,5 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		description: 'Adjust Lane Turn Desire Activation Speed',
 		category: 'toggles',
 		hidden: true
-	},
+	}
 ];
