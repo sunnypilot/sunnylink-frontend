@@ -52,8 +52,8 @@
 						<div>
 							<h4 class="mb-1 font-medium text-white">Encrypted Backups</h4>
 							<p class="text-sm text-slate-400">
-								While we store backups, they are encrypted with your device's private key. Only
-								your device is able to decrypt them locally.
+								While we store backups, they are encrypted with your device's private key. Only your
+								device is able to decrypt them locally.
 							</p>
 						</div>
 					</div>
