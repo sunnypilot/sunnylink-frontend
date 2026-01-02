@@ -99,7 +99,7 @@ jobs:
           echo "- Linting (Prettier)" >> $GITHUB_STEP_SUMMARY
           echo "- Unit tests (Vitest)" >> $GITHUB_STEP_SUMMARY
           echo "- Browser tests (Playwright)" >> $GITHUB_STEP_SUMMARY
-          
+
           # Add coverage summary if available
           if [ "${{ steps.coverage.outputs.has_coverage }}" == "true" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -124,37 +124,37 @@ jobs:
             const branches = '${{ steps.coverage.outputs.branches }}';
             const functions = '${{ steps.coverage.outputs.functions }}';
             const lines = '${{ steps.coverage.outputs.lines }}';
-            
+
             const body = `## 📊 Code Coverage Report
-            
+
             | Metric | Coverage |
             |--------|----------|
             | Statements | ${statements}% |
             | Branches | ${branches}% |
             | Functions | ${functions}% |
             | Lines | ${lines}% |
-            
+
             <details>
             <summary>How to view detailed coverage</summary>
-            
+
             1. Go to the [Actions tab](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             2. Download the \`test-results-pr-${{ github.event.pull_request.number }}\` artifact
             3. Extract and open \`coverage/index.html\` in your browser
-            
+
             </details>
             `;
-            
+
             // Find existing coverage comment
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
+
             const coverageComment = comments.data.find(comment => 
               comment.user.type === 'Bot' && comment.body.includes('📊 Code Coverage Report')
             );
-            
+
             if (coverageComment) {
               // Update existing comment
               await github.rest.issues.updateComment({
@@ -172,7 +172,6 @@ jobs:
                 body: body
               });
             }
-
 
   build:
     name: Build Verification

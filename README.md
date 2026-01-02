@@ -79,6 +79,7 @@ This project uses Vitest for code coverage reporting. Coverage is automatically 
 - **Local Development**: Run `pnpm test:coverage` to generate coverage locally
 
 Coverage reports include:
+
 - Percentage summary (statements, branches, functions, lines)
 - Per-file/module breakdown (download artifacts from GitHub Actions)
 - HTML report for detailed analysis (available in `coverage/index.html` after running locally)

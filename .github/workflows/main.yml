@@ -106,7 +106,7 @@ jobs:
           echo "- Linting (Prettier)" >> $GITHUB_STEP_SUMMARY
           echo "- Unit tests (Vitest)" >> $GITHUB_STEP_SUMMARY
           echo "- Browser tests (Playwright)" >> $GITHUB_STEP_SUMMARY
-          
+
           # Add coverage summary if available
           if [ "${{ steps.coverage.outputs.has_coverage }}" == "true" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -121,7 +121,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "📊 [View detailed coverage report in artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           fi
-
 
   build:
     needs: test
