@@ -26,3 +26,6 @@ vite.config.ts.timestamp-*
 
 # PWA dev artifacts
 /dev-dist
+
+# Test coverage
+/coverage

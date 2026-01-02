@@ -49,7 +49,7 @@ jobs:
 
       - name: Run tests
         id: tests
-        run: pnpm test
+        run: pnpm test:coverage
 
       - name: Upload test results
         if: always()
@@ -60,6 +60,28 @@ jobs:
             test-results/
             coverage/
           retention-days: 14
+
+      - name: Generate coverage summary
+        if: always()
+        id: coverage
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "Coverage report generated"
+            # Extract coverage percentages
+            STATEMENTS=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.statements.pct);")
+            BRANCHES=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.branches.pct);")
+            FUNCTIONS=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.functions.pct);")
+            LINES=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct);")
+            
+            echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+            echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+            echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+            echo "lines=$LINES" >> $GITHUB_OUTPUT
+            echo "has_coverage=true" >> $GITHUB_OUTPUT
+          else
+            echo "No coverage report found"
+            echo "has_coverage=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Post test summary
         if: always()
@@ -77,6 +99,80 @@ jobs:
           echo "- Linting (Prettier)" >> $GITHUB_STEP_SUMMARY
           echo "- Unit tests (Vitest)" >> $GITHUB_STEP_SUMMARY
           echo "- Browser tests (Playwright)" >> $GITHUB_STEP_SUMMARY
+          
+          # Add coverage summary if available
+          if [ "${{ steps.coverage.outputs.has_coverage }}" == "true" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Statements | ${{ steps.coverage.outputs.statements }}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Branches | ${{ steps.coverage.outputs.branches }}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions | ${{ steps.coverage.outputs.functions }}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines | ${{ steps.coverage.outputs.lines }}% |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📊 [View detailed coverage report in artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment PR with coverage
+        if: always() && steps.coverage.outputs.has_coverage == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const statements = '${{ steps.coverage.outputs.statements }}';
+            const branches = '${{ steps.coverage.outputs.branches }}';
+            const functions = '${{ steps.coverage.outputs.functions }}';
+            const lines = '${{ steps.coverage.outputs.lines }}';
+            
+            const body = `## 📊 Code Coverage Report
+            
+            | Metric | Coverage |
+            |--------|----------|
+            | Statements | ${statements}% |
+            | Branches | ${branches}% |
+            | Functions | ${functions}% |
+            | Lines | ${lines}% |
+            
+            <details>
+            <summary>How to view detailed coverage</summary>
+            
+            1. Go to the [Actions tab](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            2. Download the \`test-results-pr-${{ github.event.pull_request.number }}\` artifact
+            3. Extract and open \`coverage/index.html\` in your browser
+            
+            </details>
+            `;
+            
+            // Find existing coverage comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const coverageComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && comment.body.includes('📊 Code Coverage Report')
+            );
+            
+            if (coverageComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: coverageComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
 
   build:
     name: Build Verification
