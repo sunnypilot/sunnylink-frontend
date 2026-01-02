@@ -6,6 +6,9 @@
 	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
+	import SettingCard from '$lib/components/SettingCard.svelte';
+	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
+	import { preferences } from '$lib/stores/preferences.svelte';
 	import {
 		Wifi,
 		WifiOff,
@@ -25,7 +28,7 @@
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
-	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
+	import { downloadSettingsBackup, fetchAllSettings, inferSettingType } from '$lib/utils/settings';
 	import { v1Client } from '$lib/api/client';
 
 	let { data } = $props();
@@ -293,6 +296,10 @@
 
 						{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
+						{@const deviceFavorites = SETTINGS_DEFINITIONS.filter((s) =>
+							preferences.isFavorite(s.key)
+						)}
+
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
@@ -468,6 +475,43 @@
 										</button>
 									{/if}
 								</div>
+
+								{#if deviceFavorites.length > 0}
+									<div class="mt-6 border-t border-[#1e293b] pt-6">
+										<h4
+											class="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-400 uppercase"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												class="text-yellow-400"
+												><polygon
+													points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+												/></svg
+											>
+											Quick Actions
+										</h4>
+										<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+											{#each deviceFavorites as setting}
+												{@const deviceValue =
+													deviceState.deviceValues[device.device_id]?.[setting.key]}
+												{@const inferredType = inferSettingType(setting as any, deviceValue)}
+												{@const settingWithType = {
+													...setting,
+													value: { ...setting.value, type: setting.value?.type || inferredType }
+												}}
+												<SettingCard setting={settingWithType} deviceId={device.device_id} />
+											{/each}
+										</div>
+									</div>
+								{/if}
 							</div>
 						</div>
 					{/each}
