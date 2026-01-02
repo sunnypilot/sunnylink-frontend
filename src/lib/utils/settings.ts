@@ -40,7 +40,8 @@ function getEffectiveDefinitions(): import('$lib/types/settings').SettingDefinit
 
 export function getAllSettings(
 	settings: ExtendedDeviceParamKey[] | undefined,
-	showAdvanced: boolean = false
+	showAdvanced: boolean = false,
+	showHidden: boolean = false
 ): RenderableSetting[] {
 	// 1. Get all effective definitions (defaults + user overrides)
 	const explicitDefs = getEffectiveDefinitions();
@@ -104,7 +105,7 @@ export function getAllSettings(
 			// Filter out those that have no value AND no default value?
 			// Keeping consistent with original logic: show if we have a value (from device or default).
 			.filter((s) => s.value !== undefined || s.isSection)
-			.filter((s) => !s.hidden)
+			.filter((s) => showHidden || !s.hidden)
 			.filter((s) => showAdvanced || !s.advanced)
 	);
 }

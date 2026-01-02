@@ -38,6 +38,14 @@ export interface RenderableSetting extends SettingDefinition {
 	_extra?: ParamExtra;
 }
 
+export const MODEL_SETTINGS = [
+	'CameraOffset',
+	'LagdToggle',
+	'LagdToggleDelay',
+	'LaneTurnDesire',
+	'LaneTurnValue'
+];
+
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	// Device
 	{

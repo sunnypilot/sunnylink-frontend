@@ -9,6 +9,7 @@
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import {
 		SETTINGS_DEFINITIONS,
+		MODEL_SETTINGS,
 		type ExtendedDeviceParamKey,
 		type RenderableSetting
 	} from '$lib/types/settings';
@@ -296,11 +297,7 @@
 							'IsOffroad',
 							'OffroadMode',
 							'ModelManager_Favs',
-							'CameraOffset',
-							'LagdToggle',
-							'LagdToggleDelay',
-							'LaneTurnDesire',
-							'LaneTurnValue'
+							...MODEL_SETTINGS
 						]
 					}
 				},
