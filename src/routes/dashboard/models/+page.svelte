@@ -7,12 +7,17 @@
 	import { v0Client, v1Client } from '$lib/api/client';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
-	import { SETTINGS_DEFINITIONS, type ExtendedDeviceParamKey } from '$lib/types/settings';
+	import {
+		SETTINGS_DEFINITIONS,
+		type ExtendedDeviceParamKey,
+		type RenderableSetting
+	} from '$lib/types/settings';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
+	import SettingCard from '$lib/components/SettingCard.svelte';
 	import {
 		AlertTriangle,
 		ShieldAlert,
@@ -62,9 +67,10 @@
 		if (!deviceDef && !staticDef) return undefined;
 		return {
 			...staticDef,
-			...deviceDef,
-			_extra: deviceDef?._extra
-		};
+			value: deviceDef || staticDef?.value,
+			key: 'CameraOffset',
+			_extra: deviceDef?._extra || staticDef?._extra
+		} as RenderableSetting;
 	});
 
 	let currentModel = $derived(
@@ -814,13 +820,6 @@
 			{/if}
 
 			{#if currentModel !== DEFAULT_MODEL && cameraOffsetParam}
-				{@const min = cameraOffsetParam._extra?.min ?? -1}
-				{@const max = cameraOffsetParam._extra?.max ?? 1}
-				{@const step = cameraOffsetParam._extra?.step ?? 0.01}
-				{@const title = cameraOffsetParam._extra?.title ?? cameraOffsetParam.label}
-				{@const description =
-					cameraOffsetParam._extra?.description ?? cameraOffsetParam.description}
-
 				<div class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
 					<div class="border-b border-slate-700 bg-slate-800/50 px-4 py-3">
 						<div class="flex items-center gap-2">
@@ -831,180 +830,43 @@
 						</div>
 					</div>
 					<div class="p-4">
-						<div class="flex w-full flex-col gap-2">
-							<div class="flex items-center justify-between">
-								<div>
-									<h3 class="font-medium text-white">{title}</h3>
-									<p class="text-xs text-slate-400">{description}</p>
-								</div>
-								<div class="flex items-center gap-3">
-									<span class="text-xs font-medium text-slate-400">{min.toFixed(2)}</span>
-									<span class="font-mono text-lg font-bold text-primary">
-										{cameraOffsetValue?.toFixed(2) ?? '0.00'}
-									</span>
-									<span class="text-xs font-medium text-slate-400">{max.toFixed(2)}</span>
-								</div>
-							</div>
-							<div class="mt-2 flex items-center gap-4">
-								<button
-									class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
-									aria-label="Decrease value"
-									disabled={settingCameraOffset}
-									onclick={async () => {
-										if (
-											cameraOffsetValue !== undefined &&
-											logtoClient &&
-											deviceState.selectedDeviceId
-										) {
-											const newValue = Math.max(min, cameraOffsetValue - step);
-											cameraOffsetValue = newValue;
-											settingCameraOffset = true;
-											try {
-												await v0Client.POST('/settings/{deviceId}', {
-													params: {
-														path: {
-															deviceId: deviceState.selectedDeviceId
-														}
-													},
-													body: [
-														{
-															key: 'CameraOffset',
-															value: encodeParamValue({
-																key: 'CameraOffset',
-																value: newValue,
-																type: 'Float'
-															}),
-															is_compressed: false
-														}
-													],
-													headers: {
-														Authorization: `Bearer ${await logtoClient.getIdToken()}`
-													}
-												});
-												// await fetchModelsForDevice(true); // Maybe not needed for just visual update if we trust local state
-											} catch (e) {
-												console.error('Error setting CameraOffset', e);
-											} finally {
-												settingCameraOffset = false;
+						<SettingCard
+							deviceId={deviceState.selectedDeviceId!}
+							setting={cameraOffsetParam}
+							value={cameraOffsetValue}
+							onValueChange={async (key: string, value: any) => {
+								if (!logtoClient || !deviceState.selectedDeviceId) return;
+								cameraOffsetValue = value;
+								settingCameraOffset = true;
+								try {
+									await v0Client.POST('/settings/{deviceId}', {
+										params: {
+											path: {
+												deviceId: deviceState.selectedDeviceId
 											}
-										}
-									}}
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="20"
-										height="20"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"><path d="M5 12h14" /></svg
-									>
-								</button>
-								<input
-									type="range"
-									{min}
-									{max}
-									{step}
-									value={cameraOffsetValue ?? 0}
-									class="range flex-1 range-primary range-xs"
-									disabled={settingCameraOffset}
-									oninput={async (e) => {
-										const val = parseFloat(e.currentTarget.value);
-										cameraOffsetValue = val;
-									}}
-									onchange={async (e) => {
-										const val = parseFloat(e.currentTarget.value);
-										if (logtoClient && deviceState.selectedDeviceId) {
-											settingCameraOffset = true;
-											try {
-												await v0Client.POST('/settings/{deviceId}', {
-													params: {
-														path: {
-															deviceId: deviceState.selectedDeviceId
-														}
-													},
-													body: [
-														{
-															key: 'CameraOffset',
-															value: encodeParamValue({
-																key: 'CameraOffset',
-																value: val,
-																type: 'Float'
-															}),
-															is_compressed: false
-														}
-													],
-													headers: {
-														Authorization: `Bearer ${await logtoClient.getIdToken()}`
-													}
-												});
-											} catch (e) {
-												console.error('Error setting CameraOffset', e);
-											} finally {
-												settingCameraOffset = false;
+										},
+										body: [
+											{
+												key: 'CameraOffset',
+												value: encodeParamValue({
+													key: 'CameraOffset',
+													value: value,
+													type: 'Float'
+												}),
+												is_compressed: false
 											}
+										],
+										headers: {
+											Authorization: `Bearer ${await logtoClient.getIdToken()}`
 										}
-									}}
-								/>
-								<button
-									class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
-									aria-label="Increase value"
-									disabled={settingCameraOffset}
-									onclick={async () => {
-										if (
-											cameraOffsetValue !== undefined &&
-											logtoClient &&
-											deviceState.selectedDeviceId
-										) {
-											const newValue = Math.min(max, cameraOffsetValue + step);
-											cameraOffsetValue = newValue;
-											settingCameraOffset = true;
-											try {
-												await v0Client.POST('/settings/{deviceId}', {
-													params: {
-														path: {
-															deviceId: deviceState.selectedDeviceId
-														}
-													},
-													body: [
-														{
-															key: 'CameraOffset',
-															value: encodeParamValue({
-																key: 'CameraOffset',
-																value: newValue,
-																type: 'Float'
-															}),
-															is_compressed: false
-														}
-													],
-													headers: {
-														Authorization: `Bearer ${await logtoClient.getIdToken()}`
-													}
-												});
-											} catch (e) {
-												console.error('Error setting CameraOffset', e);
-											} finally {
-												settingCameraOffset = false;
-											}
-										}
-									}}
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="20"
-										height="20"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg
-									>
-								</button>
-							</div>
-						</div>
+									});
+								} catch (e) {
+									console.error('Error setting CameraOffset', e);
+								} finally {
+									settingCameraOffset = false;
+								}
+							}}
+						/>
 					</div>
 				</div>
 			{/if}
