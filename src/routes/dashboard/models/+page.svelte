@@ -719,7 +719,7 @@
 	{:else if isOffline}
 		{#await data.streamed.devices then devices}
 			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
+				(d: { device_id: String | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<div class="mb-4 rounded-full bg-red-500/10 p-4">
@@ -784,7 +784,7 @@
 	{:else if isError}
 		{#await data.streamed.devices then devices}
 			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
+				(d: { device_id: String | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<div class="mb-4 rounded-full bg-amber-500/10 p-4">
@@ -872,7 +872,7 @@
 						<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
 							{#if cameraOffsetParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
+									deviceId={deviceState.selectedDeviceId}
 									setting={cameraOffsetParam}
 									value={cameraOffsetValue}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
@@ -881,7 +881,7 @@
 
 							{#if lagdToggleParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
+									deviceId={deviceState.selectedDeviceId}
 									setting={lagdToggleParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
 								/>
@@ -889,7 +889,7 @@
 
 							{#if lagdToggleDelayParam && !lagdToggleParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
+									deviceId={deviceState.selectedDeviceId}
 									setting={lagdToggleDelayParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
 								/>
@@ -897,7 +897,7 @@
 
 							{#if laneTurnDesireParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
+									deviceId={deviceState.selectedDeviceId}
 									setting={laneTurnDesireParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
 								/>
@@ -905,7 +905,7 @@
 
 							{#if laneTurnValueParam}
 								<SettingCard
-									deviceId={deviceState.selectedDeviceId!}
+									deviceId={deviceState.selectedDeviceId}
 									setting={laneTurnValueParam}
 									onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
 								/>
@@ -1124,7 +1124,7 @@
 								updatingFavShortName === selectedModel.short_name
 									? 'animate-pulse-slow'
 									: ''}"
-								onclick={() => toggleFavorite(selectedModel!)}
+								onclick={() => toggleFavorite(selectedModel)}
 								disabled={updatingFavShortName !== null}
 								title={favorites.has(selectedModel.ref)
 									? 'Remove from Favorites'
