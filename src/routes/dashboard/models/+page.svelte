@@ -817,7 +817,7 @@
 						</div>
 					</div>
 					{#if currentModel !== DEFAULT_MODEL && cameraOffsetParam}
-						<div class="p-4">
+						<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 p-4">
 								<SettingCard
 									deviceId={deviceState.selectedDeviceId!}
 									setting={cameraOffsetParam}
