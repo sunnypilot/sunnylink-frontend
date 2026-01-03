@@ -634,7 +634,7 @@
 	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
 		<div>
 			<h1 class="text-2xl font-bold text-white">Models</h1>
-			<p class="text-slate-400">Manage and switch driving models for your device.</p>
+			<p class="text-slate-400">Manage and switch driving models & related settings for your device.</p>
 		</div>
 
 		<div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
