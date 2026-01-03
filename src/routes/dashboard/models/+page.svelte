@@ -1,16 +1,23 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { v0Client, v1Client } from '$lib/api/client';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
+	import {
+		SETTINGS_DEFINITIONS,
+		MODEL_SETTINGS,
+		type RenderableSetting
+	} from '$lib/types/settings';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
+	import SettingCard from '$lib/components/SettingCard.svelte';
+	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
+	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
 	import {
 		AlertTriangle,
 		ShieldAlert,
@@ -49,6 +56,41 @@
 	let sendingModel = $state(false);
 	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
+	let pushModalOpen = $state(false);
+
+	let lagdToggleValue = $derived(
+		deviceState.selectedDeviceId
+			? (deviceState.getChange(deviceState.selectedDeviceId, 'LagdToggle') ??
+					deviceState.deviceValues[deviceState.selectedDeviceId]?.['LagdToggle'])
+			: undefined
+	);
+
+	let laneTurnDesireParamValue = $derived(
+		deviceState.selectedDeviceId
+			? (deviceState.getChange(deviceState.selectedDeviceId, 'LaneTurnDesire') ??
+					deviceState.deviceValues[deviceState.selectedDeviceId]?.['LaneTurnDesire'])
+			: undefined
+	);
+
+	function getModelSetting(key: string) {
+		const deviceId = deviceState.selectedDeviceId;
+		if (!deviceId) return undefined;
+		const deviceDef = deviceState.deviceSettings[deviceId!]?.find((s) => s.key === key);
+		const staticDef = SETTINGS_DEFINITIONS.find((s) => s.key === key);
+		if (!deviceDef && !staticDef) return undefined;
+		return {
+			...staticDef,
+			value: deviceDef,
+			key,
+			_extra: deviceDef?._extra
+		} as RenderableSetting;
+	}
+
+	let cameraOffsetParam = $derived(getModelSetting('CameraOffset'));
+	let lagdToggleParam = $derived(getModelSetting('LagdToggle'));
+	let lagdToggleDelayParam = $derived(getModelSetting('LagdToggleDelay'));
+	let laneTurnDesireParam = $derived(getModelSetting('LaneTurnDesire'));
+	let laneTurnValueParam = $derived(getModelSetting('LaneTurnValue'));
 
 	let currentModel = $derived(
 		modelList?.find((m) => m.short_name === currentModelShortName) ??
@@ -207,7 +249,8 @@
 		}
 		// isOffroad is derived, no need to reset local state
 
-		if (!logtoClient) return;
+		const client = logtoClient;
+		if (!client) return;
 		if (!deviceState.selectedDeviceId) return;
 		try {
 			const models = await v1Client.GET('/v1/settings/{deviceId}/values', {
@@ -221,12 +264,13 @@
 							'ModelManager_ActiveBundle',
 							'IsOffroad',
 							'OffroadMode',
-							'ModelManager_Favs'
+							'ModelManager_Favs',
+							...MODEL_SETTINGS
 						]
 					}
 				},
 				headers: {
-					Authorization: `Bearer ${await logtoClient.getIdToken()}`
+					Authorization: `Bearer ${await client.getIdToken()}`
 				}
 			});
 
@@ -240,6 +284,18 @@
 				const isOffroadParam = models.data.items.find((i) => i.key === 'IsOffroad');
 				const offroadModeParam = models.data.items.find((i) => i.key === 'OffroadMode');
 				const favsParam = models.data.items.find((i) => i.key === 'ModelManager_Favs');
+
+				// Populate deviceValues for the other settings too to ensure they are available
+				const deviceId = deviceState.selectedDeviceId!;
+				if (!deviceState.deviceValues[deviceId]) {
+					deviceState.deviceValues[deviceId] = {};
+				}
+				const values = deviceState.deviceValues[deviceId];
+				models.data.items.forEach((item) => {
+					if (item.key && values) {
+						values[item.key] = decodeParamValue(item);
+					}
+				});
 
 				if (favsParam) {
 					const decodedFavs = decodeParamValue(favsParam);
@@ -575,7 +631,9 @@
 	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
 		<div>
 			<h1 class="text-2xl font-bold text-white">Models</h1>
-			<p class="text-slate-400">Manage and switch driving models for your device.</p>
+			<p class="text-slate-400">
+				Manage and switch driving models & related settings for your device.
+			</p>
 		</div>
 
 		<div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -589,7 +647,7 @@
 				{:else}
 					<Trash2 size={14} class="mr-1.5" />
 				{/if}
-				Clear Cache
+				Clear Models Cache
 			</button>
 			{#if currentModelShortName !== undefined && (!loadingModels || modelList)}
 				<button
@@ -782,6 +840,39 @@
 								</span>
 							</div>
 						</div>
+					</div>
+				</div>
+
+				<div class="space-y-3">
+					<div class="label px-0">
+						<span
+							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
+							>Model Settings</span
+						>
+					</div>
+					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={cameraOffsetParam} />
+						{/if}
+
+						{#if lagdToggleParam}
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={lagdToggleParam} />
+						{/if}
+
+						{#if lagdToggleDelayParam && lagdToggleValue === false}
+							<SettingCard
+								deviceId={deviceState.selectedDeviceId!}
+								setting={lagdToggleDelayParam}
+							/>
+						{/if}
+
+						{#if laneTurnDesireParam}
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnDesireParam} />
+						{/if}
+
+						{#if laneTurnValueParam && laneTurnDesireParamValue === true}
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnValueParam} />
+						{/if}
 					</div>
 				</div>
 			{/if}
@@ -995,7 +1086,7 @@
 								updatingFavShortName === selectedModel.short_name
 									? 'animate-pulse-slow'
 									: ''}"
-								onclick={() => toggleFavorite(selectedModel!)}
+								onclick={() => toggleFavorite(selectedModel)}
 								disabled={updatingFavShortName !== null}
 								title={favorites.has(selectedModel.ref)
 									? 'Remove from Favorites'
@@ -1132,6 +1223,20 @@
 	variant="danger"
 	isProcessing={clearingCache}
 	onConfirm={clearModelsCache}
+/>
+
+<SettingsActionBar
+	onPush={() => (pushModalOpen = true)}
+	onReset={() =>
+		deviceState.selectedDeviceId && deviceState.clearChanges(deviceState.selectedDeviceId)}
+/>
+
+<PushSettingsModal
+	bind:open={pushModalOpen}
+	onPushSuccess={() => {
+		fetchModelsForDevice(true);
+		toastState.show('Settings pushed successfully!', 'success');
+	}}
 />
 
 <style>

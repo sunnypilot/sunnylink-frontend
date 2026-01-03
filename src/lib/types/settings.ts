@@ -38,6 +38,14 @@ export interface RenderableSetting extends SettingDefinition {
 	_extra?: ParamExtra;
 }
 
+export const MODEL_SETTINGS = [
+	'CameraOffset',
+	'LagdToggle',
+	'LagdToggleDelay',
+	'LaneTurnDesire',
+	'LaneTurnValue'
+];
+
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	// Device
 	{
@@ -294,34 +302,6 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		description: 'Skip software updates',
 		category: 'toggles',
 		advanced: true
-	},
-
-	{ isSection: true, key: '_sec', label: 'Model Settings', description: '', category: 'toggles' },
-	{
-		key: 'LagdToggle',
-		label: 'LAGD Toggle',
-		description: 'Live Learning Steer Delay',
-		category: 'toggles',
-		advanced: true
-	},
-	{
-		key: 'LagdToggleDelay',
-		label: 'LAGD Toggle Delay',
-		description: 'Adjust the software delay when Live Learning Steer Delay is toggled off',
-		category: 'toggles',
-		advanced: true
-	},
-	{
-		key: 'LaneTurnDesire',
-		label: 'Lane Turn Desire',
-		description: 'Use Lane Turn Desires',
-		category: 'toggles'
-	},
-	{
-		key: 'LaneTurnValue',
-		label: 'Adjust Lane Turn Speed',
-		description: 'Adjust Lane Turn Desire Activation Speed',
-		category: 'toggles'
 	},
 
 	{ isSection: true, key: '_sec', label: 'Subaru', description: '', category: 'toggles' },
@@ -1971,6 +1951,43 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		description: 'Current OSM region',
 		category: 'other',
 		readonly: true,
+		hidden: true
+	},
+	{
+		key: 'CameraOffset',
+		label: 'Camera Offset',
+		description: 'Adjust the camera offset value',
+		category: 'toggles',
+		hidden: true
+	},
+	{
+		key: 'LagdToggle',
+		label: 'LAGD Toggle',
+		description: 'Live Learning Steer Delay',
+		category: 'toggles',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'LagdToggleDelay',
+		label: 'LAGD Toggle Delay',
+		description: 'Adjust the software delay when Live Learning Steer Delay is toggled off',
+		category: 'toggles',
+		advanced: true,
+		hidden: true
+	},
+	{
+		key: 'LaneTurnDesire',
+		label: 'Lane Turn Desire',
+		description: 'Use Lane Turn Desires',
+		category: 'toggles',
+		hidden: true
+	},
+	{
+		key: 'LaneTurnValue',
+		label: 'Adjust Lane Turn Speed',
+		description: 'Adjust Lane Turn Desire Activation Speed',
+		category: 'toggles',
 		hidden: true
 	}
 ];

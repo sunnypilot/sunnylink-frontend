@@ -6,6 +6,7 @@
 	import { getAllSettings } from '$lib/utils/settings';
 	import { searchSettings, type SearchResult } from '$lib/utils/search';
 	import { goto } from '$app/navigation';
+	import { MODEL_SETTINGS } from '$lib/types/settings';
 
 	let isOpen = $state(false);
 	let isFocused = $state(false);
@@ -15,10 +16,9 @@
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 
-	// Get all settings using the shared utility
-	let allSettings = $derived(getAllSettings(settings, true));
-
-	let searchableSettings = $derived(getAllSettings(settings, true));
+	let searchableSettings = $derived(
+		getAllSettings(settings, true, true).filter((s) => !s.hidden || MODEL_SETTINGS.includes(s.key))
+	);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 
 	$effect(() => {
@@ -35,7 +35,11 @@
 		isOpen = false;
 		isFocused = false;
 		inputRef?.blur();
-		goto(`/dashboard/settings/${result.setting.category}#${result.setting.key}`);
+		if (MODEL_SETTINGS.includes(result.setting.key)) {
+			goto(`/dashboard/models#${result.setting.key}`);
+		} else {
+			goto(`/dashboard/settings/${result.setting.category}#${result.setting.key}`);
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -123,7 +127,9 @@
 						<span class="font-medium text-white"
 							>{result.setting._extra?.title || result.setting.label}</span
 						>
-						<span class="text-xs text-slate-500 capitalize">{result.setting.category}</span>
+						<span class="text-xs text-slate-500 capitalize">
+							{MODEL_SETTINGS.includes(result.setting.key) ? 'models' : result.setting.category}
+						</span>
 					</span>
 					{#if result.setting.key !== (result.setting._extra?.title || result.setting.label)}
 						<span class="font-mono text-xs text-slate-500">{result.setting.key}</span>
