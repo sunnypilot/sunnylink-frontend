@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
-	import { getAllSettings } from '$lib/utils/settings';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { v0Client, v1Client } from '$lib/api/client';
 	import { checkDeviceStatus } from '$lib/api/device';
@@ -10,7 +8,6 @@
 	import {
 		SETTINGS_DEFINITIONS,
 		MODEL_SETTINGS,
-		type ExtendedDeviceParamKey,
 		type RenderableSetting
 	} from '$lib/types/settings';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -648,7 +645,7 @@
 				{:else}
 					<Trash2 size={14} class="mr-1.5" />
 				{/if}
-				Clear Cache
+				Clear Models Cache
 			</button>
 			{#if currentModelShortName !== undefined && (!loadingModels || modelList)}
 				<button
