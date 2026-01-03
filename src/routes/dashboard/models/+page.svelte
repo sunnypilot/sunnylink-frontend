@@ -19,6 +19,8 @@
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import SettingCard from '$lib/components/SettingCard.svelte';
+	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
+	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
 	import {
 		AlertTriangle,
 		ShieldAlert,
@@ -57,57 +59,26 @@
 	let sendingModel = $state(false);
 	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
-	let cameraOffsetValue = $state<number | undefined>(undefined);
-	let settingCameraOffset = $state(false);
-	let savingModelSettings = $state<Record<string, boolean>>({});
+	let pushModalOpen = $state(false);
 
 	let lagdToggleValue = $derived(
 		deviceState.selectedDeviceId
-			? deviceState.deviceValues[deviceState.selectedDeviceId]?.['LagdToggle']
+			? (deviceState.getChange(deviceState.selectedDeviceId, 'LagdToggle') ??
+					deviceState.deviceValues[deviceState.selectedDeviceId]?.['LagdToggle'])
 			: undefined
 	);
 
 	let laneTurnDesireParamValue = $derived(
 		deviceState.selectedDeviceId
-			? deviceState.deviceValues[deviceState.selectedDeviceId]?.['LaneTurnDesire']
+			? (deviceState.getChange(deviceState.selectedDeviceId, 'LaneTurnDesire') ??
+					deviceState.deviceValues[deviceState.selectedDeviceId]?.['LaneTurnDesire'])
 			: undefined
 	);
-
-	async function saveModelSetting(key: string, value: any, type: string) {
-		if (!logtoClient || !deviceState.selectedDeviceId) return;
-		const deviceId = deviceState.selectedDeviceId;
-
-		savingModelSettings[key] = true;
-
-		// Update local state and cache immediately
-		if (key === 'CameraOffset') cameraOffsetValue = value;
-		if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-		const values = deviceState.deviceValues[deviceId];
-		if (values) values[key] = value;
-
-		try {
-			await v0Client.POST('/settings/{deviceId}', {
-				params: { path: { deviceId } },
-				body: [
-					{
-						key,
-						value: encodeParamValue({ key, value, type }),
-						is_compressed: false
-					}
-				],
-				headers: { Authorization: `Bearer ${await logtoClient.getIdToken()}` }
-			});
-		} catch (e) {
-			console.error(`Error saving ${key}`, e);
-		} finally {
-			savingModelSettings[key] = false;
-		}
-	}
 
 	function getModelSetting(key: string) {
 		const deviceId = deviceState.selectedDeviceId;
 		if (!deviceId) return undefined;
-		const deviceDef = deviceState.deviceSettings[deviceId]?.find((s) => s.key === key);
+		const deviceDef = deviceState.deviceSettings[deviceId!]?.find((s) => s.key === key);
 		const staticDef = SETTINGS_DEFINITIONS.find((s) => s.key === key);
 		if (!deviceDef && !staticDef) return undefined;
 		return {
@@ -316,15 +287,6 @@
 				const isOffroadParam = models.data.items.find((i) => i.key === 'IsOffroad');
 				const offroadModeParam = models.data.items.find((i) => i.key === 'OffroadMode');
 				const favsParam = models.data.items.find((i) => i.key === 'ModelManager_Favs');
-				const cameraOffsetItem = models.data.items.find((i) => i.key === 'CameraOffset');
-
-				if (cameraOffsetItem) {
-					const val = decodeParamValue(cameraOffsetItem);
-					const num = parseFloat(String(val));
-					if (!isNaN(num)) {
-						cameraOffsetValue = num;
-					}
-				}
 
 				// Populate deviceValues for the other settings too to ensure they are available
 				const deviceId = deviceState.selectedDeviceId!;
@@ -882,44 +844,26 @@
 					</div>
 					<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
 						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
-							<SettingCard
-								deviceId={deviceState.selectedDeviceId!}
-								setting={cameraOffsetParam}
-								value={cameraOffsetValue}
-								onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
-							/>
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={cameraOffsetParam} />
 						{/if}
 
 						{#if lagdToggleParam}
-							<SettingCard
-								deviceId={deviceState.selectedDeviceId!}
-								setting={lagdToggleParam}
-								onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
-							/>
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={lagdToggleParam} />
 						{/if}
 
 						{#if lagdToggleDelayParam && lagdToggleValue === false}
 							<SettingCard
 								deviceId={deviceState.selectedDeviceId!}
 								setting={lagdToggleDelayParam}
-								onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
 							/>
 						{/if}
 
 						{#if laneTurnDesireParam}
-							<SettingCard
-								deviceId={deviceState.selectedDeviceId!}
-								setting={laneTurnDesireParam}
-								onValueChange={(key, val) => saveModelSetting(key, val, 'Bool')}
-							/>
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnDesireParam} />
 						{/if}
 
 						{#if laneTurnValueParam && laneTurnDesireParamValue === true}
-							<SettingCard
-								deviceId={deviceState.selectedDeviceId!}
-								setting={laneTurnValueParam}
-								onValueChange={(key, val) => saveModelSetting(key, val, 'Float')}
-							/>
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnValueParam} />
 						{/if}
 					</div>
 				</div>
@@ -1271,6 +1215,20 @@
 	variant="danger"
 	isProcessing={clearingCache}
 	onConfirm={clearModelsCache}
+/>
+
+<SettingsActionBar
+	onPush={() => (pushModalOpen = true)}
+	onReset={() =>
+		deviceState.selectedDeviceId && deviceState.clearChanges(deviceState.selectedDeviceId)}
+/>
+
+<PushSettingsModal
+	bind:open={pushModalOpen}
+	onPushSuccess={() => {
+		fetchModelsForDevice(true);
+		toastState.show('Settings pushed successfully!', 'success');
+	}}
 />
 
 <style>
