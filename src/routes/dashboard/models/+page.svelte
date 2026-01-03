@@ -842,7 +842,16 @@
 							</div>
 						</div>
 					</div>
-					<div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
+				</div>
+
+				<div class="space-y-3">
+					<div class="label px-0">
+						<span
+							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
+							>Model Settings</span
+						>
+					</div>
+					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
 						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
 							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={cameraOffsetParam} />
 						{/if}
