@@ -27,7 +27,7 @@
 	let label = $derived.by(() => {
 		if (isLoading) return 'Loading vehicle status...';
 		if (manualBundle) return manualBundle.name;
-		if (!isMock) return autoFingerprint;
+		if (!isMock) return autoFingerprint.replace(/_/g, ' ');
 		return 'No vehicle selected';
 	});
 
