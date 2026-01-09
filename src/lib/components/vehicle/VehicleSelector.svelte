@@ -85,15 +85,12 @@
 
 							if (base64) {
 								const binary = atob(base64);
-								// Simple heuristic: Car fingerprints are usually uppercase, alphanumeric, underscores, min length 4
+								// Simple heuristic: Car fingerprints are usually uppercase, alphanumeric, with an underscore, min length 4
 								// e.g. HONDA_CIVIC, TOYOTA_RAV4_2022
-								// We look for the longest contiguous string matching this pattern.
-								const matches = binary.match(/[A-Z0-9_]{4,}/g);
+								// We look for the first string matching this pattern.
+								const matches = binary.match(/(?=[A-Z0-9]*_)[A-Z0-9_]{4,}/g);
 								if (matches) {
-									// Filter out likely noise (e.g. very short random matches)
-									// Preference for strings containing underscores (common in openpilot fingerprints)
-									// or just pick the longest one.
-									const bestMatch = matches.sort((a, b) => b.length - a.length)[0];
+									const bestMatch = matches[0];
 									if (bestMatch) {
 										console.log(
 											'[VehicleSelector] Extracted fingerprint from CarParamsPersistent:',
