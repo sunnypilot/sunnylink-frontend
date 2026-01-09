@@ -6,6 +6,7 @@
 
 {#if toastState.visible}
 	<div
+		role={toastState.type === 'error' ? 'alert' : 'status'}
 		class="fixed right-6 bottom-6 z-[100] flex items-center gap-3 rounded-xl border p-4 shadow-2xl backdrop-blur-md transition-all"
 		class:bg-emerald-500-10={toastState.type === 'success'}
 		class:border-emerald-500-20={toastState.type === 'success'}
