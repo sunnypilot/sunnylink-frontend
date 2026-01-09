@@ -61,6 +61,7 @@
 	let min = $derived(setting._extra?.min);
 	let max = $derived(setting._extra?.max);
 	let step = $derived(setting._extra?.step);
+	let unit = $derived(setting._extra?.unit);
 
 	function handleChange(newValue: any) {
 		let original = currentValue !== undefined ? currentValue : decodedDefaultValue;
@@ -126,12 +127,20 @@
 				</span>
 			</span>
 			<p class="mt-1 text-sm text-slate-400">{description}</p>
-			{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
+			{#if (decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading) || unit}
 				<p class="mt-2 text-xs text-slate-500">
-					Default: {options
-						? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
-							decodedDefaultValue
-						: decodedDefaultValue}
+					{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
+						Default: {options
+							? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
+								decodedDefaultValue
+							: decodedDefaultValue}
+					{/if}
+					{#if unit}
+						{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
+							<span class="mx-1.5 opacity-50">|</span>
+						{/if}
+						<span>Unit: {unit}</span>
+					{/if}
 				</p>
 			{/if}
 		</span>
@@ -182,18 +191,26 @@
 				</h3>
 			</div>
 			<p class="mt-1 text-sm text-slate-400">{description}</p>
-			{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
+			{#if (decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading) || unit}
 				<p class="mt-2 text-xs text-slate-500">
-					Default: {options
-						? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
-							decodedDefaultValue
-						: isJson
-							? '(JSON)'
-							: String(decodedDefaultValue).length > 50
-								? String(decodedDefaultValue).slice(0, 50) + '...'
-								: setting.value?.type === 'Float' && typeof decodedDefaultValue === 'number'
-									? decodedDefaultValue.toFixed(2)
-									: decodedDefaultValue}
+					{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
+						Default: {options
+							? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
+								decodedDefaultValue
+							: isJson
+								? '(JSON)'
+								: String(decodedDefaultValue).length > 50
+									? String(decodedDefaultValue).slice(0, 50) + '...'
+									: setting.value?.type === 'Float' && typeof decodedDefaultValue === 'number'
+										? decodedDefaultValue.toFixed(2)
+										: decodedDefaultValue}
+					{/if}
+					{#if unit}
+						{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
+							<span class="mx-1.5 opacity-50">|</span>
+						{/if}
+						<span>Unit: {unit}</span>
+					{/if}
 				</p>
 			{/if}
 		</div>

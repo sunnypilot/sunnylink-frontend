@@ -3,6 +3,7 @@ import type { components } from '../../sunnylink/v1/schema';
 export interface ParamExtra {
 	title?: string;
 	description?: string;
+	unit?: string;
 	min?: number;
 	max?: number;
 	step?: number;
