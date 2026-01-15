@@ -122,7 +122,8 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 	deviceState.onlineStatuses[deviceId] = 'loading';
 
 	try {
-		// First check if device is online by getting settings keys
+		// Phase 1: Fast synchronous check - query available settings keys to determine if online
+		// This is a quick endpoint that tells us if the device is reachable
 		const settingsRes = await v1Client.GET('/v1/settings/{deviceId}', {
 			params: {
 				path: { deviceId }
@@ -149,28 +150,9 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 			// Clear any previous error
 			delete deviceState.lastErrorMessages[deviceId];
 
-			// Fetch offroad status using async endpoint
-			const valuesRes = await fetchSettingsAsync(deviceId, ['IsOffroad', 'OffroadMode'], token);
-
-			if (valuesRes.items) {
-				const isOffroadParam = valuesRes.items.find((i) => i.key === 'IsOffroad');
-				const offroadModeParam = valuesRes.items.find((i) => i.key === 'OffroadMode');
-
-				let isOffroad = false;
-				let forceOffroad = false;
-
-				if (isOffroadParam) {
-					const val = decodeParamValue(isOffroadParam);
-					isOffroad = val === '1' || val === 1 || val === true || val === 'true';
-				}
-
-				if (offroadModeParam) {
-					const val = decodeParamValue(offroadModeParam);
-					forceOffroad = val === '1' || val === 1 || val === true || val === 'true';
-				}
-
-				deviceState.offroadStatuses[deviceId] = { isOffroad, forceOffroad };
-			}
+			// Phase 2: Fire-and-forget async fetch for offroad values
+			// This doesn't block the status check - we update state when it completes
+			fetchOffroadStatus(deviceId, token);
 		} else {
 			// Empty items means we couldn't fetch settings -> likely offline or not ready
 			deviceState.onlineStatuses[deviceId] = 'offline';
@@ -181,6 +163,39 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 		deviceState.onlineStatuses[deviceId] = 'error';
 		deviceState.lastErrorMessages[deviceId] =
 			(e as { message?: string })?.message || 'Connection failed';
+	}
+}
+
+/**
+ * Fetches offroad status asynchronously without blocking.
+ * Updates deviceState when complete.
+ */
+async function fetchOffroadStatus(deviceId: string, token: string) {
+	try {
+		const valuesRes = await fetchSettingsAsync(deviceId, ['IsOffroad', 'OffroadMode'], token);
+
+		if (valuesRes.items) {
+			const isOffroadParam = valuesRes.items.find((i) => i.key === 'IsOffroad');
+			const offroadModeParam = valuesRes.items.find((i) => i.key === 'OffroadMode');
+
+			let isOffroad = false;
+			let forceOffroad = false;
+
+			if (isOffroadParam) {
+				const val = decodeParamValue(isOffroadParam);
+				isOffroad = val === '1' || val === 1 || val === true || val === 'true';
+			}
+
+			if (offroadModeParam) {
+				const val = decodeParamValue(offroadModeParam);
+				forceOffroad = val === '1' || val === 1 || val === true || val === 'true';
+			}
+
+			deviceState.offroadStatuses[deviceId] = { isOffroad, forceOffroad };
+		}
+	} catch (e) {
+		console.error(`Failed to fetch offroad status for ${deviceId}`, e);
+		// Don't update device status - it's already marked as online from phase 1
 	}
 }
 
