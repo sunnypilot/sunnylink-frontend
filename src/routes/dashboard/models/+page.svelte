@@ -269,6 +269,24 @@
 				token
 			);
 
+			// Handle fetch errors
+			if (models.error) {
+				const err = models.error;
+				const errorMessages: Record<string, string> = {
+					timeout: 'Device took too long to respond. Please try again.',
+					expired: 'Request expired. Please try again.',
+					not_found: 'Device not reachable. Please check connection.',
+					error: 'Failed to fetch models. Please try again.'
+				};
+				if (!silent) {
+					const message: string =
+						(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
+						'Failed to fetch models. Please try again.';
+					toastState.show(message, 'error');
+				}
+				return;
+			}
+
 			if (models.items) {
 				const modelsCacheParam = models.items.find((i) => i.key === 'ModelManager_ModelsCache');
 				const activeBundleParam = models.items.find((i) => i.key === 'ModelManager_ActiveBundle');
