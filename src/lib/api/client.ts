@@ -2,27 +2,23 @@ import createClient from 'openapi-fetch';
 import type { paths as v1Paths } from '../../sunnylink/v1/schema';
 import type { paths as v0Paths } from '../../sunnylink/v0/schema';
 import { browser } from '$app/environment';
-import { getAccessTokenWithCache, isIdTokenExpiring, logtoClient } from '$lib/logto/auth.svelte';
+import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
 
+/**
+ * Custom fetch wrapper that handles 401/403 by retrying with a fresh token.
+ * The Logto SDK handles token refresh internally, so we just need to get
+ * a new token and retry the request.
+ */
 const customFetch: typeof fetch = async (input, init) => {
 	const response = await fetch(input, init);
 
 	if (response.status === 401 || response.status === 403) {
 		if (browser && logtoClient) {
 			try {
-				const currentToken = await logtoClient.getIdToken();
-				const shouldRefresh = !currentToken || isIdTokenExpiring(currentToken);
-
-				if (shouldRefresh) {
-					// Attempt to refresh the token
-					// Helper will reuse cached tokens when possible and fall back to refresh token
-					await getAccessTokenWithCache(true);
-				}
-
-				const newToken = await logtoClient.getIdToken();
+				// Get a fresh token - SDK handles refresh if needed
+				const newToken = await getIdToken();
 
 				if (newToken) {
-					// Clone the headers to avoid mutating the original object if it's reused elsewhere (though likely safe here)
 					const newHeaders = new Headers(init?.headers);
 					newHeaders.set('Authorization', `Bearer ${newToken}`);
 
