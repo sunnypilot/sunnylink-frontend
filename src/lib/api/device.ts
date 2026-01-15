@@ -13,7 +13,7 @@ export interface AsyncFetchResult {
 
 export interface AsyncFetchOptions {
 	maxPollTimeMs?: number; // Default 30s
-	initialPollDelayMs?: number; // Default 100ms
+	initialPollDelayMs?: number; // Default 500ms
 	maxPollDelayMs?: number; // Default 1000ms
 	signal?: AbortSignal;
 }
@@ -35,7 +35,7 @@ export async function fetchSettingsAsync(
 ): Promise<AsyncFetchResult> {
 	const {
 		maxPollTimeMs = 30000,
-		initialPollDelayMs = 100,
+		initialPollDelayMs = 500,
 		maxPollDelayMs = 1000,
 		signal
 	} = options;
