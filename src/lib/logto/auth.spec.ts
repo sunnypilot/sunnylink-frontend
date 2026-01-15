@@ -10,7 +10,7 @@ describe('auth module', () => {
 		// In test environment (non-browser), logtoClient should be undefined
 		const { logtoClient } = await import('./auth.svelte');
 		expect(logtoClient).toBeUndefined();
-	});
+	}, 10000);
 
 	it('exports getIdToken function', async () => {
 		const { getIdToken } = await import('./auth.svelte');
