@@ -2,8 +2,8 @@
 	import { untrack } from 'svelte';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import { v0Client, v1Client } from '$lib/api/client';
-	import { checkDeviceStatus } from '$lib/api/device';
+	import { v0Client } from '$lib/api/client';
+	import { checkDeviceStatus, fetchSettingsAsync } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import {
 		SETTINGS_DEFINITIONS,
@@ -253,37 +253,46 @@
 		if (!client) return;
 		if (!deviceState.selectedDeviceId) return;
 		try {
-			const models = await v1Client.GET('/v1/settings/{deviceId}/values', {
-				params: {
-					path: {
-						deviceId: deviceState.selectedDeviceId
-					},
-					query: {
-						paramKeys: [
-							'ModelManager_ModelsCache',
-							'ModelManager_ActiveBundle',
-							'IsOffroad',
-							'OffroadMode',
-							'ModelManager_Favs',
-							...MODEL_SETTINGS
-						]
-					}
-				},
-				headers: {
-					Authorization: `Bearer ${await client.getIdToken()}`
-				}
-			});
+			const token = await client.getIdToken();
+			if (!token) return;
 
-			if (models.data?.items) {
-				const modelsCacheParam = models.data.items.find(
-					(i) => i.key === 'ModelManager_ModelsCache'
-				);
-				const activeBundleParam = models.data.items.find(
-					(i) => i.key === 'ModelManager_ActiveBundle'
-				);
-				const isOffroadParam = models.data.items.find((i) => i.key === 'IsOffroad');
-				const offroadModeParam = models.data.items.find((i) => i.key === 'OffroadMode');
-				const favsParam = models.data.items.find((i) => i.key === 'ModelManager_Favs');
+			const models = await fetchSettingsAsync(
+				deviceState.selectedDeviceId,
+				[
+					'ModelManager_ModelsCache',
+					'ModelManager_ActiveBundle',
+					'IsOffroad',
+					'OffroadMode',
+					'ModelManager_Favs',
+					...MODEL_SETTINGS
+				],
+				token
+			);
+
+			// Handle fetch errors
+			if (models.error) {
+				const err = models.error;
+				const errorMessages: Record<string, string> = {
+					timeout: 'Device took too long to respond. Please try again.',
+					expired: 'Request expired. Please try again.',
+					not_found: 'Device not reachable. Please check connection.',
+					error: 'Failed to fetch models. Please try again.'
+				};
+				if (!silent) {
+					const message: string =
+						(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
+						'Failed to fetch models. Please try again.';
+					toastState.show(message, 'error');
+				}
+				return;
+			}
+
+			if (models.items) {
+				const modelsCacheParam = models.items.find((i) => i.key === 'ModelManager_ModelsCache');
+				const activeBundleParam = models.items.find((i) => i.key === 'ModelManager_ActiveBundle');
+				const isOffroadParam = models.items.find((i) => i.key === 'IsOffroad');
+				const offroadModeParam = models.items.find((i) => i.key === 'OffroadMode');
+				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
 
 				// Populate deviceValues for the other settings too to ensure they are available
 				const deviceId = deviceState.selectedDeviceId!;
@@ -291,7 +300,7 @@
 					deviceState.deviceValues[deviceId] = {};
 				}
 				const values = deviceState.deviceValues[deviceId];
-				models.data.items.forEach((item) => {
+				models.items.forEach((item) => {
 					if (item.key && values) {
 						values[item.key] = decodeParamValue(item);
 					}
@@ -432,15 +441,29 @@
 			// Pre-push check: Verify IsOffroad is still true
 			const token = await logtoClient.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-			const statusRes = await v1Client.GET('/v1/settings/{deviceId}/values', {
-				params: {
-					path: { deviceId: deviceState.selectedDeviceId },
-					query: { paramKeys: ['IsOffroad'] }
-				},
-				headers: { Authorization: `Bearer ${token}` }
-			});
 
-			const isOffroadParam = statusRes.data?.items?.find((i) => i.key === 'IsOffroad');
+			const statusRes = await fetchSettingsAsync(
+				deviceState.selectedDeviceId,
+				['IsOffroad'],
+				token
+			);
+
+			// Handle fetch errors before checking IsOffroad
+			if (statusRes.error) {
+				const errorMessages: Record<string, string> = {
+					timeout: 'Device took too long to respond. Please try again.',
+					expired: 'Request expired. Please try again.',
+					not_found: 'Device not reachable. Please check connection.',
+					error: 'Failed to verify device status. Please try again.'
+				};
+				const err = statusRes.error;
+				const message: string =
+					(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
+					'Failed to verify device status. Please try again.';
+				throw new Error(message);
+			}
+
+			const isOffroadParam = statusRes.items?.find((i) => i.key === 'IsOffroad');
 			let currentIsOffroad = false;
 			if (isOffroadParam) {
 				const val = decodeParamValue(isOffroadParam);

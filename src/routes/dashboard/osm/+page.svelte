@@ -3,8 +3,7 @@
 	import { fade } from 'svelte/transition';
 	import { Map as MapIcon, Download, AlertCircle, Loader2, RefreshCw } from 'lucide-svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { setDeviceParams, checkDeviceStatus } from '$lib/api/device';
-	import { v1Client } from '$lib/api/client';
+	import { setDeviceParams, checkDeviceStatus, fetchSettingsAsync } from '$lib/api/device';
 	import { logtoClient, authState } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import type { OSMRegion } from '$lib/types/osm';
@@ -56,26 +55,18 @@
 				'OsmDownloadedDate'
 			]);
 
-			const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
-				params: {
-					path: { deviceId },
-					query: {
-						paramKeys: Array.from(osmParams)
-					}
-				},
-				headers: { Authorization: `Bearer ${token}` }
-			});
+			const res = await fetchSettingsAsync(deviceId, Array.from(osmParams), token);
 
-			if (res.data?.items) {
+			if (res.items) {
 				// We need to merge these into deviceState.deviceSettings
 				// Check if we have existing settings for this device, if not init
 				const existing = deviceState.deviceSettings[deviceId] || [];
 
 				// Map new items to dictionary for easy lookup
-				const newItemsMap = new Map(res.data.items.map((i) => [i.key, i]));
+				const newItemsMap = new Map(res.items.map((i) => [i.key, i]));
 
 				const filtered = existing.filter((i) => i.key && !osmParams.has(i.key));
-				const updated = [...filtered, ...res.data.items];
+				const updated = [...filtered, ...res.items];
 
 				deviceState.deviceSettings[deviceId] = updated;
 			}
