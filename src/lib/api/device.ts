@@ -62,19 +62,18 @@ export async function fetchSettingsAsync(
 		const requestId = initRes.data.request_id;
 		const expiresAt = initRes.data.expires_at ? new Date(initRes.data.expires_at).getTime() : null;
 
-		// 2. Poll for result with exponential backoff
+		// 2. Poll for result with exponential backoff until expiration
+		// Note: Server returns 404 for privacy whether pending, not found, or expired
+		// We poll until we get data, hit expiration, or max poll time
 		const startTime = Date.now();
 		let pollDelay = initialPollDelayMs;
-
-		// Grace period for 404 responses - server may not have registered request yet
-		const gracePeriodMs = 1000;
 
 		while (Date.now() - startTime < maxPollTimeMs) {
 			if (signal?.aborted) {
 				return { items: null, error: 'error' };
 			}
 
-			// Check if request has expired
+			// Check if request has expired (use server's expiration time)
 			if (expiresAt && Date.now() > expiresAt) {
 				return { items: null, error: 'expired' };
 			}
@@ -91,28 +90,17 @@ export async function fetchSettingsAsync(
 			});
 
 			const status = pollRes.response.status;
-			const elapsedMs = Date.now() - startTime;
 
 			if (status === 200 && pollRes.data?.items) {
 				// Success - data is now deleted on server, must use locally
 				return { items: pollRes.data.items };
-			} else if (status === 204) {
-				// Still pending, continue polling with backoff
+			} else if (status === 204 || status === 404 || status === 410) {
+				// All non-200 statuses: keep polling with backoff until expiration
+				// Server uses 404 for privacy on all "not ready" states
 				pollDelay = Math.min(pollDelay * 2, maxPollDelayMs);
 				continue;
-			} else if (status === 404) {
-				// 404 during grace period: treat as "not yet registered", keep polling
-				if (elapsedMs < gracePeriodMs) {
-					pollDelay = Math.min(pollDelay * 2, maxPollDelayMs);
-					continue;
-				}
-				// After grace period: treat as genuinely not found
-				return { items: null, error: 'not_found' };
-			} else if (status === 410) {
-				// Expired
-				return { items: null, error: 'expired' };
 			} else {
-				// Unexpected status
+				// Unexpected status (e.g. 401, 500) - error out
 				return { items: null, error: 'error' };
 			}
 		}
