@@ -1,59 +1,36 @@
-import { describe, expect, it } from 'vitest';
-import { isIdTokenExpiring, pickValidAccessToken } from './auth.svelte';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-describe('pickValidAccessToken', () => {
-	it('returns the token with the furthest expiry when still valid', () => {
-		const now = 1_700_000_000;
-		const token = pickValidAccessToken(
-			{
-				'@': { token: 't1', expiresAt: now + 120 },
-				other: { token: 't2', expiresAt: now + 240 }
-			},
-			now,
-			30
-		);
+// Note: The authentication module has been simplified to let the Logto SDK
+// handle token caching and refresh internally. The custom functions
+// (pickValidAccessToken, isIdTokenExpiring, getAccessTokenWithCache)
+// have been removed as they were over-engineering what the SDK already does.
 
-		expect(token).toBe('t2');
+describe('auth module', () => {
+	it('exports logtoClient as undefined in non-browser environment', async () => {
+		// In test environment (non-browser), logtoClient should be undefined
+		const { logtoClient } = await import('./auth.svelte');
+		expect(logtoClient).toBeUndefined();
 	});
 
-	it('ignores tokens that are expired or inside the skew window', () => {
-		const now = 1_700_000_000;
-		const token = pickValidAccessToken(
-			{
-				expired: { token: 'old', expiresAt: now - 10 },
-				almost: { token: 'soon', expiresAt: now + 20 }
-			},
-			now,
-			30
-		);
-
-		expect(token).toBeUndefined();
+	it('exports getIdToken function', async () => {
+		const { getIdToken } = await import('./auth.svelte');
+		expect(typeof getIdToken).toBe('function');
 	});
 
-	it('returns undefined when no usable token exists', () => {
-		const token = pickValidAccessToken({}, 1_700_000_000, 30);
-
-		expect(token).toBeUndefined();
-	});
-});
-
-describe('isIdTokenExpiring', () => {
-	const buildToken = (exp: number) => {
-		const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
-		return `${encode({ alg: 'HS256' })}.${encode({ exp })}.sig`;
-	};
-
-	it('returns false for a token well before expiry', () => {
-		const token = buildToken(Math.floor(Date.now() / 1000) + 300);
-		expect(isIdTokenExpiring(token, 30)).toBe(false);
+	it('exports getAccessToken function', async () => {
+		const { getAccessToken } = await import('./auth.svelte');
+		expect(typeof getAccessToken).toBe('function');
 	});
 
-	it('returns true for expiring token within skew', () => {
-		const token = buildToken(Math.floor(Date.now() / 1000) + 20);
-		expect(isIdTokenExpiring(token, 30)).toBe(true);
+	it('getIdToken returns undefined when logtoClient is undefined', async () => {
+		const { getIdToken } = await import('./auth.svelte');
+		const result = await getIdToken();
+		expect(result).toBeUndefined();
 	});
 
-	it('returns true for malformed token', () => {
-		expect(isIdTokenExpiring('bad.token')).toBe(true);
+	it('getAccessToken returns undefined when logtoClient is undefined', async () => {
+		const { getAccessToken } = await import('./auth.svelte');
+		const result = await getAccessToken();
+		expect(result).toBeUndefined();
 	});
 });
