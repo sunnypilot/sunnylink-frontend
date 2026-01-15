@@ -1,5 +1,5 @@
 import { v1Client, v0Client } from '$lib/api/client';
-import { getAccessTokenWithCache, isIdTokenExpiring, logtoClient } from '$lib/logto/auth.svelte';
+import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
@@ -17,8 +17,9 @@ export const load: LayoutLoad = async ({ url }) => {
 		if (url.pathname === '/') return [];
 		if (!logtoClient || !(await logtoClient.isAuthenticated())) return [];
 
-		// 1. Get the token
-		let token = await logtoClient.getIdToken();
+		// Get the token - SDK handles refresh automatically
+		let token = await getIdToken();
+		if (!token) return [];
 
 		// Helper to fetch list
 		const fetchList = async (t: string) => {
@@ -28,32 +29,21 @@ export const load: LayoutLoad = async ({ url }) => {
 			});
 		};
 
-		const shouldRefreshToken = () => !token || isIdTokenExpiring(token);
+		// Fetch the list with retry
+		let devices = await fetchList(token);
 
-		// 2. Fetch the list with retry
-		let devices = await fetchList(token || '');
-
-		// If 401, try to refresh token and retry
+		// If 401, get a fresh token and retry
 		if (devices.response.status === 401) {
-			if (shouldRefreshToken()) {
-				try {
-					await getAccessTokenWithCache(true);
-					token = await logtoClient.getIdToken();
-					if (token) {
-						devices = await fetchList(token);
-					}
-				} catch (e) {
-					console.error('Failed to refresh token after 401:', e);
-				}
+			token = await getIdToken();
+			if (token) {
+				devices = await fetchList(token);
 			}
 		}
 
 		const items = devices.data?.items ?? [];
 
-		// 3. Parallelize the detail fetches
-		// Map the items to an array of Promises, then await them all at once
+		// Parallelize the detail fetches
 		const detailPromises = items.map(async (device) => {
-			// Helper for detail fetch
 			const fetchDetail = async (t: string) => {
 				return await v0Client.GET('/device/{deviceId}', {
 					params: { path: { deviceId: device.device_id ?? '' } },
@@ -63,24 +53,15 @@ export const load: LayoutLoad = async ({ url }) => {
 
 			let response = await fetchDetail(token || '');
 
-			// Retry detail fetch if 401 (though unlikely if list succeeded with same token)
+			// Retry detail fetch if 401
 			if (response.response.status === 401) {
-				if (shouldRefreshToken()) {
-					try {
-						if (logtoClient) {
-							await getAccessTokenWithCache(true);
-							token = await logtoClient.getIdToken();
-							if (token) {
-								response = await fetchDetail(token);
-							}
-						}
-					} catch (e) {
-						console.error('Failed to refresh token for detail fetch:', e);
-					}
+				const freshToken = await getIdToken();
+				if (freshToken) {
+					response = await fetchDetail(freshToken);
 				}
 			}
 
-			return response.data; // Return the data part
+			return response.data;
 		});
 
 		// Wait for all requests to finish in parallel
@@ -91,7 +72,7 @@ export const load: LayoutLoad = async ({ url }) => {
 	};
 
 	return {
-		// 4. Return the Promise directly! Do NOT await fetchAllDeviceData() here.
+		// Return the Promise directly for streaming
 		streamed: {
 			devices: fetchAllDeviceData()
 		}
