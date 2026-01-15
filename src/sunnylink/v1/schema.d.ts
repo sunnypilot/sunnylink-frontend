@@ -4,1271 +4,1273 @@
  */
 
 export interface paths {
-    "/v1/settings/{deviceId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Gets all the available settings on the device.
-         * @description That means all the params available to save and request, but no data is returned with this.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceParamKey"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/settings/{deviceId}/values": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Gets all the current settings on the device.
-         * @description These settings are not stored on server, they are just obtained real-time from the device through a secure websocket connection.
-         */
-        get: {
-            parameters: {
-                query: {
-                    paramKeys: string[];
-                };
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceParam"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/settings/{deviceId}/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Gets a specific settings from the device. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                    key: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceParam"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/settings/{deviceId}/async/values": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Initiates async request to get current settings from device.
-         * @description Returns a requestId and expiresAt immediately. Client should poll using GET /async/poll/{requestId} until the response is ready or until expiresAt is reached.
-         */
-        get: {
-            parameters: {
-                query: {
-                    paramKeys: string[];
-                };
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Accepted */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["AsyncRequestResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/settings/{deviceId}/async/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Initiates async request to get a specific setting from device.
-         * @description Returns a requestId and expiresAt immediately. Client should poll using GET /async/poll/{requestId} until the response is ready or until expiresAt is reached.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                    key: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Accepted */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["AsyncRequestResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/settings/{deviceId}/async/poll/{requestId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Polls for async settings response.
-         * @description Returns the settings if ready, 204 No Content if pending, 404 Not Found if never existed or already served, or 410 Gone if expired. Response is automatically deleted after successful retrieval for privacy.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                    requestId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceParam"];
-                    };
-                };
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Gone */
-                410: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Users
-         * @description Retrieves all users if an admin makes the request, otherwise just the current user.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfUserResponseModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/sponsors": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sponsors
-         * @description Retrieves all sponsors, only for admins.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfSponsorshipEventModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get User By ID
-         * @description Retrieves a specific user by userId, or the current user if 'self' or 'me' is provided.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    userId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["UserResponseModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/{userId}/devices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Devices For User
-         * @description Retrieves all devices for a given user.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    userId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceUserResponseModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/backups/{deviceId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Latest Device Backup
-         * @description Retrieves the latest backup configuration for a specific device.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BackupResponseModel"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/backups/{deviceId}/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Device Backup History
-         * @description Retrieves a list of available backup versions for a specific device.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfBackupResponseModelV1"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/backups/{deviceId}/{backupVersion}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Specific Version Device Backup
-         * @description Retrieves the requested version backup configuration for a specific device.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                    backupVersion: number | string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BackupResponseModel"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/devices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [Admins Only] Get Devices
-         * @description [Admins Only] Retrieves all registered devices.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    deviceId?: string;
-                    commaDongleId?: string;
-                    serial?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceAuthResponseModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/devices/self": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Gets the caller device identity. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["DeviceAuthResponseModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/devices/{deviceId}/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Device Roles
-         * @description Retrieves all the roles inherited by a specific registered device.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfRoleResponseModel2"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/devices/{deviceId}/routes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all routes for a device
-         * @description This endpoint retrieves all routes available on a specific device. The device must be online for this operation.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    routeId?: string;
-                };
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfRouteModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/devices/{deviceId}/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Users For Device
-         * @description Retrieves all users for a given device.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfDeviceUserResponseModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/devices/{deviceId}/tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [Admins Only] Get Tokens
-         * @description [Admins Only] Retrieves all registered tokens.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    deviceId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CollectionResponseViewOfApiTokenModel"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/installer/fork/{user}/{branch}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Gets a user-specific forked installer
-         * @description Gets a user-specific forked installer
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "User-Agent"?: string;
-                    "X-openpilot-device-type"?: string;
-                };
-                path: {
-                    user: string;
-                    branch: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/octet-stream": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/installer/{branch}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Gets an installer for sunnypilot
-         * @description Gets an installer for sunnypilot
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "User-Agent"?: string;
-                    "X-openpilot-device-type"?: string;
-                };
-                path: {
-                    branch: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/octet-stream": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+	'/v1/settings/{deviceId}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Gets all the available settings on the device.
+		 * @description That means all the params available to save and request, but no data is returned with this.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceParamKey'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/settings/{deviceId}/values': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Gets all the current settings on the device.
+		 * @description These settings are not stored on server, they are just obtained real-time from the device through a secure websocket connection.
+		 */
+		get: {
+			parameters: {
+				query: {
+					paramKeys: string[];
+				};
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceParam'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/settings/{deviceId}/{key}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Gets a specific settings from the device. */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+					key: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceParam'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/settings/{deviceId}/async/values': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Initiates async request to get current settings from device.
+		 * @description Returns a requestId and expiresAt immediately. Client should poll using GET /async/poll/{requestId} until the response is ready or until expiresAt is reached.
+		 */
+		get: {
+			parameters: {
+				query: {
+					paramKeys: string[];
+				};
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description Accepted */
+				202: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['AsyncRequestResponse'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/settings/{deviceId}/async/{key}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Initiates async request to get a specific setting from device.
+		 * @description Returns a requestId and expiresAt immediately. Client should poll using GET /async/poll/{requestId} until the response is ready or until expiresAt is reached.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+					key: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description Accepted */
+				202: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['AsyncRequestResponse'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/settings/{deviceId}/async/poll/{requestId}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Polls for async settings response.
+		 * @description Returns the settings if ready, 204 No Content if pending, 404 Not Found if never existed or already served, or 410 Gone if expired. Response is automatically deleted after successful retrieval for privacy.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+					requestId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceParam'];
+					};
+				};
+				/** @description No Content */
+				204: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content?: never;
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content?: never;
+				};
+				/** @description Gone */
+				410: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content?: never;
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/users': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Users
+		 * @description Retrieves all users if an admin makes the request, otherwise just the current user.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfUserResponseModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/users/sponsors': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Sponsors
+		 * @description Retrieves all sponsors, only for admins.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfSponsorshipEventModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/users/{userId}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get User By ID
+		 * @description Retrieves a specific user by userId, or the current user if 'self' or 'me' is provided.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					userId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['UserResponseModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/users/{userId}/devices': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Devices For User
+		 * @description Retrieves all devices for a given user.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					userId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceUserResponseModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/backups/{deviceId}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Latest Device Backup
+		 * @description Retrieves the latest backup configuration for a specific device.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['BackupResponseModel'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+				/** @description Forbidden */
+				403: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/backups/{deviceId}/history': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Device Backup History
+		 * @description Retrieves a list of available backup versions for a specific device.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfBackupResponseModelV1'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/backups/{deviceId}/{backupVersion}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Specific Version Device Backup
+		 * @description Retrieves the requested version backup configuration for a specific device.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+					backupVersion: number | string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['BackupResponseModel'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+				/** @description Forbidden */
+				403: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/problem+json': components['schemas']['ProblemDetails'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/devices': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * [Admins Only] Get Devices
+		 * @description [Admins Only] Retrieves all registered devices.
+		 */
+		get: {
+			parameters: {
+				query?: {
+					deviceId?: string;
+					commaDongleId?: string;
+					serial?: string;
+				};
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceAuthResponseModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/devices/self': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Gets the caller device identity. */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['DeviceAuthResponseModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/devices/{deviceId}/roles': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Device Roles
+		 * @description Retrieves all the roles inherited by a specific registered device.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfRoleResponseModel2'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/devices/{deviceId}/routes': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List all routes for a device
+		 * @description This endpoint retrieves all routes available on a specific device. The device must be online for this operation.
+		 */
+		get: {
+			parameters: {
+				query?: {
+					routeId?: string;
+				};
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfRouteModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/devices/{deviceId}/users': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Users For Device
+		 * @description Retrieves all users for a given device.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfDeviceUserResponseModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/devices/{deviceId}/tokens': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * [Admins Only] Get Tokens
+		 * @description [Admins Only] Retrieves all registered tokens.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					deviceId: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['CollectionResponseViewOfApiTokenModel'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/installer/fork/{user}/{branch}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Gets a user-specific forked installer
+		 * @description Gets a user-specific forked installer
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: {
+					'User-Agent'?: string;
+					'X-openpilot-device-type'?: string;
+				};
+				path: {
+					user: string;
+					branch: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/octet-stream': string;
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/installer/{branch}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Gets an installer for sunnypilot
+		 * @description Gets an installer for sunnypilot
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: {
+					'User-Agent'?: string;
+					'X-openpilot-device-type'?: string;
+				};
+				path: {
+					branch: string;
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/octet-stream': string;
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        ApiTokenModel: {
-            token?: string;
-            device_id?: string;
-            /** Format: date-time */
-            expiration_date?: string;
-            is_expired?: boolean;
-            is_active?: boolean;
-            is_deactivated?: boolean;
-        };
-        AsyncRequestResponse: {
-            request_id: string;
-            /** Format: date-time */
-            expires_at?: string;
-        };
-        BackupMetadataModel: {
-            key: string;
-            value: string;
-            tags?: string[];
-        };
-        BackupResponseModel: {
-            device_id: string;
-            /** Format: int32 */
-            version?: number | string;
-            is_encrypted?: boolean;
-            config: string;
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-            sunnypilot_version: components["schemas"]["SunnypilotVersion"];
-            backup_metadata?: null | components["schemas"]["BackupMetadataModel"][];
-        };
-        BackupResponseModelV1: {
-            device_id: string;
-            /** Format: int32 */
-            version?: number | string;
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-            sunnypilot_version: components["schemas"]["SunnypilotVersion"];
-            backup_metadata?: null | components["schemas"]["BackupMetadataModel"][];
-        };
-        CollectionResponseViewOfApiTokenModel: {
-            items?: components["schemas"]["ApiTokenModel"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfBackupResponseModelV1: {
-            items?: components["schemas"]["BackupResponseModelV1"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfDeviceAuthResponseModel: {
-            items?: components["schemas"]["DeviceAuthResponseModel"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfDeviceParam: {
-            items?: components["schemas"]["DeviceParam"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfDeviceParamKey: {
-            items?: components["schemas"]["DeviceParamKey"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfDeviceUserResponseModel: {
-            items?: components["schemas"]["DeviceUserResponseModel"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfRoleResponseModel2: {
-            items?: components["schemas"]["RoleResponseModel2"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfRouteModel: {
-            items?: components["schemas"]["RouteModel"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfSponsorshipEventModel: {
-            items?: components["schemas"]["SponsorshipEventModel"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        CollectionResponseViewOfUserResponseModel: {
-            items?: components["schemas"]["UserResponseModel"][];
-            /** Format: int32 */
-            count?: number | string;
-            /** Format: int32 */
-            total?: null | number | string;
-            /** Format: int32 */
-            offset?: number | string;
-        };
-        DeviceAuthResponseModel: {
-            device_id: string;
-            /** Format: int32 */
-            version?: number | string;
-            comma_dongle_id?: string;
-            alias?: null | string;
-            public_key: string;
-            /** Format: int64 */
-            created_at?: number | string;
-            /** Format: int64 */
-            updated_at?: number | string;
-        };
-        DeviceParam: {
-            key?: string;
-            is_compressed?: boolean;
-            value?: string;
-            type?: components["schemas"]["ParamType"];
-        };
-        DeviceParamKey: {
-            key?: string;
-            default_value?: string;
-            type?: components["schemas"]["ParamType"];
-            _extra?: null | components["schemas"]["JsonDocument"];
-        };
-        DeviceUserResponseModel: {
-            device_id?: string;
-            user_id?: string;
-            /** Format: int64 */
-            created_at?: number | string;
-            /** Format: int64 */
-            updated_at?: number | string;
-            /** Format: byte */
-            token_hash?: string;
-        };
-        IRoleResponseModel: components["schemas"]["IRoleResponseModelRoleResponseModel"] | components["schemas"]["IRoleResponseModelSponsorRoleResponseModel"];
-        IRoleResponseModelRoleResponseModel: {
-            role_type?: components["schemas"]["RoleType"];
-        };
-        IRoleResponseModelSponsorRoleResponseModel: {
-            sponsor_tier?: null | string;
-            /** Format: int64 */
-            valid_until?: number | string;
-            role_type?: components["schemas"]["RoleType"];
-        };
-        JsonDocument: unknown;
-        /** @enum {unknown} */
-        ParamType: "String" | "Bool" | "Int" | "Float" | "Time" | "Json" | "Bytes" | "Unknown";
-        ProblemDetails: {
-            type?: null | string;
-            title?: null | string;
-            /** Format: int32 */
-            status?: null | number | string;
-            detail?: null | string;
-            instance?: null | string;
-        };
-        RoleResponseModel2: {
-            role_type?: components["schemas"]["RoleType"];
-            role_tier?: null | string;
-        };
-        /** @enum {unknown} */
-        RoleType: "ReadOnly" | "Sponsor" | "Admin" | "Discourse";
-        RouteFile: {
-            name?: string;
-            path?: string;
-            route_id?: string;
-            device_id?: string;
-            /** Format: int32 */
-            segment_id?: null | number | string;
-            download_uri?: null | string;
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-            /** Format: int32 */
-            version?: number | string;
-            /** Format: int32 */
-            last_version?: null | number | string;
-        };
-        RouteModel: {
-            alias?: string;
-            device_id?: string;
-            is_public?: boolean;
-            /** Format: int32 */
-            segment_count?: number | string;
-            route_id?: string;
-            segments?: components["schemas"]["RouteSegment"][];
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-            /** Format: int32 */
-            version?: number | string;
-            /** Format: int32 */
-            last_version?: null | number | string;
-        };
-        RouteSegment: {
-            device_id?: string;
-            route_id?: string;
-            /** Format: int32 */
-            segment_id?: number | string;
-            files?: components["schemas"]["RouteFile"][];
-        };
-        /** @enum {unknown} */
-        SponsorStatus: "Invalid" | "Active" | "Inactive" | "PendingCancellation";
-        SponsorshipEventModel: {
-            user_id?: string;
-            user_name?: string;
-            source?: components["schemas"]["SponsorshipSource"];
-            /** Format: date-time */
-            valid_until?: null | string;
-            sponsor_last_event?: components["schemas"]["SponsorStatus"];
-            source_last_event_name?: null | string;
-            is_active?: boolean;
-            /** Format: double */
-            monthly_price_in_dollars?: number | string;
-            is_one_time?: boolean;
-        };
-        /** @enum {unknown} */
-        SponsorshipSource: "Unknown" | "GitHub" | "Patreon" | "Manual";
-        SunnypilotVersion: {
-            /** Format: int32 */
-            major?: number | string;
-            /** Format: int32 */
-            minor?: number | string;
-            /** Format: int32 */
-            patch?: number | string;
-            /** Format: int32 */
-            build?: number | string;
-            branch?: null | string;
-        };
-        UserResponseModel: {
-            user_id?: string;
-            roles?: components["schemas"]["IRoleResponseModel"][];
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+	schemas: {
+		ApiTokenModel: {
+			token?: string;
+			device_id?: string;
+			/** Format: date-time */
+			expiration_date?: string;
+			is_expired?: boolean;
+			is_active?: boolean;
+			is_deactivated?: boolean;
+		};
+		AsyncRequestResponse: {
+			request_id: string;
+			/** Format: date-time */
+			expires_at?: string;
+		};
+		BackupMetadataModel: {
+			key: string;
+			value: string;
+			tags?: string[];
+		};
+		BackupResponseModel: {
+			device_id: string;
+			/** Format: int32 */
+			version?: number | string;
+			is_encrypted?: boolean;
+			config: string;
+			/** Format: date-time */
+			created_at?: string;
+			/** Format: date-time */
+			updated_at?: string;
+			sunnypilot_version: components['schemas']['SunnypilotVersion'];
+			backup_metadata?: null | components['schemas']['BackupMetadataModel'][];
+		};
+		BackupResponseModelV1: {
+			device_id: string;
+			/** Format: int32 */
+			version?: number | string;
+			/** Format: date-time */
+			created_at?: string;
+			/** Format: date-time */
+			updated_at?: string;
+			sunnypilot_version: components['schemas']['SunnypilotVersion'];
+			backup_metadata?: null | components['schemas']['BackupMetadataModel'][];
+		};
+		CollectionResponseViewOfApiTokenModel: {
+			items?: components['schemas']['ApiTokenModel'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfBackupResponseModelV1: {
+			items?: components['schemas']['BackupResponseModelV1'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfDeviceAuthResponseModel: {
+			items?: components['schemas']['DeviceAuthResponseModel'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfDeviceParam: {
+			items?: components['schemas']['DeviceParam'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfDeviceParamKey: {
+			items?: components['schemas']['DeviceParamKey'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfDeviceUserResponseModel: {
+			items?: components['schemas']['DeviceUserResponseModel'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfRoleResponseModel2: {
+			items?: components['schemas']['RoleResponseModel2'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfRouteModel: {
+			items?: components['schemas']['RouteModel'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfSponsorshipEventModel: {
+			items?: components['schemas']['SponsorshipEventModel'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		CollectionResponseViewOfUserResponseModel: {
+			items?: components['schemas']['UserResponseModel'][];
+			/** Format: int32 */
+			count?: number | string;
+			/** Format: int32 */
+			total?: null | number | string;
+			/** Format: int32 */
+			offset?: number | string;
+		};
+		DeviceAuthResponseModel: {
+			device_id: string;
+			/** Format: int32 */
+			version?: number | string;
+			comma_dongle_id?: string;
+			alias?: null | string;
+			public_key: string;
+			/** Format: int64 */
+			created_at?: number | string;
+			/** Format: int64 */
+			updated_at?: number | string;
+		};
+		DeviceParam: {
+			key?: string;
+			is_compressed?: boolean;
+			value?: string;
+			type?: components['schemas']['ParamType'];
+		};
+		DeviceParamKey: {
+			key?: string;
+			default_value?: string;
+			type?: components['schemas']['ParamType'];
+			_extra?: null | components['schemas']['JsonDocument'];
+		};
+		DeviceUserResponseModel: {
+			device_id?: string;
+			user_id?: string;
+			/** Format: int64 */
+			created_at?: number | string;
+			/** Format: int64 */
+			updated_at?: number | string;
+			/** Format: byte */
+			token_hash?: string;
+		};
+		IRoleResponseModel:
+			| components['schemas']['IRoleResponseModelRoleResponseModel']
+			| components['schemas']['IRoleResponseModelSponsorRoleResponseModel'];
+		IRoleResponseModelRoleResponseModel: {
+			role_type?: components['schemas']['RoleType'];
+		};
+		IRoleResponseModelSponsorRoleResponseModel: {
+			sponsor_tier?: null | string;
+			/** Format: int64 */
+			valid_until?: number | string;
+			role_type?: components['schemas']['RoleType'];
+		};
+		JsonDocument: unknown;
+		/** @enum {unknown} */
+		ParamType: 'String' | 'Bool' | 'Int' | 'Float' | 'Time' | 'Json' | 'Bytes' | 'Unknown';
+		ProblemDetails: {
+			type?: null | string;
+			title?: null | string;
+			/** Format: int32 */
+			status?: null | number | string;
+			detail?: null | string;
+			instance?: null | string;
+		};
+		RoleResponseModel2: {
+			role_type?: components['schemas']['RoleType'];
+			role_tier?: null | string;
+		};
+		/** @enum {unknown} */
+		RoleType: 'ReadOnly' | 'Sponsor' | 'Admin' | 'Discourse';
+		RouteFile: {
+			name?: string;
+			path?: string;
+			route_id?: string;
+			device_id?: string;
+			/** Format: int32 */
+			segment_id?: null | number | string;
+			download_uri?: null | string;
+			/** Format: date-time */
+			created_at?: string;
+			/** Format: date-time */
+			updated_at?: string;
+			/** Format: int32 */
+			version?: number | string;
+			/** Format: int32 */
+			last_version?: null | number | string;
+		};
+		RouteModel: {
+			alias?: string;
+			device_id?: string;
+			is_public?: boolean;
+			/** Format: int32 */
+			segment_count?: number | string;
+			route_id?: string;
+			segments?: components['schemas']['RouteSegment'][];
+			/** Format: date-time */
+			created_at?: string;
+			/** Format: date-time */
+			updated_at?: string;
+			/** Format: int32 */
+			version?: number | string;
+			/** Format: int32 */
+			last_version?: null | number | string;
+		};
+		RouteSegment: {
+			device_id?: string;
+			route_id?: string;
+			/** Format: int32 */
+			segment_id?: number | string;
+			files?: components['schemas']['RouteFile'][];
+		};
+		/** @enum {unknown} */
+		SponsorStatus: 'Invalid' | 'Active' | 'Inactive' | 'PendingCancellation';
+		SponsorshipEventModel: {
+			user_id?: string;
+			user_name?: string;
+			source?: components['schemas']['SponsorshipSource'];
+			/** Format: date-time */
+			valid_until?: null | string;
+			sponsor_last_event?: components['schemas']['SponsorStatus'];
+			source_last_event_name?: null | string;
+			is_active?: boolean;
+			/** Format: double */
+			monthly_price_in_dollars?: number | string;
+			is_one_time?: boolean;
+		};
+		/** @enum {unknown} */
+		SponsorshipSource: 'Unknown' | 'GitHub' | 'Patreon' | 'Manual';
+		SunnypilotVersion: {
+			/** Format: int32 */
+			major?: number | string;
+			/** Format: int32 */
+			minor?: number | string;
+			/** Format: int32 */
+			patch?: number | string;
+			/** Format: int32 */
+			build?: number | string;
+			branch?: null | string;
+		};
+		UserResponseModel: {
+			user_id?: string;
+			roles?: components['schemas']['IRoleResponseModel'][];
+		};
+	};
+	responses: never;
+	parameters: never;
+	requestBodies: never;
+	headers: never;
+	pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

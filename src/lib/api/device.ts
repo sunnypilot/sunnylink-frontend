@@ -137,8 +137,7 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 				deviceState.onlineStatuses[deviceId] = 'offline';
 			} else {
 				deviceState.onlineStatuses[deviceId] = 'error';
-				deviceState.lastErrorMessages[deviceId] =
-					settingsRes.error.detail || `Error ${status}`;
+				deviceState.lastErrorMessages[deviceId] = settingsRes.error.detail || `Error ${status}`;
 			}
 			return;
 		}
