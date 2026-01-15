@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Note: The authentication module has been simplified to let the Logto SDK
 // handle token caching and refresh internally. The custom functions
