@@ -448,6 +448,21 @@
 				token
 			);
 
+			// Handle fetch errors before checking IsOffroad
+			if (statusRes.error) {
+				const errorMessages: Record<string, string> = {
+					timeout: 'Device took too long to respond. Please try again.',
+					expired: 'Request expired. Please try again.',
+					not_found: 'Device not reachable. Please check connection.',
+					error: 'Failed to verify device status. Please try again.'
+				};
+				const err = statusRes.error;
+				const message: string =
+					(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
+					'Failed to verify device status. Please try again.';
+				throw new Error(message);
+			}
+
 			const isOffroadParam = statusRes.items?.find((i) => i.key === 'IsOffroad');
 			let currentIsOffroad = false;
 			if (isOffroadParam) {

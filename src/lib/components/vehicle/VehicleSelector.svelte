@@ -55,6 +55,13 @@
 				token
 			);
 
+			// Handle fetch errors
+			if (res.error) {
+				console.error('[VehicleSelector] Failed to fetch vehicle params:', res.error);
+				// Still allow the component to render, but values will be empty/default
+				return;
+			}
+
 			if (res.items) {
 				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
 
