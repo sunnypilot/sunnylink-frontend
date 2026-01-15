@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { getCarList, setDeviceParams } from '$lib/api/device';
-	import { v1Client } from '$lib/api/client';
+	import { getCarList, setDeviceParams, fetchSettingsAsync } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 
@@ -50,18 +49,16 @@
 
 		isLoadingValues = true;
 		try {
-			const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
-				params: {
-					path: { deviceId },
-					query: { paramKeys: ['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'] }
-				},
-				headers: { Authorization: `Bearer ${token}` }
-			});
+			const res = await fetchSettingsAsync(
+				deviceId,
+				['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'],
+				token
+			);
 
-			if (res.data?.items) {
+			if (res.items) {
 				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
 
-				for (const item of res.data.items) {
+				for (const item of res.items) {
 					if (item.key === 'CarPlatformBundle') {
 						const val = decodeParamValue(item);
 						try {

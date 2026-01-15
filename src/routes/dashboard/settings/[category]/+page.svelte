@@ -92,7 +92,7 @@
 		return result;
 	});
 
-	import { v1Client } from '$lib/api/client';
+	import { fetchSettingsAsync } from '$lib/api/device';
 
 	let loadingValues = $state(false);
 	let loadingProgress = $state('');
@@ -153,24 +153,16 @@
 
 			for (const chunk of chunks) {
 				try {
-					const response = await v1Client.GET('/v1/settings/{deviceId}/values', {
-						params: {
-							path: { deviceId },
-							query: { paramKeys: chunk }
-						},
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					});
+					const response = await fetchSettingsAsync(deviceId, chunk, token);
 
-					if (response.data?.items) {
+					if (response.items) {
 						// Initialize device values map if not exists
 						if (!deviceState.deviceValues[deviceId]) {
 							deviceState.deviceValues[deviceId] = {};
 						}
 
 						// Update store with fetched values
-						for (const item of response.data.items) {
+						for (const item of response.items) {
 							if (item.key && item.value !== undefined) {
 								// Find definition to get the type
 								const def = categorySettings.find((s) => s.key === item.key);
