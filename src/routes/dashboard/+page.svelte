@@ -5,6 +5,7 @@
 	import { checkDeviceStatus } from '$lib/api/device';
 	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
+	import PairingModal from '$lib/components/PairingModal.svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
 	import {
 		Wifi,
@@ -21,7 +22,8 @@
 		Check,
 		Trash2,
 		Download,
-		TriangleAlert
+		TriangleAlert,
+		Plus
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
@@ -38,6 +40,8 @@
 	let deviceToDeregisterIsOnline = $state<boolean>(false);
 	let offlineSectionOpen = $state(false);
 	let copiedDeviceId = $state<string | null>(null);
+	let pairingModalOpen = $state(false);
+	let pairingType = $state<'c3' | 'c4' | null>(null);
 
 	async function handleDownloadBackup(deviceId: string) {
 		if (!deviceId || deviceState.backupState.isDownloading) return;
@@ -223,23 +227,55 @@
 							</p>
 						</div>
 
-						<!-- Migration CTA -->
-						<div
-							class="flex w-full flex-col items-start gap-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 lg:max-w-md"
-						>
-							<div class="space-y-2">
-								<h3 class="font-bold text-blue-400">Device Migration Wizard</h3>
-								<p class="text-sm text-slate-300">
-									Whether you have your new device or are waiting for it to arrive, you can start
-									your settings migration now and resume it later.
-								</p>
-							</div>
-							<button
-								class="btn btn-sm btn-primary"
-								onclick={() => deviceState.openMigrationWizard()}
+						<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-none xl:max-w-2xl">
+							<!-- Migration CTA -->
+							<div
+								class="flex w-full flex-col items-start justify-between gap-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4"
 							>
-								Open Migration Wizard
-							</button>
+								<div class="space-y-2">
+									<h3 class="font-bold text-blue-400">Device Migration Wizard</h3>
+									<p class="text-sm text-slate-300">
+										Whether you have your new device or are waiting for it to arrive, you can start
+										your settings migration now and resume it later.
+									</p>
+								</div>
+								<button
+									class="btn btn-sm btn-primary"
+									onclick={() => deviceState.openMigrationWizard()}
+								>
+									Open Migration Wizard
+								</button>
+							</div>
+
+							<!-- Pair Device CTA -->
+							<div
+								class="flex w-full flex-col items-start justify-between gap-4 rounded-xl border border-primary/20 bg-primary/10 p-4"
+							>
+								<div class="space-y-2">
+									<h3 class="font-bold text-white">Add a Device</h3>
+									<p class="text-sm text-slate-300">Learn how to pair your device with sunnylink</p>
+								</div>
+								<div class="flex w-full gap-2">
+									<button
+										class="btn flex-1 btn-sm btn-primary"
+										onclick={() => {
+											pairingType = 'c3';
+											pairingModalOpen = true;
+										}}
+									>
+										Comma 3/3X
+									</button>
+									<button
+										class="btn flex-1 btn-sm btn-primary"
+										onclick={() => {
+											pairingType = 'c4';
+											pairingModalOpen = true;
+										}}
+									>
+										Comma 4
+									</button>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -275,6 +311,10 @@
 							<p class="mt-2 text-sm text-slate-400">
 								Pair a device to get started with sunnypilot.
 							</p>
+							<button class="btn mt-6 gap-2 btn-primary" onclick={() => (pairingModalOpen = true)}>
+								<Plus size={20} />
+								Pair Device
+							</button>
 						</div>
 					</div>
 				</div>
@@ -728,5 +768,14 @@
 		</div>
 	{/await}
 
+	<button
+		class="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 hover:shadow-primary/20 active:scale-95 sm:right-10 sm:bottom-10"
+		onclick={() => (pairingModalOpen = true)}
+		title="Pair New Device"
+	>
+		<Plus size={28} />
+	</button>
+
 	<BackupProgressModal />
+	<PairingModal bind:open={pairingModalOpen} bind:deviceType={pairingType} />
 {/if}
