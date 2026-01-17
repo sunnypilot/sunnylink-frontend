@@ -24,7 +24,8 @@
 		Wind,
 		Wrench,
 		ArrowLeftRight,
-		Car
+		Car,
+		Power
 	} from 'lucide-svelte';
 
 	let { children, data } = $props();
@@ -118,13 +119,15 @@
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import Toast from '$lib/components/Toast.svelte';
-	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
+	import FloatingOffroadControl from '$lib/components/FloatingOffroadControl.svelte';
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { onMount } from 'svelte';
 
 	let devices = $state<any[]>([]);
+	let forceOffroadModalOpen = $state(false);
 
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
@@ -197,7 +200,7 @@
 	<div
 		class="drawer-content flex min-h-screen flex-col bg-[#0f1726] {isLandingPage
 			? 'h-auto overflow-visible'
-			: ''}"
+			: 'pb-32'}"
 	>
 		<GlobalStatusBanner />
 		<!-- Navbar for mobile -->
@@ -205,7 +208,6 @@
 			<header
 				class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
 			>
-				<ForceOffroadBanner />
 				<div class="flex items-center justify-between gap-3">
 					<div class="flex items-center gap-3 lg:hidden">
 						<label
@@ -425,6 +427,13 @@
 </div>
 
 <BackupStatusIndicator />
+
+<FloatingOffroadControl onOpenModal={() => (forceOffroadModalOpen = true)} />
+
+<ForceOffroadModal
+	bind:open={forceOffroadModalOpen}
+	onSuccess={() => checkAllDevicesStatus(devices)}
+/>
 
 {#if deviceState.migrationState.isOpen}
 	<SettingsMigrationWizard
