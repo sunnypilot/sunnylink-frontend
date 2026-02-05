@@ -15,7 +15,7 @@
 	let countries: OSMRegion[] = $state([]);
 	let states: OSMRegion[] = $state([]);
 	let loadingRegions = $state(false);
-	let downloading = $state(false);
+	let localDownloadingOverride = $state(false);
 	let loadingOsmParams = $state(false);
 	let error = $state<string | null>(null);
 
@@ -32,55 +32,6 @@
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
 
-	// Check status on mount / device change if not already online
-	$effect(() => {
-		const deviceId = deviceState.selectedDeviceId;
-		logtoClient?.getIdToken().then((token) => {
-			if (token && deviceId) {
-				fetchOsmParams(deviceId, token);
-			}
-		});
-	});
-
-	async function fetchOsmParams(deviceId: string, token: string, redrawUI: boolean = true) {
-		loadingOsmParams = true && redrawUI;
-		try {
-			const osmParams = new Set([
-				'OsmLocationName',
-				'OsmLocationTitle',
-				'OsmStateName',
-				'OsmStateTitle',
-				'OSMDownloadProgress',
-				'OsmDbUpdatesCheck',
-				'OsmDownloadedDate'
-			]);
-
-			const res = await fetchSettingsAsync(deviceId, Array.from(osmParams), token);
-
-			if (res.items) {
-				// We need to merge these into deviceState.deviceSettings
-				// Check if we have existing settings for this device, if not init
-				const existing = deviceState.deviceSettings[deviceId] || [];
-
-				// Map new items to dictionary for easy lookup
-				const newItemsMap = new Map(res.items.map((i) => [i.key, i]));
-
-				const filtered = existing.filter((i) => i.key && !osmParams.has(i.key));
-				const updated = [...filtered, ...res.items];
-
-				deviceState.deviceSettings[deviceId] = updated;
-			}
-		} catch (e) {
-			console.error('Failed to fetch OSM params', e);
-		} finally {
-			loadingOsmParams = false;
-		}
-	}
-
-	// Form State
-	let selectedCountry = $state<string>('');
-	let selectedState = $state<string>('');
-
 	function getParamValue(deviceId: string, key: string): any {
 		const settings = deviceState.deviceSettings[deviceId];
 		if (!settings) return null;
@@ -89,15 +40,36 @@
 		return decodeParamValue(param);
 	}
 
-	// Device Param State (derived/synced)
+	const OSM_PARAMS = [
+		'OsmLocationName',
+		'OsmLocationTitle',
+		'OsmStateName',
+		'OsmStateTitle',
+		'OSMDownloadProgress',
+		'OsmDbUpdatesCheck',
+		'OsmDownloadedDate',
+		'OsmLocal'
+	];
+
+	// Derived values for the current device
 	let currentCountryName = $derived(
 		deviceState.selectedDeviceId
 			? getParamValue(deviceState.selectedDeviceId, 'OsmLocationName')
 			: null
 	);
+	let currentCountryTitle = $derived(
+		deviceState.selectedDeviceId
+			? getParamValue(deviceState.selectedDeviceId, 'OsmLocationTitle')
+			: null
+	);
 	let currentStateName = $derived(
 		deviceState.selectedDeviceId
 			? getParamValue(deviceState.selectedDeviceId, 'OsmStateName')
+			: null
+	);
+	let currentStateTitle = $derived(
+		deviceState.selectedDeviceId
+			? getParamValue(deviceState.selectedDeviceId, 'OsmStateTitle')
 			: null
 	);
 	let downloadProgressParam = $derived(
@@ -115,8 +87,12 @@
 			? getParamValue(deviceState.selectedDeviceId, 'OsmDownloadedDate')
 			: null
 	);
+	let osmLocalParam = $derived(
+		deviceState.selectedDeviceId ? getParamValue(deviceState.selectedDeviceId, 'OsmLocal') : null
+	);
 
-	// Computed status
+	let hasMap = $derived(!!currentCountryName);
+
 	let downloadProgress = $derived.by(() => {
 		if (downloadProgressParam) {
 			try {
@@ -127,7 +103,6 @@
 				if (prog.total_files > 0 && prog.downloaded_files < prog.total_files) {
 					return `${prog.downloaded_files}/${prog.total_files}`;
 				}
-				return '';
 			} catch {
 				return '';
 			}
@@ -136,52 +111,100 @@
 	});
 
 	let isDownloading = $derived.by(() => {
-		if (
+		if (localDownloadingOverride) return true;
+
+		const isCheckingUpdates =
 			dbUpdatesCheck === '1' ||
 			dbUpdatesCheck === true ||
 			dbUpdatesCheck === 'true' ||
-			downloadProgress !== ''
-		)
-			return true;
-		return false;
+			dbUpdatesCheck === 1;
+
+		const hasProgress = downloadProgress !== '' && downloadProgress !== undefined;
+
+		return isCheckingUpdates || hasProgress;
 	});
 
+	async function fetchOsmParams(deviceId: string, token: string, silent: boolean = false) {
+		if (!silent) loadingOsmParams = true;
+		try {
+			const res = await fetchSettingsAsync(deviceId, OSM_PARAMS, token);
+
+			if (res.items) {
+				const existing = deviceState.deviceSettings[deviceId] || [];
+				const osmParamsSet = new Set(OSM_PARAMS);
+
+				// Remove old versions of these params
+				const filtered = existing.filter((i) => i.key && !osmParamsSet.has(i.key));
+				// Add new ones
+				deviceState.deviceSettings[deviceId] = [...filtered, ...res.items];
+			}
+		} catch (e) {
+			console.error('Failed to fetch OSM params', e);
+		} finally {
+			if (!silent) loadingOsmParams = false;
+		}
+	}
+
 	$effect(() => {
-		if (isDownloading) {
-			checkDownloadProgress(false);
+		const deviceId = deviceState.selectedDeviceId;
+		if (
+			deviceId &&
+			logtoClient &&
+			deviceState.onlineStatuses[deviceId] === 'online' &&
+			!isDownloading
+		) {
+			logtoClient.getIdToken().then((token) => {
+				if (token) fetchOsmParams(deviceId, token);
+			});
 		}
 	});
 
-	async function checkDownloadProgress(redrawUI: boolean = true) {
-		logtoClient?.getIdToken().then((token) => {
-			// Poll download progress every 3 seconds
-			const interval = setInterval(() => {
-				if (deviceState.selectedDeviceId && token && isDownloading) {
-					fetchOsmParams(deviceState.selectedDeviceId, token, redrawUI);
-				} else {
-					clearInterval(interval);
-				}
-			}, 5000);
-		});
-	}
+	$effect(() => {
+		let interval: ReturnType<typeof setInterval>;
+
+		if (isDownloading && deviceState.selectedDeviceId) {
+			const deviceId = deviceState.selectedDeviceId;
+			interval = setInterval(() => {
+				logtoClient?.getIdToken().then((token) => {
+					if (token) {
+						fetchOsmParams(deviceId, token, true).then(() => {
+							if (localDownloadingOverride) {
+								localDownloadingOverride = false;
+							}
+						});
+					}
+				});
+			}, 3000);
+		}
+
+		return () => {
+			if (interval) clearInterval(interval);
+		};
+	});
+
+	let selectedCountry = $state<string>('');
+	let selectedState = $state<string>('');
 
 	onMount(async () => {
 		await fetchCountries();
 	});
 
-	// Sync selection from params when they become available (e.g. after refresh)
 	$effect(() => {
-		if (currentCountryName && !selectedCountry) {
+		if (currentCountryName && !selectedCountry && !isDownloading) {
 			selectedCountry = currentCountryName;
-			if (currentCountryName === 'US' && states.length === 0) {
+		}
+		if (currentStateName && !selectedState && !isDownloading) {
+			if (selectedCountry === 'US' && states.length === 0) {
 				fetchStates().then(() => {
-					if (currentStateName && !selectedState) {
-						selectedState = currentStateName;
-					}
+					selectedState = currentStateName;
 				});
-			} else if (currentStateName && !selectedState) {
+			} else {
 				selectedState = currentStateName;
 			}
+		}
+
+		if (selectedCountry === 'US' && states.length === 0) {
+			fetchStates();
 		}
 	});
 
@@ -219,7 +242,6 @@
 					display_name: v.display_name || v.full_name || k
 				}))
 				.sort((a, b) => a.display_name.localeCompare(b.display_name));
-			// Add "All" option
 			states.unshift({ ref: 'All', display_name: 'All states (~6.0 GB)' });
 		} catch (e) {
 			console.error('Failed to fetch states', e);
@@ -228,18 +250,13 @@
 		}
 	}
 
-	$effect(() => {
-		if (selectedCountry === 'US' && states.length === 0) {
-			fetchStates();
-		}
-	});
-
 	async function handleSaveAndDownload() {
 		if (!deviceState.selectedDeviceId || !logtoClient) return;
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 
-		downloading = true;
+		localDownloadingOverride = true;
+
 		try {
 			const countryObj = countries.find((c) => c.ref === selectedCountry);
 			const stateObj = states.find((s) => s.ref === selectedState);
@@ -247,7 +264,7 @@
 			const paramsToSet = [
 				{ key: 'OsmLocationName', value: selectedCountry },
 				{ key: 'OsmLocationTitle', value: countryObj?.display_name || selectedCountry },
-				{ key: 'OsmLocal', value: '1' }, // True
+				{ key: 'OsmLocal', value: '1' },
 				{ key: 'OsmDbUpdatesCheck', value: '1' }
 			];
 
@@ -262,22 +279,10 @@
 
 			await setDeviceParams(deviceState.selectedDeviceId, paramsToSet, token);
 			toastState.show('Download started on device', 'success');
-
-			// Poll for status update
-			setTimeout(() => {
-				if (deviceState.selectedDeviceId && token) {
-					// Fetch specific params to update UI immediately
-					fetchOsmParams(deviceState.selectedDeviceId, token);
-				}
-			}, 1000);
-
-			// Poll progress
-			checkDownloadProgress(true);
 		} catch (e) {
 			console.error('Failed to start download', e);
 			toastState.show('Failed to start download', 'error');
-		} finally {
-			downloading = false;
+			localDownloadingOverride = false;
 		}
 	}
 
@@ -287,6 +292,7 @@
 		if (!token) return;
 
 		toastState.show('Checking for updates...', 'info');
+		localDownloadingOverride = true;
 
 		try {
 			await setDeviceParams(
@@ -295,10 +301,9 @@
 				token
 			);
 			toastState.show('Update initiated on device', 'success');
-			fetchOsmParams(deviceState.selectedDeviceId, token, true);
-			checkDownloadProgress(false);
 		} catch (e) {
 			toastState.show('Failed to check for updates', 'error');
+			localDownloadingOverride = false;
 		}
 	}
 
@@ -399,21 +404,16 @@
 		</div>
 	{:else}
 		<div class="space-y-6">
-			{#if loadingOsmParams}
-				<div
-					class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-12 backdrop-blur-sm"
-					transition:fade
-				>
+			{#if loadingOsmParams && !isDownloading && !hasMap}
+				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-12 backdrop-blur-sm">
 					<div class="flex flex-col items-center justify-center text-center">
 						<Loader2 size={32} class="animate-spin text-indigo-400" />
 						<p class="mt-4 text-sm text-slate-400">Fetching map details...</p>
 					</div>
 				</div>
-			{:else if currentCountryName}
-				<div
-					class="overflow-hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5"
-					transition:fade
-				>
+			{:else if hasMap || isDownloading}
+				<!-- Status Card: Shown if we have a map OR if we are currently downloading one -->
+				<div class="overflow-hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5">
 					<div class="border-b border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-2">
@@ -436,26 +436,29 @@
 					<div class="p-4">
 						<div class="flex items-start justify-between gap-4">
 							<div>
-								<h3 class="text-lg font-bold text-white">
-									{deviceState.selectedDeviceId
-										? getParamValue(deviceState.selectedDeviceId, 'OsmLocationTitle') ||
-											currentCountryName
-										: currentCountryName}
-								</h3>
-								{#if currentStateName}
-									<p class="mt-1 text-sm font-medium text-slate-400">
-										{deviceState.selectedDeviceId
-											? getParamValue(deviceState.selectedDeviceId, 'OsmStateTitle') ||
-												currentStateName
-											: currentStateName}
-									</p>
+								{#if isDownloading && !currentCountryTitle}
+									<h3 class="text-lg font-bold text-white">Downloading Map...</h3>
+									<p class="mt-1 text-sm font-medium text-slate-400">Please wait...</p>
+								{:else}
+									<h3 class="text-lg font-bold text-white">
+										{currentCountryTitle || currentCountryName || 'Unknown Location'}
+									</h3>
+									{#if currentStateTitle || currentStateName}
+										<p class="mt-1 text-sm font-medium text-slate-400">
+											{currentStateTitle || currentStateName}
+										</p>
+									{/if}
 								{/if}
 							</div>
 							{#if isDownloading}
 								<div
 									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
 								>
-									Downloading {downloadProgress}
+									{#if downloadProgress}
+										Downloading {downloadProgress}
+									{:else}
+										Pending / Processing...
+									{/if}
 								</div>
 							{:else}
 								<div
@@ -473,14 +476,15 @@
 								disabled={isDownloading}
 							>
 								<RefreshCw size={14} />
-								Check for Updates
+								Download Updates
 							</button>
 						</div>
 					</div>
 				</div>
 			{:else}
+				<!-- Empty State -->
 				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 backdrop-blur-sm">
-					<div class="flex flex-col items-center justify-center text-center" transition:fade>
+					<div class="flex flex-col items-center justify-center text-center">
 						<div class="mb-3 rounded-full bg-slate-800 p-3">
 							<MapIcon class="h-6 w-6 text-slate-500" />
 						</div>
@@ -507,7 +511,7 @@
 					</div>
 
 					{#if selectedCountry === 'US'}
-						<div class="form-control" transition:fade>
+						<div class="form-control">
 							<ComboBox
 								label="State"
 								placeholder="Select a state"
@@ -526,12 +530,16 @@
 								isDownloading}
 							onclick={handleSaveAndDownload}
 						>
-							{#if downloading}
+							{#if isDownloading}
 								<Loader2 size={18} class="animate-spin" />
 							{:else}
 								<Download size={18} />
 							{/if}
-							Download Map
+							{#if isDownloading}
+								Download in Progress...
+							{:else}
+								Download Map
+							{/if}
 						</button>
 					</div>
 
