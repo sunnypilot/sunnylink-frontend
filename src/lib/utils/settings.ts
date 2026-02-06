@@ -49,7 +49,7 @@ export function getAllSettings(
 	// 2. Find dynamic settings from device
 	let dynamicDefs: RenderableSetting[] = [];
 	if (settings) {
-		const definedKeys = new Set(SETTINGS_DEFINITIONS.map((d) => d.key));
+		const definedKeys = new Set(explicitDefs.map((d) => d.key));
 		dynamicDefs = settings
 			.filter((s) => s.key && !definedKeys.has(s.key))
 			.map((s) => {
