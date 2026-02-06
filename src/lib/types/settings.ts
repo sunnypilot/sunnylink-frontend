@@ -93,7 +93,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'device'
 	},
 
-	{ isSection: true, key: '_sec', label: 'Network', description: '', category: 'device' },
+	{ isSection: true, key: '_sec_device_network', label: 'Network', description: '', category: 'device' },
 	{
 		key: 'GsmMetered',
 		label: 'GSM Metered',
@@ -114,7 +114,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 
-	{ isSection: true, key: '_sec', label: 'Software', description: '', category: 'device' },
+	{ isSection: true, key: '_sec_device_software', label: 'Software', description: '', category: 'device' },
 	{
 		key: 'BackupManager_CreateBackup',
 		label: 'Create Backup',
@@ -137,7 +137,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 
-	{ isSection: true, key: '_sec', label: 'Power Management', description: '', category: 'device' },
+	{ isSection: true, key: '_sec_device_power', label: 'Power Management', description: '', category: 'device' },
 	{
 		key: 'MaxTimeOffroad',
 		label: 'Max Time Offroad',
@@ -167,7 +167,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 	// Readonly
-	{ isSection: true, key: '_sec', label: '', description: '', category: 'device' },
+	{ isSection: true, key: '_sec_device_', label: '', description: '', category: 'device' },
 	{
 		key: 'DongleId',
 		label: 'Dongle ID',
@@ -305,7 +305,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 
-	{ isSection: true, key: '_sec', label: 'Subaru', description: '', category: 'toggles' },
+	{ isSection: true, key: '_sec_toggles_subaru', label: 'Subaru', description: '', category: 'toggles' },
 	{
 		key: 'SubaruStopAndGo',
 		label: 'Subaru Stop & Go',
@@ -322,7 +322,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	},
 
 	// Steering
-	{ isSection: true, key: '_sec', label: 'MADS', description: '', category: 'steering' },
+	{ isSection: true, key: '_sec_steering_mads', label: 'MADS', description: '', category: 'steering' },
 	{
 		key: 'Mads',
 		label: 'Enable MADS',
@@ -348,7 +348,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'steering'
 	},
 
-	{ isSection: true, key: '_sec', label: 'Torque Tuning', description: '', category: 'steering' },
+	{ isSection: true, key: '_sec_steering_torque', label: 'Torque Tuning', description: '', category: 'steering' },
 	{
 		key: 'EnforceTorqueControl',
 		label: 'Enforce Torque Control',
@@ -398,7 +398,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 
-	{ isSection: true, key: '_sec', label: 'Other Settings', description: '', category: 'steering' },
+	{ isSection: true, key: '_sec_steering_other', label: 'Other Settings', description: '', category: 'steering' },
 	{
 		key: 'NeuralNetworkLateralControl',
 		label: 'NN Lateral Control',
@@ -433,7 +433,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 
-	{ isSection: true, key: '_sec', label: 'Hyundai', description: '', category: 'steering' },
+	{ isSection: true, key: '_sec_steering_hyundai', label: 'Hyundai', description: '', category: 'steering' },
 	{
 		key: 'HkgTuningOverridingCycles',
 		label: 'HKG Override Cycles',
@@ -470,7 +470,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		advanced: true
 	},
 
-	{ isSection: true, key: '_sec', label: 'Tesla', description: '', category: 'steering' },
+	{ isSection: true, key: '_sec_steering_tesla', label: 'Tesla', description: '', category: 'steering' },
 	{
 		key: 'TeslaCoopSteering',
 		label: 'Tesla Coop Steering',
@@ -503,7 +503,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 
 	{
 		isSection: true,
-		key: '_sec',
+		key: '_sec_cruise_sla',
 		label: 'Speed Limit Assist',
 		description: '',
 		category: 'cruise'
@@ -535,7 +535,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 
 	{
 		isSection: true,
-		key: '_sec',
+		key: '_sec_cruise_scc',
 		label: 'Smart Cruise Control',
 		description: '',
 		category: 'cruise'
@@ -553,7 +553,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'cruise'
 	},
 
-	{ isSection: true, key: '_sec', label: '', description: '', category: 'cruise' },
+	{ isSection: true, key: '_sec_cruise_', label: '', description: '', category: 'cruise' },
 	{
 		key: 'CustomAccIncrementsEnabled',
 		label: 'Custom ACC Increments',
@@ -579,7 +579,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'cruise'
 	},
 
-	{ isSection: true, key: '_sec', label: 'Hyundai', description: '', category: 'cruise' },
+	{ isSection: true, key: '_sec_cruise_hyundai', label: 'Hyundai', description: '', category: 'cruise' },
 	{
 		key: 'HyundaiLongitudinalTuning',
 		label: 'Hyundai Long. Tuning',
@@ -589,7 +589,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	},
 
 	// Visuals
-	{ isSection: true, key: '_sec', label: 'Display', description: '', category: 'visuals' },
+	{ isSection: true, key: '_sec_visuals_display', label: 'Display', description: '', category: 'visuals' },
 	{
 		key: 'InteractivityTimeout',
 		label: 'Interactivity Timeout',
@@ -622,7 +622,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'visuals'
 	},
 
-	{ isSection: true, key: '_sec', label: 'Onroad Visuals', description: '', category: 'visuals' },
+	{ isSection: true, key: '_sec_visuals_onroad', label: 'Onroad Visuals', description: '', category: 'visuals' },
 	{
 		key: 'RainbowMode',
 		label: 'Rainbow Mode',
@@ -756,7 +756,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 
 	{
 		isSection: true,
-		key: '_sec',
+		key: '_sec_developer_ci',
 		label: 'sunnypilot CI Settings',
 		description: '',
 		category: 'developer'
