@@ -316,7 +316,7 @@
 				<p class="mt-2 max-w-md text-slate-400">
 					This device appears to be offline. Please check its connectivity and try again.
 				</p>
-				<div class="mt-6">
+				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
 					<button
 						class="btn btn-sm btn-primary"
 						onclick={async () => {

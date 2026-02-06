@@ -101,7 +101,9 @@
 			// Refresh statuses when opening, but skip selected device to avoid re-rendering parent
 			// (which would close the modal if parent conditionally renders based on status)
 			devices.forEach((d: any) => {
-				checkStatus(d.device_id);
+				if (d.device_id !== deviceState.selectedDeviceId) {
+					checkStatus(d.device_id);
+				}
 			});
 		}
 	}
