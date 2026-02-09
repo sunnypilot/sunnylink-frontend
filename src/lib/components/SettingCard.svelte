@@ -82,7 +82,7 @@
 
 {#if isBool}
 	<button
-		class="flex w-full cursor-default flex-col justify-between rounded-xl border bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
+		class="relative flex w-full cursor-default flex-col justify-between rounded-xl border bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
 		class:border-primary={hasStaged}
 		class:border-[#334155]={!hasStaged}
 		class:opacity-50={setting.readonly}
@@ -99,17 +99,19 @@
 			}
 		}}
 	>
+		{#if setting.advanced}
+			<div class="absolute top-0 left-6 -translate-y-1/2">
+				<div
+					class="rounded-full border border-purple-500/50 bg-[#101a29] px-2 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+				>
+					Advanced
+				</div>
+			</div>
+		{/if}
 		<span class="mb-4 w-full">
 			<span class="flex items-start justify-between gap-4">
 				<h3 class="min-w-0 flex-1 font-medium break-words text-white">
 					{title}
-					{#if setting.advanced}
-						<span
-							class="ml-2 rounded bg-purple-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
-						>
-							Advanced
-						</span>
-					{/if}
 					{#if setting.readonly}
 						<span
 							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
@@ -172,22 +174,24 @@
 	</button>
 {:else}
 	<div
-		class="flex flex-col justify-between rounded-xl border bg-[#101a29] p-4 transition-colors hover:border-primary/50 sm:p-6"
+		class="relative flex flex-col justify-between rounded-xl border bg-[#101a29] p-4 transition-colors sm:p-6"
 		class:border-primary={hasStaged}
 		class:border-[#334155]={!hasStaged}
 		id={setting.key}
 	>
+		{#if setting.advanced}
+			<div class="absolute top-0 left-6 -translate-y-1/2">
+				<div
+					class="rounded-full border border-purple-500/50 bg-[#101a29] px-2 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+				>
+					Advanced
+				</div>
+			</div>
+		{/if}
 		<div class="mb-4">
 			<div class="flex items-start justify-between">
 				<h3 class="min-w-0 flex-1 font-medium break-words text-white">
 					{title}
-					{#if setting.advanced}
-						<span
-							class="ml-2 rounded bg-purple-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
-						>
-							Advanced
-						</span>
-					{/if}
 					{#if setting.readonly}
 						<span
 							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
