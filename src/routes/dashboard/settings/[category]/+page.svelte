@@ -48,9 +48,7 @@
 	});
 
 	let categorySettings = $derived.by(() => {
-		const all = getAllSettings(settings, preferences.showAdvanced).filter(
-			(s) => s.category === category
-		);
+		const all = getAllSettings(settings).filter((s) => s.category === category);
 		if (!searchState.query.trim()) return all;
 
 		// Filter by search query
