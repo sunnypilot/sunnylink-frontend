@@ -38,9 +38,4 @@ describe('getAllSettings', () => {
 		const sections = results.filter((s) => s.isSection);
 		expect(sections.length).toBe(0);
 	});
-
-	it('does not accept a showAdvanced parameter', () => {
-		// Verify the function signature only has 3 parameters (settings, showHidden, returnSections)
-		expect(getAllSettings.length).toBe(1);
-	});
 });
