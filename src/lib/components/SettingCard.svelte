@@ -103,6 +103,13 @@
 			<span class="flex items-start justify-between gap-4">
 				<h3 class="min-w-0 flex-1 font-medium break-words text-white">
 					{title}
+					{#if setting.advanced}
+						<span
+							class="ml-2 rounded bg-purple-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+						>
+							Advanced
+						</span>
+					{/if}
 					{#if setting.readonly}
 						<span
 							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
@@ -174,6 +181,13 @@
 			<div class="flex items-start justify-between">
 				<h3 class="min-w-0 flex-1 font-medium break-words text-white">
 					{title}
+					{#if setting.advanced}
+						<span
+							class="ml-2 rounded bg-purple-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+						>
+							Advanced
+						</span>
+					{/if}
 					{#if setting.readonly}
 						<span
 							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"

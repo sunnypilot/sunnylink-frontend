@@ -201,31 +201,6 @@
 			</div>
 		{/if}
 
-		<!-- Show Advanced -->
-		<div class="rounded-xl border border-[#334155] bg-[#101a29] p-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<h3 class="font-medium text-white">Show Advanced Settings</h3>
-					<p class="text-sm text-slate-400">Reveal settings marked as advanced.</p>
-				</div>
-				<button
-					class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#0f1726] focus:outline-none"
-					class:bg-primary={preferences.showAdvanced}
-					class:bg-slate-700={!preferences.showAdvanced}
-					onclick={() => (preferences.showAdvanced = !preferences.showAdvanced)}
-					role="switch"
-					aria-checked={preferences.showAdvanced}
-					aria-label="Toggle Show Advanced Settings"
-				>
-					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-						class:translate-x-6={preferences.showAdvanced}
-						class:translate-x-1={!preferences.showAdvanced}
-					></span>
-				</button>
-			</div>
-		</div>
-
 		<!-- Show Device Online Help -->
 		<div class="rounded-xl border border-[#334155] bg-[#101a29] p-6">
 			<div class="flex items-center justify-between">

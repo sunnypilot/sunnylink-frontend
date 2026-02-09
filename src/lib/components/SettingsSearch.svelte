@@ -17,9 +17,7 @@
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 
 	let searchableSettings = $derived(
-		getAllSettings(settings, true, true, false).filter(
-			(s) => !s.hidden || MODEL_SETTINGS.includes(s.key)
-		)
+		getAllSettings(settings, true, false).filter((s) => !s.hidden || MODEL_SETTINGS.includes(s.key))
 	);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 
