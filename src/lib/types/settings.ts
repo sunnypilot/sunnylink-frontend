@@ -698,7 +698,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'TorqueBar',
 		label: 'Steering Arc',
-		description: '[TIZI/TICI only] Display steering arc on the driving screen when lateral control is enabled.',
+		description: 'Display steering arc on the driving screen when lateral control is enabled.',
 		category: 'visuals'
 	},
 	{
