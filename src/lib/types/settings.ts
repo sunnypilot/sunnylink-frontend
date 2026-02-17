@@ -392,6 +392,12 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'steering'
 	},
 	{
+		key: 'TorqueControlTune',
+		label: 'Torque Controller Tuner Version',
+		description: 'Select the version of Torque Control Tune to use',
+		category: 'steering'
+	},
+	{
 		key: 'LiveTorqueParamsToggle',
 		label: 'Live Torque Params',
 		description: 'Self-tune torque parameters',
