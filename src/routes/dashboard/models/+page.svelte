@@ -57,6 +57,7 @@
 	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
 	let pushModalOpen = $state(false);
+	let downloadingModelIndex = $state<number | undefined>(undefined);
 
 	let lagdToggleValue = $derived(
 		deviceState.selectedDeviceId
@@ -93,12 +94,18 @@
 	let laneTurnValueParam = $derived(getModelSetting('LaneTurnValue'));
 	let nnlcParam = $derived(getModelSetting('NeuralNetworkLateralControl'));
 
-	let currentModel = $derived(
-		modelList?.find((m) => m.short_name === currentModelShortName) ??
+	let currentModel = $derived.by(() => {
+		if (downloadingModelIndex !== undefined && modelList) {
+			const downloadingModel = modelList.find((m) => m.index === downloadingModelIndex);
+			if (downloadingModel) return downloadingModel;
+		}
+		return (
+			modelList?.find((m) => m.short_name === currentModelShortName) ??
 			(currentModelShortName === undefined && !loadingModels && modelList
 				? DEFAULT_MODEL
 				: undefined)
-	);
+		);
+	});
 	let isLegacyActive = $derived(
 		currentModel?.overrides?.folder?.toLowerCase().includes('legacy') ?? false
 	);
@@ -244,11 +251,23 @@
 		}
 	});
 
+	// Poll for updates while downloading a model
+	$effect(() => {
+		if (downloadingModelIndex !== undefined && deviceState.selectedDeviceId) {
+			const interval = setInterval(() => {
+				fetchModelsForDevice(true);
+			}, 5000);
+
+			return () => clearInterval(interval);
+		}
+	});
+
 	async function fetchModelsForDevice(silent = false) {
 		if (!silent) {
 			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
 			currentModelShortName = undefined;
 			selectedModelShortName = undefined;
+			downloadingModelIndex = undefined;
 			loadingModels = true;
 		}
 		// isOffroad is derived, no need to reset local state
@@ -265,6 +284,7 @@
 				[
 					'ModelManager_ModelsCache',
 					'ModelManager_ActiveBundle',
+					'ModelManager_DownloadIndex',
 					'IsOffroad',
 					'OffroadMode',
 					'ModelManager_Favs',
@@ -294,6 +314,7 @@
 			if (models.items) {
 				const modelsCacheParam = models.items.find((i) => i.key === 'ModelManager_ModelsCache');
 				const activeBundleParam = models.items.find((i) => i.key === 'ModelManager_ActiveBundle');
+				const downloadIndexParam = models.items.find((i) => i.key === 'ModelManager_DownloadIndex');
 				const isOffroadParam = models.items.find((i) => i.key === 'IsOffroad');
 				const offroadModeParam = models.items.find((i) => i.key === 'OffroadMode');
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
@@ -374,6 +395,18 @@
 					}
 				} else {
 					currentModelShortName = undefined;
+				}
+
+				if (downloadIndexParam) {
+					const val = decodeParamValue(downloadIndexParam);
+					const idx = parseInt(String(val), 10);
+					if (!isNaN(idx)) {
+						downloadingModelIndex = idx;
+					} else {
+						downloadingModelIndex = undefined;
+					}
+				} else {
+					downloadingModelIndex = undefined;
 				}
 			}
 		} catch (e) {
@@ -522,7 +555,13 @@
 			});
 
 			// On success, update the current model and clear selection
-			currentModelShortName = bundle.short_name === 'default' ? undefined : bundle.short_name;
+			if (bundle.short_name === 'default') {
+				currentModelShortName = undefined;
+				downloadingModelIndex = undefined;
+			} else if (bundle.index !== undefined) {
+				downloadingModelIndex = bundle.index;
+			}
+
 			selectedModelShortName = undefined;
 			sendingModel = false;
 
@@ -839,11 +878,20 @@
 									{currentModel.short_name}
 								</code>
 							</div>
-							<div
-								class="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-200"
-							>
-								Active
-							</div>
+							{#if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
+								<div
+									class="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-200"
+								>
+									<span class="loading loading-xs loading-spinner text-blue-400"></span>
+									Downloading...
+								</div>
+							{:else}
+								<div
+									class="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-200"
+								>
+									Active
+								</div>
+							{/if}
 						</div>
 						<div class="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
 							<div>
