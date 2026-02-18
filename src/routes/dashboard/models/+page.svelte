@@ -92,6 +92,7 @@
 	let lagdToggleDelayParam = $derived(getModelSetting('LagdToggleDelay'));
 	let laneTurnDesireParam = $derived(getModelSetting('LaneTurnDesire'));
 	let laneTurnValueParam = $derived(getModelSetting('LaneTurnValue'));
+	let nnlcParam = $derived(getModelSetting('NeuralNetworkLateralControl'));
 
 	let currentModel = $derived.by(() => {
 		if (downloadingModelIndex !== undefined && modelList) {
@@ -105,6 +106,9 @@
 				: undefined)
 		);
 	});
+	let isLegacyActive = $derived(
+		currentModel?.overrides?.folder?.toLowerCase().includes('legacy') ?? false
+	);
 	let selectedModel = $derived(modelList?.find((m) => m.short_name === selectedModelShortName));
 
 	let isOffroad = $derived(
@@ -943,6 +947,10 @@
 
 						{#if laneTurnValueParam && laneTurnDesireParamValue === true}
 							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnValueParam} />
+						{/if}
+
+						{#if nnlcParam && isLegacyActive}
+							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={nnlcParam} />
 						{/if}
 					</div>
 				</div>
