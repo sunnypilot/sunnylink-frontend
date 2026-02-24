@@ -7,7 +7,19 @@ export const deviceState = $state({
 		? localStorage.getItem('selectedDeviceId') || undefined
 		: undefined) as string | undefined,
 	deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
-	deviceValues: {} as Record<string, Record<string, unknown>>,
+	deviceValuesCache: (typeof localStorage !== 'undefined'
+		? JSON.parse(localStorage.getItem('sunnylink_device_values_cache') || '{}')
+		: {}) as Record<string, { values: Record<string, unknown>; timestamp: number }>,
+	deviceValues: (typeof localStorage !== 'undefined'
+		? (() => {
+			const cache = JSON.parse(localStorage.getItem('sunnylink_device_values_cache') || '{}');
+			const values: Record<string, Record<string, unknown>> = {};
+			for (const key in cache) {
+				values[key] = cache[key].values;
+			}
+			return values;
+		})()
+		: {}) as Record<string, Record<string, unknown>>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
 	lastErrorMessages: {} as Record<string, string>,
 	offroadStatuses: {} as Record<string, { isOffroad: boolean; forceOffroad: boolean }>,
@@ -25,6 +37,41 @@ export const deviceState = $state({
 		this.selectedDeviceId = deviceId;
 		if (typeof localStorage !== 'undefined') {
 			localStorage.setItem('selectedDeviceId', deviceId);
+		}
+		// Invalidate cache for newly selected device to force a refresh
+		if (this.deviceValuesCache[deviceId]) {
+			this.deviceValuesCache[deviceId].timestamp = 0;
+			if (typeof localStorage !== 'undefined') {
+				localStorage.setItem('sunnylink_device_values_cache', JSON.stringify(this.deviceValuesCache));
+			}
+		}
+	},
+
+	// Helper to save values to cache
+	saveValuesToCache(deviceId: string, values: Record<string, unknown>) {
+		this.deviceValuesCache[deviceId] = {
+			values,
+			timestamp: Date.now()
+		};
+		this.deviceValues[deviceId] = values;
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem('sunnylink_device_values_cache', JSON.stringify(this.deviceValuesCache));
+		}
+	},
+
+	// Helper to check if cache is valid
+	isCacheValid(deviceId: string, ttlMs: number) {
+		const cache = this.deviceValuesCache[deviceId];
+		if (!cache || !cache.timestamp) return false;
+		return Date.now() - cache.timestamp < ttlMs;
+	},
+
+	// Helper to clear entire cache (e.g. on logout)
+	clearDeviceValuesCache() {
+		this.deviceValuesCache = {};
+		this.deviceValues = {};
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem('sunnylink_device_values_cache');
 		}
 	},
 

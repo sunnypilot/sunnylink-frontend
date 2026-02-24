@@ -159,23 +159,21 @@
 							deviceState.deviceValues[deviceId] = {};
 						}
 
-						// Update store with fetched values
+						// Update store snippet
 						for (const item of response.items) {
 							if (item.key && item.value !== undefined) {
-								// Find definition to get the type
 								const def = categorySettings.find((s) => s.key === item.key);
-								const type = def?.value?.type ?? 'String'; // Default to String if unknown
-
-								// Decode the value
+								const type = def?.value?.type ?? 'String';
 								const decoded = decodeParamValue({
 									key: item.key,
 									value: item.value,
 									type: type
 								});
-
 								deviceState.deviceValues[deviceId][item.key] = decoded;
 							}
 						}
+						// Also save the newly fetched updated values back into the persistent cache
+						deviceState.saveValuesToCache(deviceId, deviceState.deviceValues[deviceId]);
 					}
 				} catch (e) {
 					console.error('Failed to fetch chunk of values:', e);

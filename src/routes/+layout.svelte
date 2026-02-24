@@ -51,6 +51,7 @@
 	};
 
 	const handleLogout = async () => {
+		deviceState.clearDeviceValuesCache();
 		await logtoClient?.signOut(window.location.origin);
 	};
 
@@ -113,6 +114,8 @@
 				: 'border-transparent text-slate-400 hover:border-[#1e293b] hover:bg-[#1e293b]/80 hover:text-white'
 		].join(' ');
 	import { checkDeviceStatus } from '$lib/api/device';
+	import { getEffectiveDefinitions, fetchAllSettings } from '$lib/utils/settings';
+	import { v1Client } from '$lib/api/client';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
@@ -159,6 +162,64 @@
 	$effect(() => {
 		if (authState.isAuthenticated) {
 			invalidateAll();
+		}
+	});
+
+	// Cache device settings globally when they are loaded
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+
+		const deviceId = deviceState.selectedDeviceId;
+		if (deviceId && deviceState.deviceSettings[deviceId]) {
+			const deviceSettings = deviceState.deviceSettings[deviceId];
+
+			const definitions = getEffectiveDefinitions();
+			const currentKeys = new Set(definitions.map((d) => d.key));
+			let hasNew = false;
+
+			for (const setting of deviceSettings) {
+				if (setting.key && !currentKeys.has(setting.key)) {
+					definitions.push({
+						key: setting.key,
+						label: setting.key,
+						description: 'Unknown setting from device',
+						category: 'other',
+						advanced: false,
+						readonly: false,
+						hidden: false
+					});
+					currentKeys.add(setting.key);
+					hasNew = true;
+				}
+			}
+
+			if (hasNew) {
+				localStorage.setItem('sunnylink_custom_definitions', JSON.stringify(definitions));
+			}
+		}
+	});
+
+	// Cache device values globally, fetch in background if expired / invalid
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+
+		const deviceId = deviceState.selectedDeviceId;
+		if (deviceId && authState.isAuthenticated && logtoClient) {
+			const TTL_MS = 30 * 60 * 1000; // 30 minutes cache TTL
+
+			if (!deviceState.isCacheValid(deviceId, TTL_MS)) {
+				logtoClient.getIdToken().then((token) => {
+					if (!token) return;
+
+					fetchAllSettings(deviceId, v1Client, token, deviceState.deviceValues[deviceId] || {})
+						.then((values) => {
+							deviceState.saveValuesToCache(deviceId, values);
+						})
+						.catch((err) => {
+							console.error(`Failed to fetch and cache device values for ${deviceId}`, err);
+						});
+				});
+			}
 		}
 	});
 

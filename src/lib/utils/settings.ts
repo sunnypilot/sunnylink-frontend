@@ -7,7 +7,7 @@ import {
 
 import { browser } from '$app/environment';
 
-function getEffectiveDefinitions(): import('$lib/types/settings').SettingDefinition[] {
+export function getEffectiveDefinitions(): import('$lib/types/settings').SettingDefinition[] {
 	if (!browser) return SETTINGS_DEFINITIONS;
 
 	try {
