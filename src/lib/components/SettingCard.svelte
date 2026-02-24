@@ -154,21 +154,23 @@
 			{/if}
 		</span>
 
-		<span class="mt-auto flex w-full items-end justify-end">
-			{#if isLoading}
-				<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
-			{:else}
+		<span class="relative mt-auto flex w-full items-end justify-end">
+			<div
+				class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
+				class:bg-primary={displayValue === true}
+				class:bg-slate-700={displayValue !== true}
+				class:opacity-40={loadingValues}
+			>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+					class:translate-x-6={displayValue === true}
+					class:translate-x-1={displayValue !== true}
+				></span>
+			</div>
+			{#if loadingValues}
 				<div
-					class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
-					class:bg-primary={displayValue === true}
-					class:bg-slate-700={displayValue !== true}
-				>
-					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-						class:translate-x-6={displayValue === true}
-						class:translate-x-1={displayValue !== true}
-					></span>
-				</div>
+					class="absolute top-0 right-0 bottom-0 z-10 w-11 animate-pulse cursor-not-allowed rounded-full bg-slate-400/20"
+				></div>
 			{/if}
 		</span>
 	</button>
@@ -233,10 +235,11 @@
 			{/if}
 		</div>
 
-		<div class="mt-auto flex items-end justify-end">
-			{#if isLoading}
-				<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
-			{:else if options}
+		<div
+			class="relative mt-auto flex items-end justify-end"
+			class:opacity-50={loadingValues && !isLoading}
+		>
+			{#if options}
 				<select
 					class="select w-full bg-[#0f1726] select-sm text-white focus:border-primary focus:outline-none"
 					value={displayValue}
@@ -262,7 +265,7 @@
 				</button>
 			{:else if !setting.readonly && (isString || isNumber)}
 				{#if isNumber && min !== undefined && max !== undefined}
-					<div class="flex w-full flex-col gap-2">
+					<div class="relative flex w-full flex-col gap-2">
 						<div class="flex items-center justify-between">
 							<span class="text-xs font-medium text-slate-400">
 								{setting.value?.type === 'Float' && typeof min === 'number' ? min.toFixed(2) : min}
@@ -374,6 +377,11 @@
 				<div class="w-full rounded bg-[#0f1726] p-2 text-center text-sm font-medium text-white">
 					{displayValue !== undefined ? String(displayValue) : '-'}
 				</div>
+			{/if}
+			{#if loadingValues && !isLoading}
+				<div
+					class="absolute inset-0 z-10 w-full animate-pulse cursor-not-allowed rounded bg-slate-400/10"
+				></div>
 			{/if}
 		</div>
 	</div>
