@@ -44,7 +44,8 @@ export const MODEL_SETTINGS = [
 	'LagdToggle',
 	'LagdToggleDelay',
 	'LaneTurnDesire',
-	'LaneTurnValue'
+	'LaneTurnValue',
+	'NeuralNetworkLateralControl'
 ];
 
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
@@ -392,6 +393,12 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		category: 'steering'
 	},
 	{
+		key: 'TorqueControlTune',
+		label: 'Torque Controller Tuner Version',
+		description: 'Select the version of Torque Control Tune to use',
+		category: 'steering'
+	},
+	{
 		key: 'LiveTorqueParamsToggle',
 		label: 'Live Torque Params',
 		description: 'Self-tune torque parameters',
@@ -439,12 +446,6 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		key: '_sec_steering_other',
 		label: 'Other Settings',
 		description: '',
-		category: 'steering'
-	},
-	{
-		key: 'NeuralNetworkLateralControl',
-		label: 'NN Lateral Control',
-		description: 'Neural network steering control',
 		category: 'steering'
 	},
 	{
@@ -2067,6 +2068,13 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		label: 'Adjust Lane Turn Speed',
 		description: 'Adjust Lane Turn Desire Activation Speed',
 		category: 'toggles',
+		hidden: true
+	},
+	{
+		key: 'NeuralNetworkLateralControl',
+		label: 'NN Lateral Control',
+		description: 'Neural network steering control',
+		category: 'steering',
 		hidden: true
 	}
 ];
