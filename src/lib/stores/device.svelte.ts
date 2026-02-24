@@ -12,13 +12,13 @@ export const deviceState = $state({
 		: {}) as Record<string, { values: Record<string, unknown>; timestamp: number }>,
 	deviceValues: (typeof localStorage !== 'undefined'
 		? (() => {
-			const cache = JSON.parse(localStorage.getItem('sunnylink_device_values_cache') || '{}');
-			const values: Record<string, Record<string, unknown>> = {};
-			for (const key in cache) {
-				values[key] = cache[key].values;
-			}
-			return values;
-		})()
+				const cache = JSON.parse(localStorage.getItem('sunnylink_device_values_cache') || '{}');
+				const values: Record<string, Record<string, unknown>> = {};
+				for (const key in cache) {
+					values[key] = cache[key].values;
+				}
+				return values;
+			})()
 		: {}) as Record<string, Record<string, unknown>>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
 	lastErrorMessages: {} as Record<string, string>,
@@ -42,7 +42,10 @@ export const deviceState = $state({
 		if (this.deviceValuesCache[deviceId]) {
 			this.deviceValuesCache[deviceId].timestamp = 0;
 			if (typeof localStorage !== 'undefined') {
-				localStorage.setItem('sunnylink_device_values_cache', JSON.stringify(this.deviceValuesCache));
+				localStorage.setItem(
+					'sunnylink_device_values_cache',
+					JSON.stringify(this.deviceValuesCache)
+				);
 			}
 		}
 	},
