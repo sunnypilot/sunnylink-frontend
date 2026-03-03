@@ -115,14 +115,56 @@ export interface DeviceSettingsBackup {
 	timestamp: number;
 	deviceId: string;
 	settings: Record<string, any>;
+	missingKeys?: string[];
 }
 
-export function downloadSettingsBackup(deviceId: string, settings: Record<string, any>) {
+export interface FetchAllSettingsResult {
+	settings: Record<string, unknown>;
+	failedKeys: string[];
+}
+
+export const BACKUP_EXCLUDED_KEYS = new Set(['ModelManager_ModelsCache']);
+
+export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string[] {
+	const defsMap = new Map(SETTINGS_DEFINITIONS.map((d) => [d.key, d]));
+
+	let keys: string[];
+	if (deviceSettings && deviceSettings.length > 0) {
+		// Use device-reported keys as primary source
+		const deviceKeys = deviceSettings.map((s) => s.key).filter((k): k is string => !!k);
+		// Also include any static keys not reported by device (fallback for metadata-only entries)
+		const deviceKeySet = new Set(deviceKeys);
+		const staticKeys = SETTINGS_DEFINITIONS.filter(
+			(d) => !d.isSection && !d.readonly && !deviceKeySet.has(d.key)
+		).map((d) => d.key);
+		keys = [...deviceKeys, ...staticKeys];
+	} else {
+		// Fallback to static definitions
+		keys = SETTINGS_DEFINITIONS.map((d) => d.key);
+	}
+
+	// Filter out readonly, section markers, and explicitly excluded keys
+	return keys.filter((key) => {
+		if (BACKUP_EXCLUDED_KEYS.has(key)) return false;
+		if (key.startsWith('_sec_')) return false;
+		const def = defsMap.get(key);
+		if (def?.readonly) return false;
+		if (def?.isSection) return false;
+		return true;
+	});
+}
+
+export function downloadSettingsBackup(
+	deviceId: string,
+	settings: Record<string, any>,
+	missingKeys?: string[]
+) {
 	const backup: DeviceSettingsBackup = {
-		version: 1,
+		version: 2,
 		timestamp: Date.now(),
 		deviceId,
-		settings
+		settings,
+		...(missingKeys && missingKeys.length > 0 ? { missingKeys } : {})
 	};
 
 	const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -145,31 +187,26 @@ export async function fetchAllSettings(
 	token: string,
 	currentValues: Record<string, unknown>,
 	onProgress?: (progress: number, status: string) => void,
-	signal?: AbortSignal
-): Promise<Record<string, unknown>> {
-	// 1. Get all known keys
-	const explicitKeys = SETTINGS_DEFINITIONS.map((d) => d.key);
+	signal?: AbortSignal,
+	deviceSettings?: ExtendedDeviceParamKey[],
+	keysOverride?: string[]
+): Promise<FetchAllSettingsResult> {
+	// 1. Get keys to fetch — use override (for retry), device-reported, or static fallback
+	const keysToFetch = keysOverride ?? getBackupKeys(deviceSettings);
 
-	// 2. Get dynamic keys if available in store (passed as part of currentValues or we assume caller handles definitions)
-	// Ideally we should fetch definitions first if we want to be 100% sure, but for now let's rely on definitions being loaded
-	// or just fetch what we know.
-	// Actually, let's fetch definitions to be safe if we can, but that requires more deps.
-	// Let's stick to SETTINGS_DEFINITIONS for now as that covers most.
-	// If we want dynamic ones, we should rely on what's in deviceState.deviceSettings.
-
-	const keysToFetch = [...explicitKeys]; // Add dynamic ones if we can access them here
-
-	// 3. Filter out keys we already have
-	const missingKeys = keysToFetch.filter((key) => currentValues[key] === undefined);
+	// 2. Filter out keys we already have (unless retrying specific keys)
+	const missingKeys = keysOverride
+		? keysOverride
+		: keysToFetch.filter((key) => currentValues[key] === undefined);
 
 	if (missingKeys.length === 0) {
 		onProgress?.(100, 'All settings up to date');
-		return currentValues;
+		return { settings: currentValues, failedKeys: [] };
 	}
 
-	// 4. Fetch missing values in chunks
+	// 3. Fetch missing values in chunks
 	const newValues = { ...currentValues };
-	const chunkedKeys = [];
+	const chunkedKeys: string[][] = [];
 	for (let i = 0; i < missingKeys.length; i += 10) {
 		chunkedKeys.push(missingKeys.slice(i, i + 10));
 	}
@@ -177,19 +214,16 @@ export async function fetchAllSettings(
 	let processedCount = 0;
 	const totalCount = missingKeys.length;
 	let successCount = 0;
-	let failCount = 0;
+	const failedKeys: string[] = [];
 
-	// Process in chunks with limited concurrency to avoid overwhelming the device/connection
-	// but faster than sequential.
 	const CONCURRENCY = 3;
-	const activePromises: Promise<void>[] = [];
+	const MAX_RETRIES = 1;
 
-	for (const chunk of chunkedKeys) {
-		if (signal?.aborted) {
-			throw new Error('Backup cancelled');
-		}
+	async function fetchChunk(chunk: string[]): Promise<void> {
+		if (signal?.aborted) return;
 
-		const promise = (async () => {
+		let lastError: unknown;
+		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 			if (signal?.aborted) return;
 
 			try {
@@ -219,32 +253,52 @@ export async function fetchAllSettings(
 						}
 					}
 					successCount += chunk.length;
+					return;
 				} else {
-					failCount += chunk.length;
+					lastError = new Error(response.error ?? 'No items returned');
 				}
 			} catch (e: unknown) {
 				if ((e as { name?: string })?.name === 'AbortError' || signal?.aborted) {
-					// Ignore abort errors
 					return;
 				}
-				console.error(`Failed to fetch chunk for ${deviceId}`, e);
-				failCount += chunk.length;
-			} finally {
-				if (!signal?.aborted) {
-					processedCount += chunk.length;
-					onProgress?.(
-						(processedCount / totalCount) * 100,
-						`Processed ${processedCount} of ${totalCount} settings...`
-					);
-					// Small delay to let UI breathe
-					await new Promise((r) => setTimeout(r, 10));
-				}
+				lastError = e;
 			}
-		})();
 
-		activePromises.push(promise);
+			// Wait before retry
+			if (attempt < MAX_RETRIES) {
+				await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+			}
+		}
 
-		if (activePromises.length >= CONCURRENCY) {
+		console.error(
+			`Failed to fetch chunk for ${deviceId} after ${MAX_RETRIES + 1} attempts`,
+			lastError
+		);
+		failedKeys.push(...chunk);
+	}
+
+	// Process chunks with proper concurrency limiting
+	const activePromises = new Set<Promise<void>>();
+
+	for (const chunk of chunkedKeys) {
+		if (signal?.aborted) {
+			throw new Error('Backup cancelled');
+		}
+
+		const promise = fetchChunk(chunk).then(() => {
+			activePromises.delete(promise);
+			if (!signal?.aborted) {
+				processedCount += chunk.length;
+				onProgress?.(
+					(processedCount / totalCount) * 100,
+					`Processed ${processedCount} of ${totalCount} settings...`
+				);
+			}
+		});
+
+		activePromises.add(promise);
+
+		if (activePromises.size >= CONCURRENCY) {
 			await Promise.race(activePromises);
 		}
 	}
@@ -256,15 +310,13 @@ export async function fetchAllSettings(
 		throw new Error('Backup cancelled');
 	}
 
-	if (failCount > 0) {
-		onProgress?.(100, `Completed with ${failCount} errors.`);
-		// Give user time to see the error
-		await new Promise((r) => setTimeout(r, 1000));
+	if (failedKeys.length > 0) {
+		onProgress?.(100, `Completed with ${failedKeys.length} failed settings.`);
 	} else {
 		onProgress?.(100, 'Finalizing backup...');
 	}
 
-	return newValues;
+	return { settings: newValues, failedKeys };
 }
 
 export function parseSettingsBackup(json: string): DeviceSettingsBackup {

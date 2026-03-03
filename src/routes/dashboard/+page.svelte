@@ -53,7 +53,7 @@
 			if (!token) throw new Error('Not authenticated');
 
 			const currentValues = deviceState.deviceValues[deviceId] || {};
-			const allSettings = await fetchAllSettings(
+			const result = await fetchAllSettings(
 				deviceId,
 				v1Client,
 				token,
@@ -61,26 +61,37 @@
 				(progress, status) => {
 					deviceState.setBackupProgress(progress, status);
 				},
-				deviceState.backupState.abortController?.signal
+				deviceState.backupState.abortController?.signal,
+				deviceState.deviceSettings[deviceId]
 			);
 
 			// Update store with any new values fetched
-			Object.entries(allSettings).forEach(([key, value]) => {
+			Object.entries(result.settings).forEach(([key, value]) => {
 				if (currentValues[key] === undefined) {
 					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
 					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
 				}
 			});
 
-			downloadSettingsBackup(deviceId, allSettings);
+			deviceState.setBackupFetchedSettings(result.settings);
 
-			deviceState.finishBackup(true);
+			if (result.failedKeys.length > 0) {
+				// Show failure summary — let user decide via modal
+				deviceState.finishBackup(
+					false,
+					`${result.failedKeys.length} of ${Object.keys(result.settings).length + result.failedKeys.length} settings could not be fetched.`,
+					result.failedKeys
+				);
+			} else {
+				downloadSettingsBackup(deviceId, result.settings);
+				deviceState.finishBackup(true);
 
-			// Keep modal open briefly to show completion if it's open
-			if (deviceState.backupState.isOpen) {
-				setTimeout(() => {
-					deviceState.closeBackupModal();
-				}, 1000);
+				// Keep modal open briefly to show completion if it's open
+				if (deviceState.backupState.isOpen) {
+					setTimeout(() => {
+						deviceState.closeBackupModal();
+					}, 1000);
+				}
 			}
 		} catch (e: any) {
 			if (e.message === 'Backup cancelled') {
@@ -89,6 +100,58 @@
 				console.error('Failed to download backup', e);
 				deviceState.finishBackup(false, 'Failed to download backup');
 				alert('Failed to download backup. Please try again.');
+			}
+		}
+	}
+
+	async function handleRetryFailedBackup() {
+		const bs = deviceState.backupState;
+		if (!bs.deviceId || !bs.failedKeys.length || !bs.fetchedSettings) return;
+
+		deviceState.startBackup(bs.deviceId);
+
+		try {
+			const token = await logtoClient?.getIdToken();
+			if (!token) throw new Error('Not authenticated');
+
+			const result = await fetchAllSettings(
+				bs.deviceId,
+				v1Client,
+				token,
+				bs.fetchedSettings,
+				(progress, status) => {
+					deviceState.setBackupProgress(progress, status);
+				},
+				deviceState.backupState.abortController?.signal,
+				deviceState.deviceSettings[bs.deviceId],
+				bs.failedKeys
+			);
+
+			// Merge newly fetched settings
+			const mergedSettings = { ...bs.fetchedSettings, ...result.settings };
+			deviceState.setBackupFetchedSettings(mergedSettings);
+
+			if (result.failedKeys.length > 0) {
+				deviceState.finishBackup(
+					false,
+					`${result.failedKeys.length} settings still could not be fetched.`,
+					result.failedKeys
+				);
+			} else {
+				downloadSettingsBackup(bs.deviceId, mergedSettings);
+				deviceState.finishBackup(true);
+				if (deviceState.backupState.isOpen) {
+					setTimeout(() => {
+						deviceState.closeBackupModal();
+					}, 1000);
+				}
+			}
+		} catch (e: any) {
+			if (e.message === 'Backup cancelled') {
+				deviceState.finishBackup(false, 'Backup cancelled');
+			} else {
+				console.error('Failed to retry backup', e);
+				deviceState.finishBackup(false, 'Retry failed');
 			}
 		}
 	}
@@ -776,6 +839,6 @@
 		<Plus size={28} />
 	</button>
 
-	<BackupProgressModal />
+	<BackupProgressModal onRetry={handleRetryFailedBackup} />
 	<PairingModal bind:open={pairingModalOpen} bind:deviceType={pairingType} />
 {/if}

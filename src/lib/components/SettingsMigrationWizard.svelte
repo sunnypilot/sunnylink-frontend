@@ -118,7 +118,7 @@
 			if (!token) throw new Error('Not authenticated');
 
 			const currentValues = deviceState.deviceValues[deviceId] || {};
-			const allSettings = await fetchAllSettings(
+			const result = await fetchAllSettings(
 				deviceId,
 				v1Client,
 				token,
@@ -126,19 +126,30 @@
 				(progress, status) => {
 					deviceState.setBackupProgress(progress, status);
 				},
-				deviceState.backupState.abortController?.signal
+				deviceState.backupState.abortController?.signal,
+				deviceState.deviceSettings[deviceId]
 			);
 
 			// Update store
-			Object.entries(allSettings).forEach(([key, value]) => {
+			Object.entries(result.settings).forEach(([key, value]) => {
 				if (currentValues[key] === undefined) {
 					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
 					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
 				}
 			});
 
-			downloadSettingsBackup(deviceId, allSettings);
-			deviceState.finishBackup(true);
+			deviceState.setBackupFetchedSettings(result.settings);
+
+			if (result.failedKeys.length > 0) {
+				deviceState.finishBackup(
+					false,
+					`${result.failedKeys.length} settings could not be fetched.`,
+					result.failedKeys
+				);
+			} else {
+				downloadSettingsBackup(deviceId, result.settings);
+				deviceState.finishBackup(true);
+			}
 		} catch (e: any) {
 			if (e.message === 'Backup cancelled') {
 				deviceState.finishBackup(false, 'Backup cancelled');
@@ -212,19 +223,20 @@
 			// We use fetchAllSettings which handles chunking and errors
 			const currentValues = deviceState.deviceValues[ms.targetDeviceId] || {};
 
-			const targetSettings = await fetchAllSettings(
+			const result = await fetchAllSettings(
 				ms.targetDeviceId,
 				v1Client,
 				token,
 				currentValues,
 				(progress, status) => {
 					deviceState.setMigrationStatus(`Fetching target: ${Math.round(progress)}%`);
-				}
-				// We don't support cancellation for this step yet, or we could add another controller
+				},
+				undefined,
+				deviceState.deviceSettings[ms.targetDeviceId]
 			);
 
 			// Update store with fetched values
-			Object.entries(targetSettings).forEach(([key, value]) => {
+			Object.entries(result.settings).forEach(([key, value]) => {
 				if (currentValues[key] === undefined) {
 					if (!deviceState.deviceValues[ms.targetDeviceId])
 						deviceState.deviceValues[ms.targetDeviceId] = {};
@@ -251,7 +263,7 @@
 					const label = def ? def.label : key;
 					const newVal = ms.parsedBackup!.settings[key];
 					// Use the freshly fetched settings
-					const currentVal = targetSettings[key];
+					const currentVal = result.settings[key];
 
 					// Helper to format value for comparison/display
 					const formatValue = (val: any) => {
