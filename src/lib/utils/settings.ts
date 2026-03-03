@@ -144,7 +144,6 @@ export const BACKUP_EXCLUDED_KEYS = new Set([
 	'CarParamsPrevRoute',
 	'CarParamsPersistent',
 	'CarParamsSPPersistent',
-	'CarPlatformBundle',
 	// Live/ephemeral data
 	'LiveTorqueParameters',
 	'LiveParameters',
