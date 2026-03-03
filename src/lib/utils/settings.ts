@@ -148,7 +148,6 @@ export const BACKUP_EXCLUDED_KEYS = new Set([
 	'LiveTorqueParameters',
 	'LiveParameters',
 	'LiveParametersV2',
-	'LiveDelay',
 	'CalibrationParams',
 	'LocationFilterInitialState'
 ]);
