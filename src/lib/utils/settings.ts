@@ -131,7 +131,7 @@ export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string
 	let keys: string[];
 	if (deviceSettings && deviceSettings.length > 0) {
 		// Use device-reported keys as primary source
-		const deviceKeys = deviceSettings.map((s) => s.key).filter((k): k is string => !!k);
+		const deviceKeys = deviceSettings.map((s) => s.key).filter((k): k is string => k !== undefined);
 		// Also include any static keys not reported by device (fallback for metadata-only entries)
 		const deviceKeySet = new Set(deviceKeys);
 		const staticKeys = SETTINGS_DEFINITIONS.filter(
@@ -285,8 +285,9 @@ export async function fetchAllSettings(
 			throw new Error('Backup cancelled');
 		}
 
-		const promise = fetchChunk(chunk).then(() => {
-			activePromises.delete(promise);
+		const p = fetchChunk(chunk);
+		const tracked = p.then(() => {
+			activePromises.delete(tracked);
 			if (!signal?.aborted) {
 				processedCount += chunk.length;
 				onProgress?.(
@@ -296,7 +297,7 @@ export async function fetchAllSettings(
 			}
 		});
 
-		activePromises.add(promise);
+		activePromises.add(tracked);
 
 		if (activePromises.size >= CONCURRENCY) {
 			await Promise.race(activePromises);

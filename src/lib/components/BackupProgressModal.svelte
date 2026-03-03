@@ -122,6 +122,7 @@
 
 						<button
 							class="text-left text-xs text-slate-400 hover:text-slate-300"
+							aria-expanded={showFailedDetails}
 							onclick={() => (showFailedDetails = !showFailedDetails)}
 						>
 							{showFailedDetails ? 'Hide' : 'Show'} failed keys ({deviceState.backupState.failedKeys
