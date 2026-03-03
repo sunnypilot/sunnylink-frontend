@@ -41,12 +41,12 @@ describe('getAllSettings', () => {
 });
 
 describe('getBackupKeys', () => {
-	it('excludes readonly keys from static definitions', () => {
+	it('includes readonly keys that are not explicitly excluded', () => {
 		const keys = getBackupKeys();
-		const readonlyKeys = SETTINGS_DEFINITIONS.filter((d) => d.readonly).map((d) => d.key);
-		for (const rk of readonlyKeys) {
-			expect(keys).not.toContain(rk);
-		}
+		// ModelManager_Favs is readonly but should be backed up
+		expect(keys).toContain('ModelManager_Favs');
+		// DongleId is readonly but not in exclusion list
+		expect(keys).toContain('DongleId');
 	});
 
 	it('excludes section markers', () => {
@@ -86,14 +86,32 @@ describe('getBackupKeys', () => {
 		expect(keys).toContain('CustomDeviceParam');
 	});
 
-	it('excludes readonly device-reported keys via static definitions', () => {
+	it('includes readonly device-reported keys not in exclusion list', () => {
 		const deviceSettings: ExtendedDeviceParamKey[] = [
 			{ key: 'IsMetric' },
-			{ key: 'DongleId' } // readonly in static defs
+			{ key: 'DongleId' }, // readonly in static defs but not excluded
+			{ key: 'ModelManager_Favs' } // readonly but should be backed up
 		];
 		const keys = getBackupKeys(deviceSettings);
 		expect(keys).toContain('IsMetric');
-		expect(keys).not.toContain('DongleId');
+		expect(keys).toContain('DongleId');
+		expect(keys).toContain('ModelManager_Favs');
+	});
+
+	it('excludes cache and CarParams keys even if device reports them', () => {
+		const deviceSettings: ExtendedDeviceParamKey[] = [
+			{ key: 'IsMetric' },
+			{ key: 'CarParams' },
+			{ key: 'CarParamsCache' },
+			{ key: 'LiveParameters' },
+			{ key: 'ApiCache_DriveStats' }
+		];
+		const keys = getBackupKeys(deviceSettings);
+		expect(keys).toContain('IsMetric');
+		expect(keys).not.toContain('CarParams');
+		expect(keys).not.toContain('CarParamsCache');
+		expect(keys).not.toContain('LiveParameters');
+		expect(keys).not.toContain('ApiCache_DriveStats');
 	});
 
 	it('includes unknown device keys not in static defs (treated as writable)', () => {
@@ -113,14 +131,10 @@ describe('getBackupKeys', () => {
 
 	it('falls back to static definitions when no device settings provided', () => {
 		const keys = getBackupKeys();
-		const writableStaticKeys = SETTINGS_DEFINITIONS.filter(
-			(d) =>
-				!d.readonly &&
-				!d.isSection &&
-				!BACKUP_EXCLUDED_KEYS.has(d.key) &&
-				!d.key.startsWith('_sec_')
+		const includedStaticKeys = SETTINGS_DEFINITIONS.filter(
+			(d) => !d.isSection && !BACKUP_EXCLUDED_KEYS.has(d.key) && !d.key.startsWith('_sec_')
 		).map((d) => d.key);
-		for (const k of writableStaticKeys) {
+		for (const k of includedStaticKeys) {
 			expect(keys).toContain(k);
 		}
 	});

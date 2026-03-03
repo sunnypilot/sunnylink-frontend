@@ -123,7 +123,36 @@ export interface FetchAllSettingsResult {
 	failedKeys: string[];
 }
 
-export const BACKUP_EXCLUDED_KEYS = new Set(['ModelManager_ModelsCache', 'CarList']);
+export const BACKUP_EXCLUDED_KEYS = new Set([
+	// Heavy cache data (regenerated automatically)
+	'ModelManager_ModelsCache',
+	'ModelRunnerTypeCache',
+	'LagdValueCache',
+	'ApiCache_DriveStats',
+	'ApiCache_Device',
+	'ApiCache_NavDestinations',
+	'ApiCache_FirehoseStats',
+	'SunnylinkCache_Users',
+	'SunnylinkCache_Roles',
+	'AthenadRecentlyViewedRoutes',
+	// CarParams — device-specific hardware data
+	'CarList',
+	'CarParams',
+	'CarParamsCache',
+	'CarParamsSP',
+	'CarParamsSPCache',
+	'CarParamsPrevRoute',
+	'CarParamsPersistent',
+	'CarParamsSPPersistent',
+	'CarPlatformBundle',
+	// Live/ephemeral data
+	'LiveTorqueParameters',
+	'LiveParameters',
+	'LiveParametersV2',
+	'LiveDelay',
+	'CalibrationParams',
+	'LocationFilterInitialState'
+]);
 
 export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string[] {
 	const defsMap = new Map(SETTINGS_DEFINITIONS.map((d) => [d.key, d]));
@@ -135,7 +164,7 @@ export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string
 		// Also include any static keys not reported by device (fallback for metadata-only entries)
 		const deviceKeySet = new Set(deviceKeys);
 		const staticKeys = SETTINGS_DEFINITIONS.filter(
-			(d) => !d.isSection && !d.readonly && !deviceKeySet.has(d.key)
+			(d) => !d.isSection && !deviceKeySet.has(d.key)
 		).map((d) => d.key);
 		keys = [...deviceKeys, ...staticKeys];
 	} else {
@@ -143,12 +172,11 @@ export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string
 		keys = SETTINGS_DEFINITIONS.map((d) => d.key);
 	}
 
-	// Filter out readonly, section markers, and explicitly excluded keys
+	// Filter out section markers and explicitly excluded keys
 	return keys.filter((key) => {
 		if (BACKUP_EXCLUDED_KEYS.has(key)) return false;
 		if (key.startsWith('_sec_')) return false;
 		const def = defsMap.get(key);
-		if (def?.readonly) return false;
 		if (def?.isSection) return false;
 		return true;
 	});
