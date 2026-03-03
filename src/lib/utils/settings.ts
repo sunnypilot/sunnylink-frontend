@@ -149,7 +149,37 @@ export const BACKUP_EXCLUDED_KEYS = new Set([
 	'LiveParameters',
 	'LiveParametersV2',
 	'CalibrationParams',
-	'LocationFilterInitialState'
+	'LocationFilterInitialState',
+	// Updater state (ephemeral)
+	'UpdaterAvailableBranches',
+	'UpdaterCurrentDescription',
+	'UpdaterCurrentReleaseNotes',
+	'UpdaterNewDescription',
+	'UpdaterNewReleaseNotes',
+	'UpdaterFetchAvailable',
+	'UpdaterState',
+	'UpdaterLastFetchTime',
+	// Runtime counters / device state
+	'CarBatteryCapacity',
+	'GitCommit',
+	'GitCommitDate',
+	'BootCount',
+	'CurrentBootlog',
+	'UptimeOnroad',
+	'UptimeOffroad',
+	'RouteCount',
+	'CurrentRoute',
+	'LastUpdateException',
+	'LastUpdateTime',
+	'LastUpdateRouteCount',
+	'LastUpdateUptimeOnroad',
+	// Panda hardware state
+	'PandaHeartbeatLost',
+	'PandaSomResetTriggered',
+	'PandaSignatures',
+	// Process PIDs
+	'AthenadPid',
+	'SunnylinkdPid'
 ]);
 
 export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string[] {

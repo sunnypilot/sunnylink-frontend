@@ -129,6 +129,30 @@ describe('getBackupKeys', () => {
 		expect(keys).not.toContain('ModelManager_ModelsCache');
 	});
 
+	it('excludes Panda, PID, updater, and boot-related keys even if device reports them', () => {
+		const deviceSettings: ExtendedDeviceParamKey[] = [
+			{ key: 'IsMetric' },
+			{ key: 'PandaHeartbeatLost' },
+			{ key: 'PandaSignatures' },
+			{ key: 'AthenadPid' },
+			{ key: 'SunnylinkdPid' },
+			{ key: 'UpdaterAvailableBranches' },
+			{ key: 'BootCount' },
+			{ key: 'CurrentRoute' },
+			{ key: 'GitCommitDate' }
+		];
+		const keys = getBackupKeys(deviceSettings);
+		expect(keys).toContain('IsMetric');
+		expect(keys).not.toContain('PandaHeartbeatLost');
+		expect(keys).not.toContain('PandaSignatures');
+		expect(keys).not.toContain('AthenadPid');
+		expect(keys).not.toContain('SunnylinkdPid');
+		expect(keys).not.toContain('UpdaterAvailableBranches');
+		expect(keys).not.toContain('BootCount');
+		expect(keys).not.toContain('CurrentRoute');
+		expect(keys).not.toContain('GitCommitDate');
+	});
+
 	it('falls back to static definitions when no device settings provided', () => {
 		const keys = getBackupKeys();
 		const includedStaticKeys = SETTINGS_DEFINITIONS.filter(
