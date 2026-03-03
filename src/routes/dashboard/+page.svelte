@@ -108,27 +108,32 @@
 		const bs = deviceState.backupState;
 		if (!bs.deviceId || !bs.failedKeys.length || !bs.fetchedSettings) return;
 
-		deviceState.startBackup(bs.deviceId);
+		// Capture values before startBackup() resets them
+		const deviceId = bs.deviceId;
+		const failedKeys = [...bs.failedKeys];
+		const previousSettings = { ...bs.fetchedSettings };
+
+		deviceState.startBackup(deviceId);
 
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
 
 			const result = await fetchAllSettings(
-				bs.deviceId,
+				deviceId,
 				v1Client,
 				token,
-				bs.fetchedSettings,
+				previousSettings,
 				(progress, status) => {
 					deviceState.setBackupProgress(progress, status);
 				},
 				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[bs.deviceId],
-				bs.failedKeys
+				deviceState.deviceSettings[deviceId],
+				failedKeys
 			);
 
 			// Merge newly fetched settings
-			const mergedSettings = { ...bs.fetchedSettings, ...result.settings };
+			const mergedSettings = { ...previousSettings, ...result.settings };
 			deviceState.setBackupFetchedSettings(mergedSettings);
 
 			if (result.failedKeys.length > 0) {
@@ -138,7 +143,7 @@
 					result.failedKeys
 				);
 			} else {
-				downloadSettingsBackup(bs.deviceId, mergedSettings);
+				downloadSettingsBackup(deviceId, mergedSettings);
 				deviceState.finishBackup(true);
 				if (deviceState.backupState.isOpen) {
 					setTimeout(() => {
