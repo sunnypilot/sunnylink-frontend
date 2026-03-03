@@ -163,12 +163,15 @@ export const BACKUP_EXCLUDED_KEYS = new Set([
 	'CarBatteryCapacity',
 	'GitCommit',
 	'GitCommitDate',
+	// Boot and uptime tracking
 	'BootCount',
 	'CurrentBootlog',
 	'UptimeOnroad',
 	'UptimeOffroad',
+	// Route tracking
 	'RouteCount',
 	'CurrentRoute',
+	// Last update tracking
 	'LastUpdateException',
 	'LastUpdateTime',
 	'LastUpdateRouteCount',

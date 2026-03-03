@@ -129,7 +129,7 @@ describe('getBackupKeys', () => {
 		expect(keys).not.toContain('ModelManager_ModelsCache');
 	});
 
-	it('excludes Panda, PID, updater, and boot-related keys even if device reports them', () => {
+	it('excludes ephemeral and device-specific keys even if device reports them', () => {
 		const deviceSettings: ExtendedDeviceParamKey[] = [
 			{ key: 'IsMetric' },
 			{ key: 'PandaHeartbeatLost' },
