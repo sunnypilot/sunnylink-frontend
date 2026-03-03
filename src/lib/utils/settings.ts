@@ -123,7 +123,7 @@ export interface FetchAllSettingsResult {
 	failedKeys: string[];
 }
 
-export const BACKUP_EXCLUDED_KEYS = new Set(['ModelManager_ModelsCache']);
+export const BACKUP_EXCLUDED_KEYS = new Set(['ModelManager_ModelsCache', 'CarList']);
 
 export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string[] {
 	const defsMap = new Map(SETTINGS_DEFINITIONS.map((d) => [d.key, d]));
