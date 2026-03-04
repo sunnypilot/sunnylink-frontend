@@ -41,6 +41,20 @@
 	const hasFailedKeys = $derived(
 		deviceState.backupState.failedKeys.length > 0 && !deviceState.backupState.isDownloading
 	);
+
+	const reasonLabels: Record<string, string> = {
+		timeout: 'Timeout',
+		expired: 'Expired',
+		not_found: 'Not Found',
+		network_error: 'Network Error',
+		no_items_returned: 'No Data',
+		error: 'Error',
+		unknown: 'Unknown'
+	};
+
+	function formatReason(reason: string): string {
+		return reasonLabels[reason] ?? reason;
+	}
 </script>
 
 {#if deviceState.backupState.isOpen}
@@ -134,8 +148,11 @@
 								class="max-h-32 overflow-y-auto rounded-lg bg-[#0f1726] p-2 text-xs text-slate-400"
 								transition:fade={{ duration: 100 }}
 							>
-								{#each deviceState.backupState.failedKeys as key}
-									<div class="py-0.5 font-mono">{key}</div>
+								{#each deviceState.backupState.failedKeys as failed}
+									<div class="flex items-center justify-between py-0.5">
+										<span class="font-mono">{failed.key}</span>
+										<span class="ml-2 shrink-0 text-slate-500">{formatReason(failed.reason)}</span>
+									</div>
 								{/each}
 							</div>
 						{/if}

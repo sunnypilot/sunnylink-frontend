@@ -110,7 +110,7 @@
 
 		// Capture values before startBackup() resets them
 		const deviceId = bs.deviceId;
-		const failedKeys = [...bs.failedKeys];
+		const failedKeyNames = bs.failedKeys.map((f) => f.key);
 		const previousSettings = { ...bs.fetchedSettings };
 
 		deviceState.startBackup(deviceId);
@@ -129,7 +129,7 @@
 				},
 				deviceState.backupState.abortController?.signal,
 				deviceState.deviceSettings[deviceId],
-				failedKeys
+				failedKeyNames
 			);
 
 			// Merge newly fetched settings

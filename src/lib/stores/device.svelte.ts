@@ -1,4 +1,5 @@
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
+import type { UnavailableSetting } from '$lib/utils/settings';
 import { v1Client } from '$lib/api/client';
 import { fetchAllSettings } from '$lib/utils/settings';
 
@@ -289,7 +290,7 @@ export const deviceState = $state({
 		status: '',
 		deviceId: '',
 		abortController: null as AbortController | null,
-		failedKeys: [] as string[],
+		failedKeys: [] as UnavailableSetting[],
 		fetchedSettings: null as Record<string, unknown> | null
 	},
 
@@ -319,7 +320,7 @@ export const deviceState = $state({
 		this.backupState.status = 'Backup cancelled';
 	},
 
-	finishBackup(success: boolean, message: string = '', failedKeys: string[] = []) {
+	finishBackup(success: boolean, message: string = '', failedKeys: UnavailableSetting[] = []) {
 		this.backupState.isDownloading = false;
 		this.backupState.progress = success ? 100 : this.backupState.progress;
 		this.backupState.status = message || (success ? 'Backup complete!' : 'Backup failed');

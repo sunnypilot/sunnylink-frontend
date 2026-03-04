@@ -110,17 +110,22 @@ export function getAllSettings(
 	);
 }
 
+export interface UnavailableSetting {
+	key: string;
+	reason: string;
+}
+
 export interface DeviceSettingsBackup {
 	version: number;
 	timestamp: number;
 	deviceId: string;
 	settings: Record<string, any>;
-	missingKeys?: string[];
+	unavailable_settings?: UnavailableSetting[];
 }
 
 export interface FetchAllSettingsResult {
 	settings: Record<string, unknown>;
-	failedKeys: string[];
+	failedKeys: UnavailableSetting[];
 }
 
 export const BACKUP_EXCLUDED_KEYS = new Set([
@@ -210,14 +215,16 @@ export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string
 export function downloadSettingsBackup(
 	deviceId: string,
 	settings: Record<string, any>,
-	missingKeys?: string[]
+	unavailableSettings?: UnavailableSetting[]
 ) {
 	const backup: DeviceSettingsBackup = {
 		version: 2,
 		timestamp: Date.now(),
 		deviceId,
 		settings,
-		...(missingKeys && missingKeys.length > 0 ? { missingKeys } : {})
+		...(unavailableSettings && unavailableSettings.length > 0
+			? { unavailable_settings: unavailableSettings }
+			: {})
 	};
 
 	const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -267,7 +274,7 @@ export async function fetchAllSettings(
 	let processedCount = 0;
 	const totalCount = missingKeys.length;
 	let successCount = 0;
-	const failedKeys: string[] = [];
+	const failedKeys: UnavailableSetting[] = [];
 
 	const CONCURRENCY = 3;
 	const MAX_RETRIES = 1;
@@ -276,6 +283,7 @@ export async function fetchAllSettings(
 		if (signal?.aborted) return;
 
 		let lastError: unknown;
+		let lastReason = 'unknown';
 		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 			if (signal?.aborted) return;
 
@@ -308,12 +316,14 @@ export async function fetchAllSettings(
 					successCount += chunk.length;
 					return;
 				} else {
-					lastError = new Error(response.error ?? 'No items returned');
+					lastReason = response.error ?? 'no_items_returned';
+					lastError = new Error(lastReason);
 				}
 			} catch (e: unknown) {
 				if ((e as { name?: string })?.name === 'AbortError' || signal?.aborted) {
 					return;
 				}
+				lastReason = 'network_error';
 				lastError = e;
 			}
 
@@ -327,7 +337,9 @@ export async function fetchAllSettings(
 			`Failed to fetch chunk for ${deviceId} after ${MAX_RETRIES + 1} attempts`,
 			lastError
 		);
-		failedKeys.push(...chunk);
+		for (const key of chunk) {
+			failedKeys.push({ key, reason: lastReason });
+		}
 	}
 
 	// Process chunks with proper concurrency limiting
