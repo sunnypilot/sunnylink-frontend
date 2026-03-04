@@ -170,4 +170,20 @@ describe('getBackupKeys', () => {
 		const keysNoDevice = getBackupKeys();
 		expect(keys).toEqual(keysNoDevice);
 	});
+
+	it('returns keys sorted alphabetically for deterministic output', () => {
+		const deviceSettings: ExtendedDeviceParamKey[] = [
+			{ key: 'Zebra' },
+			{ key: 'Alpha' },
+			{ key: 'Middle' }
+		];
+		const keys = getBackupKeys(deviceSettings);
+		expect(keys).toEqual(['Alpha', 'Middle', 'Zebra']);
+	});
+
+	it('returns sorted keys from static fallback', () => {
+		const keys = getBackupKeys();
+		const sorted = [...keys].sort((a, b) => a.localeCompare(b));
+		expect(keys).toEqual(sorted);
+	});
 });

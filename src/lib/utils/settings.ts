@@ -202,14 +202,16 @@ export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string
 		keys = SETTINGS_DEFINITIONS.map((d) => d.key);
 	}
 
-	// Filter out section markers and explicitly excluded keys
-	return keys.filter((key) => {
-		if (BACKUP_EXCLUDED_KEYS.has(key)) return false;
-		if (key.startsWith('_sec_')) return false;
-		const def = defsMap.get(key);
-		if (def?.isSection) return false;
-		return true;
-	});
+	// Filter out section markers and explicitly excluded keys, then sort for deterministic output
+	return keys
+		.filter((key) => {
+			if (BACKUP_EXCLUDED_KEYS.has(key)) return false;
+			if (key.startsWith('_sec_')) return false;
+			const def = defsMap.get(key);
+			if (def?.isSection) return false;
+			return true;
+		})
+		.sort((a, b) => a.localeCompare(b));
 }
 
 export function downloadSettingsBackup(
@@ -217,13 +219,23 @@ export function downloadSettingsBackup(
 	settings: Record<string, any>,
 	unavailableSettings?: UnavailableSetting[]
 ) {
+	// Sort settings keys for deterministic output across fetches
+	const sortedSettings: Record<string, any> = {};
+	for (const key of Object.keys(settings).sort((a, b) => a.localeCompare(b))) {
+		sortedSettings[key] = settings[key];
+	}
+
+	const sortedUnavailable = unavailableSettings
+		?.slice()
+		.sort((a, b) => a.key.localeCompare(b.key));
+
 	const backup: DeviceSettingsBackup = {
 		version: 2,
 		timestamp: Date.now(),
 		deviceId,
-		settings,
-		...(unavailableSettings && unavailableSettings.length > 0
-			? { unavailable_settings: unavailableSettings }
+		settings: sortedSettings,
+		...(sortedUnavailable && sortedUnavailable.length > 0
+			? { unavailable_settings: sortedUnavailable }
 			: {})
 	};
 
