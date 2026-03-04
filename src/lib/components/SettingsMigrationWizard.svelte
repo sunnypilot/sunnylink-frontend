@@ -605,11 +605,20 @@
 						<div class="space-y-6">
 							<div class="text-center">
 								<h4 class="text-lg font-medium text-white">Settings Fetched</h4>
-								<p class="text-slate-400">
-									Successfully fetched settings from {devices.find(
-										(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
-									)?.alias || ms.sourceDeviceId}.
-								</p>
+								{#if ms.error}
+									<div
+										class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-200"
+									>
+										<Info class="mt-0.5 shrink-0 text-yellow-400" size={16} />
+										<span>{ms.error}</span>
+									</div>
+								{:else}
+									<p class="text-slate-400">
+										Successfully fetched settings from {devices.find(
+											(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
+										)?.alias || ms.sourceDeviceId}.
+									</p>
+								{/if}
 							</div>
 
 							<div class="rounded-xl border border-[#334155] bg-[#1e293b]/30 p-4">
