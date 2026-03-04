@@ -190,14 +190,8 @@ export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string
 
 	let keys: string[];
 	if (deviceSettings && deviceSettings.length > 0) {
-		// Use device-reported keys as primary source
-		const deviceKeys = deviceSettings.map((s) => s.key).filter((k): k is string => k !== undefined);
-		// Also include any static keys not reported by device (fallback for metadata-only entries)
-		const deviceKeySet = new Set(deviceKeys);
-		const staticKeys = SETTINGS_DEFINITIONS.filter(
-			(d) => !d.isSection && !deviceKeySet.has(d.key)
-		).map((d) => d.key);
-		keys = [...deviceKeys, ...staticKeys];
+		// Use only device-reported keys — the device knows what it has
+		keys = deviceSettings.map((s) => s.key).filter((k): k is string => k !== undefined);
 	} else {
 		// Fallback to static definitions
 		keys = SETTINGS_DEFINITIONS.map((d) => d.key);

@@ -76,7 +76,7 @@ describe('getBackupKeys', () => {
 		expect(keys).toContain('LanguageSetting');
 	});
 
-	it('uses device-reported keys as primary source when available', () => {
+	it('uses only device-reported keys when available', () => {
 		const deviceSettings: ExtendedDeviceParamKey[] = [
 			{ key: 'IsMetric' },
 			{ key: 'CustomDeviceParam' }
@@ -84,6 +84,8 @@ describe('getBackupKeys', () => {
 		const keys = getBackupKeys(deviceSettings);
 		expect(keys).toContain('IsMetric');
 		expect(keys).toContain('CustomDeviceParam');
+		// Static keys not reported by the device should NOT be included
+		expect(keys).not.toContain('LanguageSetting');
 	});
 
 	it('includes readonly device-reported keys not in exclusion list', () => {
