@@ -201,7 +201,16 @@ export const deviceState = $state({
 				this.deviceSettings[this.migrationState.sourceDeviceId]
 			);
 
-			this.finishMigrationFetch(true, result.settings);
+			if (result.failedKeys.length > 0) {
+				const total = Object.keys(result.settings).length + result.failedKeys.length;
+				this.finishMigrationFetch(
+					false,
+					result.settings,
+					`${result.failedKeys.length} of ${total} settings could not be fetched. The device may be using default values for these keys.`
+				);
+			} else {
+				this.finishMigrationFetch(true, result.settings);
+			}
 		} catch (e: any) {
 			if (e.message === 'Backup cancelled' || this.migrationState.abortController?.signal.aborted) {
 				this.finishMigrationFetch(false, undefined, 'Migration cancelled');
@@ -224,7 +233,7 @@ export const deviceState = $state({
 	finishMigrationFetch(success: boolean, data?: any, error?: string) {
 		this.migrationState.isFetching = false;
 		this.migrationState.abortController = null;
-		if (success && data) {
+		if (data && Object.keys(data).length > 0) {
 			this.migrationState.parsedBackup = {
 				version: 1,
 				timestamp: Date.now(),
@@ -232,8 +241,14 @@ export const deviceState = $state({
 				settings: data
 			};
 			this.migrationState.step = 3; // Move to Target/Download
-			this.migrationState.status = 'Fetch complete';
 			this.migrationState.progress = 100;
+			if (success) {
+				this.migrationState.status = 'Fetch complete';
+			} else {
+				// Partial success — data was saved but some keys failed
+				this.migrationState.status = error || 'Fetch completed with warnings';
+				this.migrationState.error = error || null;
+			}
 		} else {
 			this.migrationState.error = error || 'Fetch failed';
 			this.migrationState.status = 'Fetch failed';

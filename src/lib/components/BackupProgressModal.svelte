@@ -1,10 +1,23 @@
 <script lang="ts">
-	import { Loader2, X, Minimize2, Square, Download, RefreshCw, AlertTriangle } from 'lucide-svelte';
+	import {
+		Loader2,
+		X,
+		Minimize2,
+		Square,
+		Download,
+		RefreshCw,
+		AlertTriangle,
+		Info
+	} from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { downloadSettingsBackup } from '$lib/utils/settings';
 
-	let { open = $bindable(false), onRetry }: { open?: boolean; onRetry?: () => void } = $props();
+	let {
+		open = $bindable(false),
+		onRetry,
+		onFullBackup
+	}: { open?: boolean; onRetry?: () => void; onFullBackup?: () => void } = $props();
 
 	let showConfirmStop = $state(false);
 	let showFailedDetails = $state(false);
@@ -38,8 +51,16 @@
 		onRetry?.();
 	}
 
+	function handleFullBackup() {
+		onFullBackup?.();
+	}
+
 	const hasFailedKeys = $derived(
 		deviceState.backupState.failedKeys.length > 0 && !deviceState.backupState.isDownloading
+	);
+
+	const hasNoValueKeys = $derived(
+		deviceState.backupState.failedKeys.some((f) => f.reason === 'no_value_returned')
 	);
 
 	const reasonLabels: Record<string, string> = {
@@ -135,6 +156,18 @@
 							</div>
 						</div>
 
+						{#if hasNoValueKeys}
+							<div
+								class="flex items-start gap-2 rounded-lg border border-blue-500/10 bg-blue-500/5 p-2.5"
+							>
+								<Info size={16} class="mt-0.5 shrink-0 text-blue-400" />
+								<p class="text-xs text-slate-400">
+									Keys marked "No Value" typically mean the device is using default values and no
+									custom setting has been saved. These are safe to skip.
+								</p>
+							</div>
+						{/if}
+
 						<button
 							class="text-left text-xs text-slate-400 hover:text-slate-300"
 							aria-expanded={showFailedDetails}
@@ -158,23 +191,33 @@
 							</div>
 						{/if}
 
-						<div class="flex justify-center gap-3">
-							{#if onRetry}
+						<div class="flex flex-col items-center gap-2">
+							<div class="flex justify-center gap-3">
+								{#if onRetry}
+									<button
+										class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
+										onclick={handleRetryFailed}
+									>
+										<RefreshCw size={16} />
+										Retry Failed
+									</button>
+								{/if}
 								<button
-									class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
-									onclick={handleRetryFailed}
+									class="flex items-center gap-2 rounded-lg bg-[#334155] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#475569]"
+									onclick={handleDownloadPartial}
 								>
-									<RefreshCw size={16} />
-									Retry Failed
+									<Download size={16} />
+									Download Partial
+								</button>
+							</div>
+							{#if onFullBackup}
+								<button
+									class="mt-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
+									onclick={handleFullBackup}
+								>
+									Start new full backup
 								</button>
 							{/if}
-							<button
-								class="flex items-center gap-2 rounded-lg bg-[#334155] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#475569]"
-								onclick={handleDownloadPartial}
-							>
-								<Download size={16} />
-								Download Partial
-							</button>
 						</div>
 					</div>
 				{:else}

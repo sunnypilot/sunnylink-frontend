@@ -43,8 +43,17 @@
 	let pairingModalOpen = $state(false);
 	let pairingType = $state<'c3' | 'c4' | null>(null);
 
-	async function handleDownloadBackup(deviceId: string) {
+	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
 		if (!deviceId || deviceState.backupState.isDownloading) return;
+
+		// If there's a previous partial backup for this device, clear it for full refresh
+		const currentValues =
+			fullRefresh || deviceState.backupState.deviceId !== deviceId
+				? deviceState.deviceValues[deviceId] || {}
+				: {
+						...(deviceState.deviceValues[deviceId] || {}),
+						...(deviceState.backupState.fetchedSettings || {})
+					};
 
 		deviceState.startBackup(deviceId);
 
@@ -52,7 +61,6 @@
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
 
-			const currentValues = deviceState.deviceValues[deviceId] || {};
 			const result = await fetchAllSettings(
 				deviceId,
 				v1Client,
@@ -844,6 +852,12 @@
 		<Plus size={28} />
 	</button>
 
-	<BackupProgressModal onRetry={handleRetryFailedBackup} />
+	<BackupProgressModal
+		onRetry={handleRetryFailedBackup}
+		onFullBackup={() => {
+			const deviceId = deviceState.backupState.deviceId;
+			if (deviceId) handleDownloadBackup(deviceId, true);
+		}}
+	/>
 	<PairingModal bind:open={pairingModalOpen} bind:deviceType={pairingType} />
 {/if}
