@@ -48,6 +48,7 @@
 		not_found: 'Not Found',
 		network_error: 'Network Error',
 		no_items_returned: 'No Data',
+		no_value_returned: 'No Value',
 		error: 'Error',
 		unknown: 'Unknown'
 	};

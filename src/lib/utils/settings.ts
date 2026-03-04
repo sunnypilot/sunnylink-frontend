@@ -303,6 +303,7 @@ export async function fetchAllSettings(
 				const response = await fetchSettingsAsync(deviceId, chunk, token, { signal });
 
 				if (response.items) {
+					const returnedKeys = new Set<string>();
 					for (const item of response.items) {
 						if (item.key && item.value !== undefined) {
 							const def = SETTINGS_DEFINITIONS.find((d) => d.key === item.key);
@@ -323,9 +324,16 @@ export async function fetchAllSettings(
 									| 'Unknown'
 									| undefined
 							});
+							returnedKeys.add(item.key);
 						}
 					}
-					successCount += chunk.length;
+					// Track keys that were requested but got no value back
+					for (const key of chunk) {
+						if (!returnedKeys.has(key)) {
+							failedKeys.push({ key, reason: 'no_value_returned' });
+						}
+					}
+					successCount += returnedKeys.size;
 					return;
 				} else {
 					lastReason = response.error ?? 'no_items_returned';
