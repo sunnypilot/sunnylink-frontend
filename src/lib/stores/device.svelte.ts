@@ -206,7 +206,8 @@ export const deviceState = $state({
 				this.finishMigrationFetch(
 					false,
 					result.settings,
-					`${result.failedKeys.length} of ${total} settings could not be fetched. The device may be using default values for these keys.`
+					`${result.failedKeys.length} of ${total} settings could not be fetched. The device may be using default values for these keys.`,
+					result.failedKeys
 				);
 			} else {
 				this.finishMigrationFetch(true, result.settings);
@@ -230,15 +231,23 @@ export const deviceState = $state({
 		this.migrationState.status = status;
 	},
 
-	finishMigrationFetch(success: boolean, data?: any, error?: string) {
+	finishMigrationFetch(
+		success: boolean,
+		data?: any,
+		error?: string,
+		failedKeys?: UnavailableSetting[]
+	) {
 		this.migrationState.isFetching = false;
 		this.migrationState.abortController = null;
 		if (data && Object.keys(data).length > 0) {
 			this.migrationState.parsedBackup = {
-				version: 1,
+				version: 2,
 				timestamp: Date.now(),
 				deviceId: this.migrationState.sourceDeviceId,
-				settings: data
+				settings: data,
+				...(failedKeys && failedKeys.length > 0
+					? { unavailable_settings: failedKeys }
+					: {})
 			};
 			this.migrationState.step = 3; // Move to Target/Download
 			this.migrationState.progress = 100;

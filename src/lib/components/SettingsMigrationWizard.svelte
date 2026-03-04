@@ -164,7 +164,11 @@
 		// This is the "Download Backup" button in Step 3 (Start New flow)
 		// We already have the parsed backup in state
 		if (!ms.parsedBackup || !ms.sourceDeviceId) return;
-		downloadSettingsBackup(ms.sourceDeviceId, ms.parsedBackup.settings);
+		downloadSettingsBackup(
+			ms.sourceDeviceId,
+			ms.parsedBackup.settings,
+			ms.parsedBackup.unavailable_settings
+		);
 	}
 
 	async function handleFileUpload(e: Event) {
