@@ -1,4 +1,5 @@
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
+import type { UnavailableSetting } from '$lib/utils/settings';
 import { v1Client } from '$lib/api/client';
 import { fetchAllSettings } from '$lib/utils/settings';
 
@@ -188,7 +189,7 @@ export const deviceState = $state({
 
 		try {
 			const currentValues = this.deviceValues[this.migrationState.sourceDeviceId] || {};
-			const allSettings = await fetchAllSettings(
+			const result = await fetchAllSettings(
 				this.migrationState.sourceDeviceId,
 				v1Client,
 				token,
@@ -196,10 +197,21 @@ export const deviceState = $state({
 				(progress, status) => {
 					this.setMigrationProgress(progress, status);
 				},
-				this.migrationState.abortController?.signal
+				this.migrationState.abortController?.signal,
+				this.deviceSettings[this.migrationState.sourceDeviceId]
 			);
 
-			this.finishMigrationFetch(true, allSettings);
+			if (result.failedKeys.length > 0) {
+				const total = Object.keys(result.settings).length + result.failedKeys.length;
+				this.finishMigrationFetch(
+					false,
+					result.settings,
+					`${result.failedKeys.length} of ${total} settings could not be fetched. The device may be using default values for these keys.`,
+					result.failedKeys
+				);
+			} else {
+				this.finishMigrationFetch(true, result.settings);
+			}
 		} catch (e: any) {
 			if (e.message === 'Backup cancelled' || this.migrationState.abortController?.signal.aborted) {
 				this.finishMigrationFetch(false, undefined, 'Migration cancelled');
@@ -219,19 +231,31 @@ export const deviceState = $state({
 		this.migrationState.status = status;
 	},
 
-	finishMigrationFetch(success: boolean, data?: any, error?: string) {
+	finishMigrationFetch(
+		success: boolean,
+		data?: any,
+		error?: string,
+		failedKeys?: UnavailableSetting[]
+	) {
 		this.migrationState.isFetching = false;
 		this.migrationState.abortController = null;
-		if (success && data) {
+		if (data && Object.keys(data).length > 0) {
 			this.migrationState.parsedBackup = {
-				version: 1,
+				version: 2,
 				timestamp: Date.now(),
 				deviceId: this.migrationState.sourceDeviceId,
-				settings: data
+				settings: data,
+				...(failedKeys && failedKeys.length > 0 ? { unavailable_settings: failedKeys } : {})
 			};
 			this.migrationState.step = 3; // Move to Target/Download
-			this.migrationState.status = 'Fetch complete';
 			this.migrationState.progress = 100;
+			if (success) {
+				this.migrationState.status = 'Fetch complete';
+			} else {
+				// Partial success — data was saved but some keys failed
+				this.migrationState.status = error || 'Fetch completed with warnings';
+				this.migrationState.error = error || null;
+			}
 		} else {
 			this.migrationState.error = error || 'Fetch failed';
 			this.migrationState.status = 'Fetch failed';
@@ -287,7 +311,9 @@ export const deviceState = $state({
 		progress: 0,
 		status: '',
 		deviceId: '',
-		abortController: null as AbortController | null
+		abortController: null as AbortController | null,
+		failedKeys: [] as UnavailableSetting[],
+		fetchedSettings: null as Record<string, unknown> | null
 	},
 
 	startBackup(deviceId: string) {
@@ -298,6 +324,8 @@ export const deviceState = $state({
 		this.backupState.status = 'Starting backup...';
 		this.backupState.deviceId = deviceId;
 		this.backupState.abortController = new AbortController();
+		this.backupState.failedKeys = [];
+		this.backupState.fetchedSettings = null;
 	},
 
 	setBackupProgress(progress: number, status: string) {
@@ -314,11 +342,16 @@ export const deviceState = $state({
 		this.backupState.status = 'Backup cancelled';
 	},
 
-	finishBackup(success: boolean, message: string = '') {
+	finishBackup(success: boolean, message: string = '', failedKeys: UnavailableSetting[] = []) {
 		this.backupState.isDownloading = false;
 		this.backupState.progress = success ? 100 : this.backupState.progress;
 		this.backupState.status = message || (success ? 'Backup complete!' : 'Backup failed');
 		this.backupState.abortController = null;
+		this.backupState.failedKeys = failedKeys;
+	},
+
+	setBackupFetchedSettings(settings: Record<string, unknown>) {
+		this.backupState.fetchedSettings = settings;
 	},
 
 	closeBackupModal() {
@@ -328,6 +361,8 @@ export const deviceState = $state({
 			this.backupState.progress = 0;
 			this.backupState.status = '';
 			this.backupState.deviceId = '';
+			this.backupState.failedKeys = [];
+			this.backupState.fetchedSettings = null;
 		}
 	},
 

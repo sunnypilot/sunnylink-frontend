@@ -1,11 +1,26 @@
 <script lang="ts">
-	import { Loader2, X, Minimize2, Square } from 'lucide-svelte';
+	import {
+		Loader2,
+		X,
+		Minimize2,
+		Square,
+		Download,
+		RefreshCw,
+		AlertTriangle,
+		Info
+	} from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { downloadSettingsBackup } from '$lib/utils/settings';
 
-	let { open = $bindable(false) } = $props();
+	let {
+		open = $bindable(false),
+		onRetry,
+		onFullBackup
+	}: { open?: boolean; onRetry?: () => void; onFullBackup?: () => void } = $props();
 
 	let showConfirmStop = $state(false);
+	let showFailedDetails = $state(false);
 
 	function handleClose() {
 		deviceState.closeBackupModal();
@@ -23,6 +38,45 @@
 	function cancelStop() {
 		showConfirmStop = false;
 	}
+
+	function handleDownloadPartial() {
+		const bs = deviceState.backupState;
+		if (bs.fetchedSettings && bs.deviceId) {
+			downloadSettingsBackup(bs.deviceId, bs.fetchedSettings, bs.failedKeys);
+			deviceState.closeBackupModal();
+		}
+	}
+
+	function handleRetryFailed() {
+		onRetry?.();
+	}
+
+	function handleFullBackup() {
+		onFullBackup?.();
+	}
+
+	const hasFailedKeys = $derived(
+		deviceState.backupState.failedKeys.length > 0 && !deviceState.backupState.isDownloading
+	);
+
+	const hasNoValueKeys = $derived(
+		deviceState.backupState.failedKeys.some((f) => f.reason === 'no_value_returned')
+	);
+
+	const reasonLabels: Record<string, string> = {
+		timeout: 'Timeout',
+		expired: 'Expired',
+		not_found: 'Not Found',
+		network_error: 'Network Error',
+		no_items_returned: 'No Data',
+		no_value_returned: 'No Value',
+		error: 'Error',
+		unknown: 'Unknown'
+	};
+
+	function formatReason(reason: string): string {
+		return reasonLabels[reason] ?? reason;
+	}
 </script>
 
 {#if deviceState.backupState.isOpen}
@@ -37,7 +91,13 @@
 			<div class="border-b border-[#334155] bg-[#0f1726]/50 p-4">
 				<div class="flex items-center justify-between">
 					<h3 class="text-lg font-semibold text-white">
-						{deviceState.backupState.isDownloading ? 'Downloading Backup' : 'Backup Status'}
+						{#if hasFailedKeys}
+							Partial Backup
+						{:else if deviceState.backupState.isDownloading}
+							Downloading Backup
+						{:else}
+							Backup Status
+						{/if}
 					</h3>
 					<div class="flex items-center gap-1">
 						{#if deviceState.backupState.isDownloading && !showConfirmStop}
@@ -80,6 +140,84 @@
 							>
 								Stop Backup
 							</button>
+						</div>
+					</div>
+				{:else if hasFailedKeys}
+					<div class="flex flex-col gap-4" transition:fade={{ duration: 150 }}>
+						<div
+							class="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3"
+						>
+							<AlertTriangle size={20} class="mt-0.5 shrink-0 text-amber-500" />
+							<div class="text-sm text-slate-300">
+								<p class="font-medium text-amber-400">
+									{deviceState.backupState.failedKeys.length} settings could not be fetched
+								</p>
+								<p class="mt-1">You can retry the failed settings or download a partial backup.</p>
+							</div>
+						</div>
+
+						{#if hasNoValueKeys}
+							<div
+								class="flex items-start gap-2 rounded-lg border border-blue-500/10 bg-blue-500/5 p-2.5"
+							>
+								<Info size={16} class="mt-0.5 shrink-0 text-blue-400" />
+								<p class="text-xs text-slate-400">
+									Keys marked "No Value" typically mean the device is using default values and no
+									custom setting has been saved. These are safe to skip.
+								</p>
+							</div>
+						{/if}
+
+						<button
+							class="text-left text-xs text-slate-400 hover:text-slate-300"
+							aria-expanded={showFailedDetails}
+							onclick={() => (showFailedDetails = !showFailedDetails)}
+						>
+							{showFailedDetails ? 'Hide' : 'Show'} failed keys ({deviceState.backupState.failedKeys
+								.length})
+						</button>
+
+						{#if showFailedDetails}
+							<div
+								class="max-h-32 overflow-y-auto rounded-lg bg-[#0f1726] p-2 text-xs text-slate-400"
+								transition:fade={{ duration: 100 }}
+							>
+								{#each deviceState.backupState.failedKeys as failed}
+									<div class="flex items-center justify-between py-0.5">
+										<span class="font-mono">{failed.key}</span>
+										<span class="ml-2 shrink-0 text-slate-500">{formatReason(failed.reason)}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+
+						<div class="flex flex-col items-center gap-2">
+							<div class="flex justify-center gap-3">
+								{#if onRetry}
+									<button
+										class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
+										onclick={handleRetryFailed}
+									>
+										<RefreshCw size={16} />
+										Retry Failed
+									</button>
+								{/if}
+								<button
+									class="flex items-center gap-2 rounded-lg bg-[#334155] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#475569]"
+									onclick={handleDownloadPartial}
+								>
+									<Download size={16} />
+									Download Partial
+								</button>
+							</div>
+							{#if onFullBackup}
+								<button
+									class="mt-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
+									onclick={handleFullBackup}
+								>
+									Start new full backup
+								</button>
+							{/if}
 						</div>
 					</div>
 				{:else}

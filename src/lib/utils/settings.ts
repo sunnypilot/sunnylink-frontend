@@ -110,19 +110,193 @@ export function getAllSettings(
 	);
 }
 
+export interface UnavailableSetting {
+	key: string;
+	reason: string;
+}
+
 export interface DeviceSettingsBackup {
 	version: number;
 	timestamp: number;
 	deviceId: string;
 	settings: Record<string, any>;
+	unavailable_settings?: UnavailableSetting[];
 }
 
-export function downloadSettingsBackup(deviceId: string, settings: Record<string, any>) {
+export interface FetchAllSettingsResult {
+	settings: Record<string, unknown>;
+	failedKeys: UnavailableSetting[];
+}
+
+export const BACKUP_EXCLUDED_KEYS = new Set([
+	// Heavy cache data (regenerated automatically)
+	'ModelManager_ModelsCache',
+	'ModelRunnerTypeCache',
+	'LagdValueCache',
+	'ApiCache_DriveStats',
+	'ApiCache_Device',
+	'ApiCache_NavDestinations',
+	'ApiCache_FirehoseStats',
+	'SunnylinkCache_Users',
+	'SunnylinkCache_Roles',
+	'AthenadRecentlyViewedRoutes',
+	// CarParams — device-specific hardware data
+	'CarList',
+	'CarParams',
+	'CarParamsCache',
+	'CarParamsSP',
+	'CarParamsSPCache',
+	'CarParamsPrevRoute',
+	'CarParamsPersistent',
+	'CarParamsSPPersistent',
+	'AccessToken',
+	'AssistNowToken',
+	'BackupManager_CreateBackup',
+	'BackupManager_RestoreVersion',
+	'CameraDebugExpGain',
+	'CameraDebugExpTime',
+	'CustomTorqueParams',
+	'DoReboot',
+	'DoShutdown',
+	'DoUninstall',
+	'DriverTooDistracted',
+	'EnforceTorqueControl',
+	'ExperimentalModeConfirmed',
+	'ForcePowerDown',
+	'GitDiff',
+	'IsTakingSnapshot',
+	'JoystickDebugMode',
+	'LastAgnosPowerMonitorShutdown',
+	'LastGPSPosition',
+	'LastManagerExitReason',
+	'LastOffroadStatusPacket',
+	'LastPowerDropDetected',
+	'LongitudinalManeuverMode',
+	'MapAdvisorySpeedLimit',
+	'MapSpeedLimit',
+	'MapTargetVelocities',
+	'ModelManager_ClearCache',
+	'ModelManager_DownloadIndex',
+	'NextMapSpeedLimit',
+	'ObdMultiplexingChanged',
+	'ObdMultiplexingEnabled',
+	'Offroad_CarUnrecognized',
+	'Offroad_ConnectivityNeeded',
+	'Offroad_ConnectivityNeededPrompt',
+	'Offroad_DriverMonitoringUncertain',
+	'Offroad_ExcessiveActuation',
+	'Offroad_IsTakingSnapshot',
+	'Offroad_NeosUpdate',
+	'Offroad_NoFirmware',
+	'Offroad_OSMUpdateRequired',
+	'Offroad_Recalibration',
+	'Offroad_TemperatureTooHigh',
+	'Offroad_TiciSupport',
+	'Offroad_UnregisteredHardware',
+	'Offroad_UpdateFailed',
+	'OffroadMode',
+	'OnroadCycleRequested',
+	'OsmDbUpdatesCheck',
+	'OSMDownloadBounds',
+	'OSMDownloadLocations',
+	'OSMDownloadProgress',
+	'OsmLocationUrl',
+	'OsmStateTitle',
+	'OsmWayTest',
+	'RecordFrontLock',
+	'RoadName',
+	'SecOCKey',
+	'SnoozeUpdate',
+	'SunnylinkTempFault',
+	'TermsVersion',
+	'TorqueControlTune',
+	'TrainingVersion',
+	// Live/ephemeral data
+	'LiveTorqueParameters',
+	'LiveParameters',
+	'LiveParametersV2',
+	'CalibrationParams',
+	'LocationFilterInitialState',
+	// Updater state (ephemeral)
+	'UpdaterAvailableBranches',
+	'UpdaterCurrentDescription',
+	'UpdaterCurrentReleaseNotes',
+	'UpdaterNewDescription',
+	'UpdaterNewReleaseNotes',
+	'UpdaterFetchAvailable',
+	'UpdaterState',
+	'UpdaterLastFetchTime',
+	// Runtime counters / device state
+	'CarBatteryCapacity',
+	'GitCommit',
+	'GitCommitDate',
+	// Boot and uptime tracking
+	'BootCount',
+	'CurrentBootlog',
+	'UptimeOnroad',
+	'UptimeOffroad',
+	// Route tracking
+	'RouteCount',
+	'CurrentRoute',
+	// Last update tracking
+	'LastUpdateException',
+	'LastUpdateTime',
+	'LastUpdateRouteCount',
+	'LastUpdateUptimeOnroad',
+	// Panda hardware state
+	'PandaHeartbeatLost',
+	'PandaSomResetTriggered',
+	'PandaSignatures',
+	// Process PIDs
+	'AthenadPid',
+	'SunnylinkdPid'
+]);
+
+export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string[] {
+	const defsMap = new Map(SETTINGS_DEFINITIONS.map((d) => [d.key, d]));
+
+	let keys: string[];
+	if (deviceSettings && deviceSettings.length > 0) {
+		// Use only device-reported keys — the device knows what it has
+		keys = deviceSettings.map((s) => s.key).filter((k): k is string => k !== undefined);
+	} else {
+		// Fallback to static definitions
+		keys = SETTINGS_DEFINITIONS.map((d) => d.key);
+	}
+
+	// Filter out section markers and explicitly excluded keys, then sort for deterministic output
+	return keys
+		.filter((key) => {
+			if (BACKUP_EXCLUDED_KEYS.has(key)) return false;
+			if (key.startsWith('_sec_')) return false;
+			const def = defsMap.get(key);
+			if (def?.isSection) return false;
+			return true;
+		})
+		.sort((a, b) => a.localeCompare(b));
+}
+
+export function downloadSettingsBackup(
+	deviceId: string,
+	settings: Record<string, any>,
+	unavailableSettings?: UnavailableSetting[]
+) {
+	// Sort settings keys for deterministic output across fetches
+	const sortedSettings: Record<string, any> = {};
+	for (const key of Object.keys(settings).sort((a, b) => a.localeCompare(b))) {
+		sortedSettings[key] = settings[key];
+	}
+
+	const sortedUnavailable = unavailableSettings?.slice().sort((a, b) => a.key.localeCompare(b.key));
+
 	const backup: DeviceSettingsBackup = {
-		version: 1,
+		version: 2,
 		timestamp: Date.now(),
 		deviceId,
-		settings
+		settings: sortedSettings,
+		...(sortedUnavailable && sortedUnavailable.length > 0
+			? { unavailable_settings: sortedUnavailable }
+			: {})
 	};
 
 	const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -145,31 +319,26 @@ export async function fetchAllSettings(
 	token: string,
 	currentValues: Record<string, unknown>,
 	onProgress?: (progress: number, status: string) => void,
-	signal?: AbortSignal
-): Promise<Record<string, unknown>> {
-	// 1. Get all known keys
-	const explicitKeys = SETTINGS_DEFINITIONS.map((d) => d.key);
+	signal?: AbortSignal,
+	deviceSettings?: ExtendedDeviceParamKey[],
+	keysOverride?: string[]
+): Promise<FetchAllSettingsResult> {
+	// 1. Get keys to fetch — use override (for retry), device-reported, or static fallback
+	const keysToFetch = keysOverride ?? getBackupKeys(deviceSettings);
 
-	// 2. Get dynamic keys if available in store (passed as part of currentValues or we assume caller handles definitions)
-	// Ideally we should fetch definitions first if we want to be 100% sure, but for now let's rely on definitions being loaded
-	// or just fetch what we know.
-	// Actually, let's fetch definitions to be safe if we can, but that requires more deps.
-	// Let's stick to SETTINGS_DEFINITIONS for now as that covers most.
-	// If we want dynamic ones, we should rely on what's in deviceState.deviceSettings.
-
-	const keysToFetch = [...explicitKeys]; // Add dynamic ones if we can access them here
-
-	// 3. Filter out keys we already have
-	const missingKeys = keysToFetch.filter((key) => currentValues[key] === undefined);
+	// 2. Filter out keys we already have (unless retrying specific keys)
+	const missingKeys = keysOverride
+		? keysOverride
+		: keysToFetch.filter((key) => currentValues[key] === undefined);
 
 	if (missingKeys.length === 0) {
 		onProgress?.(100, 'All settings up to date');
-		return currentValues;
+		return { settings: currentValues, failedKeys: [] };
 	}
 
-	// 4. Fetch missing values in chunks
+	// 3. Fetch missing values in chunks
 	const newValues = { ...currentValues };
-	const chunkedKeys = [];
+	const chunkedKeys: string[][] = [];
 	for (let i = 0; i < missingKeys.length; i += 10) {
 		chunkedKeys.push(missingKeys.slice(i, i + 10));
 	}
@@ -177,25 +346,24 @@ export async function fetchAllSettings(
 	let processedCount = 0;
 	const totalCount = missingKeys.length;
 	let successCount = 0;
-	let failCount = 0;
+	const failedKeys: UnavailableSetting[] = [];
 
-	// Process in chunks with limited concurrency to avoid overwhelming the device/connection
-	// but faster than sequential.
 	const CONCURRENCY = 3;
-	const activePromises: Promise<void>[] = [];
+	const MAX_RETRIES = 1;
 
-	for (const chunk of chunkedKeys) {
-		if (signal?.aborted) {
-			throw new Error('Backup cancelled');
-		}
+	async function fetchChunk(chunk: string[]): Promise<void> {
+		if (signal?.aborted) return;
 
-		const promise = (async () => {
+		let lastError: unknown;
+		let lastReason = 'unknown';
+		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
 			if (signal?.aborted) return;
 
 			try {
 				const response = await fetchSettingsAsync(deviceId, chunk, token, { signal });
 
 				if (response.items) {
+					const returnedKeys = new Set<string>();
 					for (const item of response.items) {
 						if (item.key && item.value !== undefined) {
 							const def = SETTINGS_DEFINITIONS.find((d) => d.key === item.key);
@@ -216,35 +384,67 @@ export async function fetchAllSettings(
 									| 'Unknown'
 									| undefined
 							});
+							returnedKeys.add(item.key);
 						}
 					}
-					successCount += chunk.length;
+					// Track keys that were requested but got no value back
+					for (const key of chunk) {
+						if (!returnedKeys.has(key)) {
+							failedKeys.push({ key, reason: 'no_value_returned' });
+						}
+					}
+					successCount += returnedKeys.size;
+					return;
 				} else {
-					failCount += chunk.length;
+					lastReason = response.error ?? 'no_items_returned';
+					lastError = new Error(lastReason);
 				}
 			} catch (e: unknown) {
 				if ((e as { name?: string })?.name === 'AbortError' || signal?.aborted) {
-					// Ignore abort errors
 					return;
 				}
-				console.error(`Failed to fetch chunk for ${deviceId}`, e);
-				failCount += chunk.length;
-			} finally {
-				if (!signal?.aborted) {
-					processedCount += chunk.length;
-					onProgress?.(
-						(processedCount / totalCount) * 100,
-						`Processed ${processedCount} of ${totalCount} settings...`
-					);
-					// Small delay to let UI breathe
-					await new Promise((r) => setTimeout(r, 10));
-				}
+				lastReason = 'network_error';
+				lastError = e;
 			}
-		})();
 
-		activePromises.push(promise);
+			// Wait before retry
+			if (attempt < MAX_RETRIES) {
+				await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+			}
+		}
 
-		if (activePromises.length >= CONCURRENCY) {
+		console.error(
+			`Failed to fetch chunk for ${deviceId} after ${MAX_RETRIES + 1} attempts`,
+			lastError
+		);
+		for (const key of chunk) {
+			failedKeys.push({ key, reason: lastReason });
+		}
+	}
+
+	// Process chunks with proper concurrency limiting
+	const activePromises = new Set<Promise<void>>();
+
+	for (const chunk of chunkedKeys) {
+		if (signal?.aborted) {
+			throw new Error('Backup cancelled');
+		}
+
+		const p = fetchChunk(chunk);
+		const tracked = p.then(() => {
+			activePromises.delete(tracked);
+			if (!signal?.aborted) {
+				processedCount += chunk.length;
+				onProgress?.(
+					(processedCount / totalCount) * 100,
+					`Processed ${processedCount} of ${totalCount} settings...`
+				);
+			}
+		});
+
+		activePromises.add(tracked);
+
+		if (activePromises.size >= CONCURRENCY) {
 			await Promise.race(activePromises);
 		}
 	}
@@ -256,15 +456,13 @@ export async function fetchAllSettings(
 		throw new Error('Backup cancelled');
 	}
 
-	if (failCount > 0) {
-		onProgress?.(100, `Completed with ${failCount} errors.`);
-		// Give user time to see the error
-		await new Promise((r) => setTimeout(r, 1000));
+	if (failedKeys.length > 0) {
+		onProgress?.(100, `Completed with ${failedKeys.length} failed settings.`);
 	} else {
 		onProgress?.(100, 'Finalizing backup...');
 	}
 
-	return newValues;
+	return { settings: newValues, failedKeys };
 }
 
 export function parseSettingsBackup(json: string): DeviceSettingsBackup {

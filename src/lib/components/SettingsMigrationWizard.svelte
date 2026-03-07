@@ -118,7 +118,7 @@
 			if (!token) throw new Error('Not authenticated');
 
 			const currentValues = deviceState.deviceValues[deviceId] || {};
-			const allSettings = await fetchAllSettings(
+			const result = await fetchAllSettings(
 				deviceId,
 				v1Client,
 				token,
@@ -126,19 +126,30 @@
 				(progress, status) => {
 					deviceState.setBackupProgress(progress, status);
 				},
-				deviceState.backupState.abortController?.signal
+				deviceState.backupState.abortController?.signal,
+				deviceState.deviceSettings[deviceId]
 			);
 
 			// Update store
-			Object.entries(allSettings).forEach(([key, value]) => {
+			Object.entries(result.settings).forEach(([key, value]) => {
 				if (currentValues[key] === undefined) {
 					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
 					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
 				}
 			});
 
-			downloadSettingsBackup(deviceId, allSettings);
-			deviceState.finishBackup(true);
+			deviceState.setBackupFetchedSettings(result.settings);
+
+			if (result.failedKeys.length > 0) {
+				deviceState.finishBackup(
+					false,
+					`${result.failedKeys.length} settings could not be fetched.`,
+					result.failedKeys
+				);
+			} else {
+				downloadSettingsBackup(deviceId, result.settings);
+				deviceState.finishBackup(true);
+			}
 		} catch (e: any) {
 			if (e.message === 'Backup cancelled') {
 				deviceState.finishBackup(false, 'Backup cancelled');
@@ -153,7 +164,11 @@
 		// This is the "Download Backup" button in Step 3 (Start New flow)
 		// We already have the parsed backup in state
 		if (!ms.parsedBackup || !ms.sourceDeviceId) return;
-		downloadSettingsBackup(ms.sourceDeviceId, ms.parsedBackup.settings);
+		downloadSettingsBackup(
+			ms.sourceDeviceId,
+			ms.parsedBackup.settings,
+			ms.parsedBackup.unavailable_settings
+		);
 	}
 
 	async function handleFileUpload(e: Event) {
@@ -212,19 +227,20 @@
 			// We use fetchAllSettings which handles chunking and errors
 			const currentValues = deviceState.deviceValues[ms.targetDeviceId] || {};
 
-			const targetSettings = await fetchAllSettings(
+			const result = await fetchAllSettings(
 				ms.targetDeviceId,
 				v1Client,
 				token,
 				currentValues,
 				(progress, status) => {
 					deviceState.setMigrationStatus(`Fetching target: ${Math.round(progress)}%`);
-				}
-				// We don't support cancellation for this step yet, or we could add another controller
+				},
+				undefined,
+				deviceState.deviceSettings[ms.targetDeviceId]
 			);
 
 			// Update store with fetched values
-			Object.entries(targetSettings).forEach(([key, value]) => {
+			Object.entries(result.settings).forEach(([key, value]) => {
 				if (currentValues[key] === undefined) {
 					if (!deviceState.deviceValues[ms.targetDeviceId])
 						deviceState.deviceValues[ms.targetDeviceId] = {};
@@ -251,7 +267,7 @@
 					const label = def ? def.label : key;
 					const newVal = ms.parsedBackup!.settings[key];
 					// Use the freshly fetched settings
-					const currentVal = targetSettings[key];
+					const currentVal = result.settings[key];
 
 					// Helper to format value for comparison/display
 					const formatValue = (val: any) => {
@@ -589,11 +605,20 @@
 						<div class="space-y-6">
 							<div class="text-center">
 								<h4 class="text-lg font-medium text-white">Settings Fetched</h4>
-								<p class="text-slate-400">
-									Successfully fetched settings from {devices.find(
-										(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
-									)?.alias || ms.sourceDeviceId}.
-								</p>
+								{#if ms.error}
+									<div
+										class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-200"
+									>
+										<Info class="mt-0.5 shrink-0 text-yellow-400" size={16} />
+										<span>{ms.error}</span>
+									</div>
+								{:else}
+									<p class="text-slate-400">
+										Successfully fetched settings from {devices.find(
+											(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
+										)?.alias || ms.sourceDeviceId}.
+									</p>
+								{/if}
 							</div>
 
 							<div class="rounded-xl border border-[#334155] bg-[#1e293b]/30 p-4">
