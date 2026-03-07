@@ -245,9 +245,7 @@ export const deviceState = $state({
 				timestamp: Date.now(),
 				deviceId: this.migrationState.sourceDeviceId,
 				settings: data,
-				...(failedKeys && failedKeys.length > 0
-					? { unavailable_settings: failedKeys }
-					: {})
+				...(failedKeys && failedKeys.length > 0 ? { unavailable_settings: failedKeys } : {})
 			};
 			this.migrationState.step = 3; // Move to Target/Download
 			this.migrationState.progress = 100;
