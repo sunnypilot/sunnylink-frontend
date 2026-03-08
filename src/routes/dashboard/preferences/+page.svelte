@@ -52,35 +52,7 @@
 		}
 	});
 
-	// Integrate device settings
-	$effect(() => {
-		const deviceId = deviceState.selectedDeviceId;
-		if (deviceId && deviceState.deviceSettings[deviceId]) {
-			const deviceSettings = deviceState.deviceSettings[deviceId];
-			const currentKeys = new Set(definitions.map((d) => d.key));
-
-			let hasNew = false;
-			for (const setting of deviceSettings) {
-				if (setting.key && !currentKeys.has(setting.key)) {
-					definitions.push({
-						key: setting.key,
-						label: setting.key,
-						description: 'Unknown setting from device',
-						category: 'other',
-						advanced: false,
-						readonly: false,
-						hidden: false
-					});
-					currentKeys.add(setting.key);
-					hasNew = true;
-				}
-			}
-			if (hasNew) {
-				// Trigger reactivity if needed, though push to state array should work
-				definitions = [...definitions];
-			}
-		}
-	});
+	// Integrate device settings (Removed: logic moved to +layout.svelte for global caching)
 
 	const categories: SettingCategory[] = [
 		'device',
