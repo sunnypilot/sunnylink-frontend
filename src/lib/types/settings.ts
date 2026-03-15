@@ -48,6 +48,23 @@ export const MODEL_SETTINGS = [
 	'NeuralNetworkLateralControl'
 ];
 
+/**
+ * @deprecated Legacy settings definitions — used as fallback when the device
+ * does not provide a SettingsSchema param (older sunnypilot versions).
+ *
+ * New devices generate a SettingsSchema at runtime with panel structure,
+ * widget types, and visibility/enablement rules. The frontend uses that
+ * schema via SchemaPanel/SchemaItemRenderer when available.
+ *
+ * This array is still used by:
+ * - Legacy settings route fallback (no SettingsSchema)
+ * - getBackupKeys() fallback (no device-reported keys)
+ * - Preferences page (custom definitions editor)
+ * - Models page (type lookup for legacy value fetching)
+ *
+ * Once all devices ship with SettingsSchema, this array can be reduced to
+ * just the backup key list.
+ */
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	// Device
 	{
