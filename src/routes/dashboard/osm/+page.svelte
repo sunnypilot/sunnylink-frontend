@@ -338,8 +338,8 @@
 				<MapIcon size={24} />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-white">OpenStreetMap</h1>
-				<p class="text-slate-400">Manage offline maps</p>
+				<h1 class="text-2xl font-bold text-[var(--sl-text-1)]">OpenStreetMap</h1>
+				<p class="text-[var(--sl-text-2)]">Manage offline maps</p>
 			</div>
 		</div>
 	</div>
@@ -348,11 +348,11 @@
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
 		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="mb-4 rounded-full bg-slate-700/50 p-4">
-				<MapIcon class="h-12 w-12 text-slate-400" />
+			<div class="mb-4 rounded-full bg-[var(--sl-bg-elevated)]/50 p-4">
+				<MapIcon class="h-12 w-12 text-[var(--sl-text-2)]" />
 			</div>
-			<h3 class="text-xl font-semibold text-white">No Device Selected</h3>
-			<p class="mt-2 text-slate-400">Select a device to manage maps.</p>
+			<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
+			<p class="mt-2 text-[var(--sl-text-2)]">Select a device to manage maps.</p>
 		</div>
 	{:else if isOffline}
 		{#await data.streamed.devices then devices}
@@ -363,15 +363,15 @@
 				<div class="mb-4 rounded-full bg-red-500/10 p-4">
 					<AlertCircle class="h-12 w-12 text-red-500" />
 				</div>
-				<h3 class="text-xl font-semibold text-white">
+				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">
 					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
 					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-slate-400"
+						<span class="block text-sm font-normal text-[var(--sl-text-2)]"
 							>({selectedDevice?.device_id})</span
 						>
 					{/if}
 				</h3>
-				<p class="mt-2 max-w-md text-slate-400">Your device needs to be online to manage maps.</p>
+				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">Your device needs to be online to manage maps.</p>
 				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
 					<button
 						class="btn btn-sm btn-primary"
@@ -386,7 +386,7 @@
 					>
 						Retry Connection
 					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
+					<div class="divider text-xs tracking-widest text-[var(--sl-text-3)]">OR SELECT ANOTHER DEVICE</div>
 					{#if devices}
 						<DeviceSelector {devices} />
 					{/if}
@@ -395,20 +395,20 @@
 		{/await}
 	{:else if isCheckingStatus}
 		<div class="animate-pulse space-y-6">
-			<div class="flex items-center gap-2 text-slate-400">
+			<div class="flex items-center gap-2 text-[var(--sl-text-2)]">
 				<span class="loading loading-sm loading-spinner"></span>
 				<span>Checking device status...</span>
 			</div>
-			<div class="h-48 w-full rounded bg-slate-700"></div>
-			<div class="h-64 w-full rounded bg-slate-700"></div>
+			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
+			<div class="h-64 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 		</div>
 	{:else}
 		<div class="space-y-6">
 			{#if loadingOsmParams && !isDownloading && !hasMap}
-				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-12 backdrop-blur-sm">
+				<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-12 backdrop-blur-sm">
 					<div class="flex flex-col items-center justify-center text-center">
 						<Loader2 size={32} class="animate-spin text-indigo-400" />
-						<p class="mt-4 text-sm text-slate-400">Fetching map details...</p>
+						<p class="mt-4 text-sm text-[var(--sl-text-2)]">Fetching map details...</p>
 					</div>
 				</div>
 			{:else if hasMap || isDownloading}
@@ -437,14 +437,14 @@
 						<div class="flex items-start justify-between gap-4">
 							<div>
 								{#if isDownloading && !currentCountryTitle}
-									<h3 class="text-lg font-bold text-white">Downloading Map...</h3>
-									<p class="mt-1 text-sm font-medium text-slate-400">Please wait...</p>
+									<h3 class="text-lg font-bold text-[var(--sl-text-1)]">Downloading Map...</h3>
+									<p class="mt-1 text-sm font-medium text-[var(--sl-text-2)]">Please wait...</p>
 								{:else}
-									<h3 class="text-lg font-bold text-white">
+									<h3 class="text-lg font-bold text-[var(--sl-text-1)]">
 										{currentCountryTitle || currentCountryName || 'Unknown Location'}
 									</h3>
 									{#if currentStateTitle || currentStateName}
-										<p class="mt-1 text-sm font-medium text-slate-400">
+										<p class="mt-1 text-sm font-medium text-[var(--sl-text-2)]">
 											{currentStateTitle || currentStateName}
 										</p>
 									{/if}
@@ -471,7 +471,7 @@
 
 						<div class="mt-6 flex flex-col gap-3 sm:flex-row">
 							<button
-								class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-white/40"
+								class="btn w-full border-none bg-indigo-600 text-sm font-medium text-[var(--sl-text-1)] transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-[var(--sl-text-1)]/40"
 								onclick={handleCheckForUpdates}
 								disabled={isDownloading}
 							>
@@ -483,20 +483,20 @@
 				</div>
 			{:else}
 				<!-- Empty State -->
-				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 backdrop-blur-sm">
+				<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 backdrop-blur-sm">
 					<div class="flex flex-col items-center justify-center text-center">
-						<div class="mb-3 rounded-full bg-slate-800 p-3">
-							<MapIcon class="h-6 w-6 text-slate-500" />
+						<div class="mb-3 rounded-full bg-[var(--sl-bg-surface)] p-3">
+							<MapIcon class="h-6 w-6 text-[var(--sl-text-3)]" />
 						</div>
-						<p class="text-sm text-slate-400">No offline map downloaded on this device</p>
+						<p class="text-sm text-[var(--sl-text-2)]">No offline map downloaded on this device</p>
 					</div>
 				</div>
 			{/if}
 
 			<!-- Configuration/Download Form -->
-			<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 backdrop-blur-sm">
+			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 backdrop-blur-sm">
 				<div class="mb-6 flex items-center justify-between">
-					<h3 class="font-medium text-white">Download New Map</h3>
+					<h3 class="font-medium text-[var(--sl-text-1)]">Download New Map</h3>
 				</div>
 
 				<div class="space-y-4">
@@ -524,7 +524,7 @@
 
 					<div class="flex flex-col gap-3 pt-4 sm:flex-row">
 						<button
-							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-white/40"
+							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-[var(--sl-text-1)] transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-[var(--sl-text-1)]/40"
 							disabled={!selectedCountry ||
 								(selectedCountry === 'US' && !selectedState) ||
 								isDownloading}
@@ -549,7 +549,7 @@
 							State selection is required for US maps
 						</p>
 					{/if}
-					<p class="text-xs text-slate-500">
+					<p class="text-xs text-[var(--sl-text-3)]">
 						Map downloads can be large (up to several GB). Wi-Fi connection is recommended.
 					</p>
 				</div>

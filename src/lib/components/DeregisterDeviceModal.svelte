@@ -130,7 +130,7 @@
 
 		<!-- Modal Content -->
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-red-500/20 bg-[#0f1726] shadow-2xl"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-red-500/20 bg-[var(--sl-bg-input)] shadow-2xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			<!-- Header -->
@@ -140,10 +140,10 @@
 						<div class="rounded-full bg-red-500/10 p-2">
 							<AlertTriangle size={24} />
 						</div>
-						<h3 class="text-xl font-bold text-white">Deregister Device</h3>
+						<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Deregister Device</h3>
 					</div>
 					<button
-						class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
+						class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)] disabled:opacity-50"
 						onclick={close}
 						disabled={isProcessing}
 					>
@@ -158,14 +158,14 @@
 					<div class="space-y-6">
 						<div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
 							<p class="font-bold text-red-400">WARNING: IRREVERSIBLE ACTION</p>
-							<p class="mt-2 text-sm text-slate-300">
+							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
 								You are about to permanently deregister this device.
-								<span class="font-bold text-white"
+								<span class="font-bold text-[var(--sl-text-1)]"
 									>All historical data and backups associated with this device ID will be
 									permanently inaccessible.</span
 								>
 							</p>
-							<p class="mt-2 text-sm text-slate-300">
+							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
 								This action cannot be undone. You should only do this if you are selling or
 								returning your device.
 							</p>
@@ -179,12 +179,12 @@
 								</div>
 								<div>
 									<h4 class="font-bold text-blue-400">Recommended: Backup Settings</h4>
-									<p class="mt-1 text-sm text-slate-300">
+									<p class="mt-1 text-sm text-[var(--sl-text-2)]">
 										Before deregistering, download a backup of your settings so you can restore them
 										to a new device later.
 									</p>
 									<button
-										class="btn mt-3 border-blue-500/30 text-blue-400 btn-outline btn-sm hover:border-blue-500 hover:bg-blue-500 hover:text-white"
+										class="btn mt-3 border-blue-500/30 text-blue-400 btn-outline btn-sm hover:border-blue-500 hover:bg-blue-500 hover:text-[var(--sl-text-1)]"
 										onclick={() => {
 											if (deviceState.deviceValues[deviceId]) {
 												downloadSettingsBackup(deviceId, deviceState.deviceValues[deviceId]);
@@ -207,9 +207,9 @@
 									class="checkbox rounded-md border-slate-500 bg-transparent checkbox-error transition-all hover:border-red-400"
 								/>
 								<span
-									class="pt-0.5 text-sm text-slate-300 transition-colors group-hover:text-white"
+									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
 								>
-									I understand this action <span class="font-bold text-white">cannot be undone</span
+									I understand this action <span class="font-bold text-[var(--sl-text-1)]">cannot be undone</span
 									>.
 								</span>
 							</label>
@@ -220,7 +220,7 @@
 									class="checkbox rounded-md border-slate-500 bg-transparent checkbox-error transition-all hover:border-red-400"
 								/>
 								<span
-									class="pt-0.5 text-sm text-slate-300 transition-colors group-hover:text-white"
+									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
 								>
 									I am going to gift, sell, or return this device.
 								</span>
@@ -228,19 +228,19 @@
 						</div>
 
 						<div class="space-y-2 pt-2">
-							<label for="confirmation" class="text-sm font-medium text-slate-400">
+							<label for="confirmation" class="text-sm font-medium text-[var(--sl-text-2)]">
 								Type the Sunnylink ID to confirm:
 							</label>
 
 							<!-- Copyable ID -->
 							<button
-								class="group mb-2 flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-3 transition-all hover:border-slate-600 hover:bg-slate-800"
+								class="group mb-2 flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/50 p-3 transition-all hover:border-slate-600 hover:bg-[var(--sl-bg-surface)]"
 								onclick={copyId}
 								title="Click to copy ID"
 							>
-								<span class="font-mono font-bold tracking-wide text-white">{deviceId}</span>
+								<span class="font-mono font-bold tracking-wide text-[var(--sl-text-1)]">{deviceId}</span>
 								<span
-									class="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-300 transition-colors group-hover:bg-slate-600 group-hover:text-white"
+									class="rounded bg-[var(--sl-bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--sl-text-2)] transition-colors group-hover:bg-slate-600 group-hover:text-[var(--sl-text-1)]"
 								>
 									{copied ? 'Copied!' : 'Click to Copy'}
 								</span>
@@ -250,18 +250,18 @@
 								id="confirmation"
 								type="text"
 								bind:value={confirmationInput}
-								class="input w-full border-slate-700 bg-slate-900 text-white placeholder-slate-600 focus:border-red-500 focus:outline-none"
+								class="input w-full border-[var(--sl-border)] bg-slate-900 text-[var(--sl-text-1)] placeholder-slate-600 focus:border-red-500 focus:outline-none"
 								placeholder={deviceId}
 								autocomplete="off"
 							/>
 						</div>
 
 						<div class="flex items-center justify-end gap-3 pt-2">
-							<button class="btn text-slate-400 btn-ghost hover:text-white" onclick={close}>
+							<button class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]" onclick={close}>
 								Cancel
 							</button>
 							<button
-								class="btn border-none bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+								class="btn border-none bg-red-600 text-[var(--sl-text-1)] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={confirmationInput !== deviceId || !checkedUndone || !checkedReason}
 								onclick={handleFirstConfirmation}
 							>
@@ -273,38 +273,38 @@
 				{:else if step === 2}
 					<div class="space-y-6">
 						<div class="space-y-4">
-							<p class="text-lg font-medium text-white">
+							<p class="text-lg font-medium text-[var(--sl-text-1)]">
 								Please double check you are deleting the correct device:
 							</p>
 
-							<div class="space-y-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
+							<div class="space-y-3 rounded-xl border border-[var(--sl-border)]/50 bg-[var(--sl-bg-surface)]/50 p-4">
 								{#if alias && alias !== deviceId}
-									<div class="flex flex-col gap-1 border-b border-slate-700/50 pb-2">
-										<span class="text-xs font-bold tracking-wider text-slate-500 uppercase"
+									<div class="flex flex-col gap-1 border-b border-[var(--sl-border)]/50 pb-2">
+										<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase"
 											>Device Alias</span
 										>
-										<span class="text-2xl font-bold text-white">{alias}</span>
+										<span class="text-2xl font-bold text-[var(--sl-text-1)]">{alias}</span>
 									</div>
 								{/if}
 
 								<div class="flex items-center justify-between">
-									<span class="text-slate-400">Sunnylink ID</span>
-									<span class="rounded bg-slate-900/50 px-2 py-1 font-mono text-white"
+									<span class="text-[var(--sl-text-2)]">Sunnylink ID</span>
+									<span class="rounded bg-slate-900/50 px-2 py-1 font-mono text-[var(--sl-text-1)]"
 										>{deviceId}</span
 									>
 								</div>
 								<div class="flex justify-between">
-									<span class="text-slate-400">Paired Date</span>
-									<span class="text-white">{formatDate(pairedAt)}</span>
+									<span class="text-[var(--sl-text-2)]">Paired Date</span>
+									<span class="text-[var(--sl-text-1)]">{formatDate(pairedAt)}</span>
 								</div>
 								<div class="flex items-center justify-between">
-									<span class="text-slate-400">Status</span>
+									<span class="text-[var(--sl-text-2)]">Status</span>
 									{#if isOnline}
 										<span class="flex items-center gap-1.5 font-medium text-emerald-400">
 											<Wifi size={14} /> Online
 										</span>
 									{:else}
-										<span class="flex items-center gap-1.5 font-medium text-slate-400">
+										<span class="flex items-center gap-1.5 font-medium text-[var(--sl-text-2)]">
 											<WifiOff size={14} /> Offline
 										</span>
 									{/if}
@@ -322,14 +322,14 @@
 
 						<div class="flex items-center justify-end gap-3 pt-2">
 							<button
-								class="btn text-slate-400 btn-ghost hover:text-white disabled:opacity-50"
+								class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)] disabled:opacity-50"
 								onclick={() => (step = 1)}
 								disabled={isProcessing}
 							>
 								Back
 							</button>
 							<button
-								class="btn border-none bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+								class="btn border-none bg-red-600 text-[var(--sl-text-1)] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={isProcessing || fatalError}
 								onclick={handleFinalDeregister}
 							>

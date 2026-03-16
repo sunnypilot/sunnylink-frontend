@@ -696,8 +696,8 @@
 <div class="space-y-6">
 	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
 		<div>
-			<h1 class="text-2xl font-bold text-white">Models</h1>
-			<p class="text-slate-400">
+			<h1 class="text-2xl font-bold text-[var(--sl-text-1)]">Models</h1>
+			<p class="text-[var(--sl-text-2)]">
 				Manage and switch driving models & related settings for your device.
 			</p>
 		</div>
@@ -717,7 +717,7 @@
 			</button>
 			{#if currentModelShortName !== undefined && (!loadingModels || modelList)}
 				<button
-					class="btn border-slate-700 bg-slate-800 text-slate-200 transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
+					class="btn border-[var(--sl-border)] bg-[var(--sl-bg-surface)] text-[var(--sl-text-1)] transition-all btn-md hover:border-[var(--sl-border-emphasis)] hover:bg-[var(--sl-bg-elevated)] active:scale-95 disabled:opacity-50"
 					onclick={() => (resetModalOpen = true)}
 					disabled={sendingModel || clearingCache || loadingModels || !isOffroad}
 				>
@@ -736,10 +736,10 @@
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
 		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="mb-4 rounded-full bg-slate-700/50 p-4">
+			<div class="mb-4 rounded-full bg-[var(--sl-bg-elevated)]/50 p-4">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="h-12 w-12 text-slate-400"
+					class="h-12 w-12 text-[var(--sl-text-2)]"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -752,8 +752,8 @@
 					/>
 				</svg>
 			</div>
-			<h3 class="text-xl font-semibold text-white">No Device Selected</h3>
-			<p class="mt-2 text-slate-400">Select a device to view available models.</p>
+			<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
+			<p class="mt-2 text-[var(--sl-text-2)]">Select a device to view available models.</p>
 		</div>
 	{:else if isOffline}
 		{#await data.streamed.devices then devices}
@@ -777,15 +777,15 @@
 						/>
 					</svg>
 				</div>
-				<h3 class="text-xl font-semibold text-white">
+				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">
 					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
 					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-slate-400"
+						<span class="block text-sm font-normal text-[var(--sl-text-2)]"
 							>({selectedDevice?.device_id})</span
 						>
 					{/if}
 				</h3>
-				<p class="mt-2 max-w-md text-slate-400">
+				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
 					Your device needs to be online to fetch and manage models.
 				</p>
 				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
@@ -802,7 +802,7 @@
 					>
 						Retry Connection
 					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
+					<div class="divider text-xs tracking-widest text-[var(--sl-text-3)]">OR SELECT ANOTHER DEVICE</div>
 					{#if devices}
 						<DeviceSelector {devices} />
 					{/if}
@@ -812,13 +812,13 @@
 	{:else if (loadingModels || isCheckingStatus) && !modelList}
 		<div class="animate-pulse space-y-6">
 			{#if isCheckingStatus}
-				<div class="flex items-center gap-2 text-slate-400">
+				<div class="flex items-center gap-2 text-[var(--sl-text-2)]">
 					<span class="loading loading-sm loading-spinner"></span>
 					<span>Checking device status...</span>
 				</div>
 			{/if}
-			<div class="h-12 w-full rounded bg-slate-700"></div>
-			<div class="h-48 w-full rounded bg-slate-700"></div>
+			<div class="h-12 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
+			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 		</div>
 	{:else if isError}
 		{#await data.streamed.devices then devices}
@@ -830,8 +830,8 @@
 					<!-- AlertTriangle is already imported -->
 					<AlertTriangle class="h-12 w-12 text-amber-500" />
 				</div>
-				<h3 class="text-xl font-semibold text-white">Connection Error</h3>
-				<p class="mt-2 max-w-md text-slate-400">
+				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">Connection Error</h3>
+				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
 					{deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] ||
 						'Failed to connect to device.'}
 				</p>
@@ -849,7 +849,7 @@
 					>
 						Retry Connection
 					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
+					<div class="divider text-xs tracking-widest text-[var(--sl-text-3)]">OR SELECT ANOTHER DEVICE</div>
 					{#if devices}
 						<DeviceSelector {devices} />
 					{/if}
@@ -859,11 +859,11 @@
 	{:else}
 		<div class="space-y-6">
 			{#if currentModel}
-				<div class="overflow-hidden rounded-xl border border-violet-500/30 bg-violet-500/5">
-					<div class="border-b border-violet-500/20 bg-violet-500/10 px-4 py-3">
+				<div class="overflow-hidden rounded-xl border border-primary/30 bg-[var(--sl-accent-muted)]">
+					<div class="border-b border-primary/20 bg-primary/10 px-4 py-3">
 						<div class="flex items-center gap-2">
-							<Smartphone size={16} class="text-violet-400" />
-							<span class="text-xs font-bold tracking-wider text-violet-300 uppercase">
+							<Smartphone size={16} class="text-primary" />
+							<span class="text-xs font-bold tracking-wider text-primary uppercase">
 								Active On Device
 							</span>
 						</div>
@@ -871,23 +871,23 @@
 					<div class="p-4">
 						<div class="flex items-start justify-between gap-4">
 							<div>
-								<h3 class="text-lg font-bold text-white">{currentModel.display_name}</h3>
+								<h3 class="text-lg font-bold text-[var(--sl-text-1)]">{currentModel.display_name}</h3>
 								<code
-									class="mt-1 inline-block rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-xs text-violet-300"
+									class="mt-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs text-primary"
 								>
 									{currentModel.short_name}
 								</code>
 							</div>
 							{#if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
 								<div
-									class="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-200"
+									class="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-500"
 								>
-									<span class="loading loading-xs loading-spinner text-blue-400"></span>
+									<span class="loading loading-xs loading-spinner text-blue-500"></span>
 									Downloading...
 								</div>
 							{:else}
 								<div
-									class="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-200"
+									class="rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-[var(--sl-text-1)]"
 								>
 									Active
 								</div>
@@ -895,20 +895,20 @@
 						</div>
 						<div class="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
 							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Environment</span>
-								<span class="text-slate-300">{currentModel.environment}</span>
+								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Environment</span>
+								<span class="text-[var(--sl-text-2)]">{currentModel.environment}</span>
 							</div>
 							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Generation</span>
-								<span class="text-slate-300">{currentModel.generation ?? 'N/A'}</span>
+								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Generation</span>
+								<span class="text-[var(--sl-text-2)]">{currentModel.generation ?? 'N/A'}</span>
 							</div>
 							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Runner</span>
-								<span class="text-slate-300">{currentModel.runner ?? 'N/A'}</span>
+								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Runner</span>
+								<span class="text-[var(--sl-text-2)]">{currentModel.runner ?? 'N/A'}</span>
 							</div>
 							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Build Date</span>
-								<span class="text-slate-300">
+								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Build Date</span>
+								<span class="text-[var(--sl-text-2)]">
 									{currentModel.build_time
 										? new Date(currentModel.build_time).toLocaleDateString()
 										: 'N/A'}
@@ -918,14 +918,189 @@
 					</div>
 				</div>
 
+			{/if}
+
+			<div class="space-y-3">
+				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+					<div class="label px-0">
+						<span
+							class="label-text text-sm font-semibold tracking-[0.28em] text-[var(--sl-text-2)] uppercase"
+							>Available Models</span
+						>
+					</div>
+					<div
+						class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
+					>
+						<button
+							type="button"
+							class="btn border-[var(--sl-border)] bg-[var(--sl-bg-surface)] text-[var(--sl-text-1)] btn-ghost transition-all btn-md hover:border-[var(--sl-border-emphasis)] hover:bg-[var(--sl-bg-elevated)] active:scale-95 disabled:opacity-50"
+							onclick={refreshModels}
+							disabled={loadingModels}
+							aria-label="Fetch Latest"
+						>
+							<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
+							Fetch Latest
+						</button>
+						<div class="relative w-full">
+							<input
+								type="text"
+								placeholder="Search models..."
+								class="input input-md w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] pr-9 pl-10 text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+								bind:value={searchQuery}
+							/>
+							<div
+								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
+							>
+								<Search size={14} class="text-[var(--sl-text-3)]" />
+							</div>
+							{#if searchQuery}
+								<button
+									type="button"
+									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+									onclick={() => {
+										searchQuery = '';
+									}}
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</button>
+							{/if}
+						</div>
+					</div>
+				</div>
+
+				<div class="relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
+					{#if loadingModels && modelList}
+						<div
+							class="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-[1px]"
+							transition:fade={{ duration: 200 }}
+						>
+							<span class="loading loading-lg loading-spinner text-primary"></span>
+						</div>
+					{/if}
+					{#if loadingModels && !modelList}
+						<div class="p-6 text-center text-[var(--sl-text-3)]">
+							<span class="loading loading-spinner text-primary"></span>
+						</div>
+					{:else if groupedModels.length === 0 && searchQuery}
+						<div class="p-6 text-center text-[var(--sl-text-3)]">
+							No models available matching "{searchQuery}"
+						</div>
+					{:else}
+						<div>
+							{#each groupedModels as group (group.name)}
+								<div class="border-b border-[var(--sl-border-muted)] last:border-0">
+									<button
+										class="flex w-full items-center gap-3 bg-[var(--sl-bg-surface)]/80 px-4 py-3 text-left transition-colors hover:bg-[var(--sl-bg-surface)] focus:outline-none"
+										onclick={() => toggleFolder(group.name)}
+									>
+										<ChevronRight
+											size={16}
+											class="text-[var(--sl-text-2)] transition-transform duration-200 {openFolders[
+												group.name
+											]
+												? 'rotate-90'
+												: ''}"
+										/>
+										{#if group.name === 'Favorites'}
+											<Star size={16} class="fill-amber-400 text-amber-400" />
+										{:else}
+											<Folder size={16} class="text-primary" />
+										{/if}
+										<div class="flex items-center gap-2">
+											<span class="font-medium text-[var(--sl-text-1)]">{group.name}</span>
+											{#if getFolderExplanation(group.name)}
+												<div
+													class="tooltip tooltip-right flex items-center"
+													data-tip={getFolderExplanation(group.name)}
+												>
+													<CircleHelp
+														size={14}
+														class="text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+													/>
+												</div>
+											{/if}
+										</div>
+										<span
+											class="ml-auto rounded-full bg-[var(--sl-bg-elevated)]/50 px-2 py-0.5 text-xs text-[var(--sl-text-2)]"
+										>
+											{group.models.length}
+										</span>
+									</button>
+
+									{#if openFolders[group.name]}
+										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
+											{#each group.models as model (model.short_name)}
+												<div
+													class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-[var(--sl-bg-surface)]/50 {selectedModelShortName ===
+													model.short_name
+														? 'bg-primary/10 hover:bg-primary/20'
+														: ''}"
+												>
+													{#if selectedModelShortName === model.short_name}
+														<div
+															class="absolute top-0 left-0 h-full w-0.5 bg-primary shadow-[0_0_10px_rgba(89,74,226,0.3)]"
+														></div>
+													{/if}
+
+													<button
+														class="flex flex-1 items-center gap-3 py-1 text-left focus:outline-none"
+														onclick={() => (selectedModelShortName = model.short_name)}
+													>
+														<span
+															class="text-sm font-medium transition-colors {selectedModelShortName ===
+															model.short_name
+																? 'text-[var(--sl-text-1)]'
+																: 'text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]'}"
+														>
+															{model.display_name}
+														</span>
+													</button>
+
+													<div class="flex items-center gap-3">
+														<button
+															class="p-1.5 text-[var(--sl-text-3)] transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
+															updatingFavShortName === model.short_name
+																? 'animate-pulse-slow'
+																: ''}"
+															onclick={(e) => toggleFavorite(model, e)}
+															disabled={updatingFavShortName !== null}
+															title={favorites.has(model.ref)
+																? 'Remove from Favorites'
+																: 'Add to Favorites'}
+														>
+															<Star
+																size={16}
+																class={favorites.has(model.ref)
+																	? 'fill-amber-400 text-amber-400'
+																	: ''}
+															/>
+														</button>
+
+														{#if selectedModelShortName === model.short_name}
+															<Check size={16} class="text-primary" />
+														{/if}
+													</div>
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			{#if currentModel}
 				<div class="space-y-3">
 					<div class="label px-0">
 						<span
-							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
+							class="label-text text-sm font-semibold tracking-[0.28em] text-[var(--sl-text-2)] uppercase"
 							>Model Settings</span
 						>
 					</div>
-					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+					<div class="flex flex-col gap-3">
 						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
 							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={cameraOffsetParam} />
 						{/if}
@@ -955,178 +1130,6 @@
 					</div>
 				</div>
 			{/if}
-
-			<div class="space-y-3">
-				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-					<div class="label px-0">
-						<span
-							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
-							>Available Models</span
-						>
-					</div>
-					<div
-						class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
-					>
-						<button
-							type="button"
-							class="btn border-slate-700 bg-slate-800 text-slate-200 btn-ghost transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
-							onclick={refreshModels}
-							disabled={loadingModels}
-							aria-label="Fetch Latest"
-						>
-							<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
-							Fetch Latest
-						</button>
-						<div class="relative w-full">
-							<input
-								type="text"
-								placeholder="Search models..."
-								class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
-								bind:value={searchQuery}
-							/>
-							<div
-								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
-							>
-								<Search size={14} class="text-slate-500" />
-							</div>
-							{#if searchQuery}
-								<button
-									type="button"
-									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
-									onclick={() => {
-										searchQuery = '';
-									}}
-									aria-label="Clear search"
-								>
-									<X size={14} />
-								</button>
-							{/if}
-						</div>
-					</div>
-				</div>
-
-				<div class="relative overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
-					{#if loadingModels && modelList}
-						<div
-							class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/50 backdrop-blur-[1px]"
-							transition:fade={{ duration: 200 }}
-						>
-							<span class="loading loading-lg loading-spinner text-violet-500"></span>
-						</div>
-					{/if}
-					{#if loadingModels && !modelList}
-						<div class="p-6 text-center text-slate-500">
-							<span class="loading loading-spinner text-violet-500"></span>
-						</div>
-					{:else if groupedModels.length === 0 && searchQuery}
-						<div class="p-6 text-center text-slate-500">
-							No models available matching "{searchQuery}"
-						</div>
-					{:else}
-						<div class="custom-scrollbar max-h-[calc(100vh-250px)] overflow-y-auto">
-							{#each groupedModels as group (group.name)}
-								<div class="border-b border-slate-700/50 last:border-0">
-									<button
-										class="flex w-full items-center gap-3 bg-slate-800/80 px-4 py-3 text-left transition-colors hover:bg-slate-800 focus:outline-none"
-										onclick={() => toggleFolder(group.name)}
-									>
-										<ChevronRight
-											size={16}
-											class="text-slate-400 transition-transform duration-200 {openFolders[
-												group.name
-											]
-												? 'rotate-90'
-												: ''}"
-										/>
-										{#if group.name === 'Favorites'}
-											<Star size={16} class="fill-amber-400 text-amber-400" />
-										{:else}
-											<Folder size={16} class="text-violet-400" />
-										{/if}
-										<div class="flex items-center gap-2">
-											<span class="font-medium text-slate-200">{group.name}</span>
-											{#if getFolderExplanation(group.name)}
-												<div
-													class="tooltip tooltip-right flex items-center"
-													data-tip={getFolderExplanation(group.name)}
-												>
-													<CircleHelp
-														size={14}
-														class="text-slate-500 transition-colors hover:text-slate-300"
-													/>
-												</div>
-											{/if}
-										</div>
-										<span
-											class="ml-auto rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400"
-										>
-											{group.models.length}
-										</span>
-									</button>
-
-									{#if openFolders[group.name]}
-										<div transition:slide={{ duration: 200 }} class="bg-slate-900/50">
-											{#each group.models as model (model.short_name)}
-												<div
-													class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-slate-800/50 {selectedModelShortName ===
-													model.short_name
-														? 'bg-violet-500/10 hover:bg-violet-500/20'
-														: ''}"
-												>
-													{#if selectedModelShortName === model.short_name}
-														<div
-															class="absolute top-0 left-0 h-full w-0.5 bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-														></div>
-													{/if}
-
-													<button
-														class="flex flex-1 items-center gap-3 py-1 text-left focus:outline-none"
-														onclick={() => (selectedModelShortName = model.short_name)}
-													>
-														<span
-															class="text-sm font-medium transition-colors {selectedModelShortName ===
-															model.short_name
-																? 'text-violet-200'
-																: 'text-slate-400 group-hover:text-slate-200'}"
-														>
-															{model.display_name}
-														</span>
-													</button>
-
-													<div class="flex items-center gap-3">
-														<button
-															class="p-1.5 text-slate-500 transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
-															updatingFavShortName === model.short_name
-																? 'animate-pulse-slow'
-																: ''}"
-															onclick={(e) => toggleFavorite(model, e)}
-															disabled={updatingFavShortName !== null}
-															title={favorites.has(model.ref)
-																? 'Remove from Favorites'
-																: 'Add to Favorites'}
-														>
-															<Star
-																size={16}
-																class={favorites.has(model.ref)
-																	? 'fill-amber-400 text-amber-400'
-																	: ''}
-															/>
-														</button>
-
-														{#if selectedModelShortName === model.short_name}
-															<Check size={16} class="text-violet-400" />
-														{/if}
-													</div>
-												</div>
-											{/each}
-										</div>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			</div>
 		</div>
 
 		{#if selectedModel}
@@ -1146,10 +1149,10 @@
 				transition:fly={{ y: 20, duration: 300 }}
 			>
 				<div
-					class="relative overflow-hidden rounded-xl border border-slate-700 bg-[#0f1726] p-6 shadow-2xl"
+					class="relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-page)] p-6 shadow-2xl"
 				>
 					<button
-						class="absolute top-4 right-4 text-slate-400 hover:text-white"
+						class="absolute top-4 right-4 text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
 						onclick={() => (selectedModelShortName = undefined)}
 					>
 						<X size={20} />
@@ -1157,11 +1160,11 @@
 
 					<div class="mb-6">
 						<div class="flex items-center justify-between gap-4">
-							<h3 class="text-2xl font-bold text-white">
+							<h3 class="text-2xl font-bold text-[var(--sl-text-1)]">
 								{selectedModel.display_name}
 							</h3>
 							<button
-								class="rounded-full p-2 text-slate-400 transition-all hover:bg-slate-800 hover:text-amber-400 active:scale-95 disabled:opacity-50 {updatingFavShortName &&
+								class="rounded-full p-2 text-[var(--sl-text-2)] transition-all hover:bg-[var(--sl-bg-surface)] hover:text-amber-400 active:scale-95 disabled:opacity-50 {updatingFavShortName &&
 								updatingFavShortName === selectedModel.short_name
 									? 'animate-pulse-slow'
 									: ''}"
@@ -1179,7 +1182,7 @@
 						</div>
 
 						<div class="mt-2">
-							<code class="rounded bg-slate-800 px-2 py-1 font-mono text-xs text-violet-300">
+							<code class="rounded bg-[var(--sl-bg-surface)] px-2 py-1 font-mono text-xs text-primary">
 								{selectedModel.short_name}
 							</code>
 						</div>
@@ -1187,16 +1190,16 @@
 
 					<div class="mb-8 grid grid-cols-2 gap-6">
 						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">
 								Environment
 							</div>
-							<div class="mt-1 text-sm text-slate-200">{selectedModel.environment}</div>
+							<div class="mt-1 text-sm text-[var(--sl-text-1)]">{selectedModel.environment}</div>
 						</div>
 						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">
 								Build Date
 							</div>
-							<div class="mt-1 text-sm text-slate-200">
+							<div class="mt-1 text-sm text-[var(--sl-text-1)]">
 								{selectedModel.build_time
 									? new Date(selectedModel.build_time).toLocaleDateString(undefined, {
 											year: 'numeric',
@@ -1207,14 +1210,14 @@
 							</div>
 						</div>
 						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">Runner</div>
-							<div class="mt-1 text-sm text-slate-200">{selectedModel.runner ?? 'Unknown'}</div>
+							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">Runner</div>
+							<div class="mt-1 text-sm text-[var(--sl-text-1)]">{selectedModel.runner ?? 'Unknown'}</div>
 						</div>
 						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">
 								Generation
 							</div>
-							<div class="mt-1 text-sm text-slate-200">
+							<div class="mt-1 text-sm text-[var(--sl-text-1)]">
 								{selectedModel.generation ?? 'Unknown'}
 							</div>
 						</div>
@@ -1225,8 +1228,8 @@
 							<div class="flex items-start gap-3">
 								<ShieldAlert class="mt-0.5 shrink-0 text-amber-500" size={20} />
 								<div class="space-y-2">
-									<p class="text-sm font-medium text-amber-200">Device is Onroad</p>
-									<p class="text-xs text-amber-200/80">Models cannot be changed while driving.</p>
+									<p class="text-sm font-medium text-amber-500">Device is Onroad</p>
+									<p class="text-xs text-amber-500/80">Models cannot be changed while driving.</p>
 									<div class="flex flex-wrap gap-3">
 										<button
 											class="text-xs font-semibold text-amber-500 underline decoration-amber-500/50 underline-offset-2 hover:text-amber-400"
@@ -1235,7 +1238,7 @@
 											Force Offroad Mode
 										</button>
 										<button
-											class="text-xs font-semibold text-slate-400 underline decoration-slate-500/50 underline-offset-2 hover:text-slate-300"
+											class="text-xs font-semibold text-[var(--sl-text-2)] underline decoration-[var(--sl-text-3)]/50 underline-offset-2 hover:text-[var(--sl-text-2)]"
 											onclick={recheckStatus}
 										>
 											Recheck Status
@@ -1248,13 +1251,13 @@
 
 					<div class="flex gap-3">
 						<button
-							class="btn flex-1 border-[#334155] bg-[#1e293b] text-white hover:bg-[#334155]"
+							class="btn flex-1 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => (selectedModelShortName = undefined)}
 						>
 							Cancel
 						</button>
 						<button
-							class="btn flex-[2] border-violet-500 bg-violet-600 text-white hover:border-violet-600 hover:bg-violet-700"
+							class="btn flex-[2] border-primary bg-primary text-[var(--sl-text-1)] hover:border-primary hover:bg-primary/80"
 							onclick={sendModelToDevice}
 							disabled={sendingModel || !selectedModel || !isOffroad}
 						>

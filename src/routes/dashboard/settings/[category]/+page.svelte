@@ -349,63 +349,47 @@
 	}
 </script>
 
-<div class="space-y-6" class:pb-16={hasChanges && !useSchema}>
-	<div class="flex items-center justify-between">
-		<div>
-			{#if activeSubPanel}
-				<button
-					class="mb-2 flex items-center gap-1 text-sm text-slate-400 hover:text-white"
-					onclick={closeSubPanel}
+<div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
+	<!-- ── Page Header ──────────────────────────────────────────────────── -->
+	<div class="mx-auto w-full max-w-2xl">
+		{#if activeSubPanel}
+			<button
+				class="mb-1 flex items-center gap-1 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
+				onclick={closeSubPanel}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
-					>
-					Back to {schemaPanel?.label ?? category}
-				</button>
-				<h2 class="text-2xl font-bold text-white">
-					{activeSubPanel.label}
-				</h2>
-			{:else}
-				<h2 class="text-2xl font-bold text-white capitalize">
-					{schemaPanel?.label ?? category} Settings
-					{#if loadingValues}
-						<span class="ml-2 text-sm font-normal text-slate-400">{loadingProgress}</span>
-					{/if}
-				</h2>
-			{/if}
-			<p class="text-slate-400">
-				{#if deviceId}
-					{@const device = devices.find((d) => d.device_id === deviceId)}
-					{@const alias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId}
-					Configuring
-					{#if alias && alias !== deviceId}
-						<span class="font-bold text-white">{alias}</span>
-						<span class="text-sm italic">({deviceId})</span>
-					{:else}
-						<span class="font-bold text-white">{deviceId}</span>
-					{/if}
-				{:else}
-					Select a device to configure settings
+				{schemaPanel?.label ?? category}
+			</button>
+			<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">
+				{activeSubPanel.label}
+			</h2>
+		{:else}
+			<h2 class="text-lg font-semibold text-[var(--sl-text-1)] capitalize">
+				{schemaPanel?.label ?? category}
+				{#if loadingValues}
+					<span class="loading loading-spinner loading-xs ml-2 text-primary"></span>
 				{/if}
-			</p>
-		</div>
+			</h2>
+		{/if}
 	</div>
 
 	{#if !deviceId}
 		{#await data.streamed.devices then devices}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-slate-800 p-4">
+				<div class="mb-4 rounded-full bg-[var(--sl-border)] p-4">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						class="h-12 w-12 text-slate-400"
+						class="h-12 w-12 text-[var(--sl-text-2)]"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -418,8 +402,8 @@
 						/>
 					</svg>
 				</div>
-				<h3 class="text-xl font-semibold text-white">No Device Selected</h3>
-				<p class="mt-2 max-w-md text-slate-400">
+				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
+				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
 					Please select a device to configure its settings.
 				</p>
 				<div class="mt-6">
@@ -451,15 +435,15 @@
 						/>
 					</svg>
 				</div>
-				<h3 class="text-xl font-semibold text-white">
+				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">
 					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
 					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-slate-400"
+						<span class="block text-sm font-normal text-[var(--sl-text-2)]"
 							>({selectedDevice?.device_id})</span
 						>
 					{/if}
 				</h3>
-				<p class="mt-2 max-w-md text-slate-400">
+				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
 					This device appears to be offline. Please check its connectivity and try again.
 				</p>
 				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
@@ -488,12 +472,12 @@
 			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>
 	{:else if useSchema && schemaPanel}
-		<!-- ═══ Schema-driven rendering (centered narrow column) ═══ -->
+		<!-- ═══ Schema-driven rendering (centered narrow column, grouped cards) ═══ -->
 		<div class="mx-auto w-full max-w-2xl">
 			{#if activeSubPanel}
-				<div class="flex flex-col gap-2">
-					{#each activeSubPanel.items as item (item.key)}
-						<SchemaItemRenderer {deviceId} {item} {loadingValues} />
+				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+					{#each activeSubPanel.items as item, i (item.key)}
+						<SchemaItemRenderer {deviceId} {item} {loadingValues} isLast={i === activeSubPanel.items.length - 1} />
 					{/each}
 				</div>
 			{:else}
@@ -507,7 +491,7 @@
 		</div>
 	{:else if useSchema && !schemaPanel}
 		<!-- Schema loaded but no panel for this category (e.g., "toggles" or "other") -->
-		<div class="alert border-none bg-[#1e293b] text-slate-300">
+		<div class="alert border-none bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)]">
 			<span>No schema panel found for "{category}". Showing legacy view.</span>
 		</div>
 		<!-- Fall through to legacy rendering below -->
@@ -519,12 +503,12 @@
 							<div class="flex items-center gap-4">
 								{#if setting.label}
 									<h3
-										class="text-sm font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase"
+										class="text-sm font-bold tracking-widest whitespace-nowrap text-[var(--sl-text-3)] uppercase"
 									>
 										{setting.label}
 									</h3>
 								{/if}
-								<div class="h-px w-full bg-slate-800"></div>
+								<div class="h-px w-full bg-[var(--sl-border)]"></div>
 							</div>
 						</div>
 					{:else}
@@ -534,7 +518,7 @@
 			</div>
 		{/if}
 	{:else if categorySettings.length === 0}
-		<div class="alert border-none bg-[#1e293b] text-slate-300">
+		<div class="alert border-none bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)]">
 			<span>No settings found for this category.</span>
 		</div>
 	{:else}
@@ -546,12 +530,12 @@
 						<div class="flex items-center gap-4">
 							{#if setting.label}
 								<h3
-									class="text-sm font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase"
+									class="text-sm font-bold tracking-widest whitespace-nowrap text-[var(--sl-text-3)] uppercase"
 								>
 									{setting.label}
 								</h3>
 							{/if}
-							<div class="h-px w-full bg-slate-800"></div>
+							<div class="h-px w-full bg-[var(--sl-border)]"></div>
 						</div>
 					</div>
 				{:else}
@@ -561,9 +545,9 @@
 		</div>
 
 		{#if readonlySettings.length > 0}
-			<details class="group mt-8 rounded-xl border border-[#334155] bg-[#101a29] open:bg-[#0f1726]">
+			<details class="group mt-8 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] open:bg-[var(--sl-bg-input)]">
 				<summary
-					class="flex cursor-pointer items-center justify-between p-4 font-medium text-slate-400 hover:text-white"
+					class="flex cursor-pointer items-center justify-between p-4 font-medium text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
 				>
 					<span>Read-Only Settings ({readonlySettings.length})</span>
 					<span class="transition-transform group-open:rotate-180">
@@ -581,7 +565,7 @@
 					</span>
 				</summary>
 				<div
-					class="grid grid-cols-1 gap-4 border-t border-[#334155] p-4 lg:grid-cols-2 xl:grid-cols-3"
+					class="grid grid-cols-1 gap-4 border-t border-[var(--sl-border)] p-4 lg:grid-cols-2 xl:grid-cols-3"
 				>
 					{#each readonlySettings as setting}
 						{#if setting.isSection}
@@ -589,12 +573,12 @@
 								<div class="flex items-center gap-4">
 									{#if setting.label}
 										<h3
-											class="text-xs font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase"
+											class="text-xs font-bold tracking-widest whitespace-nowrap text-[var(--sl-text-3)] uppercase"
 										>
 											{setting.label}
 										</h3>
 									{/if}
-									<div class="h-px w-full bg-slate-800"></div>
+									<div class="h-px w-full bg-[var(--sl-border)]"></div>
 								</div>
 							</div>
 						{:else}
@@ -625,24 +609,24 @@
 <!-- JSON Modal -->
 {#if jsonModalOpen}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-		<div class="w-full max-w-3xl rounded-xl border border-[#334155] bg-[#1e293b] p-6 shadow-2xl">
+		<div class="w-full max-w-3xl rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-6 shadow-2xl">
 			<div class="mb-4 flex items-center justify-between">
-				<h3 class="text-lg font-bold text-white">{jsonModalTitle}</h3>
+				<h3 class="text-lg font-bold text-[var(--sl-text-1)]">{jsonModalTitle}</h3>
 				<button
-					class="btn btn-circle text-slate-400 btn-ghost btn-sm"
+					class="btn btn-circle text-[var(--sl-text-2)] btn-ghost btn-sm"
 					onclick={() => (jsonModalOpen = false)}
 				>
 					✕
 				</button>
 			</div>
-			<div class="max-h-[60vh] overflow-auto rounded-lg bg-[#0f1726] p-4">
+			<div class="max-h-[60vh] overflow-auto rounded-lg bg-[var(--sl-bg-input)] p-4">
 				<div class="flex font-mono text-xs">
 					<div class="mr-4 text-right text-slate-600 select-none">
 						{#each jsonModalContent.split('\n') as _, i}
 							<div>{i + 1}</div>
 						{/each}
 					</div>
-					<pre class="text-slate-300">{@html jsonModalContent}</pre>
+					<pre class="text-[var(--sl-text-2)]">{@html jsonModalContent}</pre>
 				</div>
 			</div>
 			<div class="mt-6 flex justify-end">

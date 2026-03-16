@@ -101,7 +101,7 @@
 {#if open}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
 		<div
-			class="w-full max-w-lg overflow-hidden rounded-xl border border-red-500/30 bg-[#1e293b] shadow-2xl"
+			class="w-full max-w-lg overflow-hidden rounded-xl border border-red-500/30 bg-[var(--sl-bg-elevated)] shadow-2xl"
 		>
 			<div class="border-b border-red-500/20 bg-red-500/10 p-6">
 				<div class="flex items-center gap-3 text-red-500">
@@ -111,8 +111,8 @@
 			</div>
 
 			<div class="p-6">
-				<div class="mb-6 space-y-4 text-slate-300">
-					<p class="font-semibold text-white">
+				<div class="mb-6 space-y-4 text-[var(--sl-text-2)]">
+					<p class="font-semibold text-[var(--sl-text-1)]">
 						WARNING: This action will immediately stop the vehicle from engaging.
 					</p>
 					<p>
@@ -135,14 +135,14 @@
 				<div class="form-control">
 					<label class="label cursor-pointer justify-start gap-3">
 						<input type="checkbox" bind:checked={confirmed} class="checkbox checkbox-error" />
-						<span class="label-text text-white">I understand the risks and want to proceed</span>
+						<span class="label-text text-[var(--sl-text-1)]">I understand the risks and want to proceed</span>
 					</label>
 				</div>
 			</div>
 
-			<div class="flex justify-end gap-3 border-t border-[#334155] bg-[#0f1726] p-6">
+			<div class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
 				<button
-					class="btn text-slate-400 btn-ghost hover:text-white"
+					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 					onclick={() => (open = false)}
 					disabled={pushing}
 				>

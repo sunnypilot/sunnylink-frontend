@@ -45,10 +45,10 @@
 
 		<!-- Modal Content -->
 		<div
-			class="relative w-full max-w-md overflow-hidden rounded-2xl border bg-[#0f1726] shadow-2xl"
+			class="relative w-full max-w-md overflow-hidden rounded-2xl border bg-[var(--sl-bg-input)] shadow-2xl"
 			class:border-red-500-20={variant === 'danger'}
 			class:border-blue-500-20={variant === 'primary'}
-			class:border-slate-700={!variant}
+			class:border-[var(--sl-border)]={!variant}
 			style={variant === 'danger' ? 'border-color: rgba(239, 68, 68, 0.2)' : ''}
 			transition:scale={{ start: 0.95, duration: 200 }}
 		>
@@ -60,8 +60,8 @@
 						</div>
 					{/if}
 					<div>
-						<h3 class="text-lg font-bold text-white">{title}</h3>
-						<p class="mt-2 text-sm text-slate-300">
+						<h3 class="text-lg font-bold text-[var(--sl-text-1)]">{title}</h3>
+						<p class="mt-2 text-sm text-[var(--sl-text-2)]">
 							{message}
 						</p>
 					</div>
@@ -69,14 +69,14 @@
 
 				<div class="mt-6 flex justify-end gap-3">
 					<button
-						class="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 hover:text-white disabled:opacity-50"
+						class="rounded-lg px-4 py-2 text-sm font-medium text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)] disabled:opacity-50"
 						onclick={close}
 						disabled={isProcessing}
 					>
 						{cancelText}
 					</button>
 					<button
-						class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-[var(--sl-text-1)] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 						class:bg-red-600={variant === 'danger'}
 						class:hover:bg-red-700={variant === 'danger'}
 						class:bg-blue-600={variant === 'primary'}

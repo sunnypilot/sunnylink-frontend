@@ -169,32 +169,31 @@
 
 <div class="space-y-8">
 	<div>
-		<h2 class="text-2xl font-bold text-white">User Preferences</h2>
-		<p class="text-slate-400">Manage your local interface settings.</p>
+		<h2 class="text-2xl font-bold text-[var(--sl-text-1)]">User Preferences</h2>
+		<p class="text-[var(--sl-text-2)]">Manage your local interface settings.</p>
 	</div>
 
 	<div class="grid gap-6 md:grid-cols-2">
 		{#if isDev}
 			<!-- Debug Mode -->
-			<div class="rounded-xl border border-[#334155] bg-[#101a29] p-6">
+			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<h3 class="font-medium text-white">Debug Mode</h3>
-						<p class="text-sm text-slate-400">Show setting keys instead of labels.</p>
+						<h3 class="font-medium text-[var(--sl-text-1)]">Debug Mode</h3>
+						<p class="text-sm text-[var(--sl-text-2)]">Show setting keys instead of labels.</p>
 					</div>
 					<button
-						class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#0f1726] focus:outline-none"
+						class="relative inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[var(--sl-bg-page)] focus:outline-none"
 						class:bg-primary={preferences.debugMode}
-						class:bg-slate-700={!preferences.debugMode}
+						class:bg-[var(--sl-border)]={!preferences.debugMode}
 						onclick={() => (preferences.debugMode = !preferences.debugMode)}
 						role="switch"
 						aria-checked={preferences.debugMode}
 						aria-label="Toggle Debug Mode"
 					>
 						<span
-							class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-							class:translate-x-6={preferences.debugMode}
-							class:translate-x-1={!preferences.debugMode}
+							class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform duration-200"
+							class:translate-x-[20px]={preferences.debugMode}
 						></span>
 					</button>
 				</div>
@@ -202,27 +201,26 @@
 		{/if}
 
 		<!-- Show Device Online Help -->
-		<div class="rounded-xl border border-[#334155] bg-[#101a29] p-6">
+		<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6">
 			<div class="flex items-center justify-between">
 				<div>
-					<h3 class="font-medium text-white">Show Device Online Help</h3>
-					<p class="text-sm text-slate-400">
+					<h3 class="font-medium text-[var(--sl-text-1)]">Show Device Online Help</h3>
+					<p class="text-sm text-[var(--sl-text-2)]">
 						Display the explanation modal when visiting settings.
 					</p>
 				</div>
 				<button
-					class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#0f1726] focus:outline-none"
+					class="relative inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[var(--sl-bg-page)] focus:outline-none"
 					class:bg-primary={preferences.showDeviceOnlineHelp}
-					class:bg-slate-700={!preferences.showDeviceOnlineHelp}
+					class:bg-[var(--sl-border)]={!preferences.showDeviceOnlineHelp}
 					onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}
 					role="switch"
 					aria-checked={preferences.showDeviceOnlineHelp}
 					aria-label="Toggle Show Device Online Help"
 				>
 					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-						class:translate-x-6={preferences.showDeviceOnlineHelp}
-						class:translate-x-1={!preferences.showDeviceOnlineHelp}
+						class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform duration-200"
+						class:translate-x-[20px]={preferences.showDeviceOnlineHelp}
 					></span>
 				</button>
 			</div>
@@ -230,16 +228,16 @@
 	</div>
 
 	{#if isDev}
-		<div class="divider before:bg-[#1e293b] after:bg-[#1e293b]"></div>
+		<div class="divider before:bg-[var(--sl-bg-elevated)] after:bg-[var(--sl-bg-elevated)]"></div>
 
 		<div>
 			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h2 class="text-2xl font-bold text-white">Settings Metadata Editor</h2>
-					<p class="text-slate-400">Customize setting definitions and generate code.</p>
+					<h2 class="text-2xl font-bold text-[var(--sl-text-1)]">Settings Metadata Editor</h2>
+					<p class="text-[var(--sl-text-2)]">Customize setting definitions and generate code.</p>
 				</div>
 				<div class="flex gap-2">
-					<button class="btn text-slate-400 btn-ghost hover:text-white" onclick={resetDefinitions}>
+					<button class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]" onclick={resetDefinitions}>
 						<RefreshCw size={18} />
 						Reset
 					</button>
@@ -259,18 +257,18 @@
 			<div class="mt-6 flex gap-4">
 				<div class="relative flex-1">
 					<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-						<Search class="h-5 w-5 text-slate-400" />
+						<Search class="h-5 w-5 text-[var(--sl-text-2)]" />
 					</div>
 					<input
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search settings by key, label, or category..."
-						class="input-bordered input w-full bg-[#101a29] pl-10 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
+						class="input-bordered input w-full bg-[var(--sl-bg-surface)] pl-10 text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:border-primary focus:outline-none"
 					/>
 				</div>
 				<select
 					bind:value={selectedCategory}
-					class="select-bordered select bg-[#101a29] text-white focus:border-primary focus:outline-none"
+					class="select-bordered select bg-[var(--sl-bg-surface)] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 				>
 					<option value="all">All Categories</option>
 					{#each categories as cat}
@@ -279,29 +277,29 @@
 				</select>
 			</div>
 
-			<div class="mt-6 overflow-hidden rounded-xl border border-[#334155] bg-[#101a29]">
+			<div class="mt-6 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 				<div class="overflow-x-auto">
 					<table class="table w-full">
 						<thead>
-							<tr class="border-b border-[#334155] text-slate-400">
-								<th class="bg-[#1e293b]">Key</th>
-								<th class="bg-[#1e293b]">Label</th>
-								<th class="bg-[#1e293b]">Description</th>
-								<th class="bg-[#1e293b]">Category</th>
-								<th class="bg-[#1e293b] text-center">Adv</th>
-								<th class="bg-[#1e293b] text-center">RO</th>
-								<th class="bg-[#1e293b] text-center">Hide</th>
+							<tr class="border-b border-[var(--sl-border)] text-[var(--sl-text-2)]">
+								<th class="bg-[var(--sl-bg-elevated)]">Key</th>
+								<th class="bg-[var(--sl-bg-elevated)]">Label</th>
+								<th class="bg-[var(--sl-bg-elevated)]">Description</th>
+								<th class="bg-[var(--sl-bg-elevated)]">Category</th>
+								<th class="bg-[var(--sl-bg-elevated)] text-center">Adv</th>
+								<th class="bg-[var(--sl-bg-elevated)] text-center">RO</th>
+								<th class="bg-[var(--sl-bg-elevated)] text-center">Hide</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each filteredDefinitions as def (def.key)}
-								<tr class="border-b border-[#334155]/50 hover:bg-[#1e293b]/50">
-									<td class="font-mono text-xs text-slate-300">{def.key}</td>
+								<tr class="border-b border-[var(--sl-border)]/50 hover:bg-[var(--sl-bg-elevated)]/50">
+									<td class="font-mono text-xs text-[var(--sl-text-2)]">{def.key}</td>
 									<td>
 										<input
 											type="text"
 											bind:value={def.label}
-											class="input input-sm w-full max-w-xs input-ghost text-white focus:bg-[#1e293b]"
+											class="input input-sm w-full max-w-xs input-ghost text-[var(--sl-text-1)] focus:bg-[var(--sl-bg-elevated)]"
 											class:text-orange-400={isChanged(def, 'label')}
 										/>
 									</td>
@@ -309,18 +307,18 @@
 										<input
 											type="text"
 											bind:value={def.description}
-											class="input input-sm w-full max-w-xs input-ghost text-white focus:bg-[#1e293b]"
+											class="input input-sm w-full max-w-xs input-ghost text-[var(--sl-text-1)] focus:bg-[var(--sl-bg-elevated)]"
 											class:text-orange-400={isChanged(def, 'description')}
 										/>
 									</td>
 									<td>
 										<select
 											bind:value={def.category}
-											class="select-bordered select w-full max-w-xs bg-[#1e293b] select-sm text-white focus:border-primary focus:outline-none"
+											class="select-bordered select w-full max-w-xs bg-[var(--sl-bg-elevated)] select-sm text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 											class:text-orange-400={isChanged(def, 'category')}
 										>
 											{#each categories as cat}
-												<option value={cat} class="bg-[#1e293b] text-white">{cat}</option>
+												<option value={cat} class="bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)]">{cat}</option>
 											{/each}
 										</select>
 									</td>
@@ -361,20 +359,20 @@
 <!-- Reset Confirmation Modal -->
 {#if resetModalOpen}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-		<div class="w-full max-w-md rounded-xl border border-[#334155] bg-[#1e293b] p-6 shadow-2xl">
-			<h3 class="text-lg font-bold text-white">Reset Definitions?</h3>
-			<p class="mt-2 text-slate-400">
+		<div class="w-full max-w-md rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-6 shadow-2xl">
+			<h3 class="text-lg font-bold text-[var(--sl-text-1)]">Reset Definitions?</h3>
+			<p class="mt-2 text-[var(--sl-text-2)]">
 				Are you sure you want to reset all definitions to defaults? This will clear your local
 				customizations.
 			</p>
 			<div class="mt-6 flex justify-end gap-3">
 				<button
-					class="btn text-slate-400 btn-ghost hover:text-white"
+					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 					onclick={() => (resetModalOpen = false)}
 				>
 					Cancel
 				</button>
-				<button class="btn text-white btn-error" onclick={confirmReset}> Reset Everything </button>
+				<button class="btn text-[var(--sl-text-1)] btn-error" onclick={confirmReset}> Reset Everything </button>
 			</div>
 		</div>
 	</div>

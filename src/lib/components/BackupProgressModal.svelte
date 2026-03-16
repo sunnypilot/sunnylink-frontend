@@ -85,12 +85,12 @@
 		transition:fade={{ duration: 200 }}
 	>
 		<div
-			class="w-full max-w-md overflow-hidden rounded-2xl border border-[#334155] bg-[#1e293b] shadow-2xl"
+			class="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
 			transition:scale={{ duration: 200, start: 0.95 }}
 		>
-			<div class="border-b border-[#334155] bg-[#0f1726]/50 p-4">
+			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)]/50 p-4">
 				<div class="flex items-center justify-between">
-					<h3 class="text-lg font-semibold text-white">
+					<h3 class="text-lg font-semibold text-[var(--sl-text-1)]">
 						{#if hasFailedKeys}
 							Partial Backup
 						{:else if deviceState.backupState.isDownloading}
@@ -103,7 +103,7 @@
 						{#if deviceState.backupState.isDownloading && !showConfirmStop}
 							<button
 								onclick={handleClose}
-								class="rounded-lg p-1 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+								class="rounded-lg p-1 text-[var(--sl-text-2)] transition-colors hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 								title="Minimize to background"
 							>
 								<Minimize2 size={20} />
@@ -111,7 +111,7 @@
 						{:else if !deviceState.backupState.isDownloading}
 							<button
 								onclick={handleClose}
-								class="rounded-lg p-1 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+								class="rounded-lg p-1 text-[var(--sl-text-2)] transition-colors hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 								title="Close"
 							>
 								<X size={20} />
@@ -124,18 +124,18 @@
 			<div class="p-6">
 				{#if showConfirmStop}
 					<div class="flex flex-col items-center text-center" transition:fade={{ duration: 150 }}>
-						<p class="mb-6 text-slate-300">
+						<p class="mb-6 text-[var(--sl-text-2)]">
 							Are you sure you want to stop the backup? Progress will be lost.
 						</p>
 						<div class="flex gap-4">
 							<button
-								class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+								class="rounded-lg bg-[var(--sl-bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-slate-600"
 								onclick={cancelStop}
 							>
 								Cancel
 							</button>
 							<button
-								class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+								class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-red-600"
 								onclick={confirmStop}
 							>
 								Stop Backup
@@ -148,7 +148,7 @@
 							class="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3"
 						>
 							<AlertTriangle size={20} class="mt-0.5 shrink-0 text-amber-500" />
-							<div class="text-sm text-slate-300">
+							<div class="text-sm text-[var(--sl-text-2)]">
 								<p class="font-medium text-amber-400">
 									{deviceState.backupState.failedKeys.length} settings could not be fetched
 								</p>
@@ -161,7 +161,7 @@
 								class="flex items-start gap-2 rounded-lg border border-blue-500/10 bg-blue-500/5 p-2.5"
 							>
 								<Info size={16} class="mt-0.5 shrink-0 text-blue-400" />
-								<p class="text-xs text-slate-400">
+								<p class="text-xs text-[var(--sl-text-2)]">
 									Keys marked "No Value" typically mean the device is using default values and no
 									custom setting has been saved. These are safe to skip.
 								</p>
@@ -169,7 +169,7 @@
 						{/if}
 
 						<button
-							class="text-left text-xs text-slate-400 hover:text-slate-300"
+							class="text-left text-xs text-[var(--sl-text-2)] hover:text-[var(--sl-text-2)]"
 							aria-expanded={showFailedDetails}
 							onclick={() => (showFailedDetails = !showFailedDetails)}
 						>
@@ -179,13 +179,13 @@
 
 						{#if showFailedDetails}
 							<div
-								class="max-h-32 overflow-y-auto rounded-lg bg-[#0f1726] p-2 text-xs text-slate-400"
+								class="max-h-32 overflow-y-auto rounded-lg bg-[var(--sl-bg-input)] p-2 text-xs text-[var(--sl-text-2)]"
 								transition:fade={{ duration: 100 }}
 							>
 								{#each deviceState.backupState.failedKeys as failed}
 									<div class="flex items-center justify-between py-0.5">
 										<span class="font-mono">{failed.key}</span>
-										<span class="ml-2 shrink-0 text-slate-500">{formatReason(failed.reason)}</span>
+										<span class="ml-2 shrink-0 text-[var(--sl-text-3)]">{formatReason(failed.reason)}</span>
 									</div>
 								{/each}
 							</div>
@@ -203,7 +203,7 @@
 									</button>
 								{/if}
 								<button
-									class="flex items-center gap-2 rounded-lg bg-[#334155] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#475569]"
+									class="flex items-center gap-2 rounded-lg bg-[var(--sl-border)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[#475569]"
 									onclick={handleDownloadPartial}
 								>
 									<Download size={16} />
@@ -212,7 +212,7 @@
 							</div>
 							{#if onFullBackup}
 								<button
-									class="mt-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
+									class="mt-1 text-xs text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
 									onclick={handleFullBackup}
 								>
 									Start new full backup
@@ -222,13 +222,13 @@
 					</div>
 				{:else}
 					<div class="mb-4 flex items-center justify-between text-sm">
-						<span class="text-slate-300">{deviceState.backupState.status}</span>
-						<span class="font-medium text-white"
+						<span class="text-[var(--sl-text-2)]">{deviceState.backupState.status}</span>
+						<span class="font-medium text-[var(--sl-text-1)]"
 							>{Math.round(deviceState.backupState.progress)}%</span
 						>
 					</div>
 
-					<div class="h-2 w-full overflow-hidden rounded-full bg-[#0f1726]">
+					<div class="h-2 w-full overflow-hidden rounded-full bg-[var(--sl-bg-input)]">
 						<div
 							class="h-full bg-blue-500 transition-all duration-300"
 							class:bg-red-500={deviceState.backupState.status.includes('cancelled') ||
@@ -250,7 +250,7 @@
 							</button>
 						{:else}
 							<button
-								class="rounded-lg bg-[#334155] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#475569]"
+								class="rounded-lg bg-[var(--sl-border)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[#475569]"
 								onclick={handleClose}
 							>
 								Close

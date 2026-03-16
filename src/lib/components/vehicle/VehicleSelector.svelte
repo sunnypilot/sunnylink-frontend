@@ -310,28 +310,21 @@
 	});
 </script>
 
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-	<!-- Left Column: Selector & Status -->
-	<div class="space-y-4">
-		<PlatformSelector
-			manualBundle={carPlatformBundle}
-			autoFingerprint={carFingerprint}
-			isLoading={isLoadingValues}
-			onSelect={handleOpen}
-			onRemove={requestClear}
-		/>
-		<LegendWidget {mode} isLoading={isLoadingValues} />
-	</div>
-
-	<!-- Right Column: Metadata -->
-	<div>
-		<VehicleMetadata
-			bundle={carPlatformBundle}
-			fingerprint={carFingerprint}
-			{carList}
-			isLoading={isLoadingValues || isFetchingCarList}
-		/>
-	</div>
+<div class="mx-auto flex max-w-2xl flex-col gap-6">
+	<PlatformSelector
+		manualBundle={carPlatformBundle}
+		autoFingerprint={carFingerprint}
+		isLoading={isLoadingValues}
+		onSelect={handleOpen}
+		onRemove={requestClear}
+	/>
+	<LegendWidget {mode} isLoading={isLoadingValues} />
+	<VehicleMetadata
+		bundle={carPlatformBundle}
+		fingerprint={carFingerprint}
+		{carList}
+		isLoading={isLoadingValues || isFetchingCarList}
+	/>
 
 	<CarSelectionModal bind:open={modalOpen} {carList} onSelect={handleSelect} />
 

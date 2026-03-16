@@ -49,7 +49,7 @@
 </script>
 
 {#if isForceOffroad}
-	<div class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[#1e293b]">
+	<div class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[var(--sl-bg-elevated)]">
 		<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 sm:px-6 lg:px-8">
 			<div class="flex items-center gap-3">
 				<div
@@ -58,12 +58,12 @@
 					<AlertTriangle size={20} />
 				</div>
 				<div>
-					<p class="font-bold text-white">Force Offroad Active</p>
-					<p class="text-xs text-slate-400">Vehicle engagement is disabled.</p>
+					<p class="font-bold text-[var(--sl-text-1)]">Force Offroad Active</p>
+					<p class="text-xs text-[var(--sl-text-2)]">Vehicle engagement is disabled.</p>
 				</div>
 			</div>
 			{#if stopping}
-				<Loader2 size={30} class="mr-2 animate-spin text-white" />
+				<Loader2 size={30} class="mr-2 animate-spin text-[var(--sl-text-1)]" />
 			{:else}
 				<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
 					Stop Forcing

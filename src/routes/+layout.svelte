@@ -9,13 +9,12 @@
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
 		Bot,
-		CloudSun,
+		Car,
+		ChevronDown,
 		Gauge,
 		HardDrive,
 		House,
-		LifeBuoy,
 		LogIn,
-		LogOut,
 		Map as MapIcon,
 		Menu,
 		Palette,
@@ -23,15 +22,31 @@
 		ToggleLeft,
 		Wind,
 		Wrench,
-		ArrowLeftRight,
-		Car
+		ArrowLeftRight
 	} from 'lucide-svelte';
+	import { checkDeviceStatus } from '$lib/api/device';
+	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
+	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
+	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
+	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+	import AccountMenu from '$lib/components/AccountMenu.svelte';
+	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
+	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
+	import PWAPrompt from 'svelte-ios-pwa-prompt';
+	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
-	type NavItem = { icon: any; label: string; href?: string; action?: () => void };
+
+	type NavItem = { icon: any; label: string; href?: string; action?: (() => void) | undefined };
+	type NavSection = { label: string; items: NavItem[]; collapsible?: boolean };
 
 	let drawerOpen = $state(false);
 	const pathname = $derived(page.url.pathname);
+
+	// Collapsible section state
+	let settingsOpen = $state(true);
 
 	const getPageTitle = (path: string) => {
 		const titles: Record<string, string> = {
@@ -50,10 +65,6 @@
 		return `sunnylink${titles[path] ? ` - ${titles[path]}` : ''}`;
 	};
 
-	const handleLogout = async () => {
-		await logtoClient?.signOut(window.location.origin);
-	};
-
 	const closeDrawerOnMobile = () => {
 		if (typeof window !== 'undefined' && window.innerWidth < 1024) {
 			drawerOpen = false;
@@ -66,63 +77,73 @@
 		}
 	});
 
-	let navItems = $derived(
+	// ── Navigation sections ─────────────────────────────────────────────────
+
+	let navSections = $derived<NavSection[]>(
 		authState.isAuthenticated
 			? [
-					{ icon: House, label: 'Overview', href: '/dashboard' },
+					{
+						label: 'Device',
+						items: [
+							{ icon: House, label: 'Overview', href: '/dashboard' },
+							...(deviceState.selectedDeviceId
+								? [
+										{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
+										{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+										{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' }
+									]
+								: [])
+						]
+					},
 					...(deviceState.selectedDeviceId
 						? [
-								{ icon: Bot, label: 'Models', href: '/dashboard/models' },
-								{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
-								{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
-								{ icon: Settings, label: 'Device Settings', href: '/dashboard/settings/device' },
-								{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
-								{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
-								{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
-								{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-								{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
-								{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
+								{
+									label: 'Settings',
+									collapsible: true,
+									items: [
+										{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
+										{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+										{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
+										{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
+										{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+										{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
+										{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
+									]
+								}
 							]
 						: [])
 				]
 			: []
 	);
 
-	let bottomNavItems = $derived(
-		[
-			deviceState.selectedDeviceId
-				? {
+	// Only device-level utilities stay in sidebar
+	let utilityItems = $derived<NavItem[]>(
+		deviceState.selectedDeviceId
+			? [
+					{
 						icon: ArrowLeftRight,
-						label: 'Device Migration Wizard',
+						label: 'Migration Wizard',
 						action: () => deviceState.openMigrationWizard()
-					}
-				: null,
-			{ icon: LifeBuoy, label: 'Support', href: 'https://community.sunnypilot.ai/c/bug-reports/8' },
-			{ icon: Settings, label: 'Preferences', href: '/dashboard/preferences' },
-			authState.isAuthenticated ? { icon: LogOut, label: 'Logout', action: handleLogout } : null
-		].filter((item) => item !== null)
+					} as NavItem
+				]
+			: []
 	);
 
-	const navItemClasses = (isActive: boolean) =>
+	// ── Active state helper ─────────────────────────────────────────────────
+
+	const isActive = (href?: string) => href === pathname;
+
+	const navItemClasses = (active: boolean) =>
 		[
-			'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366f1]',
+			'group relative flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150',
 			drawerOpen ? 'justify-start' : 'justify-center',
 			'lg:justify-start',
-			isActive
-				? 'border-[#334155] bg-[#1e293b] text-white shadow-inner'
-				: 'border-transparent text-slate-400 hover:border-[#1e293b] hover:bg-[#1e293b]/80 hover:text-white'
+			active
+				? 'bg-[var(--sl-accent-muted)] text-[var(--sl-text-1)] font-medium'
+				: 'text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]'
 		].join(' ');
-	import { checkDeviceStatus } from '$lib/api/device';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
-	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
-	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
-	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
-	import Toast from '$lib/components/Toast.svelte';
-	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
-	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
-	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
-	import PWAPrompt from 'svelte-ios-pwa-prompt';
-	import { onMount } from 'svelte';
+
+	// ── Device status ───────────────────────────────────────────────────────
 
 	let devices = $state<any[]>([]);
 
@@ -130,8 +151,6 @@
 		if (!logtoClient) return;
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
-
-		// Check status for all devices in parallel
 		await Promise.all(
 			devices.map((device) => {
 				if (device.device_id) {
@@ -180,6 +199,7 @@
 			});
 		}
 	});
+
 	let isLandingPage = $derived(pathname === '/');
 </script>
 
@@ -189,21 +209,23 @@
 </svelte:head>
 
 <div
-	class="drawer min-h-screen bg-[#0f1726] {!isLandingPage
+	class="drawer min-h-screen bg-[var(--sl-bg-page)] {!isLandingPage
 		? 'lg:drawer-open'
 		: 'h-auto overflow-visible'}"
 >
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
+
+	<!-- ── Main Content ──────────────────────────────────────────────────── -->
 	<div
-		class="drawer-content flex min-h-screen flex-col bg-[#0f1726] {isLandingPage
+		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isLandingPage
 			? 'h-auto overflow-visible'
 			: ''}"
 	>
 		<GlobalStatusBanner />
-		<!-- Navbar for mobile -->
+
 		{#if !isLandingPage}
 			<header
-				class="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#0f1726] px-4 py-3 sm:px-6"
+				class="sticky top-0 z-50 w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
 			>
 				<ForceOffroadBanner />
 				<div class="flex items-center justify-between gap-3">
@@ -211,20 +233,18 @@
 						<label
 							for="main-drawer"
 							aria-label="open sidebar"
-							class="btn btn-square text-white btn-ghost"
+							class="btn btn-square btn-ghost btn-sm text-[var(--sl-text-1)]"
 						>
-							<Menu size={22} />
+							<Menu size={20} />
 						</label>
 						<p
-							class="font-audiowide text-xs font-semibold tracking-widest text-slate-300 uppercase sm:text-sm sm:tracking-[0.35em]"
+							class="font-audiowide text-[0.6rem] font-semibold tracking-widest text-[var(--sl-text-3)] uppercase"
 						>
 							sunnylink
 						</p>
 					</div>
 
-					<!-- Device Selector & Search -->
 					<div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-						<!-- Desktop Search -->
 						<div class="hidden flex-1 justify-center px-6 lg:flex">
 							{#if deviceState.selectedDeviceId}
 								<SettingsSearch />
@@ -233,7 +253,7 @@
 
 						{#await data.streamed.devices}
 							<div
-								class="h-10 w-48 animate-pulse self-end rounded-lg bg-[#1e293b] lg:self-auto"
+								class="h-9 w-44 animate-pulse self-end rounded-lg bg-[var(--sl-bg-elevated)] lg:self-auto"
 							></div>
 						{:then devices}
 							{#if devices && devices.length > 0}
@@ -241,82 +261,115 @@
 									<DeviceSelector {devices} />
 								</div>
 							{:else}
-								<span class="self-end text-sm text-slate-400 lg:self-auto">No devices found</span>
+								<span class="self-end text-sm text-[var(--sl-text-2)] lg:self-auto">No devices found</span>
 							{/if}
 						{/await}
 					</div>
 				</div>
 
-				<!-- Mobile Search Row -->
 				{#if deviceState.selectedDeviceId}
-					<div class="mt-3 lg:hidden">
+					<div class="mt-2 lg:hidden">
 						<SettingsSearch />
 					</div>
 				{/if}
 			</header>
 		{/if}
 
-		<!-- Page content -->
 		<main
-			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-10'}"
+			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-8'}"
 		>
 			{@render children()}
 		</main>
 	</div>
 
+	<!-- ── Sidebar ────────────────────────────────────────────────────────── -->
 	{#if !isLandingPage}
 		<div class="drawer-side z-[51]">
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<aside
 				class={[
-					'flex min-h-full flex-col border-r border-[#1e293b] bg-[#0f1726] transition-[width,filter] duration-300',
-					drawerOpen ? 'w-64 sm:w-72' : 'w-16 sm:w-20',
-					'lg:w-80 lg:min-w-[20rem]',
+					'flex min-h-full flex-col border-r border-[var(--sl-border)] bg-[var(--sl-bg-page)] transition-[width,filter] duration-300',
+					drawerOpen ? 'w-72' : 'w-16',
+					'lg:w-[18rem]',
 					deviceSelectorState.isOpen ? 'blur-sm' : ''
 				]}
 			>
-				<!-- Logo Area -->
-				<div class="flex h-16 items-center gap-3 px-3 sm:h-20 sm:gap-4 sm:px-4 lg:px-6">
-					<div class={['space-y-0.5 text-slate-200', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-						<p class="font-audiowide text-[0.65rem] tracking-[0.35em] text-slate-500 uppercase">
+				<!-- Logo -->
+				<div class="flex h-16 items-center px-5 lg:px-6">
+					<div class={['space-y-0', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+						<p class="font-audiowide text-[0.6rem] tracking-[0.35em] text-[var(--sl-text-3)] uppercase">
 							sunnylink
 						</p>
-						<h1 class="text-base font-semibold">Control Center</h1>
+						<h1 class="text-sm font-semibold text-[var(--sl-text-1)]">Control Center</h1>
 					</div>
 				</div>
 
 				<!-- Navigation -->
-				<nav class="flex-1 px-2 py-4 sm:px-3 sm:py-6 lg:px-4">
-					<ul class="menu gap-2 p-0 text-sm sm:text-base">
-						{#each navItems as item}
-							{@render navItem(item)}
-						{/each}
-					</ul>
+				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
+					{#each navSections as section, si}
+						{#if si > 0}
+							<div class="my-2 mx-2 border-b border-[var(--sl-border-muted)]"></div>
+						{/if}
 
-					<div class="my-6 px-2">
-						<div class="divider my-1 before:bg-[#1e293b] after:bg-[#1e293b]"></div>
-					</div>
+						{#if section.collapsible}
+							<button
+								class="flex w-full items-center justify-between px-3 py-1.5 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
+								onclick={() => settingsOpen = !settingsOpen}
+							>
+								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
+								<ChevronDown
+									size={12}
+									class="transition-transform duration-150 {settingsOpen ? '' : '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
+								/>
+							</button>
+							{#if settingsOpen}
+								<ul class="mt-0.5 flex flex-col gap-0.5">
+									{#each section.items as item}
+										{@render navItemSnippet(item)}
+									{/each}
+								</ul>
+							{/if}
+						{:else}
+							<div class="mb-1 px-3 py-1.5">
+								<span class={['text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+									{section.label}
+								</span>
+							</div>
+							<ul class="flex flex-col gap-0.5">
+								{#each section.items as item}
+									{@render navItemSnippet(item)}
+								{/each}
+							</ul>
+						{/if}
+					{/each}
 
-					<ul class="menu gap-2 p-0 text-sm sm:text-base">
-						{#each bottomNavItems as item}
-							{@render navItem(item)}
-						{/each}
-					</ul>
+					<!-- Utility items (device-level, e.g. Migration Wizard) -->
+					{#if utilityItems.length > 0}
+						<div class="my-2 mx-2 border-b border-[var(--sl-border-muted)]"></div>
+						<ul class="flex flex-col gap-0.5">
+							{#each utilityItems as item}
+								{@render navItemSnippet(item)}
+							{/each}
+						</ul>
+					{/if}
 				</nav>
 
-				{#snippet navItem(item: NavItem)}
-					{@const isActive = item.href === pathname}
+				{#snippet navItemSnippet(item: NavItem)}
+					{@const active = isActive(item.href)}
 					{@const Icon = item.icon}
-					<li>
+					<li class="list-none">
 						{#if item.href}
 							<a
 								href={item.href}
 								onclick={closeDrawerOnMobile}
-								class={navItemClasses(isActive)}
-								aria-current={isActive ? 'page' : undefined}
+								class={navItemClasses(active)}
+								aria-current={active ? 'page' : undefined}
 							>
-								<Icon class="size-5" />
-								<span class={['font-medium', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								{#if active}
+									<span class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"></span>
+								{/if}
+								<Icon class="size-[18px] shrink-0" />
+								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 									{item.label}
 								</span>
 							</a>
@@ -327,10 +380,10 @@
 									item.action?.();
 									closeDrawerOnMobile();
 								}}
-								class={navItemClasses(isActive)}
+								class={navItemClasses(active)}
 							>
-								<Icon class="size-5" />
-								<span class={['font-medium', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								<Icon class="size-[18px] shrink-0" />
+								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 									{item.label}
 								</span>
 							</button>
@@ -338,61 +391,12 @@
 					</li>
 				{/snippet}
 
-				<!-- Weather Widget -->
-				<!-- <div class={['p-3 sm:p-4', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-				<div
-					class="card rounded-2xl border border-[#334155] bg-[#101a29] p-4 text-sm text-slate-300"
-				>
-					<div class="mb-3 flex items-center justify-between">
-						<p class="text-xs tracking-[0.35em] text-slate-500 uppercase">Weather</p>
-						<CloudSun size={16} class="text-amber-400" />
-					</div>
-					<div class="flex items-baseline gap-1">
-						<span class="text-2xl font-bold text-white">72°</span>
-						<span class="text-xs text-slate-500">San Diego</span>
-					</div>
-				</div>
-			</div> -->
-
-				<!-- User Profile / Logout -->
-				<div class="border-t border-[#1e293b] p-3 sm:p-4">
+				<!-- Account Menu (replaces separate theme toggle + profile + bottom items) -->
+				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
 					{#if authState.isAuthenticated}
-						<a
-							href="/dashboard/preferences"
-							onclick={closeDrawerOnMobile}
-							class={[
-								'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
-								drawerOpen ? 'justify-start' : 'justify-center',
-								'lg:justify-start'
-							]}
-						>
-							<span class="placeholder avatar">
-								<span class="w-9 rounded-full bg-[#1e293b] text-slate-300 group-hover:text-white">
-									{#if authState.profile?.picture}
-										<img src={authState.profile.picture} alt={authState.profile?.name || ''} />
-									{:else}
-										<span class="text-xs"
-											>{authState.profile?.name
-												?.split(' ')
-												.map((name) => name[0])
-												.join('')}</span
-										>
-									{/if}
-								</span>
-							</span>
-							<span
-								class={[
-									'flex flex-1 flex-col overflow-hidden',
-									drawerOpen ? 'block' : 'hidden',
-									'lg:block'
-								]}
-							>
-								<span class="truncate text-sm font-medium text-white"
-									>{authState.profile?.name}</span
-								>
-								<span class="text-xs tracking-[0.3em] text-slate-500 uppercase">Account</span>
-							</span>
-						</a>
+						<div class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+							<AccountMenu />
+						</div>
 					{:else}
 						<button
 							type="button"
@@ -401,15 +405,15 @@
 								closeDrawerOnMobile();
 							}}
 							class={[
-								'group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[#1e293b]',
+								'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--sl-bg-subtle)]',
 								drawerOpen ? 'justify-start' : 'justify-center',
 								'lg:justify-start'
 							]}
 						>
-							<LogIn size={20} class="text-slate-400 group-hover:text-white" />
+							<LogIn size={18} class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]" />
 							<span
 								class={[
-									'font-medium text-slate-400 group-hover:text-white',
+									'text-[0.8125rem] font-medium text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]',
 									drawerOpen ? 'block' : 'hidden',
 									'lg:block'
 								]}

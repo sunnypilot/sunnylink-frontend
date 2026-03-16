@@ -151,24 +151,24 @@
 {#if open}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
 		<div
-			class="w-full max-w-2xl overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] shadow-2xl"
+			class="w-full max-w-2xl overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
 		>
-			<div class="border-b border-[#334155] bg-[#0f1726] p-6">
-				<h3 class="text-xl font-bold text-white">Review Changes</h3>
-				<p class="mt-1 text-slate-400">
+			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
+				<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Review Changes</h3>
+				<p class="mt-1 text-[var(--sl-text-2)]">
 					You are about to push {changeList.length} setting{changeList.length === 1 ? '' : 's'} to
 					{#if alias && alias !== deviceId}
-						<span class="font-bold text-white">{alias}</span>
+						<span class="font-bold text-[var(--sl-text-1)]">{alias}</span>
 						<span class="text-sm italic">({deviceId})</span>
 					{:else}
-						<span class="font-bold text-white">{deviceId}</span>
+						<span class="font-bold text-[var(--sl-text-1)]">{deviceId}</span>
 					{/if}.
 				</p>
 			</div>
 
 			<div class="max-h-[60vh] overflow-y-auto p-6">
 				{#if fetchingLatest}
-					<div class="flex flex-col items-center justify-center py-8 text-slate-400">
+					<div class="flex flex-col items-center justify-center py-8 text-[var(--sl-text-2)]">
 						<Loader2 size={32} class="mb-4 animate-spin" />
 						<p>Checking for latest changes...</p>
 					</div>
@@ -183,18 +183,18 @@
 					<div class="space-y-4">
 						{#each changeList as change}
 							<div
-								class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#101a29] p-4"
+								class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4"
 							>
 								<div class="min-w-0 flex-1">
-									<p class="truncate font-medium text-white">{change.label}</p>
-									<p class="font-mono text-xs text-slate-500">{change.key}</p>
+									<p class="truncate font-medium text-[var(--sl-text-1)]">{change.label}</p>
+									<p class="font-mono text-xs text-[var(--sl-text-3)]">{change.key}</p>
 								</div>
 
 								<div class="flex items-center gap-4 text-sm">
-									<div class="max-w-[150px] truncate text-right text-slate-400">
+									<div class="max-w-[150px] truncate text-right text-[var(--sl-text-2)]">
 										{String(change.originalValue ?? 'Undefined')}
 									</div>
-									<ArrowRight size={16} class="text-slate-600" />
+									<ArrowRight size={16} class="text-[var(--sl-text-3)]" />
 									<div class="max-w-[150px] truncate text-right font-medium text-primary">
 										{String(change.value)}
 									</div>
@@ -205,9 +205,9 @@
 				{/if}
 			</div>
 
-			<div class="flex justify-end gap-3 border-t border-[#334155] bg-[#0f1726] p-6">
+			<div class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
 				<button
-					class="btn text-slate-400 btn-ghost hover:text-white"
+					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 					onclick={() => (open = false)}
 					disabled={pushing || fetchingLatest}
 				>

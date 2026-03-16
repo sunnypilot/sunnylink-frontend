@@ -284,20 +284,20 @@
 	{:then _}
 		<div class="space-y-4 pb-24 sm:space-y-6 lg:space-y-8">
 			<!-- Header Card -->
-			<div class="card border border-[#1e293b] bg-[#0f1726]">
+			<div class="card border border-[var(--sl-border)] bg-[var(--sl-bg-page)]">
 				<div class="card-body p-4 sm:p-6 lg:p-8">
 					<div
 						class="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8"
 					>
 						<div class="max-w-2xl space-y-3 sm:space-y-4">
-							<p class="text-xs tracking-[0.3em] text-slate-400 uppercase">Daily sunnypilot</p>
-							<h1 class="text-2xl font-bold text-white sm:text-3xl md:text-4xl lg:text-5xl">
+							<p class="text-xs tracking-[0.3em] text-[var(--sl-text-2)] uppercase">Daily sunnypilot</p>
+							<h1 class="text-2xl font-bold text-[var(--sl-text-1)] sm:text-3xl md:text-4xl lg:text-5xl">
 								Hi {authState.profile?.name || 'there'}!
 							</h1>
-							<p class="text-lg text-slate-300 sm:text-xl">
+							<p class="text-lg text-[var(--sl-text-2)] sm:text-xl">
 								Here's your latest sunnypilot snapshot
 							</p>
-							<p class="text-sm text-slate-400 sm:text-base">
+							<p class="text-sm text-[var(--sl-text-2)] sm:text-base">
 								Dive in to see new routes, backups, and model insights. Everything you need, all in
 								one place.
 							</p>
@@ -310,7 +310,7 @@
 							>
 								<div class="space-y-2">
 									<h3 class="font-bold text-blue-400">Device Migration Wizard</h3>
-									<p class="text-sm text-slate-300">
+									<p class="text-sm text-[var(--sl-text-2)]">
 										Whether you have your new device or are waiting for it to arrive, you can start
 										your settings migration now and resume it later.
 									</p>
@@ -328,8 +328,8 @@
 								class="flex w-full flex-col items-start justify-between gap-4 rounded-xl border border-primary/20 bg-primary/10 p-4"
 							>
 								<div class="space-y-2">
-									<h3 class="font-bold text-white">Add a Device</h3>
-									<p class="text-sm text-slate-300">Learn how to pair your device with sunnylink</p>
+									<h3 class="font-bold text-[var(--sl-text-1)]">Add a Device</h3>
+									<p class="text-sm text-[var(--sl-text-2)]">Learn how to pair your device with sunnylink</p>
 								</div>
 								<div class="flex w-full gap-2">
 									<button
@@ -365,7 +365,7 @@
 						</div>
 						<div>
 							<h3 class="font-medium text-blue-400">Select a Device</h3>
-							<p class="text-sm text-slate-400">
+							<p class="text-sm text-[var(--sl-text-2)]">
 								Please select a device from the list below to manage its settings, view models, and
 								access other features.
 							</p>
@@ -375,16 +375,16 @@
 			{/if}
 
 			{#if !devices || devices.length === 0}
-				<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
+				<div class="card mt-2 border border-[var(--sl-border)] bg-[var(--sl-bg-page)]">
 					<div class="card-body p-4 sm:p-6 lg:p-8">
 						<div class="flex flex-col items-center justify-center py-12 text-center">
-							<div class="mb-4 rounded-full bg-slate-700/50 p-4">
-								<Cpu class="h-12 w-12 text-slate-400" />
+							<div class="mb-4 rounded-full bg-[var(--sl-bg-elevated)]/50 p-4">
+								<Cpu class="h-12 w-12 text-[var(--sl-text-2)]" />
 							</div>
-							<h3 class="text-xl font-semibold text-white sm:text-2xl lg:text-3xl">
+							<h3 class="text-xl font-semibold text-[var(--sl-text-1)] sm:text-2xl lg:text-3xl">
 								No Devices Found
 							</h3>
-							<p class="mt-2 text-sm text-slate-400">
+							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
 								Pair a device to get started with sunnypilot.
 							</p>
 							<button class="btn mt-6 gap-2 btn-primary" onclick={() => (pairingModalOpen = true)}>
@@ -412,21 +412,21 @@
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
-							class="card relative cursor-pointer border bg-[#0f1726] transition-all duration-300 hover:border-primary/50 hover:shadow-lg {hasPendingChange
+							class="card relative cursor-pointer border bg-[var(--sl-bg-page)] transition-all duration-300 hover:border-primary/50 hover:shadow-lg {hasPendingChange
 								? 'border-primary ring-1 ring-primary/50'
 								: isSelected
 									? 'border-primary ring-1 ring-primary/50'
-									: 'border-[#1e293b]'}"
+									: 'border-[var(--sl-border)]'}"
 							onclick={() => deviceState.setSelectedDevice(device.device_id)}
 						>
 							<div
-								class="flex flex-row items-center justify-between gap-2 border-b border-[#1e293b] bg-[#0f1726]/50 px-4 py-4 sm:gap-4 sm:px-6"
+								class="flex flex-row items-center justify-between gap-2 border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)]/50 px-4 py-4 sm:gap-4 sm:px-6"
 							>
 								<div class="flex flex-1 items-center gap-4">
 									<!-- Online Status Badge -->
 									{#if isLoading}
 										<div
-											class="flex items-center gap-2 rounded-full bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400"
+											class="flex items-center gap-2 rounded-full bg-[var(--sl-bg-surface)]/50 px-3 py-1 text-xs font-medium text-[var(--sl-text-2)]"
 										>
 											<Loader2 size={14} class="animate-spin" />
 											<span>Checking...</span>
@@ -456,7 +456,7 @@
 											value={currentAlias}
 											oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
 											onclick={(e) => e.stopPropagation()}
-											class="input w-full border-0 bg-transparent px-0 text-base font-bold text-white placeholder-slate-600 focus:ring-0 focus:outline-none"
+											class="input w-full border-0 bg-transparent px-0 text-base font-bold text-[var(--sl-text-1)] placeholder-slate-600 focus:ring-0 focus:outline-none"
 											placeholder={device.device_id}
 										/>
 									</div>
@@ -464,7 +464,7 @@
 
 								<div class="flex items-center gap-4">
 									<!-- Paired Date -->
-									<div class="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+									<div class="hidden items-center gap-2 text-xs text-[var(--sl-text-3)] sm:flex">
 										<Calendar size={14} />
 										<span>Paired {formatDate(device.created_at)}</span>
 									</div>
@@ -472,7 +472,7 @@
 									<!-- Action Buttons -->
 									<div class="flex items-center gap-1">
 										<button
-											class="rounded-lg p-2 text-slate-400 transition-all hover:bg-white/5 hover:text-white"
+											class="rounded-lg p-2 text-[var(--sl-text-2)] transition-all hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 											onclick={(e) => {
 												e.stopPropagation();
 												handleDownloadBackup(device.device_id);
@@ -506,13 +506,13 @@
 								<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 									<!-- sunnylink ID Card -->
 									<button
-										class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+										class="group relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[var(--sl-bg-surface)]/80"
 										onclick={(e) => {
 											e.stopPropagation();
 											copyToClipboard(device.device_id, `id-${device.device_id}`);
 										}}
 									>
-										<span class="mb-2 flex items-center justify-between text-slate-400">
+										<span class="mb-2 flex items-center justify-between text-[var(--sl-text-2)]">
 											<span class="flex items-center gap-2">
 												<Cpu size={18} />
 												<span class="text-xs font-bold tracking-wider uppercase">sunnylink ID</span>
@@ -526,18 +526,18 @@
 												/>
 											{/if}
 										</span>
-										<span class="truncate font-mono text-sm font-bold text-white">
+										<span class="truncate font-mono text-sm font-bold text-[var(--sl-text-1)]">
 											{device.device_id}
 										</span>
 									</button>
 
 									<!-- Status Card -->
-									<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-										<div class="mb-2 flex items-center gap-2 text-slate-400">
+									<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4">
+										<div class="mb-2 flex items-center gap-2 text-[var(--sl-text-2)]">
 											<Activity size={18} />
 											<span class="text-xs font-bold tracking-wider uppercase">Status</span>
 										</div>
-										<div class="text-lg font-medium text-white">
+										<div class="text-lg font-medium text-[var(--sl-text-1)]">
 											{#if isLoading}
 												<span class="flex items-center gap-2">
 													<Loader2 size={16} class="animate-spin" />
@@ -556,13 +556,13 @@
 									<!-- Comma Dongle ID Card -->
 									{#if !isUnregistered}
 										<button
-											class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+											class="group relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[var(--sl-bg-surface)]/80"
 											onclick={(e) => {
 												e.stopPropagation();
 												copyToClipboard(device.comma_dongle_id, device.device_id);
 											}}
 										>
-											<span class="mb-2 flex items-center justify-between text-slate-400">
+											<span class="mb-2 flex items-center justify-between text-[var(--sl-text-2)]">
 												<span class="flex items-center gap-2">
 													<Cpu size={18} />
 													<span class="text-xs font-bold tracking-wider uppercase"
@@ -578,7 +578,7 @@
 													/>
 												{/if}
 											</span>
-											<span class="truncate text-xl font-bold text-white">
+											<span class="truncate text-xl font-bold text-[var(--sl-text-1)]">
 												{device.comma_dongle_id}
 											</span>
 										</button>
@@ -590,33 +590,33 @@
 
 					<!-- Offline Devices Section -->
 					{#if offlineDevices.length > 0}
-						<div class="rounded-xl border border-[#1e293b] bg-[#0f1726]/50">
+						<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-page)]/50">
 							<button
-								class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-[#1e293b]/50"
+								class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/50"
 								onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
 							>
 								<span class="flex items-center gap-3">
 									<span
-										class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400"
+										class="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)]"
 									>
 										<WifiOff size={16} />
 									</span>
 									<span>
-										<h3 class="font-medium text-slate-300">Offline Devices</h3>
-										<p class="text-xs text-slate-500">
+										<h3 class="font-medium text-[var(--sl-text-2)]">Offline Devices</h3>
+										<p class="text-xs text-[var(--sl-text-3)]">
 											{offlineDevices.length} device{offlineDevices.length === 1 ? '' : 's'}
 										</p>
 									</span>
 								</span>
 								{#if offlineSectionOpen}
-									<ChevronDown class="text-slate-500" size={20} />
+									<ChevronDown class="text-[var(--sl-text-3)]" size={20} />
 								{:else}
-									<ChevronRight class="text-slate-500" size={20} />
+									<ChevronRight class="text-[var(--sl-text-3)]" size={20} />
 								{/if}
 							</button>
 
 							{#if offlineSectionOpen}
-								<div transition:slide class="space-y-4 border-t border-[#1e293b] p-4">
+								<div transition:slide class="space-y-4 border-t border-[var(--sl-border)] p-4">
 									{#each offlineDevices as device (device.device_id)}
 										{@const isUnregistered =
 											device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') ===
@@ -627,18 +627,18 @@
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
-											class="card relative cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
+											class="card relative cursor-pointer border bg-[var(--sl-bg-page)] transition-all duration-300 {hasPendingChange
 												? 'border-primary ring-1 ring-primary/50'
-												: 'border-[#1e293b]'}"
+												: 'border-[var(--sl-border)]'}"
 											onclick={() => deviceState.setSelectedDevice(device.device_id)}
 										>
 											<div
-												class="flex flex-row items-center justify-between gap-2 border-b border-[#1e293b] bg-[#0f1726]/50 px-4 py-4 sm:gap-4 sm:px-6"
+												class="flex flex-row items-center justify-between gap-2 border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)]/50 px-4 py-4 sm:gap-4 sm:px-6"
 											>
 												<div class="flex flex-1 items-center gap-4">
 													<!-- Offline Status Badge -->
 													<div
-														class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400"
+														class="flex items-center gap-2 rounded-full border border-slate-700 bg-[var(--sl-bg-surface)]/50 px-3 py-1 text-xs font-medium text-[var(--sl-text-2)]"
 													>
 														<WifiOff size={14} />
 														<span>Offline</span>
@@ -652,7 +652,7 @@
 															value={currentAlias}
 															oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
 															onclick={(e) => e.stopPropagation()}
-															class="input w-full border-0 bg-transparent px-0 text-base font-bold text-white placeholder-slate-600 focus:ring-0 focus:outline-none"
+															class="input w-full border-0 bg-transparent px-0 text-base font-bold text-[var(--sl-text-1)] placeholder-slate-600 focus:ring-0 focus:outline-none"
 															placeholder={device.device_id}
 														/>
 													</div>
@@ -660,7 +660,7 @@
 
 												<div class="flex items-center gap-4">
 													<!-- Paired Date -->
-													<div class="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+													<div class="hidden items-center gap-2 text-xs text-[var(--sl-text-3)] sm:flex">
 														<Calendar size={14} />
 														<span>Paired {formatDate(device.created_at)}</span>
 													</div>
@@ -683,13 +683,13 @@
 												<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 													<!-- sunnylink ID Card -->
 													<button
-														class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+														class="group relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[var(--sl-bg-surface)]/80"
 														onclick={(e) => {
 															e.stopPropagation();
 															copyToClipboard(device.device_id, `id-${device.device_id}`);
 														}}
 													>
-														<span class="mb-2 flex items-center justify-between text-slate-400">
+														<span class="mb-2 flex items-center justify-between text-[var(--sl-text-2)]">
 															<span class="flex items-center gap-2">
 																<Cpu size={18} />
 																<span class="text-xs font-bold tracking-wider uppercase"
@@ -705,30 +705,30 @@
 																/>
 															{/if}
 														</span>
-														<span class="truncate font-mono text-sm font-bold text-white">
+														<span class="truncate font-mono text-sm font-bold text-[var(--sl-text-1)]">
 															{device.device_id}
 														</span>
 													</button>
 
 													<!-- Status Card (Offline) -->
-													<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-														<div class="mb-2 flex items-center gap-2 text-slate-400">
+													<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4">
+														<div class="mb-2 flex items-center gap-2 text-[var(--sl-text-2)]">
 															<Activity size={18} />
 															<span class="text-xs font-bold tracking-wider uppercase">Status</span>
 														</div>
-														<div class="text-lg font-medium text-slate-400">Disconnected</div>
+														<div class="text-lg font-medium text-[var(--sl-text-2)]">Disconnected</div>
 													</div>
 
 													<!-- Comma Dongle ID Card -->
 													{#if !isUnregistered}
 														<button
-															class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
+															class="group relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[var(--sl-bg-surface)]/80"
 															onclick={(e) => {
 																e.stopPropagation();
 																copyToClipboard(device.comma_dongle_id, device.device_id);
 															}}
 														>
-															<span class="mb-2 flex items-center justify-between text-slate-400">
+															<span class="mb-2 flex items-center justify-between text-[var(--sl-text-2)]">
 																<span class="flex items-center gap-2">
 																	<Cpu size={18} />
 																	<span class="text-xs font-bold tracking-wider uppercase"
@@ -744,7 +744,7 @@
 																	/>
 																{/if}
 															</span>
-															<span class="truncate text-xl font-bold text-white">
+															<span class="truncate text-xl font-bold text-[var(--sl-text-1)]">
 																{device.comma_dongle_id}
 															</span>
 														</button>
@@ -755,7 +755,7 @@
 													class="mt-6 flex items-center gap-4 rounded-lg border border-red-500/20 bg-red-500/5 p-4"
 												>
 													<WifiOff class="h-5 w-5 shrink-0 text-red-500" />
-													<p class="flex-1 text-sm text-slate-400">
+													<p class="flex-1 text-sm text-[var(--sl-text-2)]">
 														Device is offline. Some features are unavailable.
 													</p>
 													<button
@@ -789,7 +789,7 @@
 						class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 duration-300"
 					>
 						<div
-							class="flex items-center justify-between gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/95 p-4 shadow-2xl backdrop-blur-md"
+							class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/95 p-4 shadow-2xl backdrop-blur-md"
 						>
 							<div class="flex items-center gap-3">
 								<div
@@ -798,8 +798,8 @@
 									<Save size={20} />
 								</div>
 								<div>
-									<p class="font-medium text-white">Unsaved Changes</p>
-									<p class="text-xs text-slate-400">
+									<p class="font-medium text-[var(--sl-text-1)]">Unsaved Changes</p>
+									<p class="text-xs text-[var(--sl-text-2)]">
 										You have modified {pendingChanges.length} device alias{pendingChanges.length ===
 										1
 											? ''
@@ -809,7 +809,7 @@
 							</div>
 							<div class="flex items-center gap-2">
 								<button
-									class="btn text-slate-400 btn-ghost btn-sm hover:text-white"
+									class="btn text-[var(--sl-text-2)] btn-ghost btn-sm hover:text-[var(--sl-text-1)]"
 									onclick={clearChanges}
 								>
 									Discard
@@ -845,7 +845,7 @@
 	{/await}
 
 	<button
-		class="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 hover:shadow-primary/20 active:scale-95 sm:right-10 sm:bottom-10"
+		class="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[var(--sl-text-1)] shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 hover:shadow-primary/20 active:scale-95 sm:right-10 sm:bottom-10"
 		onclick={() => (pairingModalOpen = true)}
 		title="Pair New Device"
 	>

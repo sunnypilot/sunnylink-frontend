@@ -377,13 +377,13 @@
 		></button>
 
 		<div
-			class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[#334155] bg-[#0f1726] shadow-2xl"
+			class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-input)] shadow-2xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			<!-- Header -->
-			<div class="border-b border-[#334155] bg-[#1e293b]/50 p-6">
+			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6">
 				<div class="flex items-center justify-between">
-					<h3 class="text-xl font-bold text-white">
+					<h3 class="text-xl font-bold text-[var(--sl-text-1)]">
 						{#if ms.step === 1}
 							Device Migration Wizard
 						{:else if ms.type === 'new'}
@@ -395,7 +395,7 @@
 					<div class="flex items-center gap-2">
 						{#if ms.isFetching}
 							<button
-								class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+								class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 								onclick={minimize}
 								title="Minimize"
 							>
@@ -403,7 +403,7 @@
 							</button>
 						{/if}
 						<button
-							class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+							class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 							onclick={close}
 							aria-label="Close"
 						>
@@ -417,16 +417,16 @@
 				{#if ms.step === 1}
 					<!-- Intro Step -->
 					<div class="space-y-6">
-						<div class="flex items-start gap-4 rounded-xl bg-blue-500/10 p-4">
-							<Info class="mt-1 shrink-0 text-blue-400" size={24} />
-							<div class="space-y-2 text-sm text-blue-200">
+						<div class="flex items-start gap-4 rounded-xl border border-primary/20 bg-[var(--sl-accent-muted)] p-4">
+							<Info class="mt-1 shrink-0 text-primary" size={24} />
+							<div class="space-y-2 text-sm text-[var(--sl-text-2)]">
 								<p>
-									<strong class="text-blue-100">How it works:</strong> This wizard helps you transfer
+									<strong class="text-[var(--sl-text-1)]">How it works:</strong> This wizard helps you transfer
 									settings from one device to another.
 								</p>
 								<p>
-									<strong class="text-blue-100">Requirements:</strong> The source device must be
-									<strong class="text-white">online</strong> to fetch its configuration.
+									<strong class="text-[var(--sl-text-1)]">Requirements:</strong> The source device must be
+									<strong class="font-semibold text-[var(--sl-text-1)]">online</strong> to fetch its configuration.
 								</p>
 								<p>
 									If you don't have the new device yet, you can download a backup file to restore
@@ -437,7 +437,7 @@
 
 						<div class="grid gap-4 sm:grid-cols-2">
 							<button
-								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[#1e293b]"
+								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
 								onclick={() => {
 									deviceState.setMigrationType('new');
 									deviceState.setMigrationStep(2);
@@ -447,24 +447,24 @@
 									<Play size={24} />
 								</div>
 								<div>
-									<h4 class="font-medium text-white">Start New Migration</h4>
-									<p class="mt-1 text-xs text-slate-400">Copy settings from an online device.</p>
+									<h4 class="font-medium text-[var(--sl-text-1)]">Start New Migration</h4>
+									<p class="mt-1 text-xs text-[var(--sl-text-2)]">Copy settings from an online device.</p>
 								</div>
 							</button>
 
 							<button
-								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[#1e293b]"
+								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
 								onclick={() => {
 									deviceState.setMigrationType('resume');
 									deviceState.setMigrationStep(2);
 								}}
 							>
-								<div class="rounded-full bg-slate-700 p-3 text-white">
+								<div class="rounded-full bg-[var(--sl-bg-elevated)] p-3 text-[var(--sl-text-1)]">
 									<RotateCcw size={24} />
 								</div>
 								<div>
-									<h4 class="font-medium text-white">Resume Migration</h4>
-									<p class="mt-1 text-xs text-slate-400">Restore settings from a backup file.</p>
+									<h4 class="font-medium text-[var(--sl-text-1)]">Resume Migration</h4>
+									<p class="mt-1 text-xs text-[var(--sl-text-2)]">Restore settings from a backup file.</p>
 								</div>
 							</button>
 						</div>
@@ -474,9 +474,9 @@
 						<!-- Start New: Source Selection -->
 						<div class="flex flex-col space-y-4">
 							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Select Source Device</h4>
+								<h4 class="text-lg font-medium text-[var(--sl-text-1)]">Select Source Device</h4>
 								<div class="mt-1 flex items-center justify-center gap-2">
-									<p class="text-slate-400">Choose an online device to copy settings from.</p>
+									<p class="text-[var(--sl-text-2)]">Choose an online device to copy settings from.</p>
 									<button
 										class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
 										onclick={handleRecheckStatus}
@@ -489,16 +489,16 @@
 							</div>
 
 							{#if sourceDevices.length === 0}
-								<div class="rounded-lg bg-slate-800 p-4 text-center text-slate-400">
+								<div class="rounded-lg bg-[var(--sl-bg-surface)] p-4 text-center text-[var(--sl-text-2)]">
 									No online devices found to copy from.
 								</div>
 							{:else}
 								<div class="grid max-h-60 gap-3 overflow-y-auto">
 									{#each sourceDevices as device}
 										<button
-											class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#1e293b]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[#1e293b]"
+											class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[var(--sl-bg-elevated)]"
 											class:border-primary={ms.sourceDeviceId === device.device_id}
-											class:bg-[#1e293b]={ms.sourceDeviceId === device.device_id}
+											class:bg-[var(--sl-bg-elevated)]={ms.sourceDeviceId === device.device_id}
 											onclick={() => {
 												if (!ms.isFetching) {
 													deviceState.setMigrationSource(device.device_id || '');
@@ -506,14 +506,14 @@
 											}}
 										>
 											<div class="flex items-center gap-3">
-												<div class="rounded-full bg-slate-700 p-2">
-													<Smartphone size={16} class="text-slate-300" />
+												<div class="rounded-full bg-[var(--sl-bg-elevated)] p-2">
+													<Smartphone size={16} class="text-[var(--sl-text-2)]" />
 												</div>
 												<div>
-													<div class="font-medium text-white">
+													<div class="font-medium text-[var(--sl-text-1)]">
 														{device.alias || device.device_id}
 														{#if device.alias && device.alias !== device.device_id}
-															<span class="text-xs font-normal text-slate-400"
+															<span class="text-xs font-normal text-[var(--sl-text-2)]"
 																>({device.device_id})</span
 															>
 														{/if}
@@ -529,11 +529,11 @@
 
 								{#if ms.isFetching}
 									<div class="mt-4 space-y-2">
-										<div class="flex justify-between text-xs text-slate-400">
+										<div class="flex justify-between text-xs text-[var(--sl-text-2)]">
 											<span>{ms.status}</span>
 											<span>{Math.round(ms.progress)}%</span>
 										</div>
-										<div class="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+										<div class="h-2 w-full overflow-hidden rounded-full bg-[var(--sl-bg-surface)]">
 											<div
 												class="h-full bg-primary transition-all duration-300"
 												style="width: {ms.progress}%"
@@ -567,8 +567,8 @@
 								<Upload size={32} class="text-primary" />
 							</div>
 							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Upload Settings Backup</h4>
-								<p class="mt-1 text-slate-400">
+								<h4 class="text-lg font-medium text-[var(--sl-text-1)]">Upload Settings Backup</h4>
+								<p class="mt-1 text-[var(--sl-text-2)]">
 									Select a .json file containing the settings backup.
 								</p>
 							</div>
@@ -593,7 +593,7 @@
 
 					<div class="flex justify-start pt-4">
 						<button
-							class="btn text-slate-400 btn-ghost hover:text-white"
+							class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 							onclick={() => deviceState.setMigrationStep(1)}
 						>
 							Back
@@ -604,7 +604,7 @@
 						<!-- Start New: Target/Download -->
 						<div class="space-y-6">
 							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Settings Fetched</h4>
+								<h4 class="text-lg font-medium text-[var(--sl-text-1)]">Settings Fetched</h4>
 								{#if ms.error}
 									<div
 										class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-200"
@@ -613,7 +613,7 @@
 										<span>{ms.error}</span>
 									</div>
 								{:else}
-									<p class="text-slate-400">
+									<p class="text-[var(--sl-text-2)]">
 										Successfully fetched settings from {devices.find(
 											(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
 										)?.alias || ms.sourceDeviceId}.
@@ -621,33 +621,33 @@
 								{/if}
 							</div>
 
-							<div class="rounded-xl border border-[#334155] bg-[#1e293b]/30 p-4">
+							<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-4">
 								<div class="mb-4 flex items-center justify-between">
-									<h5 class="font-medium text-white">Select Target Device</h5>
+									<h5 class="font-medium text-[var(--sl-text-1)]">Select Target Device</h5>
 								</div>
 
 								{#if targetDevices.length === 0}
-									<div class="rounded-lg bg-slate-800 p-4 text-center text-slate-400">
+									<div class="rounded-lg bg-[var(--sl-bg-surface)] p-4 text-center text-[var(--sl-text-2)]">
 										No online devices found.
 									</div>
 								{:else}
 									<div class="grid max-h-48 gap-3 overflow-y-auto">
 										{#each targetDevices as device}
 											<button
-												class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#1e293b]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[#1e293b]"
+												class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[var(--sl-bg-elevated)]"
 												class:border-primary={ms.targetDeviceId === device.device_id}
-												class:bg-[#1e293b]={ms.targetDeviceId === device.device_id}
+												class:bg-[var(--sl-bg-elevated)]={ms.targetDeviceId === device.device_id}
 												onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
 											>
 												<div class="flex items-center gap-3">
-													<div class="rounded-full bg-slate-700 p-2">
-														<Smartphone size={16} class="text-slate-300" />
+													<div class="rounded-full bg-[var(--sl-bg-elevated)] p-2">
+														<Smartphone size={16} class="text-[var(--sl-text-2)]" />
 													</div>
 													<div>
-														<div class="font-medium text-white">
+														<div class="font-medium text-[var(--sl-text-1)]">
 															{device.alias || device.device_id}
 															{#if device.alias && device.alias !== device.device_id}
-																<span class="text-xs font-normal text-slate-400"
+																<span class="text-xs font-normal text-[var(--sl-text-2)]"
 																	>({device.device_id})</span
 																>
 															{/if}
@@ -665,7 +665,7 @@
 
 							<div class="grid gap-3 sm:grid-cols-2">
 								<button
-									class="btn border border-[#334155] text-slate-400 btn-ghost hover:border-white hover:bg-white/10 hover:text-white"
+									class="btn border border-[var(--sl-border)] text-[var(--sl-text-2)] btn-ghost hover:border-white hover:bg-white/10 hover:text-[var(--sl-text-1)]"
 									onclick={handleDownloadFetchedBackup}
 								>
 									<Download size={18} class="mr-2" />
@@ -684,9 +684,9 @@
 						<!-- Resume: Target Selection -->
 						<div class="flex flex-col space-y-4">
 							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Select Target Device</h4>
+								<h4 class="text-lg font-medium text-[var(--sl-text-1)]">Select Target Device</h4>
 								<div class="mt-1 flex items-center justify-center gap-2">
-									<p class="text-slate-400">Choose an online device to apply settings to.</p>
+									<p class="text-[var(--sl-text-2)]">Choose an online device to apply settings to.</p>
 									<button
 										class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
 										onclick={handleRecheckStatus}
@@ -698,27 +698,27 @@
 							</div>
 
 							{#if targetDevices.length === 0}
-								<div class="rounded-lg bg-slate-800 p-4 text-center text-slate-400">
+								<div class="rounded-lg bg-[var(--sl-bg-surface)] p-4 text-center text-[var(--sl-text-2)]">
 									No online devices found.
 								</div>
 							{:else}
 								<div class="grid max-h-60 gap-3 overflow-y-auto">
 									{#each targetDevices as device}
 										<button
-											class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#1e293b]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[#1e293b]"
+											class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[var(--sl-bg-elevated)]"
 											class:border-primary={ms.targetDeviceId === device.device_id}
-											class:bg-[#1e293b]={ms.targetDeviceId === device.device_id}
+											class:bg-[var(--sl-bg-elevated)]={ms.targetDeviceId === device.device_id}
 											onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
 										>
 											<div class="flex items-center gap-3">
-												<div class="rounded-full bg-slate-700 p-2">
-													<Smartphone size={16} class="text-slate-300" />
+												<div class="rounded-full bg-[var(--sl-bg-elevated)] p-2">
+													<Smartphone size={16} class="text-[var(--sl-text-2)]" />
 												</div>
 												<div>
-													<div class="font-medium text-white">
+													<div class="font-medium text-[var(--sl-text-1)]">
 														{device.alias || device.device_id}
 													</div>
-													<div class="text-xs text-slate-400">{device.device_id}</div>
+													<div class="text-xs text-[var(--sl-text-2)]">{device.device_id}</div>
 												</div>
 											</div>
 											<span class="flex items-center gap-1 text-xs text-emerald-400">
@@ -741,7 +741,7 @@
 
 					<div class="flex justify-start pt-4">
 						<button
-							class="btn text-slate-400 btn-ghost hover:text-white"
+							class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 							onclick={() => deviceState.setMigrationStep(2)}
 						>
 							Back
@@ -751,14 +751,14 @@
 					<!-- Comparison Step -->
 					<div class="space-y-4">
 						<div
-							class="flex items-center justify-between gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/30 p-6"
+							class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-6"
 						>
 							<!-- Source -->
 							<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
-								<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">Source</span
+								<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase">Source</span
 								>
 								<div
-									class="mt-1 w-full truncate font-medium text-white"
+									class="mt-1 w-full truncate font-medium text-[var(--sl-text-1)]"
 									title={devices.find(
 										(d: DeviceAuthResponseModel) => d.device_id === ms.parsedBackup?.deviceId
 									)?.alias || ms.parsedBackup?.deviceId}
@@ -768,7 +768,7 @@
 									)?.alias || ms.parsedBackup?.deviceId}
 								</div>
 								<div
-									class="w-full truncate font-mono text-xs text-slate-500"
+									class="w-full truncate font-mono text-xs text-[var(--sl-text-3)]"
 									title={ms.parsedBackup?.deviceId}
 								>
 									{ms.parsedBackup?.deviceId}
@@ -776,16 +776,16 @@
 							</div>
 
 							<!-- Arrow -->
-							<div class="text-slate-600">
+							<div class="text-[var(--sl-text-3)]">
 								<ArrowRight size={24} />
 							</div>
 
 							<!-- Target -->
 							<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
-								<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">Target</span
+								<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase">Target</span
 								>
 								<div
-									class="mt-1 w-full truncate font-medium text-white"
+									class="mt-1 w-full truncate font-medium text-[var(--sl-text-1)]"
 									title={devices.find(
 										(d: DeviceAuthResponseModel) => d.device_id === ms.targetDeviceId
 									)?.alias || ms.targetDeviceId}
@@ -794,7 +794,7 @@
 										?.alias || ms.targetDeviceId}
 								</div>
 								<div
-									class="w-full truncate font-mono text-xs text-slate-500"
+									class="w-full truncate font-mono text-xs text-[var(--sl-text-3)]"
 									title={ms.targetDeviceId}
 								>
 									{ms.targetDeviceId}
@@ -803,48 +803,48 @@
 						</div>
 
 						<div class="flex items-center justify-between">
-							<h4 class="font-medium text-white">Review Changes</h4>
+							<h4 class="font-medium text-[var(--sl-text-1)]">Review Changes</h4>
 						</div>
 
 						{#if ms.isComparing}
 							<div
-								class="flex flex-col items-center justify-center rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 text-center"
+								class="flex flex-col items-center justify-center rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 text-center"
 							>
 								<Loader2 size={32} class="mb-4 animate-spin text-primary" />
-								<h5 class="text-lg font-medium text-white">Comparing Settings...</h5>
-								<p class="mt-2 text-slate-400">{ms.status}</p>
+								<h5 class="text-lg font-medium text-[var(--sl-text-1)]">Comparing Settings...</h5>
+								<p class="mt-2 text-[var(--sl-text-2)]">{ms.status}</p>
 							</div>
 						{:else if ms.comparison.length === 0}
 							<!-- If empty, it might be loading or actually empty. We need a loading state here. -->
 							<!-- For now, assuming if we are here, comparison is done or empty. -->
 							<!-- But prepareComparison is async. We should have a loading state. -->
-							<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 text-center">
+							<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 text-center">
 								<Check size={32} class="mx-auto mb-4 text-emerald-400" />
-								<h5 class="text-lg font-medium text-white">No Differences Found</h5>
-								<p class="mt-2 text-slate-400">
+								<h5 class="text-lg font-medium text-[var(--sl-text-1)]">No Differences Found</h5>
+								<p class="mt-2 text-[var(--sl-text-2)]">
 									The target device already has all the settings from the backup.
 								</p>
 							</div>
 						{:else}
 							<div
-								class="max-h-[50vh] overflow-y-auto rounded-xl border border-[#334155] bg-[#1e293b]/30"
+								class="max-h-[50vh] overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30"
 							>
 								<table class="w-full table-fixed text-left text-sm">
-									<thead class="bg-[#1e293b] text-xs font-bold text-slate-400 uppercase">
+									<thead class="bg-[var(--sl-bg-elevated)] text-xs font-bold text-[var(--sl-text-2)] uppercase">
 										<tr>
 											<th class="w-[40%] p-3">Setting</th>
 											<th class="w-[30%] p-3">Current Value</th>
 											<th class="w-[30%] p-3">New Value</th>
 										</tr>
 									</thead>
-									<tbody class="divide-y divide-[#334155]">
+									<tbody class="divide-y divide-[var(--sl-border)]">
 										{#each ms.comparison as item}
 											<tr class="hover:bg-white/5">
-												<td class="truncate p-3 font-medium text-white" title={item.label}>
+												<td class="truncate p-3 font-medium text-[var(--sl-text-1)]" title={item.label}>
 													{item.label}
 												</td>
 												<td
-													class="truncate p-3 text-slate-400"
+													class="truncate p-3 text-[var(--sl-text-2)]"
 													title={item.current !== undefined ? String(item.current) : '(default)'}
 												>
 													{item.current !== undefined ? item.current : '(default)'}
@@ -871,7 +871,7 @@
 
 						<div class="flex justify-end gap-3 pt-4">
 							<button
-								class="btn text-slate-400 btn-ghost hover:text-white"
+								class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 								onclick={() => deviceState.setMigrationStep(3)}
 							>
 								Back

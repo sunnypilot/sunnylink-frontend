@@ -3,14 +3,107 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
+/* ── sunnypilot Light Theme ─────────────────────────────────────────────── */
+@plugin "daisyui/theme" {
+	name: "sunny-light";
+	default: true;
+	--color-primary: #594AE2;
+	--color-primary-content: #FFFFFF;
+	--color-secondary: #7C6FEB;
+	--color-secondary-content: #FFFFFF;
+	--color-accent: #A78BFA;
+	--color-accent-content: #FFFFFF;
+	--color-neutral: #1E1E2E;
+	--color-neutral-content: #FFFFFF;
+	--color-base-100: #FFFFFF;
+	--color-base-200: #F8F7FC;
+	--color-base-300: #EEEDF5;
+	--color-base-content: #1A1625;
+	--color-info: #3B82F6;
+	--color-info-content: #FFFFFF;
+	--color-success: #22C55E;
+	--color-success-content: #FFFFFF;
+	--color-warning: #EAB308;
+	--color-warning-content: #1A1625;
+	--color-error: #EF4444;
+	--color-error-content: #FFFFFF;
+	--rounded-box: 0.75rem;
+	--rounded-btn: 0.5rem;
+}
+
+/* ── sunnypilot Dark Theme ──────────────────────────────────────────────── */
+@plugin "daisyui/theme" {
+	name: "sunny-dark";
+	prefersdark: true;
+	--color-primary: #7C6FEB;
+	--color-primary-content: #FFFFFF;
+	--color-secondary: #594AE2;
+	--color-secondary-content: #FFFFFF;
+	--color-accent: #A78BFA;
+	--color-accent-content: #FFFFFF;
+	--color-neutral: #1E1E2E;
+	--color-neutral-content: #D4D4E8;
+	--color-base-100: #0c0b14;
+	--color-base-200: #151420;
+	--color-base-300: #1f1e2c;
+	--color-base-content: #E4E3F0;
+	--color-info: #60A5FA;
+	--color-info-content: #0c0b14;
+	--color-success: #4ADE80;
+	--color-success-content: #0c0b14;
+	--color-warning: #FACC15;
+	--color-warning-content: #0c0b14;
+	--color-error: #F87171;
+	--color-error-content: #0c0b14;
+	--rounded-box: 0.75rem;
+	--rounded-btn: 0.5rem;
+}
+
+/* ── Semantic Surface Tokens ────────────────────────────────────────────── */
+:root,
+[data-theme='sunny-light'] {
+	--sl-bg-page: #f8f7fc;
+	--sl-bg-surface: #ffffff;
+	--sl-bg-elevated: #ffffff;
+	--sl-bg-subtle: #f3f1fe;
+	--sl-bg-input: #eeedf5;
+	--sl-border: #e4e0f0;
+	--sl-border-muted: #eeedf5;
+	--sl-border-emphasis: #c9bffb;
+	--sl-text-1: #1a1625;
+	--sl-text-2: #5c5775;
+	--sl-text-3: #7a7590;
+	--sl-accent-muted: rgba(89, 74, 226, 0.08);
+}
+
+[data-theme='sunny-dark'] {
+	--sl-bg-page: #0c0b14;
+	--sl-bg-surface: #151420;
+	--sl-bg-elevated: #1f1e2c;
+	--sl-bg-subtle: #191824;
+	--sl-bg-input: #1f1e2c;
+	--sl-border: #353347;
+	--sl-border-muted: #2d2b3d;
+	--sl-border-emphasis: #4a4660;
+	--sl-text-1: #e4e3f0;
+	--sl-text-2: #a09eb5;
+	--sl-text-3: #8a87a0;
+	--sl-accent-muted: rgba(124, 111, 235, 0.16);
+}
+
+/* ── Global Styles ──────────────────────────────────────────────────────── */
 @theme {
 	--font-audiowide: 'Audiowide', cursive;
 }
 
 html,
 body {
-	background-color: #0f1726;
+	background-color: var(--sl-bg-page);
+	color: var(--sl-text-1);
 	min-height: 100vh;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
 }
 
 /* Fix for mobile PWA input focus */
@@ -21,12 +114,12 @@ textarea,
 	user-select: text;
 }
 
+/* ── Animations ─────────────────────────────────────────────────────────── */
 @keyframes float {
 	0%,
 	100% {
 		transform: translateY(0);
 	}
-
 	50% {
 		transform: translateY(-20px);
 	}
@@ -38,7 +131,6 @@ textarea,
 		opacity: 0.2;
 		transform: scale(1);
 	}
-
 	50% {
 		opacity: 0.3;
 		transform: scale(1.1);
@@ -51,7 +143,6 @@ textarea,
 		opacity: 0.1;
 		transform: scale(1);
 	}
-
 	50% {
 		opacity: 0.2;
 		transform: scale(1.2);

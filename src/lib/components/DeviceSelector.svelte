@@ -111,7 +111,7 @@
 
 <!-- Trigger -->
 <button
-	class="group flex max-w-full items-center gap-2 rounded-xl border border-[#334155] bg-[#101a29] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[#1e293b] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
+	class="group flex max-w-full items-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
 	onclick={toggleModal}
 >
 	{#if selectedDevice}
@@ -121,7 +121,7 @@
 			<Smartphone size={16} />
 		</div>
 		<div class="min-w-0 flex-1 flex-col overflow-hidden">
-			<span class="block truncate text-xs font-bold text-white">
+			<span class="block truncate text-xs font-bold text-[var(--sl-text-1)]">
 				{getAlias(selectedDevice)}
 			</span>
 			<div class="flex items-center gap-1">
@@ -130,7 +130,7 @@
 					<span class="truncate text-[10px] text-emerald-400">Online</span>
 					{#if deviceState.offroadStatuses[selectedDevice.device_id]}
 						{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
-						<span class="text-[10px] text-slate-600">•</span>
+						<span class="text-[10px] text-[var(--sl-text-3)]">•</span>
 						{#if status?.forceOffroad}
 							<span class="truncate text-[10px] font-bold text-amber-500">Forced</span>
 						{:else if status?.isOffroad}
@@ -156,18 +156,18 @@
 		</div>
 	{:else}
 		<div
-			class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-slate-800 text-slate-400 group-hover:text-white"
+			class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
 		>
 			<LayoutDashboard size={16} />
 		</div>
 		<div class="flex flex-col">
-			<span class="text-xs font-bold text-slate-300 group-hover:text-white">Overview</span>
-			<span class="text-[10px] text-slate-500 group-hover:text-slate-400">Select Device</span>
+			<span class="text-xs font-bold text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]">Overview</span>
+			<span class="text-[10px] text-[var(--sl-text-3)] group-hover:text-[var(--sl-text-2)]">Select Device</span>
 		</div>
 	{/if}
 	<ChevronDown
 		size={14}
-		class="ml-auto text-slate-500 transition-transform duration-200 {isOpen ? 'rotate-180' : ''}"
+		class="ml-auto text-[var(--sl-text-3)] transition-transform duration-200 {isOpen ? 'rotate-180' : ''}"
 	/>
 </button>
 
@@ -188,13 +188,13 @@
 
 		<!-- Content -->
 		<div
-			class="relative w-full max-w-md overflow-hidden rounded-t-2xl border border-[#334155] bg-[#0f1726] shadow-2xl sm:rounded-2xl"
+			class="relative w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-input)] shadow-2xl sm:rounded-2xl"
 			transition:fly={{ y: 20, duration: 300 }}
 		>
-			<div class="flex items-center justify-between border-b border-[#1e293b] p-4">
-				<h3 class="font-semibold text-white">Select Device</h3>
+			<div class="flex items-center justify-between border-b border-[var(--sl-border)] p-4">
+				<h3 class="font-semibold text-[var(--sl-text-1)]">Select Device</h3>
 				<button
-					class="rounded-lg p-2 text-slate-400 hover:bg-[#1e293b] hover:text-white"
+					class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
 					onclick={() => (isOpen = false)}
 				>
 					<X size={20} />
@@ -207,24 +207,24 @@
 					class="flex w-full items-center gap-3 rounded-xl border p-3 transition-all
 						{!selectedDevice
 						? 'border-primary bg-primary/5 ring-1 ring-primary/50'
-						: 'border-transparent hover:bg-[#1e293b]'}"
+						: 'border-transparent hover:bg-[var(--sl-bg-elevated)]'}"
 					onclick={clearSelection}
 				>
 					<span
-						class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e293b] text-slate-400"
+						class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)]"
 					>
 						<LayoutDashboard size={20} />
 					</span>
 					<span class="flex flex-col items-start">
-						<span class="font-medium text-white">Overview</span>
-						<span class="text-xs text-slate-400">View all devices</span>
+						<span class="font-medium text-[var(--sl-text-1)]">Overview</span>
+						<span class="text-xs text-[var(--sl-text-2)]">View all devices</span>
 					</span>
 					{#if !selectedDevice}
 						<Check size={18} class="ml-auto text-primary" />
 					{/if}
 				</button>
 
-				<div class="divider my-2 text-xs text-slate-500">Online Devices</div>
+				<div class="divider my-2 text-xs text-[var(--sl-text-3)]">Online Devices</div>
 
 				{#each onlineDevices as device}
 					{@const isSelected = device.device_id === deviceState.selectedDeviceId}
@@ -234,16 +234,16 @@
 						class="flex w-full items-center gap-3 rounded-xl border p-3 transition-all
 							{isSelected
 							? 'border-primary bg-primary/5 ring-1 ring-primary/50'
-							: 'border-[#1e293b] bg-[#101a29] hover:border-primary/30 hover:bg-[#1e293b]'}"
+							: 'border-[var(--sl-border)] bg-[var(--sl-bg-surface)] hover:border-primary/30 hover:bg-[var(--sl-bg-elevated)]'}"
 						onclick={() => selectDevice(device)}
 					>
 						<span
-							class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e293b] text-slate-400"
+							class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)]"
 						>
 							<Smartphone size={20} class={isSelected ? 'text-primary' : ''} />
 						</span>
 						<span class="flex flex-col items-start overflow-hidden">
-							<span class="w-full truncate text-left font-medium text-white">
+							<span class="w-full truncate text-left font-medium text-[var(--sl-text-1)]">
 								{getAlias(device)}
 							</span>
 							<span class="flex items-center gap-1.5">
@@ -252,7 +252,7 @@
 									<span class="text-xs text-emerald-400">Online</span>
 									{#if deviceState.offroadStatuses[device.device_id]}
 										{@const offroadStatus = deviceState.offroadStatuses[device.device_id]}
-										<span class="text-[10px] text-slate-600">•</span>
+										<span class="text-[10px] text-[var(--sl-text-3)]">•</span>
 										{#if offroadStatus?.forceOffroad}
 											<span class="text-xs font-bold text-amber-500">Forced</span>
 										{:else if offroadStatus?.isOffroad}
@@ -274,7 +274,7 @@
 									<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
 									<span class="text-xs text-amber-400">Checking...</span>
 								{/if}
-								<span class="text-[10px] text-slate-500">• {device.device_id}</span>
+								<span class="text-[10px] text-[var(--sl-text-3)]">• {device.device_id}</span>
 							</span>
 						</span>
 						{#if isSelected}
@@ -286,7 +286,7 @@
 				{#if offlineDevices.length > 0}
 					<div class="pt-2">
 						<button
-							class="flex w-full items-center justify-between rounded-lg p-2 text-left text-xs font-medium text-slate-500 hover:bg-[#1e293b] hover:text-slate-300"
+							class="flex w-full items-center justify-between rounded-lg p-2 text-left text-xs font-medium text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
 							onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
 						>
 							<span class="flex items-center gap-2">
@@ -309,22 +309,22 @@
 										class="flex w-full items-center gap-3 rounded-xl border p-3 transition-all
 											{isSelected
 											? 'border-primary bg-primary/5 ring-1 ring-primary/50'
-											: 'border-[#1e293b] bg-[#101a29]/50 hover:border-primary/30 hover:bg-[#1e293b]'}"
+											: 'border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/50 hover:border-primary/30 hover:bg-[var(--sl-bg-elevated)]'}"
 										onclick={() => selectDevice(device)}
 									>
 										<span
-											class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e293b] text-slate-500"
+											class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)] text-[var(--sl-text-3)]"
 										>
 											<Smartphone size={20} class={isSelected ? 'text-primary' : ''} />
 										</span>
 										<span class="flex flex-col items-start overflow-hidden">
-											<span class="w-full truncate text-left font-medium text-slate-300">
+											<span class="w-full truncate text-left font-medium text-[var(--sl-text-2)]">
 												{getAlias(device)}
 											</span>
 											<span class="flex items-center gap-1.5">
 												<span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>
 												<span class="text-xs text-red-400">Offline</span>
-												<span class="text-[10px] text-slate-500">• {device.device_id}</span>
+												<span class="text-[10px] text-[var(--sl-text-3)]">• {device.device_id}</span>
 											</span>
 										</span>
 										{#if isSelected}

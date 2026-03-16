@@ -4,6 +4,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { isVisible, evaluateRule, type RuleContext } from '$lib/rules/evaluator';
 	import type { Panel, SubPanel, SchemaItem } from '$lib/types/schema';
+	import { ChevronRight } from 'lucide-svelte';
 
 	interface Props {
 		deviceId: string;
@@ -35,49 +36,102 @@
 			return evaluateRule(sp.trigger_condition, ruleContext);
 		})
 	);
+
+	// ── Group items into sections ────────────────────────────────────────
+	// Items with widget='info' or widget='multiple_button' that have no options
+	// act as section headers. Split items into groups around these boundaries.
+
+	type ItemGroup = { label?: string; items: SchemaItem[] };
+
+	function isSectionHeader(item: SchemaItem): boolean {
+		if (item.widget === 'info' && !item.options) return true;
+		if (item.widget === 'multiple_button' && (!item.options || item.options.length === 0)) return true;
+		return false;
+	}
+
+	let itemGroups: ItemGroup[] = $derived.by(() => {
+		const groups: ItemGroup[] = [];
+		let current: ItemGroup = { items: [] };
+
+		for (const item of visibleItems) {
+			if (isSectionHeader(item)) {
+				// Push current group if it has items
+				if (current.items.length > 0) {
+					groups.push(current);
+				}
+				// Start new group with this section header as label
+				current = { label: item.title || item.key, items: [] };
+			} else {
+				current.items.push(item);
+			}
+		}
+
+		// Push final group
+		if (current.items.length > 0) {
+			groups.push(current);
+		}
+
+		return groups;
+	});
+
+	let hasContent = $derived(itemGroups.length > 0 || activeSubPanels.length > 0);
 </script>
 
-{#if visibleItems.length > 0 || activeSubPanels.length > 0}
-	<div class="flex flex-col gap-2">
-		{#each visibleItems as item (item.key)}
-			<SchemaItemRenderer {deviceId} {item} {loadingValues} />
+{#if hasContent}
+	<div class="space-y-4">
+		{#each itemGroups as group, gi (gi)}
+			<!-- Section label (from info/header items) -->
+			{#if group.label}
+				<p class="px-1 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase {gi > 0 ? 'mt-2' : ''}">
+					{group.label}
+				</p>
+			{/if}
+
+			<!-- Grouped card for this section's items -->
+			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				{#each group.items as item, i (item.key)}
+					<SchemaItemRenderer
+						{deviceId}
+						{item}
+						{loadingValues}
+						isLast={i === group.items.length - 1}
+					/>
+				{/each}
+			</div>
 		{/each}
 
+		<!-- Sub-panel navigation in its own card -->
 		{#if activeSubPanels.length > 0}
-			<div class="mt-1 flex flex-col gap-2">
-				{#each activeSubPanels as subPanel (subPanel.id)}
+			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				{#each activeSubPanels as subPanel, i (subPanel.id)}
 					<button
-						class="flex w-full items-center justify-between rounded-xl border border-[#334155] bg-[#101a29] px-4 py-3 text-left transition-colors hover:border-primary/50"
+						class="flex w-full items-center justify-between px-4 py-4 text-left transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)]"
 						onclick={() => onSubPanelOpen?.(subPanel)}
 					>
-						<span class="font-medium text-white">{subPanel.label}</span>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="18"
-							height="18"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							class="text-slate-400"
-						>
-							<path d="m9 18 6-6-6-6" />
-						</svg>
+						<span class="text-sm font-medium text-[var(--sl-text-1)]">{subPanel.label}</span>
+						<ChevronRight size={18} class="text-[var(--sl-text-2)]" />
 					</button>
+					{#if i < activeSubPanels.length - 1}
+						<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
+					{/if}
 				{/each}
 			</div>
 		{/if}
 	</div>
 {:else if loadingValues}
-	<div class="flex flex-col gap-2">
-		{#each Array(3) as _}
-			<div class="h-16 animate-pulse rounded-xl bg-[#101a29]"></div>
+	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+		{#each Array(4) as _, i}
+			<div class="px-4 py-3">
+				<div class="h-4 w-1/3 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
+				<div class="mt-1.5 h-3 w-2/3 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
+			</div>
+			{#if i < 3}
+				<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
+			{/if}
 		{/each}
 	</div>
 {:else}
-	<div class="rounded-xl border border-[#334155] bg-[#101a29] p-8 text-center">
-		<p class="text-sm text-slate-500">No settings available for this panel</p>
+	<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
+		<p class="text-sm text-[var(--sl-text-3)]">No settings available for this panel</p>
 	</div>
 {/if}

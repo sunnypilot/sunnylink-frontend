@@ -116,6 +116,23 @@ export function requiresOffroad(enablement: Rule[] | undefined): boolean {
 	});
 }
 
+/** Collect all param keys referenced in a set of rules (for dependency tracking) */
+export function collectParamDependencies(rules: Rule[] | undefined): string[] {
+	if (!rules) return [];
+	const keys: string[] = [];
+	function walk(rule: Rule) {
+		if (rule.type === 'param' || rule.type === 'param_compare') {
+			keys.push(rule.key);
+		} else if (rule.type === 'not') {
+			walk(rule.condition);
+		} else if (rule.type === 'any' || rule.type === 'all') {
+			rule.conditions.forEach(walk);
+		}
+	}
+	rules.forEach(walk);
+	return keys;
+}
+
 // ── Internal helpers ────────────────────────────────────────────────────────
 
 /**

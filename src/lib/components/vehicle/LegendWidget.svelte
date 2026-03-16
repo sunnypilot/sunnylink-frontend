@@ -14,18 +14,18 @@
 	}>();
 </script>
 
-<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-4">
+<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-4">
 	<div class="mb-4">
-		<h3 class="text-sm font-medium text-slate-300">
+		<h3 class="text-sm font-medium text-[var(--sl-text-2)]">
 			{#if isLoading}
-				<div class="h-5 w-3/4 animate-pulse rounded bg-slate-700"></div>
+				<div class="h-5 w-3/4 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else}
 				Select vehicle to force fingerprint manually.
 			{/if}
 		</h3>
-		<p class="mt-1 text-xs text-slate-500">
+		<p class="mt-1 text-xs text-[var(--sl-text-3)]">
 			{#if isLoading}
-				<div class="h-3 w-1/2 animate-pulse rounded bg-slate-700"></div>
+				<div class="h-3 w-1/2 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else}
 				Colors represent vehicle fingerprint status:
 			{/if}
@@ -36,8 +36,8 @@
 		{#if isLoading}
 			{#each Array(3) as _}
 				<div class="flex animate-pulse items-center gap-3">
-					<div class="h-6 w-6 rounded bg-slate-700"></div>
-					<div class="h-4 w-32 rounded bg-slate-700"></div>
+					<div class="h-6 w-6 rounded bg-[var(--sl-bg-elevated)]"></div>
+					<div class="h-4 w-32 rounded bg-[var(--sl-bg-elevated)]"></div>
 				</div>
 			{/each}
 		{:else}
@@ -51,8 +51,8 @@
 				<span
 					class="text-sm"
 					class:font-bold={mode === 'auto'}
-					class:text-white={mode === 'auto'}
-					class:text-slate-400={mode !== 'auto'}
+					class:text-[var(--sl-text-1)]={mode === 'auto'}
+					class:text-[var(--sl-text-2)]={mode !== 'auto'}
 				>
 					Fingerprinted in previous drive
 				</span>
@@ -68,8 +68,8 @@
 				<span
 					class="text-sm"
 					class:font-bold={mode === 'manual'}
-					class:text-white={mode === 'manual'}
-					class:text-slate-400={mode !== 'manual'}
+					class:text-[var(--sl-text-1)]={mode === 'manual'}
+					class:text-[var(--sl-text-2)]={mode !== 'manual'}
 				>
 					Manually selected fingerprint
 				</span>
@@ -85,8 +85,8 @@
 				<span
 					class="text-sm"
 					class:font-bold={mode === 'none'}
-					class:text-white={mode === 'none'}
-					class:text-slate-400={mode !== 'none'}
+					class:text-[var(--sl-text-1)]={mode === 'none'}
+					class:text-[var(--sl-text-2)]={mode !== 'none'}
 				>
 					Not fingerprinted or manually selected
 				</span>

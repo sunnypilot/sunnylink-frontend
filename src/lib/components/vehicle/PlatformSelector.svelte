@@ -42,8 +42,8 @@
 <!-- Container: Button if NOT manual, Div if manual -->
 <svelte:element
 	this={mode === 'manual' ? 'div' : 'button'}
-	class="group relative flex w-full flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] text-left transition-all sm:flex-row sm:items-stretch"
-	class:hover:border-slate-500={mode !== 'manual'}
+	class="group relative flex w-full flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-left transition-all sm:flex-row sm:items-stretch"
+	class:hover:border-[var(--sl-border-emphasis)]={mode !== 'manual'}
 	class:hover:shadow-lg={mode !== 'manual'}
 	class:cursor-default={mode === 'manual'}
 	class:cursor-pointer={mode !== 'manual'}
@@ -64,24 +64,24 @@
 
 	<div class="flex flex-1 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:py-6 sm:pr-6 sm:pl-8">
 		<div
-			class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-800 transition-colors"
+			class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-surface)] transition-colors"
 			class:text-emerald-400={mode === 'auto'}
 			class:text-blue-400={mode === 'manual'}
 			class:text-yellow-400={mode === 'none'}
 			class:animate-pulse={isLoading}
 		>
 			{#if isLoading}
-				<Loader2 size={24} class="animate-spin text-slate-400" />
+				<Loader2 size={24} class="animate-spin text-[var(--sl-text-2)]" />
 			{:else}
 				<Car size={24} />
 			{/if}
 		</div>
 
 		<div class="min-w-0 flex-1">
-			<div class="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
+			<div class="mb-1 text-xs font-bold tracking-wider text-[var(--sl-text-2)] uppercase">
 				{statusText}
 			</div>
-			<div class="text-lg font-bold break-words text-white">
+			<div class="text-lg font-bold break-words text-[var(--sl-text-1)]">
 				{label}
 			</div>
 		</div>
@@ -102,7 +102,7 @@
 					</button>
 				{:else}
 					<div
-						class="flex items-center gap-2 rounded-lg bg-slate-700/50 px-4 py-2 text-sm font-bold text-slate-300 transition-colors group-hover:bg-slate-700"
+						class="flex items-center gap-2 rounded-lg bg-[var(--sl-bg-elevated)] px-4 py-2 text-sm font-bold text-[var(--sl-text-2)] transition-colors group-hover:bg-[var(--sl-bg-elevated)]"
 					>
 						<span>SELECT</span>
 						<ChevronRight size={16} />

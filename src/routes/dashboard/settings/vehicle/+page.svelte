@@ -95,32 +95,25 @@
 
 </script>
 
-<div class="mx-auto max-w-7xl px-4 py-6 md:px-0">
-	<div class="mb-8">
-		<h1 class="text-2xl font-bold text-white">Vehicle Settings</h1>
-		<p class="mt-2 text-slate-400">Manage your vehicle fingerprint and platform selection.</p>
+<div class="mx-auto max-w-2xl space-y-6">
+	<div>
+		<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">Vehicle</h2>
+		<p class="mt-0.5 text-[0.8125rem] text-[var(--sl-text-3)]">Fingerprint and platform selection</p>
 	</div>
 
 	{#if deviceId}
 		<VehicleSelector {deviceId} />
 
-		<!-- Brand-specific settings -->
+		<!-- Brand-specific settings grouped card -->
 		{#if brandSettings.length > 0}
-			<div class="mt-8">
-				<div class="mb-4 flex items-center gap-4">
-					<h2
-						class="text-sm font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase"
-					>
-						{currentBrand} Settings
-					</h2>
-					<div class="h-px w-full bg-slate-800"></div>
-				</div>
-				<div class="mx-auto w-full max-w-2xl">
-					<div class="flex flex-col gap-2">
-						{#each brandSettings as item (item.key)}
-							<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} />
-						{/each}
-					</div>
+			<div>
+				<p class="mb-2 px-1 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+					{currentBrand} Settings
+				</p>
+				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+					{#each brandSettings as item, i (item.key)}
+						<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />
+					{/each}
 				</div>
 			</div>
 		{/if}

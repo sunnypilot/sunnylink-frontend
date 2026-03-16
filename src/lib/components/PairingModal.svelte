@@ -61,26 +61,26 @@
 
 		<!-- Content -->
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#334155] bg-[#0f1726] shadow-2xl"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-input)] shadow-2xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			<!-- Header -->
-			<div class="border-b border-[#334155] bg-[#1e293b]/50 p-6">
+			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
 						{#if step === 2}
 							<button
-								class="rounded-lg p-1 text-slate-400 hover:bg-white/5 hover:text-white"
+								class="rounded-lg p-1 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 								onclick={back}
 								title="Back"
 							>
 								<ArrowLeft size={20} />
 							</button>
 						{/if}
-						<h3 class="text-xl font-bold text-white">Pair New Device</h3>
+						<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Pair New Device</h3>
 					</div>
 					<button
-						class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+						class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 						onclick={close}
 						aria-label="Close"
 					>
@@ -92,40 +92,40 @@
 			<div class="p-6">
 				{#if step === 1}
 					<div class="space-y-4">
-						<p class="text-sm text-slate-400">
+						<p class="text-sm text-[var(--sl-text-2)]">
 							Select your comma device model to see pairing instructions.
 						</p>
 
 						<div class="grid gap-4 sm:grid-cols-2">
 							<!-- Comma 3/3X -->
 							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 transition-all hover:border-primary/50 hover:bg-[#1e293b]"
+								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
 								onclick={() => selectDevice('c3')}
 							>
 								<div
-									class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+									class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
 								>
 									<RectangleHorizontal size={40} />
 								</div>
 								<div class="text-center">
-									<h4 class="font-bold text-white">comma 3 / 3X</h4>
-									<p class="text-xs text-slate-500">Standard generation</p>
+									<h4 class="font-bold text-[var(--sl-text-1)]">comma 3 / 3X</h4>
+									<p class="text-xs text-[var(--sl-text-3)]">Standard generation</p>
 								</div>
 							</button>
 
 							<!-- Comma 4 -->
 							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 transition-all hover:border-primary/50 hover:bg-[#1e293b]"
+								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
 								onclick={() => selectDevice('c4')}
 							>
 								<div
-									class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+									class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
 								>
 									<RectangleHorizontal size={28} />
 								</div>
 								<div class="text-center">
-									<h4 class="font-bold text-white">comma 4</h4>
-									<p class="text-xs text-slate-500">Next generation</p>
+									<h4 class="font-bold text-[var(--sl-text-1)]">comma 4</h4>
+									<p class="text-xs text-[var(--sl-text-3)]">Next generation</p>
 								</div>
 							</button>
 						</div>
@@ -133,7 +133,7 @@
 				{:else if step === 2}
 					<div class="space-y-6">
 						<!-- GIF Display -->
-						<div class="overflow-hidden rounded-xl border border-[#334155] bg-black">
+						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-black">
 							{#if selectedDeviceType === 'c3'}
 								<!-- svelte-ignore a11y_img_redundant_alt -->
 								<img
@@ -155,16 +155,16 @@
 							<ol class="list-inside list-decimal space-y-2 text-sm text-blue-200">
 								<li>Note: <strong>Wi-Fi</strong> is NOT required for pairing.</li>
 								<li>
-									Go to <strong class="text-white">Settings &gt; sunnylink</strong> on your device.
+									Go to <strong class="text-[var(--sl-text-1)]">Settings &gt; sunnylink</strong> on your device.
 								</li>
 								<li>
 									Tap on
 									{#if selectedDeviceType === 'c4'}
-										<strong class="text-white">Pair</strong>
+										<strong class="text-[var(--sl-text-1)]">Pair</strong>
 									{:else}
-										<strong class="text-white">Not Paired</strong>
+										<strong class="text-[var(--sl-text-1)]">Not Paired</strong>
 									{/if}
-									(or <strong class="text-white">Paired</strong>
+									(or <strong class="text-[var(--sl-text-1)]">Paired</strong>
 									if adding another user).
 								</li>
 								<li>

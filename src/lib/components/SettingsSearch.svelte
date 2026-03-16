@@ -86,14 +86,14 @@
 <div class="relative w-full {isFocused ? 'z-50' : ''}">
 	<div class="relative">
 		<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-			<Search class="h-5 w-5 text-slate-400" />
+			<Search class="h-5 w-5 text-[var(--sl-text-2)]" />
 		</div>
 		<input
 			bind:this={inputRef}
 			type="text"
 			bind:value={searchState.query}
 			placeholder="Search settings..."
-			class="input-bordered input w-full bg-[#1e293b] pr-10 pl-10 text-sm text-white placeholder-slate-400 focus:border-primary focus:outline-none"
+			class="input-bordered input w-full bg-[var(--sl-bg-elevated)] pr-10 pl-10 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-2)] focus:border-primary focus:outline-none"
 			onfocus={() => {
 				isFocused = true;
 				if (searchState.query.trim()) isOpen = true;
@@ -101,7 +101,7 @@
 		/>
 		{#if searchState.query}
 			<button
-				class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white"
+				class="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
 				onclick={() => {
 					searchState.query = '';
 					results = [];
@@ -116,25 +116,25 @@
 
 	{#if isOpen && results.length > 0}
 		<div
-			class="search-results absolute z-50 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-[#334155] bg-[#1e293b] shadow-2xl"
+			class="search-results absolute z-50 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
 		>
 			{#each results as result}
 				<button
-					class="flex w-full flex-col border-b border-[#334155] px-4 py-3 text-left transition-colors last:border-0 hover:bg-[#0f1726]"
+					class="flex w-full flex-col border-b border-[var(--sl-border)] px-4 py-3 text-left transition-colors last:border-0 hover:bg-[var(--sl-bg-input)]"
 					onclick={() => handleSelect(result)}
 				>
 					<span class="flex items-center justify-between">
-						<span class="font-medium text-white"
+						<span class="font-medium text-[var(--sl-text-1)]"
 							>{result.setting._extra?.title || result.setting.label}</span
 						>
-						<span class="text-xs text-slate-500 capitalize">
+						<span class="text-xs text-[var(--sl-text-3)] capitalize">
 							{MODEL_SETTINGS.includes(result.setting.key) ? 'models' : result.setting.category}
 						</span>
 					</span>
 					{#if result.setting.key !== (result.setting._extra?.title || result.setting.label)}
-						<span class="font-mono text-xs text-slate-500">{result.setting.key}</span>
+						<span class="font-mono text-xs text-[var(--sl-text-3)]">{result.setting.key}</span>
 					{/if}
-					<p class="mt-1 line-clamp-2 text-xs text-slate-400">
+					<p class="mt-1 line-clamp-2 text-xs text-[var(--sl-text-2)]">
 						{result.setting._extra?.description || result.setting.description}
 					</p>
 				</button>
@@ -142,7 +142,7 @@
 		</div>
 	{:else if isOpen && searchState.query.trim()}
 		<div
-			class="search-results absolute z-50 mt-2 w-full rounded-xl border border-[#334155] bg-[#1e293b] p-4 text-center text-sm text-slate-400 shadow-2xl"
+			class="search-results absolute z-50 mt-2 w-full rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-4 text-center text-sm text-[var(--sl-text-2)] shadow-2xl"
 		>
 			No settings found.
 		</div>

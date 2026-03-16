@@ -77,11 +77,11 @@
 {#if open}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
 		<div
-			class="w-full max-w-lg overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] shadow-2xl"
+			class="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
 		>
-			<div class="border-b border-[#334155] bg-[#0f1726] p-6">
-				<h3 class="text-xl font-bold text-white">Save Changes</h3>
-				<p class="mt-1 text-slate-400">
+			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
+				<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Save Changes</h3>
+				<p class="mt-1 text-[var(--sl-text-2)]">
 					You are about to update the alias for {changes.length} device{changes.length === 1
 						? ''
 						: 's'}.
@@ -99,15 +99,15 @@
 				<div class="space-y-3">
 					{#each changes as change}
 						<div
-							class="flex items-center gap-4 rounded-lg border border-[#334155] bg-[#101a29] p-4"
+							class="flex items-center gap-4 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4"
 						>
 							<div class="min-w-0 flex-1">
-								<div class="mb-1 font-mono text-xs text-slate-500">{change.deviceId}</div>
+								<div class="mb-1 font-mono text-xs text-[var(--sl-text-3)]">{change.deviceId}</div>
 								<div class="flex items-center gap-3">
-									<div class="flex-1 truncate text-right text-sm text-slate-400">
+									<div class="flex-1 truncate text-right text-sm text-[var(--sl-text-2)]">
 										{change.oldAlias}
 									</div>
-									<ArrowRight class="shrink-0 text-slate-600" size={16} />
+									<ArrowRight class="shrink-0 text-[var(--sl-text-3)]" size={16} />
 									<div class="flex-1 truncate text-sm font-medium text-primary">
 										{change.newAlias}
 									</div>
@@ -118,9 +118,9 @@
 				</div>
 			</div>
 
-			<div class="flex justify-end gap-3 border-t border-[#334155] bg-[#0f1726] p-6">
+			<div class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
 				<button
-					class="btn text-slate-400 btn-ghost hover:text-white"
+					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 					onclick={() => (open = false)}
 					disabled={saving}
 				>
