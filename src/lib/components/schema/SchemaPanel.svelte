@@ -9,7 +9,6 @@
 		deviceId: string;
 		panel: Panel;
 		loadingValues?: boolean;
-		onValueChange?: (key: string, value: unknown, original: unknown) => void;
 		onSubPanelOpen?: (subPanel: SubPanel) => void;
 	}
 
@@ -17,7 +16,6 @@
 		deviceId,
 		panel,
 		loadingValues = false,
-		onValueChange,
 		onSubPanelOpen
 	}: Props = $props();
 
@@ -27,12 +25,10 @@
 		isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true
 	});
 
-	// Filter items to only visible ones
 	let visibleItems: SchemaItem[] = $derived(
 		panel.items.filter((item) => isVisible(item.visibility, ruleContext))
 	);
 
-	// Filter sub-panels to those whose trigger condition is met
 	let activeSubPanels: SubPanel[] = $derived(
 		(panel.sub_panels ?? []).filter((sp) => {
 			if (!sp.trigger_condition) return true;
@@ -42,25 +38,23 @@
 </script>
 
 {#if visibleItems.length > 0 || activeSubPanels.length > 0}
-	<div class="flex flex-col gap-4">
-		<!-- Panel items -->
+	<div class="flex flex-col gap-2">
 		{#each visibleItems as item (item.key)}
-			<SchemaItemRenderer {deviceId} {item} {loadingValues} {onValueChange} />
+			<SchemaItemRenderer {deviceId} {item} {loadingValues} />
 		{/each}
 
-		<!-- Sub-panel navigation buttons -->
 		{#if activeSubPanels.length > 0}
-			<div class="mt-2 flex flex-col gap-2">
+			<div class="mt-1 flex flex-col gap-2">
 				{#each activeSubPanels as subPanel (subPanel.id)}
 					<button
-						class="flex w-full items-center justify-between rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 sm:p-6"
+						class="flex w-full items-center justify-between rounded-xl border border-[#334155] bg-[#101a29] px-4 py-3 text-left transition-colors hover:border-primary/50"
 						onclick={() => onSubPanelOpen?.(subPanel)}
 					>
 						<span class="font-medium text-white">{subPanel.label}</span>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
+							width="18"
+							height="18"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -77,9 +71,9 @@
 		{/if}
 	</div>
 {:else if loadingValues}
-	<div class="flex flex-col gap-4">
+	<div class="flex flex-col gap-2">
 		{#each Array(3) as _}
-			<div class="h-24 animate-pulse rounded-xl bg-[#101a29]"></div>
+			<div class="h-16 animate-pulse rounded-xl bg-[#101a29]"></div>
 		{/each}
 	</div>
 {:else}

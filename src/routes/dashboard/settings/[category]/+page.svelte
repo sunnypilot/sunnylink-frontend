@@ -349,7 +349,7 @@
 	}
 </script>
 
-<div class="space-y-6" class:pb-16={hasChanges}>
+<div class="space-y-6" class:pb-16={hasChanges && !useSchema}>
 	<div class="flex items-center justify-between">
 		<div>
 			{#if activeSubPanel}
@@ -488,27 +488,23 @@
 			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>
 	{:else if useSchema && schemaPanel}
-		<!-- ═══ Schema-driven rendering ═══ -->
-		{#if activeSubPanel}
-			<!-- Sub-panel view -->
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-				{#each activeSubPanel.items as item (item.key)}
-					<SchemaItemRenderer {deviceId} {item} {loadingValues} />
-				{/each}
-			</div>
-		{:else}
-			<!-- Main panel view -->
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-				<div class="col-span-full">
-					<SchemaPanel
-						{deviceId}
-						panel={schemaPanel}
-						{loadingValues}
-						onSubPanelOpen={openSubPanel}
-					/>
+		<!-- ═══ Schema-driven rendering (centered narrow column) ═══ -->
+		<div class="mx-auto w-full max-w-2xl">
+			{#if activeSubPanel}
+				<div class="flex flex-col gap-2">
+					{#each activeSubPanel.items as item (item.key)}
+						<SchemaItemRenderer {deviceId} {item} {loadingValues} />
+					{/each}
 				</div>
-			</div>
-		{/if}
+			{:else}
+				<SchemaPanel
+					{deviceId}
+					panel={schemaPanel}
+					{loadingValues}
+					onSubPanelOpen={openSubPanel}
+				/>
+			{/if}
+		</div>
 	{:else if useSchema && !schemaPanel}
 		<!-- Schema loaded but no panel for this category (e.g., "toggles" or "other") -->
 		<div class="alert border-none bg-[#1e293b] text-slate-300">
@@ -611,16 +607,19 @@
 	{/if}
 </div>
 
-<SettingsActionBar
-	onPush={() => (pushModalOpen = true)}
-	onReset={() => deviceId && deviceState.clearChanges(deviceId)}
-/>
+<!-- Action bar + push modal only for legacy (non-schema) rendering -->
+{#if !useSchema}
+	<SettingsActionBar
+		onPush={() => (pushModalOpen = true)}
+		onReset={() => deviceId && deviceState.clearChanges(deviceId)}
+	/>
 
-<PushSettingsModal
-	bind:open={pushModalOpen}
-	onPushSuccess={handlePushSuccess}
-	alias={currentDeviceAlias}
-/>
+	<PushSettingsModal
+		bind:open={pushModalOpen}
+		onPushSuccess={handlePushSuccess}
+		alias={currentDeviceAlias}
+	/>
+{/if}
 <DeviceOnlineModal bind:open={deviceOnlineModalOpen} />
 
 <!-- JSON Modal -->

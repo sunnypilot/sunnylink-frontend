@@ -6,15 +6,10 @@
 	import { decodeParamValue } from '$lib/utils/device';
 	import VehicleSelector from '$lib/components/vehicle/VehicleSelector.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
-	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
-	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
-	import { toastState } from '$lib/stores/toast.svelte';
 	import { goto } from '$app/navigation';
 	import type { SchemaItem } from '$lib/types/schema';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
-	let hasChanges = $derived(deviceId ? deviceState.hasChanges(deviceId) : false);
-	let pushModalOpen = $state(false);
 
 	$effect(() => {
 		if (!deviceId) {
@@ -97,17 +92,10 @@
 		}
 	}
 
-	async function handlePushSuccess() {
-		fetchBrandValues();
-		if (deviceId && logtoClient) {
-			const token = await logtoClient.getIdToken();
-			if (token) schemaState.refreshCapabilities(deviceId, token);
-		}
-		toastState.show('Settings pushed successfully!', 'success');
-	}
+
 </script>
 
-<div class="mx-auto max-w-7xl px-4 py-6 md:px-0" class:pb-16={hasChanges}>
+<div class="mx-auto max-w-7xl px-4 py-6 md:px-0">
 	<div class="mb-8">
 		<h1 class="text-2xl font-bold text-white">Vehicle Settings</h1>
 		<p class="mt-2 text-slate-400">Manage your vehicle fingerprint and platform selection.</p>
@@ -127,22 +115,14 @@
 					</h2>
 					<div class="h-px w-full bg-slate-800"></div>
 				</div>
-				<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-					{#each brandSettings as item (item.key)}
-						<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} />
-					{/each}
+				<div class="mx-auto w-full max-w-2xl">
+					<div class="flex flex-col gap-2">
+						{#each brandSettings as item (item.key)}
+							<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} />
+						{/each}
+					</div>
 				</div>
 			</div>
 		{/if}
 	{/if}
 </div>
-
-<SettingsActionBar
-	onPush={() => (pushModalOpen = true)}
-	onReset={() => deviceId && deviceState.clearChanges(deviceId)}
-/>
-
-<PushSettingsModal
-	bind:open={pushModalOpen}
-	onPushSuccess={handlePushSuccess}
-/>
