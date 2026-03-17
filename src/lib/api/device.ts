@@ -155,7 +155,10 @@ export async function fetchParamsMetadata(
 		return null;
 	}
 
-	const json: { params_metadata: string } = await response.json();
+	const json = await response.json();
+	if (typeof json?.params_metadata !== 'string') {
+		throw new Error(`getParamsMetadata: missing or invalid params_metadata field`);
+	}
 	const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
 
 	// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
