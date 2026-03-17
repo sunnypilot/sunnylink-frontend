@@ -6,6 +6,7 @@ import { decodeCompressedJson } from '$lib/utils/compression';
 import type { components } from '../../sunnylink/v1/schema';
 
 type DeviceParam = components['schemas']['DeviceParam'];
+type ParamType = components['schemas']['ParamType'];
 
 export interface AsyncFetchResult {
 	items: DeviceParam[] | null;
@@ -117,11 +118,23 @@ export async function fetchSettingsAsync(
 	}
 }
 
+/** Maps device-side ParamKeyType enum values to frontend ParamType strings. */
+const PARAM_TYPE_NAMES: Record<number, ParamType> = {
+	0: 'String',
+	1: 'Bool',
+	2: 'Int',
+	3: 'Float',
+	4: 'Time',
+	5: 'Json',
+	6: 'Bytes'
+};
+
 /**
  * Fetches compressed settings from the device via the paramsMetadata endpoint.
  *
  * Returns the same struct as getParamsAllKeysV1 (keys + types + defaults + _extra),
- * but gzip-compressed for ~80% bandwidth reduction.
+ * but gzip-compressed for ~80% bandwidth reduction. The device sends type as an integer
+ * enum; this function maps it to the string form the frontend expects.
  *
  * Returns null if the device does not support this endpoint (404/500),
  * indicating the caller should fall back to legacy getParamsAllKeysV1.
@@ -143,7 +156,16 @@ export async function fetchParamsMetadata(
 		}
 
 		const json: { params_metadata: string } = await response.json();
-		return await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
+		const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
+
+		// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
+		return items.map((item) => ({
+			...item,
+			type:
+				typeof item.type === 'number'
+					? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
+					: item.type
+		}));
 	} catch (e) {
 		console.error(`Failed to fetch params metadata for ${deviceId}:`, e);
 		return null;
