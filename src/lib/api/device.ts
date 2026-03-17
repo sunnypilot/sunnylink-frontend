@@ -308,6 +308,18 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 			return;
 		}
 
+		// Metadata failed — log reason for debugging (data corruption vs unsupported endpoint)
+		if (metadataResult.status === 'rejected') {
+			console.warn(
+				`[checkDeviceStatus] getParamsMetadata rejected for ${deviceId}, falling back to V1:`,
+				metadataResult.reason
+			);
+		} else {
+			console.warn(
+				`[checkDeviceStatus] getParamsMetadata returned null for ${deviceId}, falling back to V1`
+			);
+		}
+
 		// Phase 2: Fallback to legacy V1 (old device without getParamsMetadata)
 		const settingsRes = await v1Client.GET('/v1/settings/{deviceId}', {
 			params: { path: { deviceId } },
