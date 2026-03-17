@@ -22,13 +22,15 @@
 		ToggleLeft,
 		Wind,
 		Wrench,
-		ArrowLeftRight
+		ArrowLeftRight,
+		Smartphone
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
+	import PairingModal from '$lib/components/PairingModal.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
@@ -116,18 +118,19 @@
 			: []
 	);
 
-	// Only device-level utilities stay in sidebar
-	let utilityItems = $derived<NavItem[]>(
-		deviceState.selectedDeviceId
-			? [
-					{
-						icon: ArrowLeftRight,
-						label: 'Migration Wizard',
-						action: () => deviceState.openMigrationWizard()
-					} as NavItem
-				]
-			: []
-	);
+	// Utility items always visible in sidebar
+	let utilityItems: NavItem[] = [
+		{
+			icon: ArrowLeftRight,
+			label: 'Migration Wizard',
+			action: () => deviceState.openMigrationWizard()
+		},
+		{
+			icon: Smartphone,
+			label: 'Pair Device',
+			action: () => deviceState.openPairingModal()
+		}
+	];
 
 	// ── Active state helper ─────────────────────────────────────────────────
 
@@ -135,7 +138,7 @@
 
 	const navItemClasses = (active: boolean) =>
 		[
-			'group relative flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150',
+			'group relative flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150',
 			drawerOpen ? 'justify-start' : 'justify-center',
 			'lg:justify-start',
 			active
@@ -441,13 +444,16 @@
 
 <BackupStatusIndicator />
 
-{#if deviceState.migrationState.isOpen}
-	<SettingsMigrationWizard
-		bind:open={deviceState.migrationState.isOpen}
-		deviceId={deviceState.migrationState.targetDeviceId}
-		{devices}
-	/>
-{/if}
+<SettingsMigrationWizard
+	bind:open={deviceState.migrationState.isOpen}
+	deviceId={deviceState.migrationState.targetDeviceId}
+	{devices}
+/>
+
+<PairingModal
+	bind:open={deviceState.pairingState.isOpen}
+	bind:deviceType={deviceState.pairingState.deviceType}
+/>
 
 <Toast />
 {#if isIOS && !isLandingPage}

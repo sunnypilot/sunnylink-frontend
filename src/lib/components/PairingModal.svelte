@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { X, RectangleHorizontal, ArrowLeft } from 'lucide-svelte';
 
 	let { open = $bindable(false), deviceType = $bindable(null) } = $props<{
@@ -13,74 +14,114 @@
 	$effect(() => {
 		if (open && deviceType) {
 			selectedDeviceType = deviceType;
-			step = 2;
+			goToStep(2);
 		} else if (open && !selectedDeviceType) {
-			step = 1;
+			goToStep(1);
 		}
 	});
 
 	function close() {
 		open = false;
-		// Reset state after transition
+		// Reset state after exit animation completes
 		setTimeout(() => {
 			step = 1;
 			selectedDeviceType = null;
 			deviceType = null;
+			stepDirection = 'forward';
 		}, 300);
 	}
 
 	function selectDevice(type: 'c3' | 'c4') {
 		selectedDeviceType = type;
-		step = 2;
+		goToStep(2);
 	}
 
 	function back() {
 		if (deviceType) {
-			// If we opened with a specific device type, back closes or resets?
-			// User might want to switch devices. Let's allow effective "back" to selection.
 			deviceType = null;
 		}
-		step = 1;
+		goToStep(1);
 		selectedDeviceType = null;
+	}
+
+	// ── Scroll lock ─────────────────────────────────────────────────────
+	let savedScrollY = 0;
+
+	$effect(() => {
+		if (open) {
+			savedScrollY = window.scrollY;
+			document.body.style.position = 'fixed';
+			document.body.style.top = `-${savedScrollY}px`;
+			document.body.style.width = '100%';
+			document.body.style.overflow = 'hidden';
+		}
+		return () => {
+			document.body.style.position = '';
+			document.body.style.top = '';
+			document.body.style.width = '';
+			document.body.style.overflow = '';
+			window.scrollTo(0, savedScrollY);
+		};
+	});
+
+	// ── M3 emphasized easing ────────────────────────────────────────────
+	function emphasizedDecelerate(t: number): number {
+		return 1 - Math.pow(1 - t, 3);
+	}
+
+	function emphasizedAccelerate(t: number): number {
+		return t * t * t;
+	}
+
+	const isMobilePairing = typeof window !== 'undefined' && window.innerWidth < 640;
+
+	// ── Step transition direction ────────────────────────────────────────
+	let stepDirection: 'forward' | 'back' = $state('forward');
+
+	function goToStep(newStep: number) {
+		stepDirection = newStep > step ? 'forward' : 'back';
+		step = newStep;
 	}
 </script>
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[60] flex items-stretch justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
 	>
 		<!-- Backdrop -->
 		<button
-			class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-			transition:fade={{ duration: 200 }}
+			class="absolute inset-0 bg-black/60 backdrop-blur-sm sm:bg-black/80"
+			in:fade={{ duration: 400, easing: cubicOut }}
+			out:fade={{ duration: 250 }}
 			onclick={close}
 			aria-label="Close modal"
 		></button>
 
 		<!-- Content -->
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-input)] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			class="relative flex h-full w-full flex-col overflow-hidden bg-[var(--sl-bg-surface)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:max-w-lg sm:rounded-xl sm:border sm:border-[var(--sl-border)] sm:shadow-2xl"
+			in:fly={{ y: isMobilePairing ? 800 : 40, duration: isMobilePairing ? 450 : 350, easing: emphasizedDecelerate }}
+			out:fly={{ y: isMobilePairing ? 800 : 40, duration: isMobilePairing ? 250 : 200, easing: emphasizedAccelerate }}
 		>
 			<!-- Header -->
-			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6">
+			<div class="shrink-0 border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 px-4 py-3 sm:px-5 sm:py-4">
 				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3">
+					<div class="flex items-center gap-2">
 						{#if step === 2}
 							<button
-								class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 								onclick={back}
 								title="Back"
 							>
 								<ArrowLeft size={20} />
 							</button>
 						{/if}
-						<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Pair New Device</h3>
+						<h3 class="text-lg font-semibold text-[var(--sl-text-1)]">Pair New Device</h3>
 					</div>
 					<button
-						class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+						class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 						onclick={close}
 						aria-label="Close"
 					>
@@ -89,7 +130,13 @@
 				</div>
 			</div>
 
-			<div class="p-6">
+			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; min-height: 240px; align-content: start;">
+				{#key step}
+				<div
+					style="grid-area: 1 / 1;"
+					in:fly={{ x: stepDirection === 'forward' ? 60 : -60, duration: 200, delay: 120 }}
+					out:fly={{ x: stepDirection === 'forward' ? -30 : 30, duration: 120 }}
+				>
 				{#if step === 1}
 					<div class="space-y-4">
 						<p class="text-sm text-[var(--sl-text-2)]">
@@ -99,7 +146,7 @@
 						<div class="grid gap-4 sm:grid-cols-2">
 							<!-- comma four -->
 							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
+								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 								onclick={() => selectDevice('c4')}
 							>
 								<div
@@ -115,7 +162,7 @@
 
 							<!-- comma 3X -->
 							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
+								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 								onclick={() => selectDevice('c3')}
 							>
 								<div
@@ -174,6 +221,8 @@
 						</div>
 					</div>
 				{/if}
+				</div>
+				{/key}
 			</div>
 		</div>
 	</div>

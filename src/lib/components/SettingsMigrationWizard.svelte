@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
 	import {
 		Upload,
@@ -94,6 +95,13 @@
 
 	function close() {
 		deviceState.closeMigrationWizard();
+		// Reset to initial screen after exit animation completes
+		setTimeout(() => {
+			if (!deviceState.migrationState.isOpen && !deviceState.migrationState.isFetching) {
+				deviceState.resetMigrationState();
+				stepDirection = 'forward';
+			}
+		}, 300);
 	}
 
 	function minimize() {
@@ -102,6 +110,51 @@
 
 	function cancelFetch() {
 		deviceState.cancelMigration();
+	}
+
+	// ── Scroll lock (iOS Safari requires fixed-body technique) ──────────
+	let savedScrollY = 0;
+
+	$effect(() => {
+		if (open) {
+			savedScrollY = window.scrollY;
+			document.body.style.position = 'fixed';
+			document.body.style.top = `-${savedScrollY}px`;
+			document.body.style.width = '100%';
+			document.body.style.overflow = 'hidden';
+		}
+		return () => {
+			document.body.style.position = '';
+			document.body.style.top = '';
+			document.body.style.width = '';
+			document.body.style.overflow = '';
+			window.scrollTo(0, savedScrollY);
+		};
+	});
+
+	// ── M3 emphasized easing for modal transitions ──────────────────────
+	// Open: emphasized.decelerate — fast start, smooth decel (iOS spring approx)
+	function emphasizedDecelerate(t: number): number {
+		// cubic-bezier(0.05, 0.7, 0.1, 1) approximation
+		return 1 - Math.pow(1 - t, 3);
+	}
+
+	// Close: emphasized.accelerate — quick exit
+	function emphasizedAccelerate(t: number): number {
+		// cubic-bezier(0.3, 0, 0.8, 0.15) approximation
+		return t * t * t;
+	}
+
+	// Check if mobile for transition direction
+	const isMobileWizard = typeof window !== 'undefined' && window.innerWidth < 640;
+
+	// ── Step transition direction ────────────────────────────────────────
+	// Set direction SYNCHRONOUSLY before step changes so out:fly reads the correct value
+	let stepDirection: 'forward' | 'back' = $state('forward');
+
+	function goToStep(step: number) {
+		stepDirection = step > ms.step ? 'forward' : 'back';
+		deviceState.setMigrationStep(step);
 	}
 
 	async function handleDownloadBackup() {
@@ -181,7 +234,7 @@
 				const text = await file.text();
 				const parsed = parseSettingsBackup(text);
 				deviceState.setMigrationParsedBackup(parsed);
-				deviceState.setMigrationStep(3); // Go to Target Selection (Resume flow maps to Step 3 logic effectively or we adjust steps)
+				goToStep(3); // Go to Target Selection (Resume flow maps to Step 3 logic effectively or we adjust steps)
 				// Wait, in previous code Resume flow went to Step 2 (Upload) -> Step 3 (Target).
 				// Here:
 				// Start New: Step 2 (Source) -> Step 3 (Target/Download) -> Step 4 (Comparison)
@@ -331,7 +384,7 @@
 
 	async function handleTargetSelection() {
 		if (!ms.targetDeviceId) return;
-		deviceState.setMigrationStep(4);
+		goToStep(4);
 		await prepareComparison();
 	}
 
@@ -365,25 +418,27 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[60] flex items-stretch justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
 	>
 		<button
-			class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-			transition:fade={{ duration: 200 }}
+			class="absolute inset-0 bg-black/60 backdrop-blur-sm sm:bg-black/80"
+			in:fade={{ duration: 400, easing: cubicOut }}
+			out:fade={{ duration: 250 }}
 			onclick={close}
 			aria-label="Close modal"
 		></button>
 
 		<div
-			class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-input)] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			class="relative flex h-full w-full flex-col overflow-hidden bg-[var(--sl-bg-surface)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:max-w-2xl sm:rounded-xl sm:border sm:border-[var(--sl-border)] sm:shadow-2xl"
+			in:fly={{ y: isMobileWizard ? 800 : 40, duration: isMobileWizard ? 450 : 350, easing: emphasizedDecelerate }}
+			out:fly={{ y: isMobileWizard ? 800 : 40, duration: isMobileWizard ? 250 : 200, easing: emphasizedAccelerate }}
 		>
 			<!-- Header -->
-			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6">
+			<div class="shrink-0 border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 px-4 py-3 sm:px-5 sm:py-4">
 				<div class="flex items-center justify-between">
-					<h3 class="text-xl font-bold text-[var(--sl-text-1)]">
+					<h3 class="text-lg font-semibold text-[var(--sl-text-1)]">
 						{#if ms.step === 1}
 							Device Migration Wizard
 						{:else if ms.type === 'new'}
@@ -392,10 +447,10 @@
 							Resume Migration
 						{/if}
 					</h3>
-					<div class="flex items-center gap-2">
+					<div class="flex items-center gap-1">
 						{#if ms.isFetching}
 							<button
-								class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 								onclick={minimize}
 								title="Minimize"
 							>
@@ -403,7 +458,7 @@
 							</button>
 						{/if}
 						<button
-							class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+							class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 							onclick={close}
 							aria-label="Close"
 						>
@@ -413,7 +468,13 @@
 				</div>
 			</div>
 
-			<div class="p-6">
+			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; min-height: 280px; align-content: start;">
+				{#key ms.step}
+				<div
+					style="grid-area: 1 / 1;"
+					in:fly={{ x: stepDirection === 'forward' ? 60 : -60, duration: 200, delay: 120 }}
+					out:fly={{ x: stepDirection === 'forward' ? -30 : 30, duration: 120 }}
+				>
 				{#if ms.step === 1}
 					<!-- Intro Step -->
 					<div class="space-y-6">
@@ -437,10 +498,10 @@
 
 						<div class="grid gap-4 sm:grid-cols-2">
 							<button
-								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
+								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 text-center transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 								onclick={() => {
 									deviceState.setMigrationType('new');
-									deviceState.setMigrationStep(2);
+									goToStep(2);
 								}}
 							>
 								<div class="rounded-full bg-primary/20 p-3 text-primary">
@@ -453,10 +514,10 @@
 							</button>
 
 							<button
-								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
+								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 text-center transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 								onclick={() => {
 									deviceState.setMigrationType('resume');
-									deviceState.setMigrationStep(2);
+									goToStep(2);
 								}}
 							>
 								<div class="rounded-full bg-[var(--sl-bg-elevated)] p-3 text-[var(--sl-text-1)]">
@@ -496,7 +557,7 @@
 								<div class="grid max-h-60 gap-3 overflow-y-auto">
 									{#each sourceDevices as device}
 										<button
-											class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[var(--sl-bg-elevated)]"
+											class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-all duration-150 hover:border-primary hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 											class:border-primary={ms.sourceDeviceId === device.device_id}
 											class:bg-[var(--sl-bg-elevated)]={ms.sourceDeviceId === device.device_id}
 											onclick={() => {
@@ -562,7 +623,7 @@
 						</div>
 					{:else}
 						<!-- Resume: File Upload -->
-						<div class="flex flex-col items-center justify-center space-y-6 py-8">
+						<div class="flex flex-col items-center justify-center space-y-5 py-6">
 							<div class="rounded-full bg-primary/10 p-4">
 								<Upload size={32} class="text-primary" />
 							</div>
@@ -594,7 +655,7 @@
 					<div class="flex justify-start pt-4">
 						<button
 							class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
-							onclick={() => deviceState.setMigrationStep(1)}
+							onclick={() => goToStep(1)}
 						>
 							Back
 						</button>
@@ -634,7 +695,7 @@
 									<div class="grid max-h-48 gap-3 overflow-y-auto">
 										{#each targetDevices as device}
 											<button
-												class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[var(--sl-bg-elevated)]"
+												class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-all duration-150 hover:border-primary hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 												class:border-primary={ms.targetDeviceId === device.device_id}
 												class:bg-[var(--sl-bg-elevated)]={ms.targetDeviceId === device.device_id}
 												onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
@@ -705,7 +766,7 @@
 								<div class="grid max-h-60 gap-3 overflow-y-auto">
 									{#each targetDevices as device}
 										<button
-											class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[var(--sl-bg-elevated)]"
+											class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-all duration-150 hover:border-primary hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 											class:border-primary={ms.targetDeviceId === device.device_id}
 											class:bg-[var(--sl-bg-elevated)]={ms.targetDeviceId === device.device_id}
 											onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
@@ -742,7 +803,7 @@
 					<div class="flex justify-start pt-4">
 						<button
 							class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
-							onclick={() => deviceState.setMigrationStep(2)}
+							onclick={() => goToStep(2)}
 						>
 							Back
 						</button>
@@ -751,7 +812,7 @@
 					<!-- Comparison Step -->
 					<div class="space-y-4">
 						<div
-							class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-6"
+							class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-4"
 						>
 							<!-- Source -->
 							<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
@@ -808,7 +869,7 @@
 
 						{#if ms.isComparing}
 							<div
-								class="flex flex-col items-center justify-center rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 text-center"
+								class="flex flex-col items-center justify-center rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center"
 							>
 								<Loader2 size={32} class="mb-4 animate-spin text-primary" />
 								<h5 class="text-lg font-medium text-[var(--sl-text-1)]">Comparing Settings...</h5>
@@ -818,7 +879,7 @@
 							<!-- If empty, it might be loading or actually empty. We need a loading state here. -->
 							<!-- For now, assuming if we are here, comparison is done or empty. -->
 							<!-- But prepareComparison is async. We should have a loading state. -->
-							<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 text-center">
+							<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center">
 								<Check size={32} class="mx-auto mb-4 text-emerald-400" />
 								<h5 class="text-lg font-medium text-[var(--sl-text-1)]">No Differences Found</h5>
 								<p class="mt-2 text-[var(--sl-text-2)]">
@@ -829,7 +890,8 @@
 							<div
 								class="max-h-[50vh] overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30"
 							>
-								<table class="w-full table-fixed text-left text-sm">
+								<!-- Desktop: table layout -->
+								<table class="hidden w-full table-fixed text-left text-sm sm:table">
 									<thead class="bg-[var(--sl-bg-elevated)] text-xs font-bold text-[var(--sl-text-2)] uppercase">
 										<tr>
 											<th class="w-[40%] p-3">Setting</th>
@@ -856,6 +918,19 @@
 										{/each}
 									</tbody>
 								</table>
+								<!-- Mobile: stacked card layout -->
+								<div class="divide-y divide-[var(--sl-border)] sm:hidden">
+									{#each ms.comparison as item}
+										<div class="px-3 py-3">
+											<div class="text-sm font-medium text-[var(--sl-text-1)]">{item.label}</div>
+											<div class="mt-1.5 flex items-center gap-2 text-sm">
+												<span class="text-[var(--sl-text-3)]">{item.current !== undefined ? item.current : '(default)'}</span>
+												<ArrowRight size={12} class="shrink-0 text-[var(--sl-text-3)]" />
+												<span class="font-medium text-primary">{item.new}</span>
+											</div>
+										</div>
+									{/each}
+								</div>
 							</div>
 
 							<div class="rounded-lg bg-blue-500/10 p-4 text-sm text-blue-400">
@@ -872,7 +947,7 @@
 						<div class="flex justify-end gap-3 pt-4">
 							<button
 								class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
-								onclick={() => deviceState.setMigrationStep(3)}
+								onclick={() => goToStep(3)}
 							>
 								Back
 							</button>
@@ -886,6 +961,8 @@
 						</div>
 					</div>
 				{/if}
+				</div>
+				{/key}
 			</div>
 		</div>
 	</div>

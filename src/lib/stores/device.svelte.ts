@@ -304,6 +304,22 @@ export const deviceState = $state({
 		this.migrationState.isComparing = isComparing;
 	},
 
+	// Pairing Modal State
+	pairingState: {
+		isOpen: false,
+		deviceType: null as 'c3' | 'c4' | null
+	},
+
+	openPairingModal(deviceType: 'c3' | 'c4' | null = null) {
+		this.pairingState.isOpen = true;
+		this.pairingState.deviceType = deviceType;
+	},
+
+	closePairingModal() {
+		this.pairingState.isOpen = false;
+		this.pairingState.deviceType = null;
+	},
+
 	// Global Backup State
 	backupState: {
 		isOpen: false,
