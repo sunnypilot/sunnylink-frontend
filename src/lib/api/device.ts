@@ -200,8 +200,13 @@ export async function fetchDeviceMessage(
 		return null;
 	}
 
-	const data = await response.json();
-	return data?.deviceState ?? null;
+	try {
+		const data = await response.json();
+		return data?.deviceState ?? null;
+	} catch (e) {
+		console.error(`fetchDeviceMessage: invalid JSON response for ${deviceId}:`, e);
+		return null;
+	}
 }
 
 /**
