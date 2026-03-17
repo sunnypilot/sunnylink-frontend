@@ -159,14 +159,16 @@
 				<div class="h-8 w-full animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else}
 				<div
-					class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition-colors duration-200"
+					class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full"
 					class:bg-primary={displayValue === true}
 					class:bg-[var(--sl-toggle-off)]={displayValue !== true && !setting.readonly}
 					class:bg-[var(--sl-toggle-off-disabled)]={displayValue !== true && setting.readonly}
+					style="transition: background-color var(--dur-instant) var(--ease-out);"
 				>
 					<span
-						class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform duration-200"
+						class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm"
 						class:translate-x-[20px]={displayValue === true}
+						style="transition: transform var(--dur-instant) var(--ease-spring);"
 					></span>
 				</div>
 			{/if}

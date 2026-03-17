@@ -280,7 +280,13 @@
 		<main
 			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-8'}"
 		>
-			{@render children()}
+			{#key pathname}
+				<div
+					class="animate-page-enter"
+				>
+					{@render children()}
+				</div>
+			{/key}
 		</main>
 	</div>
 
@@ -324,13 +330,16 @@
 									class="transition-transform duration-150 {settingsOpen ? '' : '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
 								/>
 							</button>
-							{#if settingsOpen}
-								<ul class="mt-0.5 flex flex-col gap-0.5">
+							<div
+								class="grid transition-[grid-template-rows] duration-200 ease-in-out"
+								style="grid-template-rows: {settingsOpen ? '1fr' : '0fr'};"
+							>
+								<ul class="mt-0.5 flex flex-col gap-0.5 overflow-hidden">
 									{#each section.items as item}
 										{@render navItemSnippet(item)}
 									{/each}
 								</ul>
-							{/if}
+							</div>
 						{:else}
 							<div class="mb-1 px-3 py-1.5">
 								<span class={['text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase', drawerOpen ? 'block' : 'hidden', 'lg:block']}>

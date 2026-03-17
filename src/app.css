@@ -118,6 +118,122 @@ textarea,
 	user-select: text;
 }
 
+/* ── Animation Tokens ──────────────────────────────────────────────────── */
+:root {
+	--dur-instant: 100ms;
+	--dur-fast: 150ms;
+	--dur-normal: 200ms;
+	--dur-moderate: 300ms;
+	--dur-slow: 500ms;
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+	--ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* ── Button Press Feedback ────────────────────────────────────────────── */
+/* Scale feedback: standalone action buttons only (via .btn or .btn-press) */
+.btn:not(:disabled),
+.btn-press:not(:disabled) {
+	transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.btn:not(:disabled):active,
+.btn-press:not(:disabled):active {
+	transform: scale(0.97);
+}
+
+/* Row press feedback: navigation rows and list items get bg highlight */
+.row-press {
+	transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.row-press:active {
+	background-color: var(--sl-bg-subtle);
+}
+
+/* ── Drawer Sidebar Slide Transition ──────────────────────────────────── */
+.drawer-side > aside {
+	transition:
+		translate var(--dur-moderate) var(--ease-out),
+		width 0.3s ease,
+		filter 0.3s ease;
+}
+
+.drawer-toggle:checked ~ .drawer-side > aside {
+	translate: 0;
+}
+
+/* ── Shimmer Skeleton ─────────────────────────────────────────────────── */
+.skeleton-shimmer {
+	background: linear-gradient(
+		90deg,
+		var(--sl-bg-elevated) 25%,
+		var(--sl-bg-subtle) 50%,
+		var(--sl-bg-elevated) 75%
+	);
+	background-size: 200% 100%;
+	background-attachment: fixed;
+	animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+
+/* ── Page Transition ───────────────────────────────────────────────────── */
+@keyframes page-enter {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-page-enter {
+	animation: page-enter var(--dur-moderate) var(--ease-out) both;
+}
+
+/* ── Staggered Card Entry ──────────────────────────────────────────────── */
+@keyframes card-enter {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.stagger-children > * {
+	opacity: 0;
+	animation: card-enter var(--dur-moderate) var(--ease-out) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(n+7) { animation-delay: 350ms; }
+
 /* ── Animations ─────────────────────────────────────────────────────────── */
 @keyframes float {
 	0%,

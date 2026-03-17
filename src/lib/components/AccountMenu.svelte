@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scale } from 'svelte/transition';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
 	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronUp } from 'lucide-svelte';
@@ -86,8 +87,9 @@
 	<!-- Popover menu -->
 	{#if open}
 		<div
-			class="absolute bottom-full left-0 right-0 z-50 mb-1.5 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]"
+			class="absolute bottom-full left-0 right-0 z-50 mb-1.5 origin-bottom overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]"
 			role="menu"
+			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 		>
 			<!-- User identity -->
 			<div class="px-3.5 pt-3 pb-2">

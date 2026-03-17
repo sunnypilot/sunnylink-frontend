@@ -105,7 +105,7 @@
 			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 				{#each activeSubPanels as subPanel, i (subPanel.id)}
 					<button
-						class="flex w-full items-center justify-between px-4 py-4 text-left transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)]"
+						class="row-press flex w-full items-center justify-between px-4 py-4 text-left hover:bg-[var(--sl-bg-subtle)]"
 						onclick={() => onSubPanelOpen?.(subPanel)}
 					>
 						<span class="text-sm font-medium text-[var(--sl-text-1)]">{subPanel.label}</span>
@@ -122,8 +122,8 @@
 	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 		{#each Array(4) as _, i}
 			<div class="px-4 py-3">
-				<div class="h-4 w-1/3 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
-				<div class="mt-1.5 h-3 w-2/3 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
+				<div class="h-4 w-1/3 skeleton-shimmer rounded"></div>
+				<div class="mt-1.5 h-3 w-2/3 skeleton-shimmer rounded"></div>
 			</div>
 			{#if i < 3}
 				<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>

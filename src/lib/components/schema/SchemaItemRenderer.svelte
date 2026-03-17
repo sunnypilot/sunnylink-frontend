@@ -127,6 +127,57 @@
 		return String(val);
 	}
 
+	// ── Responsive segmented → compact → dropdown ─────────────────────────
+	// Two-tier overflow check using Canvas text measurement for accuracy:
+	//   Normal (14px, px-2.5=20px pad): if labels fit → standard segments
+	//   Compact (13px, px-1.5=12px pad, tracking-tight): if labels fit → compact segments
+	//   Otherwise → dropdown
+	// Container: card px-4 (32px) + segment wrapper p-1 (8px) = 40px overhead.
+	const MOBILE_CONTAINER_PX = 390 - 40;
+	const DESKTOP_CONTAINER_PX = 672 - 40;
+	const NORMAL_PAD_PX = 20;
+	const COMPACT_PAD_PX = 12;
+
+	let isMobile = $state(false);
+	let measureCtx: CanvasRenderingContext2D | null = null;
+
+	if (typeof window !== 'undefined') {
+		const mql = window.matchMedia('(max-width: 767px)');
+		isMobile = mql.matches;
+		$effect(() => {
+			const handler = (e: MediaQueryListEvent) => { isMobile = e.matches; };
+			mql.addEventListener('change', handler);
+			return () => mql.removeEventListener('change', handler);
+		});
+		const canvas = document.createElement('canvas');
+		measureCtx = canvas.getContext('2d');
+	}
+
+	function measureLabel(label: string, fontSpec: string): number {
+		if (!measureCtx) return label.length * 8; // SSR fallback
+		measureCtx.font = fontSpec;
+		return measureCtx.measureText(label).width;
+	}
+
+	function wouldTruncate(options: { label: string }[], containerPx: number, fontSpec: string, padPx: number): boolean {
+		const segmentWidth = containerPx / options.length;
+		// 6px buffer for sub-pixel rounding, letter-spacing, and font rendering differences
+		return options.some((opt) => measureLabel(opt.label, fontSpec) + padPx + 6 > segmentWidth);
+	}
+
+	type SegmentMode = 'normal' | 'compact' | 'dropdown';
+
+	let segmentMode: SegmentMode = $derived.by(() => {
+		if (item.widget !== 'multiple_button' || !item.options || item.options.length === 0) return 'normal';
+		const containerPx = isMobile ? MOBILE_CONTAINER_PX : DESKTOP_CONTAINER_PX;
+		if (!wouldTruncate(item.options, containerPx, '500 14px system-ui, -apple-system, sans-serif', NORMAL_PAD_PX)) return 'normal';
+		if (!wouldTruncate(item.options, containerPx, '500 13px system-ui, -apple-system, sans-serif', COMPACT_PAD_PX)) return 'compact';
+		return 'dropdown';
+	});
+
+	let useDropdownForSegments = $derived(segmentMode === 'dropdown');
+	let useCompactSegments = $derived(segmentMode === 'compact');
+
 	/** Sanitize description: allow only <br> tags, escape everything else */
 	function sanitizeDescription(text: string): string {
 		return text
@@ -148,7 +199,8 @@
 		{#if item.widget === 'toggle'}
 			<!-- ── Toggle Row ──────────────────────────────────────────────── -->
 			<button
-				class="group flex w-full items-center justify-between px-4 py-4 text-left transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)]"
+				class="group flex w-full items-center justify-between px-4 py-4 text-left hover:bg-[var(--sl-bg-subtle)]"
+				style="transition: background-color var(--dur-fast) var(--ease-out);"
 				class:cursor-not-allowed={!enabled}
 				disabled={!enabled || isPushing}
 				aria-pressed={isOn}
@@ -182,17 +234,19 @@
 				</div>
 				<div class="flex shrink-0 items-center">
 					{#if isLoading}
-						<div class="h-[31px] w-[51px] animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"></div>
+						<div class="h-[31px] w-[51px] skeleton-shimmer rounded-full"></div>
 					{:else}
 						<div
-							class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition-colors duration-200"
+							class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full"
 							class:bg-primary={isOn}
 							class:bg-[var(--sl-toggle-off)]={!isOn && enabled}
 							class:bg-[var(--sl-toggle-off-disabled)]={!isOn && !enabled}
+							style="transition: background-color var(--dur-instant) var(--ease-out);"
 						>
 							<span
-								class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform duration-200"
+								class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm"
 								class:translate-x-[20px]={isOn}
+								style="transition: transform var(--dur-instant) var(--ease-spring);"
 							></span>
 						</div>
 					{/if}
@@ -226,7 +280,7 @@
 
 				<div class="mt-2.5">
 					{#if isLoading}
-						<div class="h-8 w-full animate-pulse rounded-lg bg-[var(--sl-bg-elevated)]"></div>
+						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
 					{:else if item.options}
 						<select
 							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-colors focus:border-primary focus:outline-none"
@@ -328,7 +382,23 @@
 
 				<div class="mt-2.5">
 					{#if isLoading}
-						<div class="h-8 w-full animate-pulse rounded-lg bg-[var(--sl-bg-elevated)]"></div>
+						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
+					{:else if item.options && useDropdownForSegments}
+						<!-- Dropdown fallback for many options on narrow screens -->
+						<select
+							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-colors focus:border-primary focus:outline-none"
+							value={displayValue}
+							disabled={!enabled || isPushing}
+							onchange={(e) => {
+								const val = (e.currentTarget as HTMLSelectElement).value;
+								const numVal = Number(val);
+								handleChange(isNaN(numVal) ? val : numVal);
+							}}
+						>
+							{#each item.options as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 					{:else if item.options}
 						{@const selectedIdx = item.options.findIndex((o) => String(displayValue) === String(o.value))}
 						{@const optCount = item.options.length}
@@ -343,7 +413,7 @@
 							{#each item.options as option, oi}
 								{@const isSelected = oi === selectedIdx}
 								<button
-									class="relative z-10 min-w-0 flex-1 truncate rounded-md px-2.5 py-2.5 text-sm font-medium transition-colors duration-350"
+									class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments ? 'px-1.5 text-[0.8125rem] tracking-tight' : 'px-2.5 text-sm'}"
 									class:text-white={isSelected}
 									class:text-[var(--sl-text-2)]={!isSelected}
 									class:hover:text-[var(--sl-text-1)]={!isSelected}

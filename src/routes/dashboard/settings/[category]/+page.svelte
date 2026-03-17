@@ -18,6 +18,7 @@
 	import { getAllSettings } from '$lib/utils/settings';
 	import { searchSettings } from '$lib/utils/search';
 
+	import { fly, fade } from 'svelte/transition';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
@@ -76,14 +77,17 @@
 		}
 	}
 
-	// Sub-panel state
+	// Sub-panel state with transition direction
 	let activeSubPanel: SubPanel | null = $state(null);
+	let subPanelDirection: 'forward' | 'back' = $state('forward');
 
 	function openSubPanel(subPanel: SubPanel) {
+		subPanelDirection = 'forward';
 		activeSubPanel = subPanel;
 	}
 
 	function closeSubPanel() {
+		subPanelDirection = 'back';
 		activeSubPanel = null;
 	}
 
@@ -351,36 +355,44 @@
 
 <div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
 	<!-- ── Page Header ──────────────────────────────────────────────────── -->
-	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-		{#if activeSubPanel}
-			<button
-				class="mb-1 flex items-center gap-1 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
-				onclick={closeSubPanel}
+	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
+		{#key activeSubPanel?.id ?? '__root__'}
+			<div
+				style="grid-area: 1 / 1;"
+				in:fly={{ x: subPanelDirection === 'forward' ? 60 : -60, duration: 200, delay: 120 }}
+				out:fly={{ x: subPanelDirection === 'forward' ? -30 : 30, duration: 120 }}
 			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
-				>
-				{schemaPanel?.label ?? category}
-			</button>
-			<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">
-				{activeSubPanel.label}
-			</h2>
-		{:else}
-			<h2 class="text-lg font-semibold text-[var(--sl-text-1)] capitalize">
-				{schemaPanel?.label ?? category}
-				{#if loadingValues}
-					<span class="loading loading-spinner loading-xs ml-2 text-primary"></span>
+				{#if activeSubPanel}
+					<button
+						class="row-press mb-1 flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
+						onclick={closeSubPanel}
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
+						>
+						{schemaPanel?.label ?? category}
+					</button>
+					<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">
+						{activeSubPanel.label}
+					</h2>
+				{:else}
+					<h2 class="text-lg font-semibold text-[var(--sl-text-1)] capitalize">
+						{schemaPanel?.label ?? category}
+						{#if loadingValues}
+							<span class="loading loading-spinner loading-xs ml-2 text-primary"></span>
+						{/if}
+					</h2>
 				{/if}
-			</h2>
-		{/if}
+			</div>
+		{/key}
 	</div>
 
 	{#if !deviceId}
@@ -473,21 +485,29 @@
 		</div>
 	{:else if useSchema && schemaPanel}
 		<!-- ═══ Schema-driven rendering (centered narrow column, grouped cards) ═══ -->
-		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-			{#if activeSubPanel}
-				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-					{#each activeSubPanel.items as item, i (item.key)}
-						<SchemaItemRenderer {deviceId} {item} {loadingValues} isLast={i === activeSubPanel.items.length - 1} />
-					{/each}
+		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
+			{#key activeSubPanel?.id ?? '__root__'}
+				<div
+					style="grid-area: 1 / 1;"
+					in:fly={{ x: subPanelDirection === 'forward' ? 60 : -60, duration: 200, delay: 120 }}
+					out:fly={{ x: subPanelDirection === 'forward' ? -30 : 30, duration: 120 }}
+				>
+					{#if activeSubPanel}
+						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+							{#each activeSubPanel.items as item, i (item.key)}
+								<SchemaItemRenderer {deviceId} {item} {loadingValues} isLast={i === activeSubPanel.items.length - 1} />
+							{/each}
+						</div>
+					{:else}
+						<SchemaPanel
+							{deviceId}
+							panel={schemaPanel}
+							{loadingValues}
+							onSubPanelOpen={openSubPanel}
+						/>
+					{/if}
 				</div>
-			{:else}
-				<SchemaPanel
-					{deviceId}
-					panel={schemaPanel}
-					{loadingValues}
-					onSubPanelOpen={openSubPanel}
-				/>
-			{/if}
+			{/key}
 		</div>
 	{:else if useSchema && !schemaPanel}
 		<!-- Schema loaded but no panel for this category (e.g., "toggles" or "other") -->

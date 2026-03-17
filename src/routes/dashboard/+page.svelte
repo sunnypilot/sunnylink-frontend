@@ -282,7 +282,7 @@
 	{#await data.streamed.devices}
 		<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 	{:then _}
-		<div class="space-y-4 pb-24 sm:space-y-6 lg:space-y-8">
+		<div class="stagger-children space-y-4 pb-24 sm:space-y-6 lg:space-y-8">
 			<!-- Header Card -->
 			<div class="card border border-[var(--sl-border)] bg-[var(--sl-bg-page)]">
 				<div class="card-body p-4 sm:p-6 lg:p-8">

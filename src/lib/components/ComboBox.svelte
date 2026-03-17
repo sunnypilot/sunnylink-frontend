@@ -26,6 +26,27 @@
 	let isOpen = $state(false);
 	let searchQuery = $state('');
 	let inputElement = $state<HTMLInputElement | undefined>();
+	let containerElement = $state<HTMLDivElement | undefined>();
+
+	// Click-outside handler
+	$effect(() => {
+		if (!isOpen) return;
+
+		function handleClickOutside(e: MouseEvent) {
+			if (containerElement && !containerElement.contains(e.target as Node)) {
+				isOpen = false;
+			}
+		}
+
+		// Use capture + requestAnimationFrame to avoid closing on the same click that opens
+		requestAnimationFrame(() => {
+			document.addEventListener('click', handleClickOutside, true);
+		});
+
+		return () => {
+			document.removeEventListener('click', handleClickOutside, true);
+		};
+	});
 
 	let filteredOptions = $derived(
 		options.filter((option: Option) =>
@@ -56,7 +77,7 @@
 	}
 </script>
 
-<div class="relative w-full">
+<div class="relative w-full" bind:this={containerElement}>
 	{#if label}
 		<label class="mb-2 block text-sm font-medium text-[var(--sl-text-2)]" for={id}>
 			{label}
@@ -82,14 +103,6 @@
 
 	<!-- Dropdown -->
 	{#if isOpen}
-		<!-- Backdrop to close on click outside -->
-		<button
-			type="button"
-			class="fixed inset-0 z-10 cursor-default bg-transparent"
-			onclick={() => (isOpen = false)}
-			aria-label="Close dropdown"
-		></button>
-
 		<div
 			class="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
 			transition:fly={{ y: 10, duration: 200 }}
