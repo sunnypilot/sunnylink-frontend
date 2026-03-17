@@ -1,4 +1,4 @@
-import { v1Client, v0Client, API_BASE_URL } from '$lib/api/client';
+import { v1Client, v0Client, API_BASE_URL, customFetch } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
@@ -144,7 +144,7 @@ export async function fetchParamsMetadata(
 	token: string
 ): Promise<ExtendedDeviceParamKey[] | null> {
 	try {
-		const response = await fetch(
+		const response = await customFetch(
 			`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
 			{
 				headers: { Authorization: `Bearer ${token}` }
@@ -184,7 +184,7 @@ export async function fetchDeviceMessage(
 	token: string
 ): Promise<Record<string, unknown> | null> {
 	try {
-		const response = await fetch(
+		const response = await customFetch(
 			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
 			{
 				headers: { Authorization: `Bearer ${token}` }

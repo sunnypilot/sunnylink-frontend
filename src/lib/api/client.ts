@@ -9,7 +9,7 @@ import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
  * The Logto SDK handles token refresh internally, so we just need to get
  * a new token and retry the request.
  */
-const customFetch: typeof fetch = async (input, init) => {
+export const customFetch: typeof fetch = async (input, init) => {
 	const response = await fetch(input, init);
 
 	if (response.status === 401 || response.status === 403) {
