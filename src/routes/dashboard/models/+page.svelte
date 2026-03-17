@@ -522,8 +522,10 @@
 
 			// Refresh status silently
 			fetchModelsForDevice(true);
-		} catch (e) {
+		} catch (e: unknown) {
+			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);
+			toastState.show(message, 'error');
 		} finally {
 			sendingModel = false;
 		}

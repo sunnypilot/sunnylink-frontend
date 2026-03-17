@@ -143,33 +143,29 @@ export async function fetchParamsMetadata(
 	deviceId: string,
 	token: string
 ): Promise<ExtendedDeviceParamKey[] | null> {
-	try {
-		const response = await customFetch(
-			`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
-			{
-				headers: { Authorization: `Bearer ${token}` }
-			}
-		);
-
-		if (!response.ok) {
-			return null;
+	const response = await customFetch(
+		`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
+		{
+			headers: { Authorization: `Bearer ${token}` }
 		}
+	);
 
-		const json: { params_metadata: string } = await response.json();
-		const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
-
-		// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
-		return items.map((item) => ({
-			...item,
-			type:
-				typeof item.type === 'number'
-					? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
-					: item.type
-		}));
-	} catch (e) {
-		console.error(`Failed to fetch params metadata for ${deviceId}:`, e);
+	if (!response.ok) {
+		// Device doesn't support getParamsMetadata — fall back to V1
 		return null;
 	}
+
+	const json: { params_metadata: string } = await response.json();
+	const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
+
+	// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
+	return items.map((item) => ({
+		...item,
+		type:
+			typeof item.type === 'number'
+				? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
+				: item.type
+	}));
 }
 
 /**
@@ -183,24 +179,20 @@ export async function fetchDeviceMessage(
 	deviceId: string,
 	token: string
 ): Promise<Record<string, unknown> | null> {
-	try {
-		const response = await customFetch(
-			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
-			{
-				headers: { Authorization: `Bearer ${token}` }
-			}
-		);
-
-		if (!response.ok) {
-			return null;
+	const response = await customFetch(
+		`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
+		{
+			headers: { Authorization: `Bearer ${token}` }
 		}
+	);
 
-		const data = await response.json();
-		return data?.deviceState ?? null;
-	} catch (e) {
-		console.error(`Failed to fetch deviceState message for ${deviceId}:`, e);
+	if (!response.ok) {
+		// Device unreachable via getMessage — not necessarily offline
 		return null;
 	}
+
+	const data = await response.json();
+	return data?.deviceState ?? null;
 }
 
 /**
@@ -261,10 +253,24 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 		const forceOffroad =
 			forceOffroadResult.status === 'fulfilled' ? forceOffroadResult.value : null;
 
-		// Determine online from getMessage (primary signal)
+		// Check if any call had a network/auth error (rejected) vs endpoint not supported (fulfilled null)
+		const hasNetworkError =
+			messageResult.status === 'rejected' || metadataResult.status === 'rejected';
+
+		// Determine online status
 		if (deviceMessage === null && compressedSettings === null) {
-			// Both failed — device is offline or unreachable
-			deviceState.onlineStatuses[deviceId] = 'offline';
+			if (hasNetworkError) {
+				// Network/auth failure — show error, not offline
+				deviceState.onlineStatuses[deviceId] = 'error';
+				const reason =
+					messageResult.status === 'rejected'
+						? (messageResult.reason as Error)?.message
+						: (metadataResult as PromiseRejectedResult).reason?.message;
+				deviceState.lastErrorMessages[deviceId] = reason || 'Connection failed';
+			} else {
+				// Both returned null (HTTP error responses) — device is offline
+				deviceState.onlineStatuses[deviceId] = 'offline';
+			}
 			return;
 		}
 
