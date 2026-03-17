@@ -155,20 +155,26 @@ export async function fetchParamsMetadata(
 		return null;
 	}
 
-	const json = await response.json();
-	if (typeof json?.params_metadata !== 'string') {
-		throw new Error(`getParamsMetadata: missing or invalid params_metadata field`);
-	}
-	const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
+	try {
+		const json = await response.json();
+		if (typeof json?.params_metadata !== 'string') {
+			console.error(`getParamsMetadata: missing or invalid params_metadata field`);
+			return null;
+		}
+		const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
 
-	// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
-	return items.map((item) => ({
-		...item,
-		type:
-			typeof item.type === 'number'
-				? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
-				: item.type
-	}));
+		// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
+		return items.map((item) => ({
+			...item,
+			type:
+				typeof item.type === 'number'
+					? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
+					: item.type
+		}));
+	} catch (e) {
+		console.error(`getParamsMetadata: data parsing failed for ${deviceId}:`, e);
+		return null;
+	}
 }
 
 /**
