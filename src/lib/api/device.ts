@@ -295,10 +295,10 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 				maxTempC: (deviceMessage.maxTempC as number) ?? 0,
 				deviceType: (deviceMessage.deviceType as string) ?? 'unknown'
 			};
-		} else {
+		} else if (forceOffroad !== null) {
 			deviceState.offroadStatuses[deviceId] = {
-				isOffroad: false,
-				forceOffroad: forceOffroad ?? false
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? false,
+				forceOffroad
 			};
 		}
 
