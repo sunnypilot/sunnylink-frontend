@@ -460,17 +460,19 @@
 			}
 
 			const currentIsOffroad = !((deviceMessage.started as boolean) ?? false);
+			const forceOffroad =
+				deviceState.offroadStatuses[deviceState.selectedDeviceId]?.forceOffroad ?? false;
 
 			// Update global state to reflect real-time status
 			if (deviceState.selectedDeviceId) {
 				deviceState.offroadStatuses[deviceState.selectedDeviceId] = {
 					isOffroad: currentIsOffroad,
-					forceOffroad:
-						deviceState.offroadStatuses[deviceState.selectedDeviceId]?.forceOffroad ?? false
+					forceOffroad
 				};
 			}
 
-			if (!currentIsOffroad) {
+			// Allow push if device is offroad OR forceOffroad is enabled
+			if (!currentIsOffroad && !forceOffroad) {
 				throw new Error('Device is Onroad. Cannot push model.');
 			}
 
