@@ -112,7 +112,7 @@
 		deviceState.cancelMigration();
 	}
 
-	// ── Scroll lock (iOS Safari requires fixed-body technique) ──────────
+	// ── Scroll lock + iOS page sheet parent transform ───────────────────
 	let savedScrollY = 0;
 
 	$effect(() => {
@@ -122,6 +122,15 @@
 			document.body.style.top = `-${savedScrollY}px`;
 			document.body.style.width = '100%';
 			document.body.style.overflow = 'hidden';
+
+			// iOS page sheet: scale down the main app content
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transition = 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
+				appRoot.style.transform = 'scale(0.94) translateY(10px)';
+				appRoot.style.borderRadius = '12px';
+				appRoot.style.overflow = 'hidden';
+			}
 		}
 		return () => {
 			document.body.style.position = '';
@@ -129,6 +138,15 @@
 			document.body.style.width = '';
 			document.body.style.overflow = '';
 			window.scrollTo(0, savedScrollY);
+
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transform = '';
+				appRoot.style.borderRadius = '';
+				appRoot.style.overflow = '';
+				// Keep transition for smooth restore
+				setTimeout(() => { appRoot.style.transition = ''; }, 500);
+			}
 		};
 	});
 
@@ -147,6 +165,7 @@
 
 	// Check if mobile for transition direction
 	const isMobileWizard = typeof window !== 'undefined' && window.innerWidth < 640;
+
 
 	// ── Step transition direction ────────────────────────────────────────
 	// Set direction SYNCHRONOUSLY before step changes so out:fly reads the correct value
@@ -418,12 +437,12 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-[60] flex items-stretch justify-center sm:items-center sm:p-6"
+		class="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
 	>
 		<button
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm sm:bg-black/80"
+			class="absolute inset-0 bg-black/40"
 			in:fade={{ duration: 400, easing: cubicOut }}
 			out:fade={{ duration: 250 }}
 			onclick={close}
@@ -431,9 +450,10 @@
 		></button>
 
 		<div
-			class="relative flex h-full w-full flex-col overflow-hidden bg-[var(--sl-bg-surface)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:max-w-2xl sm:rounded-xl sm:border sm:border-[var(--sl-border)] sm:shadow-2xl"
-			in:fly={{ y: isMobileWizard ? 800 : 40, duration: isMobileWizard ? 450 : 350, easing: emphasizedDecelerate }}
-			out:fly={{ y: isMobileWizard ? 800 : 40, duration: isMobileWizard ? 250 : 200, easing: emphasizedAccelerate }}
+			class="relative mx-2 mb-2 flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl bg-[var(--sl-bg-surface)] shadow-2xl sm:mx-0 sm:mb-0 sm:min-h-[400px] sm:w-full sm:max-w-2xl sm:border sm:border-[var(--sl-border)]"
+			style="max-height: calc(100dvh - 3rem);"
+			in:fly={{ y: 800, duration: 500, easing: emphasizedDecelerate }}
+			out:fly={{ y: 800, duration: 300, easing: emphasizedAccelerate }}
 		>
 			<!-- Header -->
 			<div class="shrink-0 border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 px-4 py-3 sm:px-5 sm:py-4">
@@ -468,7 +488,7 @@
 				</div>
 			</div>
 
-			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; min-height: 280px; align-content: start;">
+			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; align-content: start;">
 				{#key ms.step}
 				<div
 					style="grid-area: 1 / 1;"

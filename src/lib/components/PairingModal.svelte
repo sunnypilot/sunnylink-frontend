@@ -44,7 +44,7 @@
 		selectedDeviceType = null;
 	}
 
-	// ── Scroll lock ─────────────────────────────────────────────────────
+	// ── Scroll lock + iOS page sheet parent transform ───────────────────
 	let savedScrollY = 0;
 
 	$effect(() => {
@@ -54,6 +54,14 @@
 			document.body.style.top = `-${savedScrollY}px`;
 			document.body.style.width = '100%';
 			document.body.style.overflow = 'hidden';
+
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transition = 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
+				appRoot.style.transform = 'scale(0.94) translateY(10px)';
+				appRoot.style.borderRadius = '12px';
+				appRoot.style.overflow = 'hidden';
+			}
 		}
 		return () => {
 			document.body.style.position = '';
@@ -61,6 +69,14 @@
 			document.body.style.width = '';
 			document.body.style.overflow = '';
 			window.scrollTo(0, savedScrollY);
+
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transform = '';
+				appRoot.style.borderRadius = '';
+				appRoot.style.overflow = '';
+				setTimeout(() => { appRoot.style.transition = ''; }, 500);
+			}
 		};
 	});
 
@@ -75,6 +91,7 @@
 
 	const isMobilePairing = typeof window !== 'undefined' && window.innerWidth < 640;
 
+
 	// ── Step transition direction ────────────────────────────────────────
 	let stepDirection: 'forward' | 'back' = $state('forward');
 
@@ -86,13 +103,13 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-[60] flex items-stretch justify-center sm:items-center sm:p-6"
+		class="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
 	>
 		<!-- Backdrop -->
 		<button
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm sm:bg-black/80"
+			class="absolute inset-0 bg-black/40"
 			in:fade={{ duration: 400, easing: cubicOut }}
 			out:fade={{ duration: 250 }}
 			onclick={close}
@@ -101,9 +118,10 @@
 
 		<!-- Content -->
 		<div
-			class="relative flex h-full w-full flex-col overflow-hidden bg-[var(--sl-bg-surface)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:max-w-lg sm:rounded-xl sm:border sm:border-[var(--sl-border)] sm:shadow-2xl"
-			in:fly={{ y: isMobilePairing ? 800 : 40, duration: isMobilePairing ? 450 : 350, easing: emphasizedDecelerate }}
-			out:fly={{ y: isMobilePairing ? 800 : 40, duration: isMobilePairing ? 250 : 200, easing: emphasizedAccelerate }}
+			class="relative mx-2 mb-2 flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl bg-[var(--sl-bg-surface)] shadow-2xl sm:mx-0 sm:mb-0 sm:min-h-[360px] sm:w-full sm:max-w-lg sm:border sm:border-[var(--sl-border)]"
+			style="max-height: calc(100dvh - 3rem);"
+			in:fly={{ y: 800, duration: 500, easing: emphasizedDecelerate }}
+			out:fly={{ y: 800, duration: 300, easing: emphasizedAccelerate }}
 		>
 			<!-- Header -->
 			<div class="shrink-0 border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 px-4 py-3 sm:px-5 sm:py-4">
@@ -130,7 +148,7 @@
 				</div>
 			</div>
 
-			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; min-height: 240px; align-content: start;">
+			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; align-content: start;">
 				{#key step}
 				<div
 					style="grid-area: 1 / 1;"
@@ -155,7 +173,7 @@
 									<RectangleHorizontal size={28} />
 								</div>
 								<div class="text-center">
-									<h4 class="font-bold text-[var(--sl-text-1)]">comma 4</h4>
+									<h4 class="font-bold text-[var(--sl-text-1)]">comma four</h4>
 									<p class="text-xs text-[var(--sl-text-3)]">Next generation</p>
 								</div>
 							</button>
@@ -171,7 +189,7 @@
 									<RectangleHorizontal size={40} />
 								</div>
 								<div class="text-center">
-									<h4 class="font-bold text-[var(--sl-text-1)]">comma 3 / 3X</h4>
+									<h4 class="font-bold text-[var(--sl-text-1)]">comma 3X</h4>
 									<p class="text-xs text-[var(--sl-text-3)]">Standard generation</p>
 								</div>
 							</button>
@@ -185,7 +203,7 @@
 								<!-- svelte-ignore a11y_img_redundant_alt -->
 								<img
 									src="/pair_c3.gif"
-									alt="Pairing instructions for comma 3"
+									alt="Pairing instructions for comma 3X"
 									class="h-auto w-full object-contain"
 								/>
 							{:else if selectedDeviceType === 'c4'}
