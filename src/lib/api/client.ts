@@ -34,12 +34,14 @@ const customFetch: typeof fetch = async (input, init) => {
 	return response;
 };
 
+export const API_BASE_URL = 'https://stg.api.sunnypilot.ai';
+
 export const v1Client = createClient<v1Paths>({
-	baseUrl: 'https://stg.api.sunnypilot.ai/',
+	baseUrl: API_BASE_URL + '/',
 	fetch: customFetch
 });
 
 export const v0Client = createClient<v0Paths>({
-	baseUrl: 'https://stg.api.sunnypilot.ai/',
+	baseUrl: API_BASE_URL + '/',
 	fetch: customFetch
 });
