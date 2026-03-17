@@ -247,7 +247,9 @@
 					<div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 						<div class="hidden flex-1 justify-center px-6 lg:flex">
 							{#if deviceState.selectedDeviceId}
-								<SettingsSearch />
+								<div class="w-full max-w-md">
+									<SettingsSearch />
+								</div>
 							{/if}
 						</div>
 
