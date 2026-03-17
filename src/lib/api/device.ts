@@ -1,10 +1,12 @@
-import { v1Client, v0Client } from '$lib/api/client';
+import { v1Client, v0Client, API_BASE_URL, customFetch } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
+import { decodeCompressedJson } from '$lib/utils/compression';
 import type { components } from '../../sunnylink/v1/schema';
 
 type DeviceParam = components['schemas']['DeviceParam'];
+type ParamType = components['schemas']['ParamType'];
 
 export interface AsyncFetchResult {
 	items: DeviceParam[] | null;
@@ -116,85 +118,236 @@ export async function fetchSettingsAsync(
 	}
 }
 
+/** Maps device-side ParamKeyType enum values to frontend ParamType strings. */
+const PARAM_TYPE_NAMES: Record<number, ParamType> = {
+	0: 'String',
+	1: 'Bool',
+	2: 'Int',
+	3: 'Float',
+	4: 'Time',
+	5: 'Json',
+	6: 'Bytes'
+};
+
+/**
+ * Fetches compressed settings from the device via the paramsMetadata endpoint.
+ *
+ * Returns the same struct as getParamsAllKeysV1 (keys + types + defaults + _extra),
+ * but gzip-compressed for ~80% bandwidth reduction. The device sends type as an integer
+ * enum; this function maps it to the string form the frontend expects.
+ *
+ * Returns null if the device does not support this endpoint (404/500),
+ * indicating the caller should fall back to legacy getParamsAllKeysV1.
+ */
+export async function fetchParamsMetadata(
+	deviceId: string,
+	token: string
+): Promise<ExtendedDeviceParamKey[] | null> {
+	const response = await customFetch(
+		`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
+		{
+			headers: { Authorization: `Bearer ${token}` }
+		}
+	);
+
+	if (!response.ok) {
+		// Device doesn't support getParamsMetadata — fall back to V1
+		return null;
+	}
+
+	try {
+		const json = await response.json();
+		if (typeof json?.params_metadata !== 'string') {
+			console.error(`getParamsMetadata: missing or invalid params_metadata field`);
+			return null;
+		}
+		const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
+
+		// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
+		return items.map((item) => ({
+			...item,
+			type:
+				typeof item.type === 'number'
+					? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
+					: item.type
+		}));
+	} catch (e) {
+		console.error(`getParamsMetadata: data parsing failed for ${deviceId}:`, e);
+		return null;
+	}
+}
+
+/**
+ * Fetches deviceState cereal message via v0 getMessage proxy.
+ * Returns the deviceState object or null on failure.
+ *
+ * This is a single synchronous RPC — no polling. Proves device connectivity,
+ * and provides offroad status (started), network info, thermals, and more.
+ */
+export async function fetchDeviceMessage(
+	deviceId: string,
+	token: string
+): Promise<Record<string, unknown> | null> {
+	const response = await customFetch(
+		`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
+		{
+			headers: { Authorization: `Bearer ${token}` }
+		}
+	);
+
+	if (!response.ok) {
+		// Device unreachable via getMessage — not necessarily offline
+		return null;
+	}
+
+	try {
+		const data = await response.json();
+		return data?.deviceState ?? null;
+	} catch (e) {
+		console.error(`fetchDeviceMessage: invalid JSON response for ${deviceId}:`, e);
+		return null;
+	}
+}
+
+/**
+ * Fetches OffroadMode (force offroad) via synchronous values endpoint.
+ * Returns the decoded boolean or null on failure.
+ */
+async function fetchForceOffroadStatus(deviceId: string, token: string): Promise<boolean | null> {
+	try {
+		const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
+			params: {
+				path: { deviceId },
+				query: { paramKeys: ['OffroadMode'] }
+			},
+			headers: { Authorization: `Bearer ${token}` }
+		});
+
+		if (res.data?.items) {
+			const param = res.data.items.find((i) => i.key === 'OffroadMode');
+			if (param) {
+				const val = decodeParamValue(param);
+				return val === '1' || val === 1 || val === true || val === 'true';
+			}
+		}
+		return false;
+	} catch (e) {
+		console.error(`Failed to fetch OffroadMode for ${deviceId}:`, e);
+		return null;
+	}
+}
+
+/**
+ * Checks device status in two phases:
+ *
+ * Phase 1 (parallel): getMessage + getParamsMetadata + OffroadMode
+ *   - getMessage proves connectivity + offroad + telemetry
+ *   - getParamsMetadata returns compressed settings (same struct as V1)
+ *   - OffroadMode for force-offroad status
+ *
+ * Phase 2 (fallback, only if metadata 404 + device online):
+ *   - getParamsAllKeysV1 — uncompressed legacy, slower
+ *   - Incentivizes users to update to latest sunnypilot
+ */
 export async function checkDeviceStatus(deviceId: string, token: string) {
 	if (!deviceId || !token) return;
 
 	deviceState.onlineStatuses[deviceId] = 'loading';
 
 	try {
-		// Phase 1: Fast synchronous check - query available settings keys to determine if online
-		// This is a quick endpoint that tells us if the device is reachable
-		const settingsRes = await v1Client.GET('/v1/settings/{deviceId}', {
-			params: {
-				path: { deviceId }
-			},
-			headers: { Authorization: `Bearer ${token}` }
-		});
+		// Phase 1: getMessage + getParamsMetadata + OffroadMode in parallel
+		const [messageResult, metadataResult, forceOffroadResult] = await Promise.allSettled([
+			fetchDeviceMessage(deviceId, token),
+			fetchParamsMetadata(deviceId, token),
+			fetchForceOffroadStatus(deviceId, token)
+		]);
 
-		if (settingsRes.error) {
-			const status = settingsRes.response?.status || 500;
-			if (status === 404) {
-				deviceState.onlineStatuses[deviceId] = 'offline';
-			} else {
+		const deviceMessage = messageResult.status === 'fulfilled' ? messageResult.value : null;
+		const compressedSettings = metadataResult.status === 'fulfilled' ? metadataResult.value : null;
+		const forceOffroad =
+			forceOffroadResult.status === 'fulfilled' ? forceOffroadResult.value : null;
+
+		// Check if any call had a network/auth error (rejected) vs endpoint not supported (fulfilled null)
+		const hasNetworkError =
+			messageResult.status === 'rejected' || metadataResult.status === 'rejected';
+
+		// Determine online status
+		if (deviceMessage === null && compressedSettings === null) {
+			if (hasNetworkError) {
+				// Network/auth failure — show error, not offline
 				deviceState.onlineStatuses[deviceId] = 'error';
-				deviceState.lastErrorMessages[deviceId] = settingsRes.error.detail || `Error ${status}`;
+				const reason =
+					messageResult.status === 'rejected'
+						? (messageResult.reason as Error)?.message
+						: (metadataResult as PromiseRejectedResult).reason?.message;
+				deviceState.lastErrorMessages[deviceId] = reason || 'Connection failed';
+			} else {
+				// Both returned null (HTTP error responses) — device is offline
+				deviceState.onlineStatuses[deviceId] = 'offline';
 			}
 			return;
 		}
 
-		// Strict check: Must have items and length > 0
-		if (settingsRes.data?.items && settingsRes.data.items.length > 0) {
-			deviceState.onlineStatuses[deviceId] = 'online';
-			deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
-			// Clear any previous error
-			delete deviceState.lastErrorMessages[deviceId];
+		// Device is online
+		deviceState.onlineStatuses[deviceId] = 'online';
+		delete deviceState.lastErrorMessages[deviceId];
 
-			// Phase 2: Fire-and-forget async fetch for offroad values
-			// This doesn't block the status check - we update state when it completes
-			fetchOffroadStatus(deviceId, token);
+		// Store offroad from getMessage (started is always present in cereal deviceState)
+		if (deviceMessage !== null) {
+			const started = (deviceMessage.started as boolean) ?? false;
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: !started,
+				forceOffroad: forceOffroad ?? false
+			};
+
+			deviceState.deviceTelemetry[deviceId] = {
+				started,
+				networkType: (deviceMessage.networkType as string) ?? 'unknown',
+				networkMetered: (deviceMessage.networkMetered as boolean) ?? false,
+				freeSpacePercent: (deviceMessage.freeSpacePercent as number) ?? 0,
+				thermalStatus: (deviceMessage.thermalStatus as string) ?? 'unknown',
+				maxTempC: (deviceMessage.maxTempC as number) ?? 0,
+				deviceType: (deviceMessage.deviceType as string) ?? 'unknown'
+			};
+		} else if (forceOffroad !== null) {
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? false,
+				forceOffroad
+			};
+		}
+
+		// Store settings from compressed metadata (primary)
+		if (compressedSettings !== null) {
+			deviceState.deviceSettings[deviceId] = compressedSettings;
+			return;
+		}
+
+		// Metadata failed — log reason for debugging (data corruption vs unsupported endpoint)
+		if (metadataResult.status === 'rejected') {
+			console.warn(
+				`[checkDeviceStatus] getParamsMetadata rejected for ${deviceId}, falling back to V1:`,
+				metadataResult.reason
+			);
 		} else {
-			// Empty items means we couldn't fetch settings -> likely offline or not ready
-			deviceState.onlineStatuses[deviceId] = 'offline';
+			console.warn(
+				`[checkDeviceStatus] getParamsMetadata returned null for ${deviceId}, falling back to V1`
+			);
+		}
+
+		// Phase 2: Fallback to legacy V1 (old device without getParamsMetadata)
+		const settingsRes = await v1Client.GET('/v1/settings/{deviceId}', {
+			params: { path: { deviceId } },
+			headers: { Authorization: `Bearer ${token}` }
+		});
+
+		if (!settingsRes.error && settingsRes.data?.items && settingsRes.data.items.length > 0) {
+			deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
 		}
 	} catch (e: unknown) {
 		console.error(`Failed to check status for ${deviceId}`, e);
-		// Network errors or other exceptions are definitely errors, not just "offline"
 		deviceState.onlineStatuses[deviceId] = 'error';
 		deviceState.lastErrorMessages[deviceId] =
 			(e as { message?: string })?.message || 'Connection failed';
-	}
-}
-
-/**
- * Fetches offroad status asynchronously without blocking.
- * Updates deviceState when complete.
- */
-async function fetchOffroadStatus(deviceId: string, token: string) {
-	try {
-		const valuesRes = await fetchSettingsAsync(deviceId, ['IsOffroad', 'OffroadMode'], token);
-
-		if (valuesRes.items) {
-			const isOffroadParam = valuesRes.items.find((i) => i.key === 'IsOffroad');
-			const offroadModeParam = valuesRes.items.find((i) => i.key === 'OffroadMode');
-
-			let isOffroad = false;
-			let forceOffroad = false;
-
-			if (isOffroadParam) {
-				const val = decodeParamValue(isOffroadParam);
-				isOffroad = val === '1' || val === 1 || val === true || val === 'true';
-			}
-
-			if (offroadModeParam) {
-				const val = decodeParamValue(offroadModeParam);
-				forceOffroad = val === '1' || val === 1 || val === true || val === 'true';
-			}
-
-			deviceState.offroadStatuses[deviceId] = { isOffroad, forceOffroad };
-		}
-	} catch (e) {
-		console.error(`Failed to fetch offroad status for ${deviceId}`, e);
-		// Don't update device status - it's already marked as online from phase 1
 	}
 }
 

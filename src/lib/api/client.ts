@@ -9,7 +9,7 @@ import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
  * The Logto SDK handles token refresh internally, so we just need to get
  * a new token and retry the request.
  */
-const customFetch: typeof fetch = async (input, init) => {
+export const customFetch: typeof fetch = async (input, init) => {
 	const response = await fetch(input, init);
 
 	if (response.status === 401 || response.status === 403) {
@@ -34,12 +34,14 @@ const customFetch: typeof fetch = async (input, init) => {
 	return response;
 };
 
+export const API_BASE_URL = 'https://stg.api.sunnypilot.ai';
+
 export const v1Client = createClient<v1Paths>({
-	baseUrl: 'https://stg.api.sunnypilot.ai/',
+	baseUrl: API_BASE_URL + '/',
 	fetch: customFetch
 });
 
 export const v0Client = createClient<v0Paths>({
-	baseUrl: 'https://stg.api.sunnypilot.ai/',
+	baseUrl: API_BASE_URL + '/',
 	fetch: customFetch
 });
