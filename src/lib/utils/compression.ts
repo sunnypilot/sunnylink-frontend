@@ -1,3 +1,5 @@
+const DECOMPRESS_TIMEOUT_MS = 10000;
+
 /**
  * Decompresses a base64-encoded gzip string and parses it as JSON.
  *
@@ -20,24 +22,37 @@ export async function decodeCompressedJson<T>(base64String: string): Promise<T> 
 	writer.close().catch(() => {});
 
 	const reader = ds.readable.getReader();
-	const chunks: Uint8Array[] = [];
-	let totalLength = 0;
 
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		chunks.push(value);
-		totalLength += value.length;
+	const readWithTimeout = async (): Promise<T> => {
+		const chunks: Uint8Array[] = [];
+		let totalLength = 0;
+
+		while (true) {
+			const readPromise = reader.read();
+			const timeoutPromise = new Promise<never>((_, reject) =>
+				setTimeout(() => reject(new Error('Decompression timed out')), DECOMPRESS_TIMEOUT_MS)
+			);
+
+			const { done, value } = await Promise.race([readPromise, timeoutPromise]);
+			if (done) break;
+			chunks.push(value);
+			totalLength += value.length;
+		}
+
+		const result = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const chunk of chunks) {
+			result.set(chunk, offset);
+			offset += chunk.length;
+		}
+
+		return JSON.parse(new TextDecoder().decode(result)) as T;
+	};
+
+	try {
+		return await readWithTimeout();
+	} catch (e) {
+		reader.cancel().catch(() => {});
+		throw e;
 	}
-
-	const result = new Uint8Array(totalLength);
-	let offset = 0;
-	for (const chunk of chunks) {
-		result.set(chunk, offset);
-		offset += chunk.length;
-	}
-
-	const jsonString = new TextDecoder().decode(result);
-
-	return JSON.parse(jsonString) as T;
 }

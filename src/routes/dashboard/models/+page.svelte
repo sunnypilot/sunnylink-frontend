@@ -459,7 +459,7 @@
 				throw new Error('Device not reachable. Please check connection.');
 			}
 
-			const currentIsOffroad = !(deviceMessage.started as boolean);
+			const currentIsOffroad = !((deviceMessage.started as boolean) ?? false);
 
 			// Update global state to reflect real-time status
 			if (deviceState.selectedDeviceId) {
