@@ -250,16 +250,16 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 		deviceState.onlineStatuses[deviceId] = 'online';
 		delete deviceState.lastErrorMessages[deviceId];
 
-		// Store offroad from getMessage (started = onroad, !started = offroad)
+		// Store offroad from getMessage (started is always present in cereal deviceState)
 		if (deviceMessage !== null) {
-			const isOffroad = !(deviceMessage.started as boolean);
+			const started = (deviceMessage.started as boolean) ?? false;
 			deviceState.offroadStatuses[deviceId] = {
-				isOffroad,
+				isOffroad: !started,
 				forceOffroad: forceOffroad ?? false
 			};
 
 			deviceState.deviceTelemetry[deviceId] = {
-				started: (deviceMessage.started as boolean) ?? false,
+				started,
 				networkType: (deviceMessage.networkType as string) ?? 'unknown',
 				networkMetered: (deviceMessage.networkMetered as boolean) ?? false,
 				freeSpacePercent: (deviceMessage.freeSpacePercent as number) ?? 0,
@@ -267,10 +267,10 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 				maxTempC: (deviceMessage.maxTempC as number) ?? 0,
 				deviceType: (deviceMessage.deviceType as string) ?? 'unknown'
 			};
-		} else if (forceOffroad !== null) {
+		} else {
 			deviceState.offroadStatuses[deviceId] = {
-				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? false,
-				forceOffroad
+				isOffroad: false,
+				forceOffroad: forceOffroad ?? false
 			};
 		}
 
