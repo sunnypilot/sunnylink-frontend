@@ -4,6 +4,11 @@
  * Pipeline: base64 decode -> gzip decompress -> JSON.parse
  *
  * Uses the native DecompressionStream API (Chrome 80+, Firefox 113+, Safari 16.4+).
+ *
+ * Note: writer.write() and writer.close() are intentionally not awaited —
+ * DecompressionStream requires the readable side to be consumed before the
+ * writable side resolves. Awaiting both sides creates a deadlock.
+ * Errors from malformed data surface on reader.read() and are caught there.
  */
 export async function decodeCompressedJson<T>(base64String: string): Promise<T> {
 	const binaryString = atob(base64String);
@@ -11,8 +16,8 @@ export async function decodeCompressedJson<T>(base64String: string): Promise<T> 
 
 	const ds = new DecompressionStream('gzip');
 	const writer = ds.writable.getWriter();
-	writer.write(bytes);
-	writer.close();
+	writer.write(bytes).catch(() => {});
+	writer.close().catch(() => {});
 
 	const reader = ds.readable.getReader();
 	const chunks: Uint8Array[] = [];
