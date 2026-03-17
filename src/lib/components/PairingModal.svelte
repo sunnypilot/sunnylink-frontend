@@ -97,23 +97,7 @@
 						</p>
 
 						<div class="grid gap-4 sm:grid-cols-2">
-							<!-- Comma 3/3X -->
-							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
-								onclick={() => selectDevice('c3')}
-							>
-								<div
-									class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
-								>
-									<RectangleHorizontal size={40} />
-								</div>
-								<div class="text-center">
-									<h4 class="font-bold text-[var(--sl-text-1)]">comma 3 / 3X</h4>
-									<p class="text-xs text-[var(--sl-text-3)]">Standard generation</p>
-								</div>
-							</button>
-
-							<!-- Comma 4 -->
+							<!-- comma four -->
 							<button
 								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
 								onclick={() => selectDevice('c4')}
@@ -128,6 +112,22 @@
 									<p class="text-xs text-[var(--sl-text-3)]">Next generation</p>
 								</div>
 							</button>
+
+							<!-- comma 3X -->
+							<button
+								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)]"
+								onclick={() => selectDevice('c3')}
+							>
+								<div
+									class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+								>
+									<RectangleHorizontal size={40} />
+								</div>
+								<div class="text-center">
+									<h4 class="font-bold text-[var(--sl-text-1)]">comma 3 / 3X</h4>
+									<p class="text-xs text-[var(--sl-text-3)]">Standard generation</p>
+								</div>
+							</button>
 						</div>
 					</div>
 				{:else if step === 2}
@@ -138,14 +138,14 @@
 								<!-- svelte-ignore a11y_img_redundant_alt -->
 								<img
 									src="/pair_c3.gif"
-									alt="Pairing instructions for Comma 3"
+									alt="Pairing instructions for comma 3"
 									class="h-auto w-full object-contain"
 								/>
 							{:else if selectedDeviceType === 'c4'}
 								<!-- svelte-ignore a11y_img_redundant_alt -->
 								<img
 									src="/pair_c4.gif"
-									alt="Pairing instructions for Comma 4"
+									alt="Pairing instructions for comma four"
 									class="h-auto w-full object-contain"
 								/>
 							{/if}

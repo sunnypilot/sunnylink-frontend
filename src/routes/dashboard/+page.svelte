@@ -335,20 +335,20 @@
 									<button
 										class="btn flex-1 btn-sm btn-primary"
 										onclick={() => {
-											pairingType = 'c3';
-											pairingModalOpen = true;
-										}}
-									>
-										Comma 3/3X
-									</button>
-									<button
-										class="btn flex-1 btn-sm btn-primary"
-										onclick={() => {
 											pairingType = 'c4';
 											pairingModalOpen = true;
 										}}
 									>
-										Comma 4
+										comma four
+									</button>
+									<button
+										class="btn flex-1 btn-sm btn-primary"
+										onclick={() => {
+											pairingType = 'c3';
+											pairingModalOpen = true;
+										}}
+									>
+										comma 3X
 									</button>
 								</div>
 							</div>
