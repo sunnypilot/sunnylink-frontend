@@ -103,7 +103,7 @@
 
 			<!-- Theme selector -->
 			<div class="px-3.5 py-3">
-				<p class="mb-2 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+				<p class="mb-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 					Theme
 				</p>
 				<div class="flex rounded-lg bg-[var(--sl-bg-input)] p-1">

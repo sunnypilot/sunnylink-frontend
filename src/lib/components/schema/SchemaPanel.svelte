@@ -82,7 +82,7 @@
 		{#each itemGroups as group, gi (gi)}
 			<!-- Section label (from info/header items) -->
 			{#if group.label}
-				<p class="px-1 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase {gi > 0 ? 'mt-2' : ''}">
+				<p class="px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase {gi > 0 ? 'mt-2' : ''}">
 					{group.label}
 				</p>
 			{/if}

@@ -863,7 +863,7 @@
 					<div class="border-b border-primary/20 bg-primary/10 px-4 py-3">
 						<div class="flex items-center gap-2">
 							<Smartphone size={16} class="text-primary" />
-							<span class="text-xs font-bold tracking-wider text-primary uppercase">
+							<span class="text-sm font-bold tracking-wider text-primary uppercase">
 								Active On Device
 							</span>
 						</div>
@@ -945,13 +945,13 @@
 							<input
 								type="text"
 								placeholder="Search models..."
-								class="input input-md w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] pr-9 pl-10 text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+								class="input input-md min-h-[44px] w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] pr-9 pl-10 text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 								bind:value={searchQuery}
 							/>
 							<div
 								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
 							>
-								<Search size={14} class="text-[var(--sl-text-3)]" />
+								<Search size={16} class="text-[var(--sl-text-3)]" />
 							</div>
 							{#if searchQuery}
 								<button
@@ -962,7 +962,7 @@
 									}}
 									aria-label="Clear search"
 								>
-									<X size={14} />
+									<X size={16} />
 								</button>
 							{/if}
 						</div>
@@ -1032,7 +1032,7 @@
 										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
 											{#each group.models as model (model.short_name)}
 												<div
-													class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-[var(--sl-bg-surface)]/50 {selectedModelShortName ===
+													class="group relative flex w-full items-center justify-between px-4 py-3 pl-11 text-left transition-all hover:bg-[var(--sl-bg-surface)]/50 {selectedModelShortName ===
 													model.short_name
 														? 'bg-primary/10 hover:bg-primary/20'
 														: ''}"
@@ -1059,7 +1059,7 @@
 
 													<div class="flex items-center gap-3">
 														<button
-															class="p-1.5 text-[var(--sl-text-3)] transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
+															class="min-h-[40px] min-w-[40px] p-2 text-[var(--sl-text-3)] transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
 															updatingFavShortName === model.short_name
 																? 'animate-pulse-slow'
 																: ''}"
@@ -1152,7 +1152,7 @@
 					class="relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-page)] p-6 shadow-2xl"
 				>
 					<button
-						class="absolute top-4 right-4 text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
+						class="absolute top-3 right-3 min-h-[40px] min-w-[40px] p-2 text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
 						onclick={() => (selectedModelShortName = undefined)}
 					>
 						<X size={20} />

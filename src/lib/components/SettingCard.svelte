@@ -102,7 +102,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-400 uppercase"
 				>
 					Advanced
 				</div>
@@ -114,14 +114,14 @@
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-500 uppercase"
 						>
 							RO
 						</span>
 					{/if}
 					{#if hasStaged}
 						<span
-							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-primary uppercase"
+							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-primary uppercase"
 						>
 							Modified
 						</span>
@@ -182,7 +182,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-400 uppercase"
 				>
 					Advanced
 				</div>
@@ -194,14 +194,14 @@
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-500 uppercase"
 						>
 							RO
 						</span>
 					{/if}
 					{#if hasStaged}
 						<span
-							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-primary uppercase"
+							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-primary uppercase"
 						>
 							Modified
 						</span>
@@ -238,7 +238,7 @@
 				<div class="h-8 w-full animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else if options}
 				<select
-					class="select w-full bg-[var(--sl-bg-input)] select-sm text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+					class="select w-full bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 					value={displayValue}
 					onchange={(e: Event & { currentTarget: HTMLSelectElement }) => {
 						const val = e.currentTarget.value;
@@ -255,7 +255,7 @@
 				</select>
 			{:else if isJson}
 				<button
-					class="btn w-full text-[var(--sl-text-2)] btn-outline btn-sm hover:border-primary hover:text-primary"
+					class="btn w-full text-[var(--sl-text-2)] btn-outline hover:border-primary hover:text-primary"
 					onclick={() => onJsonClick?.(setting.label, displayValue)}
 				>
 					View JSON
@@ -282,7 +282,7 @@
 						</div>
 						<div class="flex items-center gap-4">
 							<button
-								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost btn-sm hover:text-[var(--sl-text-1)]"
+								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 								aria-label="Decrease value"
 								onclick={() => {
 									let current =
@@ -321,7 +321,7 @@
 								}}
 							/>
 							<button
-								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost btn-sm hover:text-[var(--sl-text-1)]"
+								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 								aria-label="Increase value"
 								onclick={() => {
 									let current =
@@ -350,7 +350,7 @@
 					<input
 						type={isNumber ? 'number' : 'text'}
 						value={displayValue !== undefined ? displayValue : ''}
-						class="input input-sm w-full bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+						class="input w-full bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 						placeholder={decodedDefaultValue !== undefined ? String(decodedDefaultValue) : ''}
 						{min}
 						{max}

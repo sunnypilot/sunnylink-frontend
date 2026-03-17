@@ -204,7 +204,7 @@
 								<input
 									type="checkbox"
 									bind:checked={checkedUndone}
-									class="checkbox rounded-md border-slate-500 bg-transparent checkbox-error transition-all hover:border-red-400"
+									class="checkbox h-6 w-6 rounded-md border-[var(--sl-border)] bg-transparent checkbox-error transition-all hover:border-red-400"
 								/>
 								<span
 									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
@@ -217,7 +217,7 @@
 								<input
 									type="checkbox"
 									bind:checked={checkedReason}
-									class="checkbox rounded-md border-slate-500 bg-transparent checkbox-error transition-all hover:border-red-400"
+									class="checkbox h-6 w-6 rounded-md border-[var(--sl-border)] bg-transparent checkbox-error transition-all hover:border-red-400"
 								/>
 								<span
 									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
@@ -234,13 +234,13 @@
 
 							<!-- Copyable ID -->
 							<button
-								class="group mb-2 flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/50 p-3 transition-all hover:border-slate-600 hover:bg-[var(--sl-bg-surface)]"
+								class="group mb-2 flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/50 p-3 transition-all hover:border-[var(--sl-border)] hover:bg-[var(--sl-bg-surface)]"
 								onclick={copyId}
 								title="Click to copy ID"
 							>
 								<span class="font-mono font-bold tracking-wide text-[var(--sl-text-1)]">{deviceId}</span>
 								<span
-									class="rounded bg-[var(--sl-bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--sl-text-2)] transition-colors group-hover:bg-slate-600 group-hover:text-[var(--sl-text-1)]"
+									class="rounded bg-[var(--sl-bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--sl-text-2)] transition-colors group-hover:bg-[var(--sl-bg-surface)] group-hover:text-[var(--sl-text-1)]"
 								>
 									{copied ? 'Copied!' : 'Click to Copy'}
 								</span>
@@ -250,7 +250,7 @@
 								id="confirmation"
 								type="text"
 								bind:value={confirmationInput}
-								class="input w-full border-[var(--sl-border)] bg-slate-900 text-[var(--sl-text-1)] placeholder-slate-600 focus:border-red-500 focus:outline-none"
+								class="input w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:border-red-500 focus:outline-none"
 								placeholder={deviceId}
 								autocomplete="off"
 							/>
@@ -289,7 +289,7 @@
 
 								<div class="flex items-center justify-between">
 									<span class="text-[var(--sl-text-2)]">Sunnylink ID</span>
-									<span class="rounded bg-slate-900/50 px-2 py-1 font-mono text-[var(--sl-text-1)]"
+									<span class="rounded bg-[var(--sl-bg-input)] px-3 py-1.5 font-mono text-[var(--sl-text-1)]"
 										>{deviceId}</span
 									>
 								</div>

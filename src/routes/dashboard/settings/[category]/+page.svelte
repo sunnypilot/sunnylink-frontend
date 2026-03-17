@@ -351,7 +351,7 @@
 
 <div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
 	<!-- ── Page Header ──────────────────────────────────────────────────── -->
-	<div class="mx-auto w-full max-w-2xl">
+	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 		{#if activeSubPanel}
 			<button
 				class="mb-1 flex items-center gap-1 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
@@ -473,7 +473,7 @@
 		</div>
 	{:else if useSchema && schemaPanel}
 		<!-- ═══ Schema-driven rendering (centered narrow column, grouped cards) ═══ -->
-		<div class="mx-auto w-full max-w-2xl">
+		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 			{#if activeSubPanel}
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 					{#each activeSubPanel.items as item, i (item.key)}

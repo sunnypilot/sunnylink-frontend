@@ -452,7 +452,7 @@
 							</div>
 							{#if isDownloading}
 								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
+									class="rounded-full bg-indigo-500/20 px-3 py-1.5 text-xs font-medium text-indigo-200"
 								>
 									{#if downloadProgress}
 										Downloading {downloadProgress}
@@ -462,7 +462,7 @@
 								</div>
 							{:else}
 								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
+									class="rounded-full bg-indigo-500/20 px-3 py-1.5 text-xs font-medium text-indigo-200"
 								>
 									Last Updated {formatTimeAgo(downloadedDateParam)}
 								</div>
@@ -486,7 +486,7 @@
 				<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 backdrop-blur-sm">
 					<div class="flex flex-col items-center justify-center text-center">
 						<div class="mb-3 rounded-full bg-[var(--sl-bg-surface)] p-3">
-							<MapIcon class="h-6 w-6 text-[var(--sl-text-3)]" />
+							<MapIcon class="h-8 w-8 text-[var(--sl-text-3)]" />
 						</div>
 						<p class="text-sm text-[var(--sl-text-2)]">No offline map downloaded on this device</p>
 					</div>

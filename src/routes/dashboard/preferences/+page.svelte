@@ -299,7 +299,7 @@
 										<input
 											type="text"
 											bind:value={def.label}
-											class="input input-sm w-full max-w-xs input-ghost text-[var(--sl-text-1)] focus:bg-[var(--sl-bg-elevated)]"
+											class="input w-full max-w-xs input-ghost text-[var(--sl-text-1)] focus:bg-[var(--sl-bg-elevated)]"
 											class:text-orange-400={isChanged(def, 'label')}
 										/>
 									</td>
@@ -307,7 +307,7 @@
 										<input
 											type="text"
 											bind:value={def.description}
-											class="input input-sm w-full max-w-xs input-ghost text-[var(--sl-text-1)] focus:bg-[var(--sl-bg-elevated)]"
+											class="input w-full max-w-xs input-ghost text-[var(--sl-text-1)] focus:bg-[var(--sl-bg-elevated)]"
 											class:text-orange-400={isChanged(def, 'description')}
 										/>
 									</td>
@@ -326,7 +326,7 @@
 										<input
 											type="checkbox"
 											bind:checked={def.advanced}
-											class="checkbox checkbox-sm checkbox-primary"
+											class="checkbox checkbox-primary"
 											class:checkbox-warning={isChanged(def, 'advanced')}
 										/>
 									</td>
@@ -334,7 +334,7 @@
 										<input
 											type="checkbox"
 											bind:checked={def.readonly}
-											class="checkbox checkbox-sm checkbox-warning"
+											class="checkbox checkbox-warning"
 											class:checkbox-error={isChanged(def, 'readonly')}
 										/>
 									</td>
@@ -342,7 +342,7 @@
 										<input
 											type="checkbox"
 											bind:checked={def.hidden}
-											class="checkbox checkbox-sm checkbox-error"
+											class="checkbox checkbox-error"
 											class:checkbox-primary={isChanged(def, 'hidden')}
 										/>
 									</td>

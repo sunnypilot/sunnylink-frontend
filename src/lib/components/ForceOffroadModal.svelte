@@ -134,7 +134,7 @@
 
 				<div class="form-control">
 					<label class="label cursor-pointer justify-start gap-3">
-						<input type="checkbox" bind:checked={confirmed} class="checkbox checkbox-error" />
+						<input type="checkbox" bind:checked={confirmed} class="checkbox h-6 w-6 checkbox-error" />
 						<span class="label-text text-[var(--sl-text-1)]">I understand the risks and want to proceed</span>
 					</label>
 				</div>

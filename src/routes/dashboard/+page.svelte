@@ -472,7 +472,7 @@
 									<!-- Action Buttons -->
 									<div class="flex items-center gap-1">
 										<button
-											class="rounded-lg p-2 text-[var(--sl-text-2)] transition-all hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+											class="rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--sl-text-2)] transition-all hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 											onclick={(e) => {
 												e.stopPropagation();
 												handleDownloadBackup(device.device_id);
@@ -489,7 +489,7 @@
 										</button>
 
 										<button
-											class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+											class="rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
 											onclick={(e) => {
 												e.stopPropagation();
 												openDeregisterModal(device, isOnline);
@@ -667,7 +667,7 @@
 
 													<!-- Trash Icon -->
 													<button
-														class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+														class="rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
 														onclick={(e) => {
 															e.stopPropagation();
 															openDeregisterModal(device, false);
@@ -759,7 +759,7 @@
 														Device is offline. Some features are unavailable.
 													</p>
 													<button
-														class="btn text-red-400 btn-ghost btn-xs hover:bg-red-500/10"
+														class="btn text-red-400 btn-ghost btn-sm hover:bg-red-500/10"
 														onclick={async (e) => {
 															e.stopPropagation();
 															if (logtoClient) {

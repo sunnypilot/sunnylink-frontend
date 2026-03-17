@@ -174,7 +174,7 @@
 						{/if}
 					</div>
 					{#if item.description}
-						<p class="mt-0.5 text-[0.8125rem] leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+						<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
 					{#if pushState === 'error'}
 						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
@@ -218,7 +218,7 @@
 					{/if}
 				</div>
 				{#if item.description}
-					<p class="mt-0.5 text-[0.8125rem] leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				{#if pushState === 'error'}
 					<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
@@ -229,7 +229,7 @@
 						<div class="h-8 w-full animate-pulse rounded-lg bg-[var(--sl-bg-elevated)]"></div>
 					{:else if item.options}
 						<select
-							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-1.5 text-sm text-[var(--sl-text-1)] transition-colors focus:border-primary focus:outline-none"
+							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-colors focus:border-primary focus:outline-none"
 							value={displayValue}
 							disabled={!enabled || isPushing}
 							onchange={(e) => {
@@ -254,7 +254,7 @@
 							</div>
 							<div class="flex items-center gap-2">
 								<button
-									class="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+									class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
 									disabled={!enabled || isPushing}
 									onclick={() => {
 										const current = displayValue !== undefined ? Number(displayValue) : Number(item.min);
@@ -280,7 +280,7 @@
 									}}
 								/>
 								<button
-									class="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+									class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
 									disabled={!enabled || isPushing}
 									onclick={() => {
 										const current = displayValue !== undefined ? Number(displayValue) : Number(item.min);
@@ -320,7 +320,7 @@
 					{/if}
 				</div>
 				{#if item.description}
-					<p class="mt-0.5 text-[0.8125rem] leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				{#if pushState === 'error'}
 					<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
@@ -343,7 +343,7 @@
 							{#each item.options as option, oi}
 								{@const isSelected = oi === selectedIdx}
 								<button
-									class="relative z-10 flex-1 rounded-md px-2.5 py-2 text-xs font-medium transition-colors duration-350"
+									class="relative z-10 min-w-0 flex-1 truncate rounded-md px-2.5 py-2.5 text-sm font-medium transition-colors duration-350"
 									class:text-white={isSelected}
 									class:text-[var(--sl-text-2)]={!isSelected}
 									class:hover:text-[var(--sl-text-1)]={!isSelected}
@@ -363,7 +363,7 @@
 			<div class="px-4 py-4">
 				<span class="text-sm font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 				{#if item.description}
-					<p class="mt-0.5 text-[0.8125rem] leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				<div class="mt-2 rounded-lg bg-[var(--sl-bg-input)] px-3 py-1.5 text-center text-sm font-medium tabular-nums text-[var(--sl-text-1)]">
 					{formatDisplay(displayValue)}

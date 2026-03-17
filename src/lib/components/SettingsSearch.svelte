@@ -109,7 +109,7 @@
 					isFocused = false;
 				}}
 			>
-				<X class="h-4 w-4" />
+				<X class="h-5 w-5" />
 			</button>
 		{/if}
 	</div>
@@ -127,14 +127,14 @@
 						<span class="font-medium text-[var(--sl-text-1)]"
 							>{result.setting._extra?.title || result.setting.label}</span
 						>
-						<span class="text-xs text-[var(--sl-text-3)] capitalize">
+						<span class="text-sm text-[var(--sl-text-3)] capitalize">
 							{MODEL_SETTINGS.includes(result.setting.key) ? 'models' : result.setting.category}
 						</span>
 					</span>
 					{#if result.setting.key !== (result.setting._extra?.title || result.setting.label)}
-						<span class="font-mono text-xs text-[var(--sl-text-3)]">{result.setting.key}</span>
+						<span class="font-mono text-sm text-[var(--sl-text-3)]">{result.setting.key}</span>
 					{/if}
-					<p class="mt-1 line-clamp-2 text-xs text-[var(--sl-text-2)]">
+					<p class="mt-1 line-clamp-2 text-sm text-[var(--sl-text-2)]">
 						{result.setting._extra?.description || result.setting.description}
 					</p>
 				</button>

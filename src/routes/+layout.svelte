@@ -288,7 +288,7 @@
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<aside
 				class={[
-					'flex min-h-full flex-col border-r border-[var(--sl-border)] bg-[var(--sl-bg-page)] transition-[width,filter] duration-300',
+					'flex min-h-full flex-col border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)] transition-[width,filter] duration-300',
 					drawerOpen ? 'w-72' : 'w-16',
 					'lg:w-[18rem]',
 					deviceSelectorState.isOpen ? 'blur-sm' : ''
@@ -313,7 +313,7 @@
 
 						{#if section.collapsible}
 							<button
-								class="flex w-full items-center justify-between px-3 py-1.5 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
+								class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
 								onclick={() => settingsOpen = !settingsOpen}
 							>
 								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
@@ -331,7 +331,7 @@
 							{/if}
 						{:else}
 							<div class="mb-1 px-3 py-1.5">
-								<span class={['text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								<span class={['text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 									{section.label}
 								</span>
 							</div>
@@ -368,7 +368,7 @@
 								{#if active}
 									<span class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"></span>
 								{/if}
-								<Icon class="size-[18px] shrink-0" />
+								<Icon class="size-5 shrink-0" />
 								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 									{item.label}
 								</span>
@@ -382,7 +382,7 @@
 								}}
 								class={navItemClasses(active)}
 							>
-								<Icon class="size-[18px] shrink-0" />
+								<Icon class="size-5 shrink-0" />
 								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 									{item.label}
 								</span>

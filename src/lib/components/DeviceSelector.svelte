@@ -116,7 +116,7 @@
 >
 	{#if selectedDevice}
 		<div
-			class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-primary/10 text-primary"
+			class="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-primary/10 text-primary"
 		>
 			<Smartphone size={16} />
 		</div>
@@ -127,42 +127,42 @@
 			<div class="flex items-center gap-1">
 				{#if deviceState.onlineStatuses[selectedDevice.device_id] === 'online'}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-emerald-400"></div>
-					<span class="truncate text-[10px] text-emerald-400">Online</span>
+					<span class="truncate text-xs text-emerald-400">Online</span>
 					{#if deviceState.offroadStatuses[selectedDevice.device_id]}
 						{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
-						<span class="text-[10px] text-[var(--sl-text-3)]">•</span>
+						<span class="text-xs text-[var(--sl-text-3)]">•</span>
 						{#if status?.forceOffroad}
-							<span class="truncate text-[10px] font-bold text-amber-500">Forced</span>
+							<span class="truncate text-xs font-bold text-amber-500">Forced</span>
 						{:else if status?.isOffroad}
-							<span class="truncate text-[10px] text-blue-400">Offroad</span>
+							<span class="truncate text-xs text-blue-400">Offroad</span>
 						{:else}
-							<span class="truncate text-[10px] text-amber-400">Onroad</span>
+							<span class="truncate text-xs text-amber-400">Onroad</span>
 						{/if}
 					{/if}
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-red-400"></div>
-					<span class="text-[10px] text-red-400">Offline</span>
+					<span class="text-xs text-red-400">Offline</span>
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'error'}
-					<TriangleAlert size={10} class="text-amber-500" />
+					<TriangleAlert size={14} class="text-amber-500" />
 					<span
-						class="truncate text-[10px] text-amber-500"
+						class="truncate text-xs text-amber-500"
 						title={deviceState.lastErrorMessages[selectedDevice.device_id]}>Error</span
 					>
 				{:else}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] animate-pulse rounded-full bg-amber-400"></div>
-					<span class="text-[10px] text-amber-400">Checking...</span>
+					<span class="text-xs text-amber-400">Checking...</span>
 				{/if}
 			</div>
 		</div>
 	{:else}
 		<div
-			class="flex h-8 w-8 min-w-[2rem] items-center justify-center rounded-lg bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+			class="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
 		>
 			<LayoutDashboard size={16} />
 		</div>
 		<div class="flex flex-col">
 			<span class="text-xs font-bold text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]">Overview</span>
-			<span class="text-[10px] text-[var(--sl-text-3)] group-hover:text-[var(--sl-text-2)]">Select Device</span>
+			<span class="text-xs text-[var(--sl-text-3)] group-hover:text-[var(--sl-text-2)]">Select Device</span>
 		</div>
 	{/if}
 	<ChevronDown
@@ -252,7 +252,7 @@
 									<span class="text-xs text-emerald-400">Online</span>
 									{#if deviceState.offroadStatuses[device.device_id]}
 										{@const offroadStatus = deviceState.offroadStatuses[device.device_id]}
-										<span class="text-[10px] text-[var(--sl-text-3)]">•</span>
+										<span class="text-xs text-[var(--sl-text-3)]">•</span>
 										{#if offroadStatus?.forceOffroad}
 											<span class="text-xs font-bold text-amber-500">Forced</span>
 										{:else if offroadStatus?.isOffroad}
@@ -274,7 +274,7 @@
 									<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
 									<span class="text-xs text-amber-400">Checking...</span>
 								{/if}
-								<span class="text-[10px] text-[var(--sl-text-3)]">• {device.device_id}</span>
+								<span class="text-xs text-[var(--sl-text-3)]">• {device.device_id}</span>
 							</span>
 						</span>
 						{#if isSelected}
@@ -324,7 +324,7 @@
 											<span class="flex items-center gap-1.5">
 												<span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>
 												<span class="text-xs text-red-400">Offline</span>
-												<span class="text-[10px] text-[var(--sl-text-3)]">• {device.device_id}</span>
+												<span class="text-xs text-[var(--sl-text-3)]">• {device.device_id}</span>
 											</span>
 										</span>
 										{#if isSelected}

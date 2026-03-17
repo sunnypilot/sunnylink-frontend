@@ -95,7 +95,7 @@
 
 </script>
 
-<div class="mx-auto max-w-2xl space-y-6">
+<div class="mx-auto max-w-2xl xl:max-w-3xl space-y-6">
 	<div>
 		<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">Vehicle</h2>
 		<p class="mt-0.5 text-[0.8125rem] text-[var(--sl-text-3)]">Fingerprint and platform selection</p>
@@ -107,7 +107,7 @@
 		<!-- Brand-specific settings grouped card -->
 		{#if brandSettings.length > 0}
 			<div>
-				<p class="mb-2 px-1 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+				<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 					{currentBrand} Settings
 				</p>
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">

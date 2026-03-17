@@ -103,7 +103,7 @@
 						bind:value={searchQuery}
 						onkeydown={handleKeydown}
 						type="text"
-						class="w-full rounded-lg bg-[var(--sl-bg-input)] py-2 pr-4 pl-9 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:ring-2 focus:ring-indigo-500/50 focus:outline-none"
+						class="w-full rounded-lg bg-[var(--sl-bg-input)] py-2.5 pr-4 pl-9 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:ring-2 focus:ring-indigo-500/50 focus:outline-none"
 						placeholder="Search..."
 					/>
 				</div>
@@ -117,7 +117,7 @@
 					{#each filteredOptions as option (option.value)}
 						<button
 							type="button"
-							class="group flex w-full items-center justify-between rounded-lg px-4 py-2 text-left text-sm text-[var(--sl-text-2)] hover:bg-indigo-500/10 hover:text-[var(--sl-text-1)]"
+							class="group flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-left text-sm text-[var(--sl-text-2)] hover:bg-indigo-500/10 hover:text-[var(--sl-text-1)]"
 							onclick={() => select(option)}
 						>
 							<span>{option.label}</span>

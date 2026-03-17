@@ -70,7 +70,7 @@
 					<div class="flex items-center gap-3">
 						{#if step === 2}
 							<button
-								class="rounded-lg p-1 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+								class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)]"
 								onclick={back}
 								title="Back"
 							>
@@ -152,7 +152,7 @@
 						</div>
 
 						<div class="rounded-xl bg-blue-500/10 p-4">
-							<ol class="list-inside list-decimal space-y-2 text-sm text-blue-200">
+							<ol class="list-inside list-decimal space-y-2 text-sm text-[var(--sl-text-2)]">
 								<li>Note: <strong>Wi-Fi</strong> is NOT required for pairing.</li>
 								<li>
 									Go to <strong class="text-[var(--sl-text-1)]">Settings &gt; sunnylink</strong> on your device.
