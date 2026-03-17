@@ -85,35 +85,25 @@
 		authState.isAuthenticated
 			? [
 					{
-						label: 'Device',
+						label: 'Device Settings',
 						items: [
 							{ icon: House, label: 'Overview', href: '/dashboard' },
 							...(deviceState.selectedDeviceId
 								? [
-										{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
-										{ icon: Bot, label: 'Models', href: '/dashboard/models' },
-										{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' }
-									]
-								: [])
-						]
-					},
-					...(deviceState.selectedDeviceId
-						? [
-								{
-									label: 'Settings',
-									collapsible: true,
-									items: [
 										{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
 										{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+										{ icon: Bot, label: 'Models', href: '/dashboard/models' },
 										{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
 										{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
 										{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+										{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
+										{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
 										{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
 										{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
 									]
-								}
-							]
-						: [])
+								: [])
+						]
+					}
 				]
 			: []
 	);
