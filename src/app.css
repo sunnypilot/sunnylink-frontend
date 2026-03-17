@@ -74,6 +74,8 @@
 	--sl-text-2: #5c5775;
 	--sl-text-3: #7a7590;
 	--sl-accent-muted: rgba(89, 74, 226, 0.08);
+	--sl-toggle-off: #c5c0d8;
+	--sl-toggle-off-disabled: #e4e0f0;
 }
 
 [data-theme='sunny-dark'] {
@@ -89,6 +91,8 @@
 	--sl-text-2: #a09eb5;
 	--sl-text-3: #8a87a0;
 	--sl-accent-muted: rgba(124, 111, 235, 0.16);
+	--sl-toggle-off: #4a4660;
+	--sl-toggle-off-disabled: #353347;
 }
 
 /* ── Global Styles ──────────────────────────────────────────────────────── */

@@ -185,7 +185,7 @@
 					<button
 						class="relative inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[var(--sl-bg-page)] focus:outline-none"
 						class:bg-primary={preferences.debugMode}
-						class:bg-[var(--sl-border)]={!preferences.debugMode}
+						class:bg-[var(--sl-toggle-off)]={!preferences.debugMode}
 						onclick={() => (preferences.debugMode = !preferences.debugMode)}
 						role="switch"
 						aria-checked={preferences.debugMode}
@@ -212,7 +212,7 @@
 				<button
 					class="relative inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[var(--sl-bg-page)] focus:outline-none"
 					class:bg-primary={preferences.showDeviceOnlineHelp}
-					class:bg-[var(--sl-border)]={!preferences.showDeviceOnlineHelp}
+					class:bg-[var(--sl-toggle-off)]={!preferences.showDeviceOnlineHelp}
 					onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}
 					role="switch"
 					aria-checked={preferences.showDeviceOnlineHelp}

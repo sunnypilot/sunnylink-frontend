@@ -187,7 +187,8 @@
 						<div
 							class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition-colors duration-200"
 							class:bg-primary={isOn}
-							class:bg-[var(--sl-border)]={!isOn}
+							class:bg-[var(--sl-toggle-off)]={!isOn && enabled}
+							class:bg-[var(--sl-toggle-off-disabled)]={!isOn && !enabled}
 						>
 							<span
 								class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform duration-200"
@@ -329,12 +330,20 @@
 					{#if isLoading}
 						<div class="h-8 w-full animate-pulse rounded-lg bg-[var(--sl-bg-elevated)]"></div>
 					{:else if item.options}
-						<div class="flex gap-1 rounded-lg bg-[var(--sl-bg-input)] p-1">
-							{#each item.options as option}
-								{@const isSelected = String(displayValue) === String(option.value)}
+						{@const selectedIdx = item.options.findIndex((o) => String(displayValue) === String(o.value))}
+						{@const optCount = item.options.length}
+						<div class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1">
+							<!-- Sliding highlight pill -->
+							{#if selectedIdx >= 0}
+								<div
+									class="absolute top-1 bottom-1 rounded-md bg-primary shadow-sm transition-transform duration-350 ease-out"
+									style="width: calc((100% - 0.5rem) / {optCount}); transform: translateX(calc({selectedIdx} * 100%));"
+								></div>
+							{/if}
+							{#each item.options as option, oi}
+								{@const isSelected = oi === selectedIdx}
 								<button
-									class="flex-1 rounded-md px-2.5 py-2 text-xs font-medium transition-all duration-150"
-									class:bg-primary={isSelected}
+									class="relative z-10 flex-1 rounded-md px-2.5 py-2 text-xs font-medium transition-colors duration-350"
 									class:text-white={isSelected}
 									class:text-[var(--sl-text-2)]={!isSelected}
 									class:hover:text-[var(--sl-text-1)]={!isSelected}

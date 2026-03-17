@@ -161,7 +161,8 @@
 				<div
 					class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition-colors duration-200"
 					class:bg-primary={displayValue === true}
-					class:bg-[var(--sl-border)]={displayValue !== true}
+					class:bg-[var(--sl-toggle-off)]={displayValue !== true && !setting.readonly}
+					class:bg-[var(--sl-toggle-off-disabled)]={displayValue !== true && setting.readonly}
 				>
 					<span
 						class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform duration-200"
