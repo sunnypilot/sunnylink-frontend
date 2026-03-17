@@ -22,37 +22,41 @@ export async function decodeCompressedJson<T>(base64String: string): Promise<T> 
 	writer.close().catch(() => {});
 
 	const reader = ds.readable.getReader();
-
-	const readWithTimeout = async (): Promise<T> => {
-		const chunks: Uint8Array[] = [];
-		let totalLength = 0;
-
-		while (true) {
-			const readPromise = reader.read();
-			const timeoutPromise = new Promise<never>((_, reject) =>
-				setTimeout(() => reject(new Error('Decompression timed out')), DECOMPRESS_TIMEOUT_MS)
-			);
-
-			const { done, value } = await Promise.race([readPromise, timeoutPromise]);
-			if (done) break;
-			chunks.push(value);
-			totalLength += value.length;
-		}
-
-		const result = new Uint8Array(totalLength);
-		let offset = 0;
-		for (const chunk of chunks) {
-			result.set(chunk, offset);
-			offset += chunk.length;
-		}
-
-		return JSON.parse(new TextDecoder().decode(result)) as T;
-	};
+	const chunks: Uint8Array[] = [];
+	let totalLength = 0;
 
 	try {
-		return await readWithTimeout();
+		while (true) {
+			let timeoutId: ReturnType<typeof setTimeout>;
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				timeoutId = setTimeout(
+					() => reject(new Error('Decompression timed out')),
+					DECOMPRESS_TIMEOUT_MS
+				);
+			});
+
+			try {
+				const { done, value } = await Promise.race([reader.read(), timeoutPromise]);
+				clearTimeout(timeoutId!);
+				if (done) break;
+				chunks.push(value);
+				totalLength += value.length;
+			} catch (e) {
+				clearTimeout(timeoutId!);
+				throw e;
+			}
+		}
 	} catch (e) {
 		reader.cancel().catch(() => {});
 		throw e;
 	}
+
+	const result = new Uint8Array(totalLength);
+	let offset = 0;
+	for (const chunk of chunks) {
+		result.set(chunk, offset);
+		offset += chunk.length;
+	}
+
+	return JSON.parse(new TextDecoder().decode(result)) as T;
 }
