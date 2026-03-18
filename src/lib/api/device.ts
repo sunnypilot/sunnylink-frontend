@@ -242,11 +242,20 @@ export async function getCarList(deviceId: string, token: string) {
 	return null;
 }
 
+export class DeviceRejectionError extends Error {
+	status: number;
+	constructor(message: string, status: number) {
+		super(message);
+		this.name = 'DeviceRejectionError';
+		this.status = status;
+	}
+}
+
 export async function setDeviceParams(
 	deviceId: string,
 	params: { key: string; value: any; is_compressed?: boolean }[],
 	token: string,
-	timeoutMs: number = 20000 // Default 20s
+	timeoutMs: number = 20000
 ) {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort('Timeout'), timeoutMs);
@@ -260,7 +269,16 @@ export async function setDeviceParams(
 			headers: { Authorization: `Bearer ${token}` },
 			signal: controller.signal
 		});
-		console.log('[setDeviceParams] Response:', res);
+
+		if (res.response && !res.response.ok) {
+			const status = res.response.status;
+			const detail = (res.error as any)?.detail || res.response.statusText || 'Unknown error';
+			if (status >= 400 && status < 500) {
+				throw new DeviceRejectionError(detail, status);
+			}
+			throw new Error(`Server error (${status}): ${detail}`);
+		}
+
 		return res;
 	} finally {
 		clearTimeout(timeoutId);

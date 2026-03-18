@@ -10,6 +10,7 @@
 		deviceId: string;
 		panel: Panel;
 		loadingValues?: boolean;
+		readonly?: boolean;
 		onSubPanelOpen?: (subPanel: SubPanel) => void;
 	}
 
@@ -17,6 +18,7 @@
 		deviceId,
 		panel,
 		loadingValues = false,
+		readonly = false,
 		onSubPanelOpen
 	}: Props = $props();
 
@@ -94,6 +96,7 @@
 						{deviceId}
 						{item}
 						{loadingValues}
+						{readonly}
 						isLast={i === group.items.length - 1}
 					/>
 				{/each}

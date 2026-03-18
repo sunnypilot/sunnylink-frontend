@@ -3,7 +3,9 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { isVisible, isEnabled, requiresOffroad, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
-	import { setDeviceParams } from '$lib/api/device';
+	import { setDeviceParams, DeviceRejectionError } from '$lib/api/device';
+	import { toastState } from '$lib/stores/toast.svelte';
+	import { updateCachedValue } from '$lib/stores/valuesCache';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
@@ -13,9 +15,10 @@
 		item: SchemaItem;
 		loadingValues?: boolean;
 		isLast?: boolean;
+		readonly?: boolean;
 	}
 
-	let { deviceId, item, loadingValues = false, isLast = false }: Props = $props();
+	let { deviceId, item, loadingValues = false, isLast = false, readonly = false }: Props = $props();
 
 	// ── Push state per item ─────────────────────────────────────────────────
 
@@ -40,7 +43,7 @@
 	let enablementDeps = $derived(collectParamDependencies(item.enablement));
 	// Disabled if a dependency is currently being pushed by another item
 	let blockedByPush = $derived(pushStateStore.isAnyPushing(deviceId, enablementDeps));
-	let enabled = $derived(enabledByRules && !blockedByPush);
+	let enabled = $derived(enabledByRules && !blockedByPush && !readonly);
 
 	let currentValue = $derived(deviceState.deviceValues[deviceId]?.[item.key]);
 	let displayValue: unknown = $derived(
@@ -69,6 +72,13 @@
 	async function pushValue(newValue: unknown) {
 		if (!logtoClient) return;
 
+		// Rule 1: Offline guard — block mutations when device is unavailable
+		const deviceStatus = deviceState.onlineStatuses[deviceId];
+		if (deviceStatus !== 'online') {
+			toastState.show('Device is offline. Changes cannot be saved.', 'warning');
+			return;
+		}
+
 		if (!deviceState.deviceValues[deviceId]) {
 			deviceState.deviceValues[deviceId] = {};
 		}
@@ -81,27 +91,55 @@
 
 		try {
 			const token = await logtoClient.getIdToken();
-			if (!token) throw new Error('No auth token');
+			if (!token) throw new Error('Session expired');
 
 			const paramType = inferParamType();
 			const encoded = encodeParamValue({ key: item.key, value: newValue, type: paramType });
 			if (encoded === null) throw new Error('Failed to encode value');
 
-			await setDeviceParams(deviceId, [{ key: item.key, value: encoded }], token, 10000);
+			// Rule 2: 5s timeout per edge case rules
+			await setDeviceParams(deviceId, [{ key: item.key, value: encoded }], token, 5000);
 
 			pushStateStore.endPush(deviceId, item.key);
 			pushState = 'success';
+
+			// Update localStorage cache with new value
+			const gitCommit = (deviceState.deviceValues[deviceId]?.['GitCommit'] as string) || '';
+			if (gitCommit) updateCachedValue(deviceId, gitCommit, item.key, newValue);
+
 			setTimeout(() => {
 				if (pushState === 'success') pushState = 'idle';
 			}, 1500);
 		} catch (e) {
+			// Rollback optimistic update
 			deviceState.deviceValues[deviceId][item.key] = previousValue;
 			pushStateStore.endPush(deviceId, item.key);
 			pushState = 'error';
-			pushError = (e as Error)?.message || 'Failed to save';
-			setTimeout(() => {
-				if (pushState === 'error') pushState = 'idle';
-			}, 3000);
+
+			// Rule 3: Contextual error handling
+			if (e instanceof DeviceRejectionError) {
+				pushError = e.message;
+				toastState.show(`Setting rejected: ${e.message}`, 'error');
+			} else if ((e as Error)?.name === 'AbortError' || (e as Error)?.message === 'Timeout') {
+				pushError = 'Device did not respond';
+				toastState.show('Timeout: Could not reach device. Please check connection.', 'warning', {
+					label: 'Retry',
+					onclick: () => pushValue(newValue)
+				});
+			} else if ((e as Error)?.message === 'Session expired') {
+				pushError = 'Session expired';
+				toastState.show('Session expired. Please sign in again.', 'error');
+			} else {
+				pushError = (e as Error)?.message || 'Failed to save';
+				toastState.show(`Failed to save: ${pushError}`, 'error');
+			}
+
+			// Don't auto-dismiss rejection errors — user should see them
+			if (!(e instanceof DeviceRejectionError)) {
+				setTimeout(() => {
+					if (pushState === 'error') pushState = 'idle';
+				}, 5000);
+			}
 		}
 	}
 
@@ -450,7 +488,7 @@
 	<!-- Recursive sub_items -->
 	{#if item.sub_items}
 		{#each item.sub_items as subItem, i (subItem.key)}
-			<svelte:self deviceId={deviceId} item={subItem} {loadingValues} isLast={i === item.sub_items.length - 1 && isLast} />
+			<svelte:self deviceId={deviceId} item={subItem} {loadingValues} {readonly} isLast={i === item.sub_items.length - 1 && isLast} />
 		{/each}
 	{/if}
 {/if}

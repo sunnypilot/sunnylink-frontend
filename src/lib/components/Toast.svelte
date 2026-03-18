@@ -1,44 +1,46 @@
 <script lang="ts">
 	import { toastState } from '$lib/stores/toast.svelte';
-	import { fade, fly } from 'svelte/transition';
-	import { Check, AlertTriangle, Info } from 'lucide-svelte';
+	import { fly } from 'svelte/transition';
+	import { Check, AlertTriangle, Info, WifiOff } from 'lucide-svelte';
+
+	const colorMap = {
+		success: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', text: '#34d399' },
+		error: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', text: '#f87171' },
+		warning: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', text: '#fbbf24' },
+		info: { bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.2)', text: '#60a5fa' }
+	};
+
+	let colors = $derived(colorMap[toastState.type] ?? colorMap.info);
 </script>
 
 {#if toastState.visible}
 	<div
 		role={toastState.type === 'error' ? 'alert' : 'status'}
-		class="fixed right-6 bottom-6 z-[100] flex items-center gap-3 rounded-xl border p-4 shadow-2xl backdrop-blur-md transition-all"
-		class:bg-emerald-500-10={toastState.type === 'success'}
-		class:border-emerald-500-20={toastState.type === 'success'}
-		class:text-emerald-400={toastState.type === 'success'}
-		class:bg-red-500-10={toastState.type === 'error'}
-		class:border-red-500-20={toastState.type === 'error'}
-		class:text-red-400={toastState.type === 'error'}
-		class:bg-blue-500-10={toastState.type === 'info'}
-		class:border-blue-500-20={toastState.type === 'info'}
-		class:text-blue-400={toastState.type === 'info'}
-		style="background-color: {toastState.type === 'success'
-			? 'rgba(16, 185, 129, 0.1)'
-			: toastState.type === 'error'
-				? 'rgba(239, 68, 68, 0.1)'
-				: 'rgba(59, 130, 246, 0.1)'}; border-color: {toastState.type === 'success'
-			? 'rgba(16, 185, 129, 0.2)'
-			: toastState.type === 'error'
-				? 'rgba(239, 68, 68, 0.2)'
-				: 'rgba(59, 130, 246, 0.2)'}; color: {toastState.type === 'success'
-			? '#34d399'
-			: toastState.type === 'error'
-				? '#f87171'
-				: '#60a5fa'}"
+		class="fixed right-4 bottom-4 z-[100] flex items-center gap-3 rounded-xl border p-4 shadow-2xl backdrop-blur-md sm:right-6 sm:bottom-6"
+		style="background-color: {colors.bg}; border-color: {colors.border}; color: {colors.text}"
 		transition:fly={{ y: 20, duration: 300 }}
 	>
 		{#if toastState.type === 'success'}
 			<Check size={20} />
 		{:else if toastState.type === 'error'}
 			<AlertTriangle size={20} />
+		{:else if toastState.type === 'warning'}
+			<WifiOff size={20} />
 		{:else}
 			<Info size={20} />
 		{/if}
-		<span class="font-medium">{toastState.message}</span>
+		<span class="max-w-xs text-sm font-medium">{toastState.message}</span>
+		{#if toastState.action}
+			<button
+				class="ml-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-white/10"
+				style="color: {colors.text}"
+				onclick={() => {
+					toastState.action?.onclick();
+					toastState.visible = false;
+				}}
+			>
+				{toastState.action.label}
+			</button>
+		{/if}
 	</div>
 {/if}
