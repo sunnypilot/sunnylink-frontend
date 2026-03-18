@@ -717,6 +717,19 @@
 							{/if}
 						</div>
 					{/if}
+					<!-- Inline "Pair New Device" card — contextual, end of list -->
+					<button
+						class="group flex w-full items-center gap-4 rounded-xl border border-dashed border-[var(--sl-border)] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[var(--sl-bg-surface)]/50"
+						onclick={() => deviceState.openPairingModal()}
+					>
+						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-[var(--sl-text-3)] text-[var(--sl-text-3)] transition-colors group-hover:border-primary group-hover:text-primary">
+							<Plus size={20} />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]">Pair New Device</p>
+							<p class="text-xs text-[var(--sl-text-3)]">Add a sunnypilot device to your account</p>
+						</div>
+					</button>
 				</div>
 
 				<!-- Unsaved Changes Bar -->
@@ -781,13 +794,6 @@
 		</div>
 	{/await}
 
-	<button
-		class="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[var(--sl-text-1)] shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 hover:shadow-primary/20 active:scale-95 sm:right-10 sm:bottom-10"
-		onclick={() => (deviceState.openPairingModal())}
-		title="Pair New Device"
-	>
-		<Plus size={28} />
-	</button>
 
 	<BackupProgressModal
 		onRetry={handleRetryFailedBackup}
