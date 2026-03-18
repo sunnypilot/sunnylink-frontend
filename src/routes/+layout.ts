@@ -1,5 +1,5 @@
 import { v1Client, v0Client } from '$lib/api/client';
-import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
+import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
@@ -43,11 +43,16 @@ export const load: LayoutLoad = async ({ url }) => {
 			// Fetch the list with retry
 			let devices = await fetchList(token);
 
-			// If 401, get a fresh token and retry
+			// If 401, refresh session (re-validates with server) and retry
 			if (devices.response.status === 401) {
-				token = await getIdToken();
-				if (token) {
-					devices = await fetchList(token);
+				const refreshed = await authState.refreshSession();
+				if (refreshed) {
+					token = await getIdToken();
+					if (token) {
+						devices = await fetchList(token);
+					} else {
+						return { devices: [], error: 'auth_expired' };
+					}
 				} else {
 					return { devices: [], error: 'auth_expired' };
 				}
@@ -72,12 +77,10 @@ export const load: LayoutLoad = async ({ url }) => {
 
 				let response = await fetchDetail(token || '');
 
-				// Retry detail fetch if 401
+				// Retry detail fetch if 401 — token was already refreshed by list fetch retry
 				if (response.response.status === 401) {
 					const freshToken = await getIdToken();
-					if (freshToken) {
-						response = await fetchDetail(freshToken);
-					}
+					if (freshToken) response = await fetchDetail(freshToken);
 				}
 
 				return response.data;

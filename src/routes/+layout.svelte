@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 
-	import { authState, logtoClient, getIdToken } from '$lib/logto/auth.svelte';
+	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
@@ -154,26 +154,22 @@
 		);
 	}
 
+	let authRetried = false;
 	$effect(() => {
 		data.streamed.deviceResult.then(async (result) => {
 			deviceFetchError = result.error;
 
-			// Auto re-authenticate when token is expired but session appears active
-			if (result.error === 'auth_expired' && authState.isAuthenticated && logtoClient) {
-				try {
-					// Try one more time — the SDK may have refreshed in the background
-					const retryToken = await getIdToken();
-					if (!retryToken) {
-						// Token truly expired — force re-auth
-						await logtoClient.signIn(`${window.location.origin}/auth/callback`);
-						return;
-					}
-					// Token refreshed — retry the device fetch
+			// One-time silent session refresh when token is stale
+			if (result.error === 'auth_expired' && authState.isAuthenticated && !authRetried) {
+				authRetried = true;
+				// Re-run full session check (equivalent to page refresh)
+				const refreshed = await authState.refreshSession();
+				if (refreshed) {
+					// Session restored — re-fetch devices with fresh token
 					invalidateAll();
 					return;
-				} catch {
-					// Sign-in redirect failed — fall through to show error
 				}
+				// Session truly expired — header shows "Session expired — Sign in"
 			}
 
 			if (result.devices.length > 0) {

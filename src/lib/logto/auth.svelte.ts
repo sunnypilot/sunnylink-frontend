@@ -12,7 +12,8 @@ export const logtoClient = browser ? new LogtoClient(config) : undefined;
 
 /**
  * Get the current ID token from the Logto client.
- * The SDK handles token refresh automatically when needed.
+ * NOTE: This returns the cached token — it does NOT auto-refresh.
+ * If the token is expired, use refreshSession() first.
  */
 export const getIdToken = async (): Promise<string | undefined> => {
 	if (!logtoClient) return undefined;
@@ -27,7 +28,7 @@ export const getIdToken = async (): Promise<string | undefined> => {
 
 /**
  * Get an access token from the Logto client.
- * The SDK handles caching and refresh automatically.
+ * The SDK handles caching and refresh automatically via refresh token.
  */
 export const getAccessToken = async (resource?: string): Promise<string | undefined> => {
 	if (!logtoClient) return undefined;
@@ -54,6 +55,11 @@ class AuthState {
 		}
 	}
 
+	/**
+	 * Initialize or re-initialize auth state.
+	 * This performs a full session check including server round-trip
+	 * via fetchUserInfo(), which can refresh the session.
+	 */
 	async init() {
 		if (!logtoClient) return;
 		this.loading = true;
@@ -70,6 +76,26 @@ class AuthState {
 			this.profile = undefined;
 		} finally {
 			this.loading = false;
+		}
+	}
+
+	/**
+	 * Re-validate the session when we suspect the token is stale.
+	 * This is equivalent to what a page refresh does — re-runs init()
+	 * which triggers a server round-trip to refresh the session.
+	 * Returns true if session was successfully refreshed.
+	 */
+	async refreshSession(): Promise<boolean> {
+		if (!logtoClient) return false;
+		try {
+			await this.init();
+			if (this.isAuthenticated) {
+				const token = await logtoClient.getIdToken();
+				return !!token;
+			}
+			return false;
+		} catch {
+			return false;
 		}
 	}
 }
