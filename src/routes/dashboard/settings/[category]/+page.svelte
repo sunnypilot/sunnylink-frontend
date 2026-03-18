@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
-	import { preferences } from '$lib/stores/preferences.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 	import {
@@ -12,7 +11,7 @@
 		type RenderableSetting
 	} from '$lib/types/settings';
 	import type { Panel, SubPanel } from '$lib/types/schema';
-	import { checkDeviceStatus, fetchSettingsAsync } from '$lib/api/device';
+	import { fetchSettingsAsync } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import { getAllSettings } from '$lib/utils/settings';
@@ -22,7 +21,6 @@
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
-	import DeviceOnlineModal from '$lib/components/DeviceOnlineModal.svelte';
 	import SettingCard from '$lib/components/SettingCard.svelte';
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
@@ -148,15 +146,6 @@
 	let jsonModalContent = $state('');
 	let jsonModalTitle = $state('');
 	let pushModalOpen = $state(false);
-	let deviceOnlineModalOpen = $state(false);
-
-	$effect(() => {
-		if (deviceId) {
-			if (preferences.showDeviceOnlineHelp) {
-				deviceOnlineModalOpen = true;
-			}
-		}
-	});
 
 	// Fetch values for schema-driven rendering
 	$effect(() => {
@@ -425,60 +414,6 @@
 				</div>
 			</div>
 		{/await}
-	{:else if deviceState.onlineStatuses[deviceId] === 'offline'}
-		{#await data.streamed.devices then devices}
-			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceId
-			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-red-500/10 p-4">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-12 w-12 text-red-500"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-						/>
-					</svg>
-				</div>
-				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">
-					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
-					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-[var(--sl-text-2)]"
-							>({selectedDevice?.device_id})</span
-						>
-					{/if}
-				</h3>
-				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
-					This device appears to be offline. Please check its connectivity and try again.
-				</p>
-				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
-					<button
-						class="btn btn-sm btn-primary"
-						onclick={async () => {
-							if (deviceId && logtoClient) {
-								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceId, token);
-								}
-							}
-						}}
-					>
-						Retry Connection
-					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
-						<DeviceSelector {devices} />
-					{/if}
-				</div>
-			</div>
-		{/await}
 	{:else if !settings && !useSchema}
 		<div class="flex justify-center p-12">
 			<span class="loading loading-lg loading-spinner text-primary"></span>
@@ -624,7 +559,6 @@
 		alias={currentDeviceAlias}
 	/>
 {/if}
-<DeviceOnlineModal bind:open={deviceOnlineModalOpen} />
 
 <!-- JSON Modal -->
 {#if jsonModalOpen}

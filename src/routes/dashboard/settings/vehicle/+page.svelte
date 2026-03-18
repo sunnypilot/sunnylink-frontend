@@ -6,16 +6,9 @@
 	import { decodeParamValue } from '$lib/utils/device';
 	import VehicleSelector from '$lib/components/vehicle/VehicleSelector.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
-	import { goto } from '$app/navigation';
 	import type { SchemaItem } from '$lib/types/schema';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
-
-	$effect(() => {
-		if (!deviceId) {
-			goto('/dashboard');
-		}
-	});
 
 	// Load schema if not already loaded
 	$effect(() => {

@@ -26,6 +26,8 @@
 		Smartphone
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
+	import { settingsGate } from '$lib/stores/settingsGate.svelte';
+	import DeviceGateOverlay from '$lib/components/DeviceGateOverlay.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
@@ -431,6 +433,18 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Settings device-connection gate — rendered OUTSIDE the drawer
+     so `fixed` positioning works against the true viewport. -->
+{#if settingsGate.active}
+	<DeviceGateOverlay
+		deviceName={settingsGate.deviceName}
+		deviceId={settingsGate.deviceId}
+		devices={settingsGate.devices}
+		retrying={settingsGate.retrying}
+		onRetry={settingsGate.onRetry ?? undefined}
+	/>
+{/if}
 
 <BackupStatusIndicator />
 
