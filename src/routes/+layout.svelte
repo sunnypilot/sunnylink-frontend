@@ -26,8 +26,6 @@
 		Smartphone
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import { settingsGate } from '$lib/stores/settingsGate.svelte';
-	import DeviceGateOverlay from '$lib/components/DeviceGateOverlay.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
@@ -141,6 +139,7 @@
 	// ── Device status ───────────────────────────────────────────────────────
 
 	let devices = $state<any[]>([]);
+	let deviceFetchError = $state<import('./+layout').DeviceFetchError>(null);
 
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
@@ -156,10 +155,11 @@
 	}
 
 	$effect(() => {
-		data.streamed.devices.then((d) => {
-			if (d && d.length > 0) {
-				devices = d;
-				checkAllDevicesStatus(d);
+		data.streamed.deviceResult.then((result) => {
+			deviceFetchError = result.error;
+			if (result.devices.length > 0) {
+				devices = result.devices;
+				checkAllDevicesStatus(result.devices);
 			}
 		});
 	});
@@ -248,18 +248,41 @@
 							{/if}
 						</div>
 
-						{#await data.streamed.devices}
+						{#await data.streamed.deviceResult}
 							<div
 								class="h-9 w-44 animate-pulse self-end rounded-lg bg-[var(--sl-bg-elevated)] lg:self-auto"
 							></div>
-						{:then devices}
-							{#if devices && devices.length > 0}
+						{:then result}
+							{#if result.error === 'auth_expired'}
+								<button
+									class="btn btn-ghost btn-sm self-end text-warning lg:self-auto"
+									onclick={async () => {
+										await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+									}}
+								>
+									Session expired — Sign in
+								</button>
+							{:else if result.error === 'api_error'}
+								<button
+									class="btn btn-ghost btn-sm self-end text-error lg:self-auto"
+									onclick={() => invalidateAll()}
+								>
+									Failed to load — Retry
+								</button>
+							{:else if result.devices && result.devices.length > 0}
 								<div class="flex min-w-0 flex-1 justify-end self-end lg:flex-none lg:self-auto">
-									<DeviceSelector {devices} />
+									<DeviceSelector devices={result.devices} />
 								</div>
 							{:else}
 								<span class="self-end text-sm text-[var(--sl-text-2)] lg:self-auto">No devices found</span>
 							{/if}
+						{:catch}
+							<button
+								class="btn btn-ghost btn-sm self-end text-error lg:self-auto"
+								onclick={() => invalidateAll()}
+							>
+								Failed to load — Retry
+							</button>
 						{/await}
 					</div>
 				</div>
@@ -433,18 +456,6 @@
 		</div>
 	{/if}
 </div>
-
-<!-- Settings device-connection gate — rendered OUTSIDE the drawer
-     so `fixed` positioning works against the true viewport. -->
-{#if settingsGate.active}
-	<DeviceGateOverlay
-		deviceName={settingsGate.deviceName}
-		deviceId={settingsGate.deviceId}
-		devices={settingsGate.devices}
-		retrying={settingsGate.retrying}
-		onRetry={settingsGate.onRetry ?? undefined}
-	/>
-{/if}
 
 <BackupStatusIndicator />
 

@@ -246,9 +246,9 @@
 	let devices = $state<any[]>([]);
 
 	$effect(() => {
-		if (data.streamed.devices) {
-			data.streamed.devices.then((d) => {
-				devices = d || [];
+		if (data.streamed.deviceResult) {
+			data.streamed.deviceResult.then((result: any) => {
+				devices = result.devices || [];
 			});
 		}
 	});
@@ -276,7 +276,7 @@
 {#if authState.loading}
 	<DashboardSkeleton />
 {:else}
-	{#await data.streamed.devices}
+	{#await data.streamed.deviceResult}
 		<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 	{:then _}
 		<div class="stagger-children space-y-4 pb-24 sm:space-y-6 lg:space-y-8">

@@ -30,9 +30,9 @@
 	let devices = $state<any[]>([]);
 
 	$effect(() => {
-		if (data.streamed.devices) {
-			data.streamed.devices.then((d) => {
-				devices = d || [];
+		if (data.streamed.deviceResult) {
+			data.streamed.deviceResult.then((result: any) => {
+				devices = result.devices || [];
 			});
 		}
 	});
@@ -385,7 +385,8 @@
 	</div>
 
 	{#if !deviceId}
-		{#await data.streamed.devices then devices}
+		{#await data.streamed.deviceResult then result}
+			{@const devs = result.devices ?? []}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<div class="mb-4 rounded-full bg-[var(--sl-border)] p-4">
 					<svg
@@ -408,8 +409,8 @@
 					Please select a device to configure its settings.
 				</p>
 				<div class="mt-6">
-					{#if devices}
-						<DeviceSelector {devices} />
+					{#if devs.length > 0}
+						<DeviceSelector devices={devs} />
 					{/if}
 				</div>
 			</div>

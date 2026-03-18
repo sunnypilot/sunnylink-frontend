@@ -756,7 +756,8 @@
 			<p class="mt-2 text-[var(--sl-text-2)]">Select a device to view available models.</p>
 		</div>
 	{:else if isOffline}
-		{#await data.streamed.devices then devices}
+		{#await data.streamed.deviceResult then result}
+			{@const devices = result.devices ?? []}
 			{@const selectedDevice = devices?.find(
 				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
@@ -821,7 +822,8 @@
 			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 		</div>
 	{:else if isError}
-		{#await data.streamed.devices then devices}
+		{#await data.streamed.deviceResult then result}
+			{@const devices = result.devices ?? []}
 			{@const selectedDevice = devices?.find(
 				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}

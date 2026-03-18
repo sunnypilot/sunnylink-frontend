@@ -3,23 +3,33 @@ import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
+export type DeviceFetchError = 'auth_expired' | 'api_error' | null;
+export type DeviceFetchResult = {
+	devices: DeviceAuthResponseModel[];
+	error: DeviceFetchError;
+};
+
 export const load: LayoutLoad = async ({ url }) => {
 	if (url.pathname === '/') {
 		return {
 			streamed: {
-				devices: Promise.resolve([])
+				deviceResult: Promise.resolve({ devices: [], error: null } as DeviceFetchResult)
 			}
 		};
 	}
 
-	// Define the heavy logic as a standalone async function
-	const fetchAllDeviceData = async () => {
-		if (url.pathname === '/') return [];
-		if (!logtoClient || !(await logtoClient.isAuthenticated())) return [];
+	const fetchAllDeviceData = async (): Promise<DeviceFetchResult> => {
+		if (url.pathname === '/') return { devices: [], error: null };
+
+		if (!logtoClient || !(await logtoClient.isAuthenticated())) {
+			return { devices: [], error: 'auth_expired' };
+		}
 
 		// Get the token - SDK handles refresh automatically
 		let token = await getIdToken();
-		if (!token) return [];
+		if (!token) {
+			return { devices: [], error: 'auth_expired' };
+		}
 
 		// Helper to fetch list
 		const fetchList = async (t: string) => {
@@ -29,52 +39,68 @@ export const load: LayoutLoad = async ({ url }) => {
 			});
 		};
 
-		// Fetch the list with retry
-		let devices = await fetchList(token);
+		try {
+			// Fetch the list with retry
+			let devices = await fetchList(token);
 
-		// If 401, get a fresh token and retry
-		if (devices.response.status === 401) {
-			token = await getIdToken();
-			if (token) {
-				devices = await fetchList(token);
-			}
-		}
-
-		const items = devices.data?.items ?? [];
-
-		// Parallelize the detail fetches
-		const detailPromises = items.map(async (device) => {
-			const fetchDetail = async (t: string) => {
-				return await v0Client.GET('/device/{deviceId}', {
-					params: { path: { deviceId: device.device_id ?? '' } },
-					headers: { Authorization: `Bearer ${t}` }
-				});
-			};
-
-			let response = await fetchDetail(token || '');
-
-			// Retry detail fetch if 401
-			if (response.response.status === 401) {
-				const freshToken = await getIdToken();
-				if (freshToken) {
-					response = await fetchDetail(freshToken);
+			// If 401, get a fresh token and retry
+			if (devices.response.status === 401) {
+				token = await getIdToken();
+				if (token) {
+					devices = await fetchList(token);
+				} else {
+					return { devices: [], error: 'auth_expired' };
 				}
 			}
 
-			return response.data;
-		});
+			// If still failing after retry, it's an auth or API error
+			if (!devices.response.ok) {
+				const isAuthError = devices.response.status === 401 || devices.response.status === 403;
+				return { devices: [], error: isAuthError ? 'auth_expired' : 'api_error' };
+			}
 
-		// Wait for all requests to finish in parallel
-		const allDetails = await Promise.all(detailPromises);
+			const items = devices.data?.items ?? [];
 
-		// Filter out any undefined results (failed requests)
-		return allDetails.filter((d): d is DeviceAuthResponseModel => !!d);
+			// Parallelize the detail fetches
+			const detailPromises = items.map(async (device) => {
+				const fetchDetail = async (t: string) => {
+					return await v0Client.GET('/device/{deviceId}', {
+						params: { path: { deviceId: device.device_id ?? '' } },
+						headers: { Authorization: `Bearer ${t}` }
+					});
+				};
+
+				let response = await fetchDetail(token || '');
+
+				// Retry detail fetch if 401
+				if (response.response.status === 401) {
+					const freshToken = await getIdToken();
+					if (freshToken) {
+						response = await fetchDetail(freshToken);
+					}
+				}
+
+				return response.data;
+			});
+
+			// Wait for all requests to finish in parallel
+			const allDetails = await Promise.all(detailPromises);
+
+			// Filter out any undefined results (failed requests)
+			return {
+				devices: allDetails.filter((d): d is DeviceAuthResponseModel => !!d),
+				error: null
+			};
+		} catch (e) {
+			console.error('Failed to fetch devices:', e);
+			return { devices: [], error: 'api_error' };
+		}
 	};
 
 	return {
 		// Return the Promise directly for streaming
 		streamed: {
-			devices: fetchAllDeviceData()
+			deviceResult: fetchAllDeviceData()
 		}
 	};
 };
