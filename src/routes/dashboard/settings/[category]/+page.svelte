@@ -141,7 +141,6 @@
 	// ── Value fetching ──────────────────────────────────────────────────────
 
 	let loadingValues = $state(false);
-	let loadingProgress = $state('');
 	let jsonModalOpen = $state(false);
 	let jsonModalContent = $state('');
 	let jsonModalTitle = $state('');
@@ -196,8 +195,12 @@
 
 	async function fetchSchemaValues() {
 		if (!deviceId || !logtoClient || !schemaPanel) return;
+		const did = deviceId; // capture for async closures
 
-		const keysToFetch = collectPanelKeys(schemaPanel);
+		// Skip keys we already have values for (delta fetch)
+		const allKeys = collectPanelKeys(schemaPanel);
+		const existing = deviceState.deviceValues[did] ?? {};
+		const keysToFetch = allKeys.filter((k) => existing[k] === undefined);
 		if (keysToFetch.length === 0) return;
 
 		loadingValues = true;
@@ -205,95 +208,86 @@
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
 
-			const chunks = chunkArray(keysToFetch, 10);
-			let fetchedCount = 0;
+			if (!deviceState.deviceValues[did]) {
+				deviceState.deviceValues[did] = {};
+			}
 
-			for (const chunk of chunks) {
-				try {
-					const response = await fetchSettingsAsync(deviceId, chunk, token);
-					if (response.items) {
-						if (!deviceState.deviceValues[deviceId]) {
-							deviceState.deviceValues[deviceId] = {};
-						}
-						for (const item of response.items) {
-							if (item.key && item.value !== undefined) {
-								deviceState.deviceValues[deviceId][item.key] = decodeParamValue({
-									key: item.key,
-									value: item.value,
-									type: item.type ?? 'String'
-								});
+			// Parallel chunk fetching — all chunks fire simultaneously
+			const chunks = chunkArray(keysToFetch, 10);
+			await Promise.all(
+				chunks.map(async (chunk) => {
+					try {
+						const response = await fetchSettingsAsync(did, chunk, token);
+						if (response.items) {
+							const vals = deviceState.deviceValues[did] ??= {};
+							for (const item of response.items) {
+								if (item.key && item.value !== undefined) {
+									vals[item.key] = decodeParamValue({
+										key: item.key,
+										value: item.value,
+										type: item.type ?? 'String'
+									});
+								}
 							}
 						}
+					} catch (e) {
+						console.error('Failed to fetch chunk:', e);
 					}
-				} catch (e) {
-					console.error('Failed to fetch chunk:', e);
-				} finally {
-					fetchedCount += chunk.length;
-					loadingProgress = `${Math.round((fetchedCount / keysToFetch.length) * 100)}%`;
-				}
-			}
+				})
+			);
 		} catch (e) {
 			console.error('Failed to fetch schema values:', e);
 		} finally {
 			loadingValues = false;
-			loadingProgress = '';
 		}
 	}
 
 	async function fetchCurrentValues() {
 		if (!deviceId || !logtoClient) return;
+		const did = deviceId; // capture for async closures
 
 		const keysToFetch = categorySettings.map((s) => s.key);
 		if (keysToFetch.length === 0) return;
 
 		loadingValues = true;
-		let fetchedCount = 0;
-		const totalCount = keysToFetch.length;
-		loadingProgress = `0/${totalCount}`;
 
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
 
+			if (!deviceState.deviceValues[did]) {
+				deviceState.deviceValues[did] = {};
+			}
+
+			// Parallel chunk fetching
 			const chunks = chunkArray(keysToFetch, 10);
-
-			for (const chunk of chunks) {
-				try {
-					const response = await fetchSettingsAsync(deviceId, chunk, token);
-
-					if (response.items) {
-						if (!deviceState.deviceValues[deviceId]) {
-							deviceState.deviceValues[deviceId] = {};
-						}
-
-						for (const item of response.items) {
-							if (item.key && item.value !== undefined) {
-								const def = categorySettings.find((s) => s.key === item.key);
-								const type = def?.value?.type ?? 'String';
-
-								const decoded = decodeParamValue({
-									key: item.key,
-									value: item.value,
-									type: type
-								});
-
-								deviceState.deviceValues[deviceId][item.key] = decoded;
+			await Promise.all(
+				chunks.map(async (chunk) => {
+					try {
+						const response = await fetchSettingsAsync(did, chunk, token);
+						if (response.items) {
+							const vals = deviceState.deviceValues[did] ??= {};
+							for (const item of response.items) {
+								if (item.key && item.value !== undefined) {
+									const def = categorySettings.find((s) => s.key === item.key);
+									const type = def?.value?.type ?? 'String';
+									vals[item.key] = decodeParamValue({
+										key: item.key,
+										value: item.value,
+										type
+									});
+								}
 							}
 						}
+					} catch (e) {
+						console.error('Failed to fetch chunk of values:', e);
 					}
-				} catch (e) {
-					console.error('Failed to fetch chunk of values:', e);
-				} finally {
-					fetchedCount += chunk.length;
-					const percentage = Math.round((fetchedCount / totalCount) * 100);
-					loadingProgress = `${percentage}% loaded (${fetchedCount}/${totalCount})`;
-				}
-			}
+				})
+			);
 		} catch (e) {
 			console.error('Failed to fetch current values:', e);
 		} finally {
 			loadingValues = false;
-			loadingProgress = '';
 		}
 	}
 
