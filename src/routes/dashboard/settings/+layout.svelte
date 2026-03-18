@@ -6,6 +6,7 @@
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { loadCachedValues, saveCachedValues } from '$lib/stores/valuesCache';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
+	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 
 	let { children, data } = $props();
 
@@ -144,6 +145,11 @@
 			</button>
 		</div>
 	</div>
+{/if}
+
+<!-- Sync status banner — pending/failed/drift indicators -->
+{#if deviceId}
+	<SyncStatusBanner {deviceId} />
 {/if}
 
 <!-- Always render children — never gate on device status.

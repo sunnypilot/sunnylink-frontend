@@ -6,6 +6,8 @@
 	import { setDeviceParams, DeviceRejectionError } from '$lib/api/device';
 	import { toastState } from '$lib/stores/toast.svelte';
 	import { updateCachedValue } from '$lib/stores/valuesCache';
+	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
@@ -54,6 +56,15 @@
 	let isFloat = $derived(item.step !== undefined && item.step < 1);
 	let isOn = $derived(displayValue === true || displayValue === 1 || displayValue === '1');
 
+	// Pending change state for this specific item
+	let pendingChange = $derived(pendingChanges.getForKey(deviceId, item.key));
+	let isQueued = $derived(pendingChange?.status === 'pending');
+	let isDeviceOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
+
+	// Drift state for this specific item
+	let driftEntry = $derived(driftStore.getForKey(deviceId, item.key));
+	let hasDrift = $derived(!!driftEntry);
+
 	// ── Immediate push ──────────────────────────────────────────────────────
 
 	function inferParamType(): string {
@@ -72,18 +83,23 @@
 	async function pushValue(newValue: unknown) {
 		if (!logtoClient) return;
 
-		// Rule 1: Offline guard — block mutations when device is unavailable
-		const deviceStatus = deviceState.onlineStatuses[deviceId];
-		if (deviceStatus !== 'online') {
-			toastState.show('Device is offline. Changes cannot be saved.', 'warning');
-			return;
-		}
-
 		if (!deviceState.deviceValues[deviceId]) {
 			deviceState.deviceValues[deviceId] = {};
 		}
 		const previousValue = deviceState.deviceValues[deviceId][item.key];
+
+		// Offline: queue the change instead of pushing immediately
+		if (!isDeviceOnline) {
+			deviceState.deviceValues[deviceId][item.key] = newValue;
+			pendingChanges.enqueue(deviceId, item.key, newValue, previousValue);
+			toastState.show('Change queued. Will sync when device reconnects.', 'info');
+			return;
+		}
+
+		// Online: immediate optimistic push
 		deviceState.deviceValues[deviceId][item.key] = newValue;
+		pendingChanges.enqueue(deviceId, item.key, newValue, previousValue);
+		pendingChanges.markPushing(deviceId, item.key);
 
 		pushState = 'pushing';
 		pushError = '';
@@ -101,6 +117,7 @@
 			await setDeviceParams(deviceId, [{ key: item.key, value: encoded }], token, 5000);
 
 			pushStateStore.endPush(deviceId, item.key);
+			pendingChanges.markConfirmed(deviceId, item.key);
 			pushState = 'success';
 
 			// Update localStorage cache with new value
@@ -109,11 +126,12 @@
 
 			setTimeout(() => {
 				if (pushState === 'success') pushState = 'idle';
-			}, 1500);
+			}, 3000); // extended from 1.5s for clarity
 		} catch (e) {
 			// Rollback optimistic update
 			deviceState.deviceValues[deviceId][item.key] = previousValue;
 			pushStateStore.endPush(deviceId, item.key);
+			pendingChanges.markFailed(deviceId, item.key, (e as Error)?.message || 'Failed');
 			pushState = 'error';
 
 			// Rule 3: Contextual error handling
@@ -147,13 +165,17 @@
 		pushValue(newValue);
 	}
 
-	// Row-level left accent for push feedback
+	// Row-level left accent for push/queue/drift feedback
 	let accentClass = $derived(
 		pushState === 'success'
 			? 'border-l-2 border-l-emerald-500'
 			: pushState === 'error'
 				? 'border-l-2 border-l-red-500'
-				: 'border-l-2 border-l-transparent'
+				: isQueued
+					? 'border-l-2 border-l-amber-500'
+					: hasDrift
+						? 'border-l-2 border-l-cyan-500'
+						: 'border-l-2 border-l-transparent'
 	);
 
 	// Divider: show unless this is the last item
@@ -250,12 +272,16 @@
 				<div class="mr-4 min-w-0 flex-1">
 					<div class="flex items-center gap-2">
 						<span class="text-sm font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
-						{#if isPushing}
+						{#if isQueued}
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Queued</span>
+						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
 							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500 transition-opacity"><path d="M20 6 9 17l-5-5" /></svg>
+						{:else if hasDrift}
+							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
 							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
@@ -302,6 +328,8 @@
 						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+					{:else if hasDrift}
+						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
 						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
@@ -404,6 +432,8 @@
 						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+					{:else if hasDrift}
+						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
 						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">

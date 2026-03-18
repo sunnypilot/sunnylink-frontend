@@ -16,6 +16,10 @@
 	import { decodeParamValue } from '$lib/utils/device';
 	import { getAllSettings } from '$lib/utils/settings';
 	import { searchSettings } from '$lib/utils/search';
+	import { loadCachedValues } from '$lib/stores/valuesCache';
+	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
+	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 
 	import { fly, fade } from 'svelte/transition';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
@@ -203,6 +207,10 @@
 		const keysToFetch = allKeys.filter((k) => existing[k] === undefined);
 		if (keysToFetch.length === 0) return;
 
+		// Snapshot cached values before fetch for drift detection
+		const gitCommit = (existing['GitCommit'] as string) || '';
+		const cachedSnapshot = gitCommit ? loadCachedValues(did, gitCommit) : null;
+
 		loadingValues = true;
 		try {
 			const token = await logtoClient.getIdToken();
@@ -214,6 +222,7 @@
 
 			// Parallel chunk fetching — all chunks fire simultaneously
 			const chunks = chunkArray(keysToFetch, 10);
+			const freshValues: Record<string, unknown> = {};
 			await Promise.all(
 				chunks.map(async (chunk) => {
 					try {
@@ -222,11 +231,13 @@
 							const vals = deviceState.deviceValues[did] ??= {};
 							for (const item of response.items) {
 								if (item.key && item.value !== undefined) {
-									vals[item.key] = decodeParamValue({
+									const decoded = decodeParamValue({
 										key: item.key,
 										value: item.value,
 										type: item.type ?? 'String'
 									});
+									vals[item.key] = decoded;
+									freshValues[item.key] = decoded;
 								}
 							}
 						}
@@ -235,6 +246,16 @@
 					}
 				})
 			);
+
+			// Drift detection: compare cached snapshot → fresh values
+			if (cachedSnapshot && Object.keys(freshValues).length > 0) {
+				const allDrifts = detectDrift(cachedSnapshot, freshValues);
+				const pending = pendingChanges.getAll(did);
+				const meaningful = filterMeaningfulDrift(allDrifts, pending);
+				if (meaningful.length > 0) {
+					driftStore.setDrifts(did, meaningful);
+				}
+			}
 		} catch (e) {
 			console.error('Failed to fetch schema values:', e);
 		} finally {

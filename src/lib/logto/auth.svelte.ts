@@ -10,6 +10,14 @@ const config = {
 
 export const logtoClient = browser ? new LogtoClient(config) : undefined;
 
+/** Race a promise against a timeout. Returns undefined on timeout. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+	return Promise.race([
+		promise,
+		new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), ms))
+	]);
+}
+
 /**
  * Get the current ID token from the Logto client.
  * NOTE: This returns the cached token — it does NOT auto-refresh.
@@ -57,8 +65,7 @@ class AuthState {
 
 	/**
 	 * Initialize or re-initialize auth state.
-	 * This performs a full session check including server round-trip
-	 * via fetchUserInfo(), which can refresh the session.
+	 * fetchUserInfo() is bounded by a 5s timeout to prevent navigation hangs.
 	 */
 	async init() {
 		if (!logtoClient) return;
@@ -68,7 +75,12 @@ class AuthState {
 			this.isAuthenticated = await logtoClient.isAuthenticated();
 
 			if (this.isAuthenticated) {
-				this.profile = await logtoClient.fetchUserInfo();
+				// 5s timeout — fetchUserInfo can hang on stale sessions
+				const profile = await withTimeout(logtoClient.fetchUserInfo(), 5000);
+				if (profile) {
+					this.profile = profile;
+				}
+				// If timeout, keep isAuthenticated true but profile may be stale
 			}
 		} catch (e) {
 			console.error('Auth init error:', e);
@@ -81,19 +93,24 @@ class AuthState {
 
 	/**
 	 * Re-validate the session when we suspect the token is stale.
-	 * This is equivalent to what a page refresh does — re-runs init()
-	 * which triggers a server round-trip to refresh the session.
+	 * Bounded by a 7s timeout to never block navigation indefinitely.
 	 * Returns true if session was successfully refreshed.
 	 */
 	async refreshSession(): Promise<boolean> {
 		if (!logtoClient) return false;
 		try {
-			await this.init();
-			if (this.isAuthenticated) {
-				const token = await logtoClient.getIdToken();
-				return !!token;
-			}
-			return false;
+			const result = await withTimeout(
+				(async () => {
+					await this.init();
+					if (this.isAuthenticated) {
+						const token = await logtoClient!.getIdToken();
+						return !!token;
+					}
+					return false;
+				})(),
+				7000
+			);
+			return result ?? false;
 		} catch {
 			return false;
 		}
