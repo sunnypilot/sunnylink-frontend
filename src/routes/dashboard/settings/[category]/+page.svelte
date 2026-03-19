@@ -264,6 +264,21 @@
 
 			if (signal?.aborted) return;
 
+			// Fill defaults for keys the device didn't return a value for.
+			// This prevents toggles from staying in a "loading" shimmer state
+			// when the param simply doesn't exist on the device yet.
+			if (schemaPanel) {
+				const vals = deviceState.deviceValues[did] ??= {};
+				for (const item of [...schemaPanel.items, ...(schemaPanel.sub_panels ?? []).flatMap(sp => sp.items)]) {
+					if (vals[item.key] === undefined) {
+						// Use widget-appropriate defaults
+						if (item.widget === 'toggle') vals[item.key] = false;
+						else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+						else vals[item.key] = '';
+					}
+				}
+			}
+
 			// Drift detection: compare cached snapshot → fresh values
 			if (cachedSnapshot && Object.keys(freshValues).length > 0) {
 				const allDrifts = detectDrift(cachedSnapshot, freshValues);

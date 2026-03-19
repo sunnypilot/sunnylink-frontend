@@ -144,6 +144,19 @@
 					})
 				);
 
+				// Fill defaults for keys the device didn't return
+				const vals = deviceState.deviceValues[deviceId!] ??= {};
+				for (const panel of schema.panels) {
+					const items = [...panel.items, ...(panel.sub_panels ?? []).flatMap((sp: any) => sp.items)];
+					for (const item of items) {
+						if (vals[item.key] === undefined) {
+							if (item.widget === 'toggle') vals[item.key] = false;
+							else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+							else vals[item.key] = '';
+						}
+					}
+				}
+
 				prefetchDone[deviceId!] = true;
 			} catch {}
 		})();
