@@ -45,7 +45,7 @@
 							<div>
 								<h4 class="mb-1 font-medium text-[var(--sl-text-1)]">Privacy First</h4>
 								<p class="text-sm text-[var(--sl-text-2)]">
-									We do <strong>not</strong> store your data on our servers. We require a direct connection
+									We do <strong>not</strong> store your device settings on our servers. We require a direct connection
 									to your device to fetch its current configuration.
 								</p>
 							</div>

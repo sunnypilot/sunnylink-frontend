@@ -93,7 +93,7 @@
 				<div class="flex gap-2.5">
 					<Shield class="mt-0.5 shrink-0 text-primary" size={16} />
 					<p class="text-[0.8125rem] text-[var(--sl-text-2)]">
-						We do <strong class="text-[var(--sl-text-1)]">not</strong> store your data on our servers. A direct device connection is required.
+						We do <strong class="text-[var(--sl-text-1)]">not</strong> store your device settings on our servers. A direct device connection is required.
 					</p>
 				</div>
 				<div class="flex gap-2.5">
