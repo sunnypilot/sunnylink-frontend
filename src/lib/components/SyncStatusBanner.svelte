@@ -2,8 +2,8 @@
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { Upload, AlertTriangle, RefreshCw, GitCompareArrows } from 'lucide-svelte';
-	import { slide } from 'svelte/transition';
+	import { Upload, AlertTriangle, GitCompareArrows } from 'lucide-svelte';
+	import { fly, fade } from 'svelte/transition';
 
 	interface Props {
 		deviceId: string;
@@ -19,7 +19,6 @@
 	let driftCount = $derived(driftStore.count(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 
-	// Show banner if there are any actionable states
 	let showBanner = $derived(pendingCount > 0 || failedCount > 0 || isFlushing || driftCount > 0);
 
 	function handleDismissFailed() {
@@ -32,86 +31,78 @@
 	function handleDismissDrift() {
 		driftStore.dismissAll(deviceId);
 	}
+
+	// Build a summary string for the floating pill
+	let summaryText = $derived.by(() => {
+		const parts: string[] = [];
+		if (isFlushing) parts.push(`Syncing ${pendingCount}`);
+		else if (pendingCount > 0) parts.push(`${pendingCount} queued`);
+		if (failedCount > 0) parts.push(`${failedCount} failed`);
+		if (driftCount > 0) parts.push(`${driftCount} drifted`);
+		return parts.join(' · ');
+	});
+
+	let pillColor = $derived(
+		failedCount > 0 ? 'border-red-500/30' :
+		isFlushing ? 'border-primary/30' :
+		driftCount > 0 ? 'border-cyan-500/30' :
+		'border-amber-500/30'
+	);
+
+	let dotColor = $derived(
+		failedCount > 0 ? 'bg-red-500' :
+		isFlushing ? 'bg-primary animate-pulse' :
+		driftCount > 0 ? 'bg-cyan-500' :
+		'bg-amber-500'
+	);
 </script>
 
+<!-- Floating status pill — fixed position, never pushes content.
+     Follows Figma/Google Docs/Linear pattern: ambient, non-disruptive. -->
 {#if showBanner}
-	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-2" transition:slide={{ duration: 200 }}>
-		<!-- Flushing: syncing in progress -->
-		{#if isFlushing}
-			<div class="flex items-center gap-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-2.5">
-				<span class="loading loading-spinner loading-xs text-blue-400"></span>
-				<p class="flex-1 text-sm text-blue-200/80">
-					<span class="font-medium">Syncing</span> — Pushing {pendingCount} queued {pendingCount === 1 ? 'change' : 'changes'} to device...
-				</p>
-			</div>
-		{/if}
+	<div
+		class="fixed bottom-4 left-1/2 z-40 -translate-x-1/2"
+		in:fly={{ y: 20, duration: 200 }}
+		out:fade={{ duration: 150 }}
+	>
+		<div class="flex items-center gap-2.5 rounded-full border {pillColor} bg-[var(--sl-bg-elevated)] px-4 py-2 shadow-lg backdrop-blur-md">
+			<span class="block h-2 w-2 shrink-0 rounded-full {dotColor}"></span>
+			<span class="whitespace-nowrap text-xs font-medium text-[var(--sl-text-2)]">{summaryText}</span>
 
-		<!-- Pending: queued changes waiting for device -->
-		{#if pendingCount > 0 && !isFlushing}
-			<div class="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2.5">
-				<Upload size={16} class="shrink-0 text-amber-400" />
-				<p class="flex-1 text-sm text-amber-200/80">
-					<span class="font-medium">{pendingCount} {pendingCount === 1 ? 'change' : 'changes'} queued</span>
-					{#if isOnline}
-						— Ready to sync
-					{:else}
-						— Will sync when device reconnects
-					{/if}
-				</p>
-			</div>
-		{/if}
+			{#if failedCount > 0 && onRetryFailed}
+				<button
+					class="ml-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+					onclick={onRetryFailed}
+				>
+					Retry
+				</button>
+			{/if}
 
-		<!-- Failed: changes that couldn't be pushed -->
-		{#if failedCount > 0}
-			<div class="flex items-center gap-2.5 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2.5">
-				<AlertTriangle size={16} class="shrink-0 text-red-400" />
-				<p class="flex-1 text-sm text-red-200/80">
-					<span class="font-medium">{failedCount} {failedCount === 1 ? 'change' : 'changes'} failed</span>
-				</p>
-				<div class="flex gap-1.5">
-					{#if onRetryFailed}
-						<button
-							class="btn btn-ghost btn-xs text-red-400"
-							onclick={onRetryFailed}
-						>
-							<RefreshCw size={12} />
-							Retry
-						</button>
-					{/if}
+			{#if failedCount > 0}
+				<button
+					class="text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					onclick={handleDismissFailed}
+				>
+					Dismiss
+				</button>
+			{/if}
+
+			{#if driftCount > 0}
+				{#if onReviewDrift}
 					<button
-						class="btn btn-ghost btn-xs text-red-400/60"
-						onclick={handleDismissFailed}
+						class="ml-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+						onclick={onReviewDrift}
 					>
-						Dismiss
+						Review
 					</button>
-				</div>
-			</div>
-		{/if}
-
-		<!-- Drift: device-side changes detected -->
-		{#if driftCount > 0}
-			<div class="flex items-center gap-2.5 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-4 py-2.5">
-				<GitCompareArrows size={16} class="shrink-0 text-cyan-400" />
-				<p class="flex-1 text-sm text-cyan-200/80">
-					<span class="font-medium">{driftCount} {driftCount === 1 ? 'setting was' : 'settings were'} changed on-device</span>
-				</p>
-				<div class="flex gap-1.5">
-					{#if onReviewDrift}
-						<button
-							class="btn btn-ghost btn-xs text-cyan-400"
-							onclick={onReviewDrift}
-						>
-							Review
-						</button>
-					{/if}
-					<button
-						class="btn btn-ghost btn-xs text-cyan-400/60"
-						onclick={handleDismissDrift}
-					>
-						Dismiss
-					</button>
-				</div>
-			</div>
-		{/if}
+				{/if}
+				<button
+					class="text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					onclick={handleDismissDrift}
+				>
+					Dismiss
+				</button>
+			{/if}
+		</div>
 	</div>
 {/if}

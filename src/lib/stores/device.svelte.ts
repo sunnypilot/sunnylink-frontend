@@ -10,6 +10,7 @@ export const deviceState = $state({
 	deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
 	deviceValues: {} as Record<string, Record<string, unknown>>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
+	lastStatusCheck: {} as Record<string, number>,
 	lastErrorMessages: {} as Record<string, string>,
 	offroadStatuses: {} as Record<string, { isOffroad: boolean; forceOffroad: boolean }>,
 	aliases: {} as Record<string, string>,
@@ -384,6 +385,16 @@ export const deviceState = $state({
 
 	openBackupModal() {
 		this.backupState.isOpen = true;
+	},
+
+	// Status cache: skip redundant checkDeviceStatus calls within TTL
+	isStatusFresh(deviceId: string, ttlMs: number = 60_000): boolean {
+		const last = this.lastStatusCheck[deviceId];
+		return !!last && Date.now() - last < ttlMs;
+	},
+
+	markStatusChecked(deviceId: string) {
+		this.lastStatusCheck[deviceId] = Date.now();
 	},
 
 	// Helper to sort a list of devices

@@ -4,7 +4,10 @@ export const deviceSelectorState = {
 	get isOpen() {
 		return deviceSelectorOpen;
 	},
-	set open(value: boolean) {
+	set isOpen(value: boolean) {
 		deviceSelectorOpen = value;
+	},
+	toggle() {
+		deviceSelectorOpen = !deviceSelectorOpen;
 	}
 };

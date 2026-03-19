@@ -4,7 +4,7 @@
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import { loadCachedValues, saveCachedValues } from '$lib/stores/valuesCache';
+	import { loadCachedValues, saveCachedValues, getLastKnownCommit, setLastKnownCommit } from '$lib/stores/valuesCache';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 
@@ -20,13 +20,18 @@
 	let isLoading = $derived(deviceStatus === 'loading' || deviceStatus === undefined);
 	let isError = $derived(deviceStatus === 'error');
 
-	// Load cached values into device state on mount
+	// Load cached values into device state on mount.
+	// Uses getLastKnownCommit() to break the chicken-and-egg:
+	// previously, we needed schema or deviceValues to get gitCommit,
+	// but those aren't available on first render.
 	$effect(() => {
 		if (!deviceId) return;
-		const gitCommit = schemaState.schemas[deviceId]?.schema_version;
-		// Try to use GitCommit from any existing device values
-		const storedCommit = deviceState.deviceValues[deviceId]?.['GitCommit'] as string | undefined;
-		const commit = storedCommit || gitCommit;
+
+		// Try all sources for gitCommit, with lastKnownCommit as fallback
+		const schemaCommit = schemaState.schemas[deviceId]?.schema_version;
+		const valuesCommit = deviceState.deviceValues[deviceId]?.['GitCommit'] as string | undefined;
+		const lastKnown = getLastKnownCommit(deviceId);
+		const commit = valuesCommit || schemaCommit || lastKnown;
 		if (!commit) return;
 
 		const cached = loadCachedValues(deviceId, commit);
@@ -35,7 +40,8 @@
 		}
 	});
 
-	// Save values to cache whenever they change and device is online
+	// Save values to cache whenever they change and device is online.
+	// Also persists gitCommit separately for next-session cache hydration.
 	$effect(() => {
 		if (!deviceId || !isOnline) return;
 		const values = deviceState.deviceValues[deviceId];
@@ -43,6 +49,7 @@
 		const gitCommit = (values['GitCommit'] as string) || '';
 		if (gitCommit) {
 			saveCachedValues(deviceId, gitCommit, values);
+			setLastKnownCommit(deviceId, gitCommit);
 		}
 	});
 

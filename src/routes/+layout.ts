@@ -9,7 +9,11 @@ export type DeviceFetchResult = {
 	error: DeviceFetchError;
 };
 
-export const load: LayoutLoad = async ({ url }) => {
+export const load: LayoutLoad = async ({ url, depends }) => {
+	// Only re-run this load when explicitly invalidated via invalidate('app:devices').
+	// Without this, SvelteKit re-runs on EVERY route change, causing redundant
+	// device list + status fetches on each category navigation.
+	depends('app:devices');
 	if (url.pathname === '/') {
 		return {
 			streamed: {

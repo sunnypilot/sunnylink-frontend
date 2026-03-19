@@ -2,7 +2,7 @@
 	import { scale } from 'svelte/transition';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
-	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronUp } from 'lucide-svelte';
+	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
 
 	let open = $state(false);
 
@@ -57,30 +57,30 @@
 		aria-expanded={open}
 		aria-haspopup="true"
 	>
-		<span class="placeholder avatar">
-			<span
-				class="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
-			>
-				{#if authState.profile?.picture}
-					<img
-						src={authState.profile.picture}
-						alt={authState.profile?.name || ''}
-						class="h-7 w-7 rounded-full"
-					/>
-				{:else}
-					<span class="text-[0.6rem] font-medium">{initials}</span>
-				{/if}
-			</span>
+		<span
+			class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
+		>
+			{#if authState.profile?.picture}
+				<img
+					src={authState.profile.picture}
+					alt={authState.profile?.name || ''}
+					class="h-8 w-8 rounded-lg object-cover"
+				/>
+			{:else}
+				<span class="text-[0.65rem] font-semibold">{initials}</span>
+			{/if}
 		</span>
-		<span class="flex flex-1 flex-col overflow-hidden">
-			<span class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+		<span class="flex min-w-0 flex-1 flex-col overflow-hidden">
+			<span class="truncate text-[0.8125rem] font-semibold text-[var(--sl-text-1)]">
 				{authState.profile?.name}
 			</span>
-			<span class="text-[0.6rem] tracking-[0.2em] text-[var(--sl-text-3)] uppercase">Account</span>
+			{#if authState.profile?.email}
+				<span class="truncate text-[0.6875rem] text-[var(--sl-text-3)]">{authState.profile.email}</span>
+			{/if}
 		</span>
-		<ChevronUp
+		<ChevronsUpDown
 			size={14}
-			class="text-[var(--sl-text-3)] transition-transform duration-150 {open ? '' : 'rotate-180'}"
+			class="shrink-0 text-[var(--sl-text-3)]"
 		/>
 	</button>
 

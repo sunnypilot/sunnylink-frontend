@@ -50,6 +50,8 @@
 	// ── Schema-driven rendering ─────────────────────────────────────────────
 
 	let useSchema = $derived(deviceId ? schemaState.hasSchema(deviceId) : false);
+	// True while schema is being fetched — show skeleton instead of legacy flash
+	let schemaLoading = $derived(deviceId ? !!schemaState.loading[deviceId] : false);
 
 	// Find the matching schema panel for this category
 	let schemaPanel: Panel | undefined = $derived.by(() => {
@@ -150,17 +152,21 @@
 	let jsonModalTitle = $state('');
 	let pushModalOpen = $state(false);
 
-	// Fetch values for schema-driven rendering
+	// Fetch values for schema-driven rendering (cancels on nav away)
 	$effect(() => {
 		if (deviceId && logtoClient && useSchema && schemaPanel) {
-			fetchSchemaValues();
+			const controller = new AbortController();
+			fetchSchemaValues(controller.signal);
+			return () => controller.abort();
 		}
 	});
 
-	// Fetch values for legacy rendering
+	// Fetch values for legacy rendering (cancels on nav away)
 	$effect(() => {
 		if (deviceId && logtoClient && !useSchema && categorySettings.length > 0) {
-			fetchCurrentValues();
+			const controller = new AbortController();
+			fetchCurrentValues(controller.signal);
+			return () => controller.abort();
 		}
 	});
 
@@ -197,7 +203,7 @@
 		return keys;
 	}
 
-	async function fetchSchemaValues() {
+	async function fetchSchemaValues(signal?: AbortSignal) {
 		if (!deviceId || !logtoClient || !schemaPanel) return;
 		const did = deviceId; // capture for async closures
 
@@ -214,7 +220,7 @@
 		loadingValues = true;
 		try {
 			const token = await logtoClient.getIdToken();
-			if (!token) return;
+			if (!token || signal?.aborted) return;
 
 			if (!deviceState.deviceValues[did]) {
 				deviceState.deviceValues[did] = {};
@@ -225,8 +231,10 @@
 			const freshValues: Record<string, unknown> = {};
 			await Promise.all(
 				chunks.map(async (chunk) => {
+					if (signal?.aborted) return;
 					try {
-						const response = await fetchSettingsAsync(did, chunk, token);
+						const response = await fetchSettingsAsync(did, chunk, token, { signal });
+						if (signal?.aborted) return;
 						if (response.items) {
 							const vals = deviceState.deviceValues[did] ??= {};
 							for (const item of response.items) {
@@ -242,10 +250,13 @@
 							}
 						}
 					} catch (e) {
+						if ((e as any)?.name === 'AbortError') return;
 						console.error('Failed to fetch chunk:', e);
 					}
 				})
 			);
+
+			if (signal?.aborted) return;
 
 			// Drift detection: compare cached snapshot → fresh values
 			if (cachedSnapshot && Object.keys(freshValues).length > 0) {
@@ -257,13 +268,14 @@
 				}
 			}
 		} catch (e) {
+			if ((e as any)?.name === 'AbortError') return;
 			console.error('Failed to fetch schema values:', e);
 		} finally {
-			loadingValues = false;
+			if (!signal?.aborted) loadingValues = false;
 		}
 	}
 
-	async function fetchCurrentValues() {
+	async function fetchCurrentValues(signal?: AbortSignal) {
 		if (!deviceId || !logtoClient) return;
 		const did = deviceId; // capture for async closures
 
@@ -274,7 +286,7 @@
 
 		try {
 			const token = await logtoClient.getIdToken();
-			if (!token) return;
+			if (!token || signal?.aborted) return;
 
 			if (!deviceState.deviceValues[did]) {
 				deviceState.deviceValues[did] = {};
@@ -284,8 +296,10 @@
 			const chunks = chunkArray(keysToFetch, 10);
 			await Promise.all(
 				chunks.map(async (chunk) => {
+					if (signal?.aborted) return;
 					try {
-						const response = await fetchSettingsAsync(did, chunk, token);
+						const response = await fetchSettingsAsync(did, chunk, token, { signal });
+						if (signal?.aborted) return;
 						if (response.items) {
 							const vals = deviceState.deviceValues[did] ??= {};
 							for (const item of response.items) {
@@ -301,14 +315,16 @@
 							}
 						}
 					} catch (e) {
+						if ((e as any)?.name === 'AbortError') return;
 						console.error('Failed to fetch chunk of values:', e);
 					}
 				})
 			);
 		} catch (e) {
+			if ((e as any)?.name === 'AbortError') return;
 			console.error('Failed to fetch current values:', e);
 		} finally {
-			loadingValues = false;
+			if (!signal?.aborted) loadingValues = false;
 		}
 	}
 
@@ -430,7 +446,8 @@
 				</div>
 			</div>
 		{/await}
-	{:else if !settings && !useSchema}
+	{:else if !useSchema && (schemaLoading || (!settings && !categorySettings.length))}
+		<!-- Show spinner while schema loads — prevents legacy layout flash -->
 		<div class="flex justify-center p-12">
 			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>

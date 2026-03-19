@@ -116,8 +116,11 @@ export async function fetchSettingsAsync(
 	}
 }
 
-export async function checkDeviceStatus(deviceId: string, token: string) {
+export async function checkDeviceStatus(deviceId: string, token: string, force: boolean = false) {
 	if (!deviceId || !token) return;
+
+	// Skip if we have a fresh status (< 60s old) and not forcing
+	if (!force && deviceState.isStatusFresh(deviceId)) return;
 
 	deviceState.onlineStatuses[deviceId] = 'loading';
 
@@ -139,6 +142,7 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 				deviceState.onlineStatuses[deviceId] = 'error';
 				deviceState.lastErrorMessages[deviceId] = settingsRes.error.detail || `Error ${status}`;
 			}
+			deviceState.markStatusChecked(deviceId);
 			return;
 		}
 
@@ -146,16 +150,14 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 		if (settingsRes.data?.items && settingsRes.data.items.length > 0) {
 			deviceState.onlineStatuses[deviceId] = 'online';
 			deviceState.deviceSettings[deviceId] = settingsRes.data.items as ExtendedDeviceParamKey[];
-			// Clear any previous error
 			delete deviceState.lastErrorMessages[deviceId];
 
 			// Phase 2: Fire-and-forget async fetch for offroad values
-			// This doesn't block the status check - we update state when it completes
 			fetchOffroadStatus(deviceId, token);
 		} else {
-			// Empty items means we couldn't fetch settings -> likely offline or not ready
 			deviceState.onlineStatuses[deviceId] = 'offline';
 		}
+		deviceState.markStatusChecked(deviceId);
 	} catch (e: unknown) {
 		console.error(`Failed to check status for ${deviceId}`, e);
 		// Network errors or other exceptions are definitely errors, not just "offline"

@@ -18,13 +18,7 @@
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let { devices } = $props<{ devices: any[] }>();
 
-	let isOpen = $state(false);
 	let offlineSectionOpen = $state(false);
-
-	// Sync modal state with global store
-	$effect(() => {
-		deviceSelectorState.open = isOpen;
-	});
 
 	let selectedDevice = $derived(
 		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)
@@ -64,7 +58,7 @@
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function selectDevice(device: any) {
 		deviceState.setSelectedDevice(device.device_id);
-		isOpen = false;
+		deviceSelectorState.isOpen = false;
 		checkStatus(device.device_id);
 	}
 
@@ -92,12 +86,12 @@
 			localStorage.removeItem('selectedDeviceId');
 		}
 
-		isOpen = false;
+		deviceSelectorState.isOpen = false;
 	}
 
 	function toggleModal() {
-		isOpen = !isOpen;
-		if (isOpen) {
+		deviceSelectorState.toggle();
+		if (deviceSelectorState.isOpen) {
 			// Refresh statuses when opening, but skip selected device to avoid re-rendering parent
 			// (which would close the modal if parent conditionally renders based on status)
 			devices.forEach((d: any) => {
@@ -167,12 +161,12 @@
 	{/if}
 	<ChevronDown
 		size={14}
-		class="ml-auto text-[var(--sl-text-3)] transition-transform duration-200 {isOpen ? 'rotate-180' : ''}"
+		class="ml-auto text-[var(--sl-text-3)] transition-transform duration-200 {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
 	/>
 </button>
 
 <!-- Modal -->
-{#if isOpen}
+{#if deviceSelectorState.isOpen}
 	<div
 		class="fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:pt-20"
 		role="dialog"
@@ -182,7 +176,7 @@
 		<button
 			class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
 			transition:fade={{ duration: 200 }}
-			onclick={() => (isOpen = false)}
+			onclick={() => (deviceSelectorState.isOpen = false)}
 			aria-label="Close modal"
 		></button>
 
@@ -195,7 +189,7 @@
 				<h3 class="font-semibold text-[var(--sl-text-1)]">Select Device</h3>
 				<button
 					class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
-					onclick={() => (isOpen = false)}
+					onclick={() => (deviceSelectorState.isOpen = false)}
 				>
 					<X size={20} />
 				</button>

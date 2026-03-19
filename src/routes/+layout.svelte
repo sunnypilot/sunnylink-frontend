@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -141,6 +141,24 @@
 	let devices = $state<any[]>([]);
 	let deviceFetchError = $state<import('./+layout').DeviceFetchError>(null);
 
+	// ── Sidebar brand context ──────────────────────────────────────────────
+
+	let selectedDeviceForBrand = $derived(
+		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)
+	);
+
+	let sidebarDeviceAlias = $derived.by(() => {
+		if (!deviceState.selectedDeviceId) return undefined;
+		const did = deviceState.selectedDeviceId;
+		return deviceState.aliases[did] ?? selectedDeviceForBrand?.alias ?? did;
+	});
+
+	let sidebarDeviceStatus = $derived(
+		deviceState.selectedDeviceId
+			? deviceState.onlineStatuses[deviceState.selectedDeviceId]
+			: undefined
+	);
+
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
 		const token = await logtoClient.getIdToken();
@@ -166,7 +184,7 @@
 				const refreshed = await authState.refreshSession();
 				if (refreshed) {
 					// Session restored — re-fetch devices with fresh token
-					invalidateAll();
+					invalidate('app:devices');
 					return;
 				}
 				// Session truly expired — header shows "Session expired — Sign in"
@@ -187,7 +205,7 @@
 
 	$effect(() => {
 		if (authState.isAuthenticated) {
-			invalidateAll();
+			invalidate('app:devices');
 		}
 	});
 
@@ -248,7 +266,7 @@
 							<Menu size={20} />
 						</label>
 						<p
-							class="font-audiowide text-[0.6rem] font-semibold tracking-widest text-[var(--sl-text-3)] uppercase"
+							class="font-audiowide text-[0.6875rem] font-semibold tracking-[0.06em] text-[var(--sl-text-3)] uppercase"
 						>
 							sunnylink
 						</p>
@@ -280,7 +298,7 @@
 							{:else if result.error === 'api_error'}
 								<button
 									class="btn btn-ghost btn-sm self-end text-error lg:self-auto"
-									onclick={() => invalidateAll()}
+									onclick={() => invalidate('app:devices')}
 								>
 									Failed to load — Retry
 								</button>
@@ -294,7 +312,7 @@
 						{:catch}
 							<button
 								class="btn btn-ghost btn-sm self-end text-error lg:self-auto"
-								onclick={() => invalidateAll()}
+								onclick={() => invalidate('app:devices')}
 							>
 								Failed to load — Retry
 							</button>
@@ -335,15 +353,40 @@
 					deviceSelectorState.isOpen ? 'blur-sm' : ''
 				]}
 			>
-				<!-- Logo -->
-				<div class="flex h-16 items-center px-5 lg:px-6">
-					<div class={['space-y-0', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-						<p class="font-audiowide text-[0.6rem] tracking-[0.35em] text-[var(--sl-text-3)] uppercase">
+				<!-- Brand + Device Context -->
+				<button
+					type="button"
+					class="flex h-14 w-full items-center gap-2 px-4 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] lg:px-5"
+					onclick={() => deviceSelectorState.toggle()}
+				>
+					<div class={['min-w-0 flex-1 space-y-0.5', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+						<p class="font-audiowide text-[0.6875rem] font-semibold tracking-[0.06em] text-[var(--sl-text-3)] uppercase">
 							sunnylink
 						</p>
-						<h1 class="text-sm font-semibold text-[var(--sl-text-1)]">Control Center</h1>
+						{#if sidebarDeviceAlias}
+							<div class="flex items-center gap-1.5">
+								<span
+									class="h-1.5 w-1.5 shrink-0 rounded-full {sidebarDeviceStatus === 'online'
+										? 'bg-emerald-400'
+										: sidebarDeviceStatus === 'offline'
+											? 'bg-red-400'
+											: sidebarDeviceStatus === 'error'
+												? 'bg-amber-400'
+												: 'animate-pulse bg-amber-400'}"
+								></span>
+								<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
+									{sidebarDeviceAlias}
+								</span>
+							</div>
+						{:else}
+							<span class="text-sm text-[var(--sl-text-2)]">Select a device</span>
+						{/if}
 					</div>
-				</div>
+					<ChevronDown
+						size={14}
+						class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-200 {drawerOpen ? 'block' : 'hidden'} lg:block {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
+					/>
+				</button>
 
 				<!-- Navigation -->
 				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">

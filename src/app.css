@@ -3,7 +3,7 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
-/* ── sunnypilot Light Theme ─────────────────────────────────────────────── */
+/* ── sunnypilot Light Theme (Neutral) ──────────────────────────────────── */
 @plugin "daisyui/theme" {
 	name: "sunny-light";
 	default: true;
@@ -13,25 +13,25 @@
 	--color-secondary-content: #FFFFFF;
 	--color-accent: #A78BFA;
 	--color-accent-content: #FFFFFF;
-	--color-neutral: #1E1E2E;
+	--color-neutral: #1a1a1a;
 	--color-neutral-content: #FFFFFF;
 	--color-base-100: #FFFFFF;
-	--color-base-200: #F8F7FC;
-	--color-base-300: #EEEDF5;
-	--color-base-content: #1A1625;
+	--color-base-200: #f5f5f5;
+	--color-base-300: #ebebeb;
+	--color-base-content: #1a1a1a;
 	--color-info: #3B82F6;
 	--color-info-content: #FFFFFF;
 	--color-success: #22C55E;
 	--color-success-content: #FFFFFF;
 	--color-warning: #EAB308;
-	--color-warning-content: #1A1625;
+	--color-warning-content: #1a1a1a;
 	--color-error: #EF4444;
 	--color-error-content: #FFFFFF;
 	--rounded-box: 0.75rem;
 	--rounded-btn: 0.5rem;
 }
 
-/* ── sunnypilot Dark Theme ──────────────────────────────────────────────── */
+/* ── sunnypilot Dark Theme (Pure Neutral) ─────────────────────────────── */
 @plugin "daisyui/theme" {
 	name: "sunny-dark";
 	prefersdark: true;
@@ -41,58 +41,60 @@
 	--color-secondary-content: #FFFFFF;
 	--color-accent: #A78BFA;
 	--color-accent-content: #FFFFFF;
-	--color-neutral: #1E1E2E;
-	--color-neutral-content: #D4D4E8;
-	--color-base-100: #0c0b14;
-	--color-base-200: #151420;
-	--color-base-300: #1f1e2c;
-	--color-base-content: #E4E3F0;
+	--color-neutral: #1a1a1a;
+	--color-neutral-content: #ececec;
+	--color-base-100: #101010;
+	--color-base-200: #181818;
+	--color-base-300: #222222;
+	--color-base-content: #ececec;
 	--color-info: #60A5FA;
-	--color-info-content: #0c0b14;
+	--color-info-content: #101010;
 	--color-success: #4ADE80;
-	--color-success-content: #0c0b14;
+	--color-success-content: #101010;
 	--color-warning: #FACC15;
-	--color-warning-content: #0c0b14;
+	--color-warning-content: #101010;
 	--color-error: #F87171;
-	--color-error-content: #0c0b14;
+	--color-error-content: #101010;
 	--rounded-box: 0.75rem;
 	--rounded-btn: 0.5rem;
 }
 
-/* ── Semantic Surface Tokens ────────────────────────────────────────────── */
+/* ── Semantic Surface Tokens (Pure Neutral — Anti-Vibe-Coded) ──────────── */
+/* Light: Off-white page (Linear), white cards (Vercel), neutral grays      */
+/* Dark: Near-black neutral (Discord/Spotify), purple only on interactive   */
 :root,
 [data-theme='sunny-light'] {
-	--sl-bg-page: #f8f7fc;
+	--sl-bg-page: #f5f5f5;
 	--sl-bg-surface: #ffffff;
-	--sl-bg-elevated: #ffffff;
-	--sl-bg-subtle: #f3f1fe;
-	--sl-bg-input: #eeedf5;
-	--sl-border: #e4e0f0;
-	--sl-border-muted: #eeedf5;
-	--sl-border-emphasis: #c9bffb;
-	--sl-text-1: #1a1625;
-	--sl-text-2: #5c5775;
-	--sl-text-3: #7a7590;
+	--sl-bg-elevated: #f0f0f0;
+	--sl-bg-subtle: #ebebeb;
+	--sl-bg-input: #f0f0f0;
+	--sl-border: #e0e0e0;
+	--sl-border-muted: #ebebeb;
+	--sl-border-emphasis: #d0d0d0;
+	--sl-text-1: #1a1a1a;
+	--sl-text-2: #666666;
+	--sl-text-3: #888888;
 	--sl-accent-muted: rgba(89, 74, 226, 0.08);
-	--sl-toggle-off: #c5c0d8;
-	--sl-toggle-off-disabled: #e4e0f0;
+	--sl-toggle-off: #d4d4d4;
+	--sl-toggle-off-disabled: #e5e5e5;
 }
 
 [data-theme='sunny-dark'] {
-	--sl-bg-page: #0c0b14;
-	--sl-bg-surface: #151420;
-	--sl-bg-elevated: #1f1e2c;
-	--sl-bg-subtle: #191824;
-	--sl-bg-input: #1f1e2c;
-	--sl-border: #353347;
-	--sl-border-muted: #2d2b3d;
-	--sl-border-emphasis: #4a4660;
-	--sl-text-1: #e4e3f0;
-	--sl-text-2: #a09eb5;
-	--sl-text-3: #8a87a0;
-	--sl-accent-muted: rgba(124, 111, 235, 0.16);
-	--sl-toggle-off: #4a4660;
-	--sl-toggle-off-disabled: #353347;
+	--sl-bg-page: #101010;
+	--sl-bg-surface: #181818;
+	--sl-bg-elevated: #222222;
+	--sl-bg-subtle: #1a1a1a;
+	--sl-bg-input: #1c1c1c;
+	--sl-border: #2c2c2c;
+	--sl-border-muted: #232323;
+	--sl-border-emphasis: #3a3a3a;
+	--sl-text-1: #ececec;
+	--sl-text-2: #a0a0a0;
+	--sl-text-3: #808080;
+	--sl-accent-muted: rgba(124, 111, 235, 0.12);
+	--sl-toggle-off: #333333;
+	--sl-toggle-off-disabled: #282828;
 }
 
 /* ── Global Styles ──────────────────────────────────────────────────────── */

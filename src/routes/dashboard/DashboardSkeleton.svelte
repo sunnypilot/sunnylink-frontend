@@ -2,60 +2,27 @@
 	let { name } = $props<{ name?: string }>();
 </script>
 
-<div class="animate-pulse space-y-4 sm:space-y-6 lg:space-y-8">
-	<div class="card border border-[var(--sl-border)] bg-[var(--sl-bg-page)]">
-		<div class="card-body p-4 sm:p-6 lg:p-8">
-			{#if name}
-				<div
-					class="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8"
-				>
-					<div class="max-w-2xl space-y-3 sm:space-y-4">
-						<p class="text-xs tracking-[0.3em] text-[var(--sl-text-2)] uppercase">Daily sunnypilot</p>
-						<h1 class="text-2xl font-bold text-[var(--sl-text-1)] sm:text-3xl md:text-4xl lg:text-5xl">
-							Hi {name}!
-						</h1>
-						<p class="text-lg text-[var(--sl-text-2)] sm:text-xl">Loading your devices...</p>
-					</div>
-				</div>
-			{:else}
-				<div class="flex flex-col gap-4">
-					<div class="h-4 w-32 rounded bg-[var(--sl-bg-elevated)]"></div>
-					<div class="h-10 w-64 rounded bg-[var(--sl-bg-elevated)]"></div>
-					<div class="h-6 w-96 rounded bg-[var(--sl-bg-elevated)]"></div>
-					<div class="h-4 w-full max-w-lg rounded bg-[var(--sl-bg-elevated)]"></div>
-				</div>
-			{/if}
-		</div>
+<div class="mx-auto w-full max-w-2xl space-y-6 xl:max-w-3xl">
+	<!-- Section header skeleton -->
+	<div class="flex items-center justify-between">
+		<div class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
+		<div class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 	</div>
 
-	<div class="card mt-2 border border-[var(--sl-border)] bg-[var(--sl-bg-page)]">
-		<div class="card-body p-4 sm:p-6 lg:p-8">
-			<div class="grid gap-6 sm:gap-8 lg:grid-cols-[1.6fr_1fr]">
-				<div class="space-y-4 sm:space-y-6">
-					<div class="form-control w-full">
-						<div class="mb-2 h-4 w-24 rounded bg-[var(--sl-bg-elevated)]"></div>
-						<div class="h-12 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-					</div>
-					<div class="form-control w-full">
-						<div class="mb-2 h-4 w-24 rounded bg-[var(--sl-bg-elevated)]"></div>
-						<div class="h-12 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-					</div>
+	<!-- Device card skeleton -->
+	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+		{#each [1, 2] as _, i}
+			<div class="flex items-center gap-3 px-4 py-3.5">
+				<div class="h-[6px] w-[6px] animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"></div>
+				<div class="min-w-0 flex-1 space-y-2">
+					<div class="h-4 w-32 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
+					<div class="h-3 w-48 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 				</div>
-				<div class="card border border-[var(--sl-border)] bg-[var(--sl-bg-page)]">
-					<div class="card-body space-y-4 p-4 sm:p-6">
-						<div class="h-4 w-32 rounded bg-[var(--sl-bg-elevated)]"></div>
-						<div class="h-8 w-48 rounded bg-[var(--sl-bg-elevated)]"></div>
-						<div class="h-4 w-40 rounded bg-[var(--sl-bg-elevated)]"></div>
-						<div class="mt-4 space-y-2">
-							<div class="h-4 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-							<div class="h-4 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-						</div>
-					</div>
-				</div>
+				<div class="h-5 w-5 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			</div>
-			<div class="mt-6 sm:mt-8">
-				<div class="h-12 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-			</div>
-		</div>
+			{#if i === 0}
+				<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
+			{/if}
+		{/each}
 	</div>
 </div>

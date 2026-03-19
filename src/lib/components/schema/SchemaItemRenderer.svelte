@@ -300,11 +300,14 @@
 					{#if isLoading}
 						<div class="h-[31px] w-[51px] skeleton-shimmer rounded-full"></div>
 					{:else}
+						{@const toggleTrackClass =
+							isOn && isPushing ? 'bg-primary/40'
+							: isOn ? 'bg-primary'
+							: !enabled ? 'bg-[var(--sl-toggle-off-disabled)]'
+							: 'bg-[var(--sl-toggle-off)]'
+						}
 						<div
-							class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full"
-							class:bg-primary={isOn}
-							class:bg-[var(--sl-toggle-off)]={!isOn && enabled}
-							class:bg-[var(--sl-toggle-off-disabled)]={!isOn && !enabled}
+							class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full {toggleTrackClass}"
 							style="transition: background-color var(--dur-instant) var(--ease-out);"
 						>
 							<span
