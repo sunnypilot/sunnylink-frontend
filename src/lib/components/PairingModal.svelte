@@ -45,15 +45,47 @@
 	}
 
 	// ── Scroll lock + iOS page sheet parent transform ───────────────────
+	// iOS page sheet: background shrinks on open, smoothly expands on close.
+	// Scroll locked on body + main (the actual scroll container in the drawer layout).
+	// Timeout ref prevents race conditions between close→open sequences.
 	let savedScrollY = 0;
+	let cleanupTimerId: ReturnType<typeof setTimeout> | null = null;
+
+	function lockScroll() {
+		// Cancel any pending cleanup from a previous close
+		if (cleanupTimerId !== null) {
+			clearTimeout(cleanupTimerId);
+			cleanupTimerId = null;
+		}
+
+		savedScrollY = window.scrollY;
+
+		// Lock body scroll
+		document.body.style.position = 'fixed';
+		document.body.style.top = `-${savedScrollY}px`;
+		document.body.style.width = '100%';
+		document.body.style.overflow = 'hidden';
+
+		// Lock main scroll container (inside DaisyUI drawer)
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = 'hidden';
+	}
+
+	function unlockScroll(scrollY: number) {
+		document.body.style.position = '';
+		document.body.style.top = '';
+		document.body.style.width = '';
+		document.body.style.overflow = '';
+
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = '';
+
+		window.scrollTo(0, scrollY);
+	}
 
 	$effect(() => {
 		if (open) {
-			savedScrollY = window.scrollY;
-			document.body.style.position = 'fixed';
-			document.body.style.top = `-${savedScrollY}px`;
-			document.body.style.width = '100%';
-			document.body.style.overflow = 'hidden';
+			lockScroll();
 
 			const appRoot = document.querySelector('.drawer') as HTMLElement;
 			if (appRoot) {
@@ -64,18 +96,23 @@
 			}
 		}
 		return () => {
-			document.body.style.position = '';
-			document.body.style.top = '';
-			document.body.style.width = '';
-			document.body.style.overflow = '';
-			window.scrollTo(0, savedScrollY);
-
 			const appRoot = document.querySelector('.drawer') as HTMLElement;
 			if (appRoot) {
+				// Trigger the scale-back animation (transition is still set)
 				appRoot.style.transform = '';
 				appRoot.style.borderRadius = '';
 				appRoot.style.overflow = '';
-				setTimeout(() => { appRoot.style.transition = ''; }, 500);
+
+				// Delay scroll unlock until the 500ms transition completes.
+				// Body stays fixed during animation to prevent reflow jank.
+				const scrollY = savedScrollY;
+				cleanupTimerId = setTimeout(() => {
+					cleanupTimerId = null;
+					appRoot.style.transition = '';
+					unlockScroll(scrollY);
+				}, 500);
+			} else {
+				unlockScroll(savedScrollY);
 			}
 		};
 	});
