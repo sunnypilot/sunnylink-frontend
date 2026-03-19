@@ -113,17 +113,44 @@
 	}
 
 	// ── Scroll lock + iOS page sheet parent transform ───────────────────
+	// Locks body + main (the actual scroll container in the DaisyUI drawer layout).
+	// Timeout ref prevents race conditions between close→open sequences.
 	let savedScrollY = 0;
+	let cleanupTimerId: ReturnType<typeof setTimeout> | null = null;
+
+	function lockScroll() {
+		if (cleanupTimerId !== null) {
+			clearTimeout(cleanupTimerId);
+			cleanupTimerId = null;
+		}
+
+		savedScrollY = window.scrollY;
+
+		document.body.style.position = 'fixed';
+		document.body.style.top = `-${savedScrollY}px`;
+		document.body.style.width = '100%';
+		document.body.style.overflow = 'hidden';
+
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = 'hidden';
+	}
+
+	function unlockScroll(scrollY: number) {
+		document.body.style.position = '';
+		document.body.style.top = '';
+		document.body.style.width = '';
+		document.body.style.overflow = '';
+
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = '';
+
+		window.scrollTo(0, scrollY);
+	}
 
 	$effect(() => {
 		if (open) {
-			savedScrollY = window.scrollY;
-			document.body.style.position = 'fixed';
-			document.body.style.top = `-${savedScrollY}px`;
-			document.body.style.width = '100%';
-			document.body.style.overflow = 'hidden';
+			lockScroll();
 
-			// iOS page sheet: scale down the main app content
 			const appRoot = document.querySelector('.drawer') as HTMLElement;
 			if (appRoot) {
 				appRoot.style.transition = 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
@@ -133,19 +160,20 @@
 			}
 		}
 		return () => {
-			document.body.style.position = '';
-			document.body.style.top = '';
-			document.body.style.width = '';
-			document.body.style.overflow = '';
-			window.scrollTo(0, savedScrollY);
-
 			const appRoot = document.querySelector('.drawer') as HTMLElement;
 			if (appRoot) {
 				appRoot.style.transform = '';
 				appRoot.style.borderRadius = '';
 				appRoot.style.overflow = '';
-				// Keep transition for smooth restore
-				setTimeout(() => { appRoot.style.transition = ''; }, 500);
+
+				const scrollY = savedScrollY;
+				cleanupTimerId = setTimeout(() => {
+					cleanupTimerId = null;
+					appRoot.style.transition = '';
+					unlockScroll(scrollY);
+				}, 500);
+			} else {
+				unlockScroll(savedScrollY);
 			}
 		};
 	});
