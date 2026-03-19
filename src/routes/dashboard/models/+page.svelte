@@ -15,7 +15,8 @@
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
-	import SettingCard from '$lib/components/SettingCard.svelte';
+	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
+	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
 	import {
@@ -1162,42 +1163,31 @@
 			</div>
 
 			{#if currentModel}
-				<div class="space-y-3">
-					<div class="label px-0">
-						<span
-							class="label-text text-sm font-semibold tracking-[0.28em] text-[var(--sl-text-2)] uppercase"
-							>Model Settings</span
-						>
+				{@const modelSettingItems = [
+					cameraOffsetParam && currentModel !== DEFAULT_MODEL ? cameraOffsetParam : null,
+					lagdToggleParam,
+					lagdToggleDelayParam && lagdToggleValue === false ? lagdToggleDelayParam : null,
+					laneTurnDesireParam,
+					laneTurnValueParam && laneTurnDesireParamValue === true ? laneTurnValueParam : null,
+					nnlcParam && isLegacyActive ? nnlcParam : null
+				].filter((p): p is NonNullable<typeof p> => p !== null)}
+				{#if modelSettingItems.length > 0}
+					<div>
+						<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+							Model Settings
+						</p>
+						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+							{#each modelSettingItems as param, i (param.key)}
+								<SchemaItemRenderer
+									deviceId={deviceState.selectedDeviceId!}
+									item={settingToSchemaItem(param)}
+									loadingValues={loadingModels}
+									isLast={i === modelSettingItems.length - 1}
+								/>
+							{/each}
+						</div>
 					</div>
-					<div class="flex flex-col gap-3">
-						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={cameraOffsetParam} />
-						{/if}
-
-						{#if lagdToggleParam}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={lagdToggleParam} />
-						{/if}
-
-						{#if lagdToggleDelayParam && lagdToggleValue === false}
-							<SettingCard
-								deviceId={deviceState.selectedDeviceId!}
-								setting={lagdToggleDelayParam}
-							/>
-						{/if}
-
-						{#if laneTurnDesireParam}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnDesireParam} />
-						{/if}
-
-						{#if laneTurnValueParam && laneTurnDesireParamValue === true}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnValueParam} />
-						{/if}
-
-						{#if nnlcParam && isLegacyActive}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={nnlcParam} />
-						{/if}
-					</div>
-				</div>
+				{/if}
 			{/if}
 		</div>
 

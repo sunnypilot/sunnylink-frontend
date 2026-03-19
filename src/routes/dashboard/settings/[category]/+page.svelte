@@ -20,6 +20,7 @@
 	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 
 	import { fly, fade } from 'svelte/transition';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
@@ -144,6 +145,10 @@
 		return result;
 	});
 
+	// Grouped settings for unified rendering (replaces 3-column grid)
+	let writableGroups = $derived(groupSettingsBySection(writableSettings));
+	let readonlyGroups = $derived(groupSettingsBySection(readonlySettings));
+
 	// ── Value fetching ──────────────────────────────────────────────────────
 
 	let loadingValues = $state(false);
@@ -217,13 +222,20 @@
 		const allKeys = collectPanelKeys(schemaPanel);
 		const existing = deviceState.deviceValues[did] ?? {};
 		const keysToFetch = allKeys.filter((k) => existing[k] === undefined);
-		if (keysToFetch.length === 0) return;
+		if (keysToFetch.length === 0) {
+			// All cached — ensure spinner is cleared (may be stuck from an aborted prior fetch)
+			loadingValues = false;
+			return;
+		}
 
 		// Snapshot cached values before fetch for drift detection
 		const gitCommit = (existing['GitCommit'] as string) || '';
 		const cachedSnapshot = gitCommit ? loadCachedValues(did, gitCommit) : null;
 
-		loadingValues = true;
+		// Only show spinner if we don't have ANY values yet for this panel
+		// (delta-fetch of a few missing keys shouldn't flash the spinner)
+		const hasAnyValues = allKeys.some((k) => existing[k] !== undefined);
+		if (!hasAnyValues) loadingValues = true;
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token || signal?.aborted) return;
@@ -386,6 +398,23 @@
 		);
 	}
 
+	/** Group settings by their section headers for grouped card rendering */
+	function groupSettingsBySection(settings: RenderableSetting[]): { label: string | null; settings: RenderableSetting[] }[] {
+		const groups: { label: string | null; settings: RenderableSetting[] }[] = [];
+		let current: { label: string | null; settings: RenderableSetting[] } = { label: null, settings: [] };
+
+		for (const s of settings) {
+			if (s.isSection) {
+				if (current.settings.length > 0) groups.push(current);
+				current = { label: s.label || null, settings: [] };
+			} else {
+				current.settings.push(s);
+			}
+		}
+		if (current.settings.length > 0) groups.push(current);
+		return groups;
+	}
+
 	function openJsonModal(title: string, content: any) {
 		jsonModalTitle = title;
 		const formatted = JSON.stringify(content, null, 2);
@@ -499,30 +528,25 @@
 			{/key}
 		</div>
 	{:else if useSchema && !schemaPanel}
-		<!-- Schema loaded but no panel for this category (e.g., "toggles" or "other") -->
-		<div class="alert border-none bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)]">
-			<span>No schema panel found for "{category}". Showing legacy view.</span>
-		</div>
-		<!-- Fall through to legacy rendering below -->
-		{#if categorySettings.length > 0}
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-				{#each writableSettings as setting}
-					{#if setting.isSection}
-						<div class="col-span-full mt-8 mb-2 first:mt-0">
-							<div class="flex items-center gap-4">
-								{#if setting.label}
-									<h3
-										class="text-sm font-bold tracking-widest whitespace-nowrap text-[var(--sl-text-3)] uppercase"
-									>
-										{setting.label}
-									</h3>
-								{/if}
-								<div class="h-px w-full bg-[var(--sl-border)]"></div>
-							</div>
-						</div>
-					{:else}
-						<SettingCard {deviceId} {setting} {loadingValues} onJsonClick={openJsonModal} />
+		<!-- Schema loaded but no panel for this category — render with unified style -->
+		{#if writableSettings.length > 0}
+			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
+					{#each writableGroups as group (group.label ?? '__default__')}
+					{#if group.label}
+						<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+							{group.label}
+						</p>
 					{/if}
+					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+						{#each group.settings as setting, i (setting.key)}
+							<SchemaItemRenderer
+								{deviceId}
+								item={settingToSchemaItem(setting)}
+								{loadingValues}
+								isLast={i === group.settings.length - 1}
+							/>
+						{/each}
+					</div>
 				{/each}
 			</div>
 		{/if}
@@ -531,71 +555,72 @@
 			<span>No settings found for this category.</span>
 		</div>
 	{:else}
-		<!-- ═══ Legacy rendering (no schema available) ═══ -->
-		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-			{#each writableSettings as setting}
-				{#if setting.isSection}
-					<div class="col-span-full mt-8 mb-2 first:mt-0">
-						<div class="flex items-center gap-4">
-							{#if setting.label}
-								<h3
-									class="text-sm font-bold tracking-widest whitespace-nowrap text-[var(--sl-text-3)] uppercase"
-								>
-									{setting.label}
-								</h3>
-							{/if}
-							<div class="h-px w-full bg-[var(--sl-border)]"></div>
-						</div>
+		<!-- ═══ Legacy rendering (no schema available) — unified style ═══ -->
+		{#if writableSettings.length > 0}
+			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
+					{#each writableGroups as group (group.label ?? '__default__')}
+					{#if group.label}
+						<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+							{group.label}
+						</p>
+					{/if}
+					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+						{#each group.settings as setting, i (setting.key)}
+							<SchemaItemRenderer
+								{deviceId}
+								item={settingToSchemaItem(setting)}
+								{loadingValues}
+								isLast={i === group.settings.length - 1}
+							/>
+						{/each}
 					</div>
-				{:else}
-					<SettingCard {deviceId} {setting} {loadingValues} onJsonClick={openJsonModal} />
-				{/if}
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 
 		{#if readonlySettings.length > 0}
-			<details class="group mt-8 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] open:bg-[var(--sl-bg-input)]">
-				<summary
-					class="flex cursor-pointer items-center justify-between p-4 font-medium text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
-				>
-					<span>Read-Only Settings ({readonlySettings.length})</span>
-					<span class="transition-transform group-open:rotate-180">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg
-						>
-					</span>
-				</summary>
-				<div
-					class="grid grid-cols-1 gap-4 border-t border-[var(--sl-border)] p-4 lg:grid-cols-2 xl:grid-cols-3"
-				>
-					{#each readonlySettings as setting}
-						{#if setting.isSection}
-							<div class="col-span-full mt-4 mb-2 first:mt-0">
-								<div class="flex items-center gap-4">
-									{#if setting.label}
-										<h3
-											class="text-xs font-bold tracking-widest whitespace-nowrap text-[var(--sl-text-3)] uppercase"
-										>
-											{setting.label}
-										</h3>
-									{/if}
-									<div class="h-px w-full bg-[var(--sl-border)]"></div>
-								</div>
+			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+				<details class="group mt-8 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] open:bg-[var(--sl-bg-input)]">
+					<summary
+						class="flex cursor-pointer items-center justify-between p-4 font-medium text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
+					>
+						<span>Read-Only Settings ({readonlySettings.length})</span>
+						<span class="transition-transform group-open:rotate-180">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg
+							>
+						</span>
+					</summary>
+					<div class="border-t border-[var(--sl-border)] p-4">
+						{#each readonlyGroups as group (group.label ?? '__ro_default__')}
+							{#if group.label}
+								<p class="mt-4 mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase first:mt-0">
+									{group.label}
+								</p>
+							{/if}
+							<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+								{#each group.settings as setting, i (setting.key)}
+									<SchemaItemRenderer
+										{deviceId}
+										item={settingToSchemaItem(setting)}
+										{loadingValues}
+										isLast={i === group.settings.length - 1}
+										readonly={true}
+									/>
+								{/each}
 							</div>
-						{:else}
-							<SettingCard {deviceId} {setting} {loadingValues} onJsonClick={openJsonModal} />
-						{/if}
-					{/each}
-				</div>
-			</details>
+						{/each}
+					</div>
+				</details>
+			</div>
 		{/if}
 	{/if}
 </div>
