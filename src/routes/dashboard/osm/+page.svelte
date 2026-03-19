@@ -12,6 +12,47 @@
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 
+	const OSM_CACHE_PREFIX = 'sunnylink_osm_';
+	const OSM_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+	interface OsmCacheEntry {
+		params: Array<{ key?: string; value?: string; type?: string }>;
+		timestamp: number;
+	}
+
+	function loadOsmCache(deviceId: string): OsmCacheEntry | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			const raw = localStorage.getItem(`${OSM_CACHE_PREFIX}${deviceId}`);
+			if (!raw) return null;
+			const entry: OsmCacheEntry = JSON.parse(raw);
+			if (Date.now() - entry.timestamp > OSM_CACHE_TTL) {
+				localStorage.removeItem(`${OSM_CACHE_PREFIX}${deviceId}`);
+				return null;
+			}
+			return entry;
+		} catch { return null; }
+	}
+
+	function saveOsmCache(deviceId: string, params: Array<{ key?: string; value?: string; type?: string }>): void {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const entry: OsmCacheEntry = { params, timestamp: Date.now() };
+			localStorage.setItem(`${OSM_CACHE_PREFIX}${deviceId}`, JSON.stringify(entry));
+		} catch {}
+	}
+
+	const OSM_PARAMS = [
+		'OsmLocationName',
+		'OsmLocationTitle',
+		'OsmStateName',
+		'OsmStateTitle',
+		'OSMDownloadProgress',
+		'OsmDbUpdatesCheck',
+		'OsmDownloadedDate',
+		'OsmLocal'
+	];
+
 	let countries: OSMRegion[] = $state([]);
 	let states: OSMRegion[] = $state([]);
 	let loadingRegions = $state(false);
@@ -20,6 +61,22 @@
 	let error = $state<string | null>(null);
 
 	let { data } = $props();
+
+	// Hydrate from cache on mount/device change for instant render
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (!did) return;
+		// Only hydrate if we don't already have data
+		const existing = deviceState.deviceSettings[did];
+		const hasOsmData = existing?.some((p) => p.key === 'OsmLocationName');
+		if (hasOsmData) return;
+		const cached = loadOsmCache(did);
+		if (cached) {
+			const filtered = (existing || []).filter((i) => i.key && !OSM_PARAMS.includes(i.key));
+			// Cast cached params — they were originally ExtendedDeviceParamKey objects
+			deviceState.deviceSettings[did] = [...filtered, ...(cached.params as any)];
+		}
+	});
 
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
@@ -39,17 +96,6 @@
 		if (!param) return null;
 		return decodeParamValue(param);
 	}
-
-	const OSM_PARAMS = [
-		'OsmLocationName',
-		'OsmLocationTitle',
-		'OsmStateName',
-		'OsmStateTitle',
-		'OSMDownloadProgress',
-		'OsmDbUpdatesCheck',
-		'OsmDownloadedDate',
-		'OsmLocal'
-	];
 
 	// Derived values for the current device
 	let currentCountryName = $derived(
@@ -137,6 +183,9 @@
 				const filtered = existing.filter((i) => i.key && !osmParamsSet.has(i.key));
 				// Add new ones
 				deviceState.deviceSettings[deviceId] = [...filtered, ...res.items];
+
+				// Persist to cache for SWR on next visit
+				saveOsmCache(deviceId, res.items);
 			}
 		} catch (e) {
 			console.error('Failed to fetch OSM params', e);
@@ -153,8 +202,10 @@
 			deviceState.onlineStatuses[deviceId] === 'online' &&
 			!isDownloading
 		) {
+			// Use silent fetch when we already have cached data to avoid spinner flash
+			const hasCachedData = deviceState.deviceSettings[deviceId]?.some((p) => p.key === 'OsmLocationName');
 			logtoClient.getIdToken().then((token) => {
-				if (token) fetchOsmParams(deviceId, token);
+				if (token) fetchOsmParams(deviceId, token, hasCachedData);
 			});
 		}
 	});
@@ -394,7 +445,7 @@
 				</div>
 			</div>
 		{/await}
-	{:else if isCheckingStatus}
+	{:else if isCheckingStatus && !hasMap}
 		<div class="animate-pulse space-y-6">
 			<div class="flex items-center gap-2 text-[var(--sl-text-2)]">
 				<span class="loading loading-sm loading-spinner"></span>

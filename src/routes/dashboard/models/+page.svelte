@@ -45,6 +45,43 @@
 		models: []
 	};
 
+	const MODELS_CACHE_PREFIX = 'sunnylink_models_';
+	const MODELS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+	interface ModelsCacheEntry {
+		modelList: ModelBundle[];
+		currentModelShortName: string | undefined;
+		favorites: string[];
+		timestamp: number;
+	}
+
+	function loadModelsCache(deviceId: string): ModelsCacheEntry | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			const raw = localStorage.getItem(`${MODELS_CACHE_PREFIX}${deviceId}`);
+			if (!raw) return null;
+			const entry: ModelsCacheEntry = JSON.parse(raw);
+			if (Date.now() - entry.timestamp > MODELS_CACHE_TTL) {
+				localStorage.removeItem(`${MODELS_CACHE_PREFIX}${deviceId}`);
+				return null;
+			}
+			return entry;
+		} catch { return null; }
+	}
+
+	function saveModelsCache(deviceId: string, list: ModelBundle[], activeShortName: string | undefined, favs: Set<string>): void {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const entry: ModelsCacheEntry = {
+				modelList: list,
+				currentModelShortName: activeShortName,
+				favorites: Array.from(favs),
+				timestamp: Date.now()
+			};
+			localStorage.setItem(`${MODELS_CACHE_PREFIX}${deviceId}`, JSON.stringify(entry));
+		} catch {}
+	}
+
 	let { data } = $props();
 	let modelList = $state<ModelBundle[] | undefined>();
 	let currentModelShortName = $state<string | undefined>(undefined);
@@ -56,6 +93,30 @@
 	let sendingModel = $state(false);
 	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
+
+	// Synchronous cache hydration — runs before first render, no $effect loop.
+	function hydrateModelsCache(did: string) {
+		if (!did || modelList) return;
+		const cached = loadModelsCache(did);
+		if (cached) {
+			modelList = cached.modelList;
+			currentModelShortName = cached.currentModelShortName;
+			favorites = new Set(cached.favorites);
+		}
+	}
+
+	// Hydrate immediately for current device (synchronous, before first render)
+	if (deviceState.selectedDeviceId) {
+		hydrateModelsCache(deviceState.selectedDeviceId);
+	}
+
+	// Re-hydrate reactively when device changes
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did) {
+			untrack(() => hydrateModelsCache(did));
+		}
+	});
 	let pushModalOpen = $state(false);
 	let downloadingModelIndex = $state<number | undefined>(undefined);
 
@@ -242,12 +303,14 @@
 	});
 
 	// Auto-refresh when device comes online
+	// Use silent=true when we already have cached data to avoid UI flash
 	$effect(() => {
 		if (
 			deviceState.selectedDeviceId &&
 			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'online'
 		) {
-			fetchModelsForDevice();
+			const hasCached = untrack(() => !!modelList);
+			fetchModelsForDevice(hasCached);
 		}
 	});
 
@@ -408,6 +471,10 @@
 				} else {
 					downloadingModelIndex = undefined;
 				}
+			}
+			// Persist to cache for SWR on next visit
+			if (modelList && deviceState.selectedDeviceId) {
+				saveModelsCache(deviceState.selectedDeviceId, modelList, currentModelShortName, favorites);
 			}
 		} catch (e) {
 			console.error('Error fetching models:', e);

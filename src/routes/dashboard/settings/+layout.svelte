@@ -81,8 +81,8 @@
 	});
 
 	// Background prefetch: when schema is loaded and device is online,
-	// fetch ALL panel keys in the background so every settings page
-	// loads instantly from cache on subsequent visits or F5 refresh.
+	// fetch ALL panel keys + vehicle_settings keys in the background so every
+	// settings page loads instantly from cache on subsequent visits or F5 refresh.
 	let prefetchDone = $state<Record<string, boolean>>({});
 
 	$effect(() => {
@@ -103,6 +103,12 @@
 				for (const item of sp.items) addItem(item);
 			}
 		}
+
+		// Also collect vehicle_settings keys (brand-specific settings)
+		const caps = schemaState.capabilities[deviceId];
+		const brand = caps?.brand ?? '';
+		const vehicleItems = brand && schema.vehicle_settings ? (schema.vehicle_settings[brand] ?? []) : [];
+		for (const item of vehicleItems) addItem(item);
 
 		// Filter to keys we don't have yet
 		const existing = deviceState.deviceValues[deviceId] ?? {};
@@ -146,14 +152,15 @@
 
 				// Fill defaults for keys the device didn't return
 				const vals = deviceState.deviceValues[deviceId!] ??= {};
-				for (const panel of schema.panels) {
-					const items = [...panel.items, ...(panel.sub_panels ?? []).flatMap((sp: any) => sp.items)];
-					for (const item of items) {
-						if (vals[item.key] === undefined) {
-							if (item.widget === 'toggle') vals[item.key] = false;
-							else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
-							else vals[item.key] = '';
-						}
+				const allSchemaItems = [
+					...schema.panels.flatMap((p: Panel) => [...p.items, ...(p.sub_panels ?? []).flatMap((sp: any) => sp.items)]),
+					...vehicleItems
+				];
+				for (const item of allSchemaItems) {
+					if (vals[item.key] === undefined) {
+						if (item.widget === 'toggle') vals[item.key] = false;
+						else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+						else vals[item.key] = '';
 					}
 				}
 

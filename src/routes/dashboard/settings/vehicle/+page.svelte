@@ -56,26 +56,39 @@
 	async function fetchBrandValues() {
 		if (!deviceId || !logtoClient || brandSettings.length === 0) return;
 
+		// Skip fetch if all keys already have values (from background prefetch cache)
+		const existing = deviceState.deviceValues[deviceId] ?? {};
+		const keys = brandSettings.map((item) => item.key);
+		const missing = keys.filter((k) => existing[k] === undefined);
+		if (missing.length === 0) return;
+
 		loadingBrandValues = true;
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
 
-			const keys = brandSettings.map((item) => item.key);
-			const response = await fetchSettingsAsync(deviceId, keys, token);
+			const response = await fetchSettingsAsync(deviceId, missing, token);
 
 			if (response.items) {
-				if (!deviceState.deviceValues[deviceId]) {
-					deviceState.deviceValues[deviceId] = {};
-				}
+				const vals = deviceState.deviceValues[deviceId] ??= {};
 				for (const item of response.items) {
 					if (item.key && item.value !== undefined) {
-						deviceState.deviceValues[deviceId][item.key] = decodeParamValue({
+						vals[item.key] = decodeParamValue({
 							key: item.key,
 							value: item.value,
 							type: item.type ?? 'String'
 						});
 					}
+				}
+			}
+
+			// Fill defaults for keys the device didn't return
+			const vals = deviceState.deviceValues[deviceId] ??= {};
+			for (const item of brandSettings) {
+				if (vals[item.key] === undefined) {
+					if (item.widget === 'toggle') vals[item.key] = false;
+					else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+					else vals[item.key] = '';
 				}
 			}
 		} catch (e) {
