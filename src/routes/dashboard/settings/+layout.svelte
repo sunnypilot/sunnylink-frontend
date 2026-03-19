@@ -46,19 +46,18 @@
 		}
 	});
 
-	// Educational banner — dismissible, shown once
-	let showOnlineHelp = $state(false);
-	$effect(() => {
-		if (deviceId && preferences.showDeviceOnlineHelp) {
-			showOnlineHelp = true;
-		}
-	});
+	// Educational banner
+	// Shown if user hasn't permanently dismissed AND hasn't session-dismissed.
+	let sessionDismissed = $state(false);
+	let showOnlineHelp = $derived(
+		!!deviceId && preferences.showDeviceOnlineHelp && !sessionDismissed
+	);
 
 	function dismissHelp(permanent: boolean) {
 		if (permanent) {
 			preferences.showDeviceOnlineHelp = false;
 		}
-		showOnlineHelp = false;
+		sessionDismissed = true;
 	}
 
 	async function handleRetry() {
@@ -73,8 +72,8 @@
 	}
 </script>
 
-<!-- Educational banner — inline, dismissible, non-blocking -->
-{#if showOnlineHelp && deviceId && isOnline}
+<!-- Educational banner — inline, dismissible, non-blocking, preference-driven -->
+{#if showOnlineHelp}
 	<div class="mx-auto mb-4 w-full max-w-2xl xl:max-w-3xl">
 		<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 			<div class="flex items-center gap-3 border-b border-[var(--sl-border)] px-4 py-3">
