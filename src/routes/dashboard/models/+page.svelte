@@ -761,7 +761,7 @@
 	}
 </script>
 
-<div class="space-y-6">
+<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
 		<div>
 			<h1 class="text-2xl font-bold text-[var(--sl-text-1)]">Models</h1>
@@ -929,64 +929,37 @@
 	{:else}
 		<div class="space-y-6">
 			{#if currentModel}
-				<div class="overflow-hidden rounded-xl border border-primary/30 bg-[var(--sl-accent-muted)]">
-					<div class="border-b border-primary/20 bg-primary/10 px-4 py-3">
-						<div class="flex items-center gap-2">
-							<Smartphone size={16} class="text-primary" />
-							<span class="text-sm font-bold tracking-wider text-primary uppercase">
-								Active On Device
-							</span>
+				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				<div class="flex items-center justify-between px-4 py-4">
+					<div class="flex items-center gap-3 min-w-0">
+						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]">
+							<Smartphone size={14} class="text-[var(--sl-text-2)]" />
 						</div>
-					</div>
-					<div class="p-4">
-						<div class="flex items-start justify-between gap-4">
-							<div>
-								<h3 class="text-lg font-bold text-[var(--sl-text-1)]">{currentModel.display_name}</h3>
-								<code
-									class="mt-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs text-primary"
-								>
-									{currentModel.short_name}
-								</code>
+						<div class="min-w-0">
+							<div class="flex items-center gap-2">
+								<span class="text-sm font-medium text-[var(--sl-text-1)] truncate">{currentModel.display_name}</span>
+								<code class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{currentModel.short_name}</code>
 							</div>
-							{#if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
-								<div
-									class="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-500"
-								>
-									<span class="loading loading-xs loading-spinner text-blue-500"></span>
-									Downloading...
-								</div>
-							{:else}
-								<div
-									class="rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-[var(--sl-text-1)]"
-								>
-									Active
-								</div>
+							{#if currentModel.environment !== 'N/A' || currentModel.generation}
+								<p class="mt-0.5 text-xs text-[var(--sl-text-3)]">
+									{[currentModel.environment, currentModel.generation, currentModel.runner].filter(v => v && v !== 'N/A').join(' \u00B7 ') || 'Default model'}
+								</p>
 							{/if}
 						</div>
-						<div class="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-							<div>
-								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Environment</span>
-								<span class="text-[var(--sl-text-2)]">{currentModel.environment}</span>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Generation</span>
-								<span class="text-[var(--sl-text-2)]">{currentModel.generation ?? 'N/A'}</span>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Runner</span>
-								<span class="text-[var(--sl-text-2)]">{currentModel.runner ?? 'N/A'}</span>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-[var(--sl-text-3)] uppercase">Build Date</span>
-								<span class="text-[var(--sl-text-2)]">
-									{currentModel.build_time
-										? new Date(currentModel.build_time).toLocaleDateString()
-										: 'N/A'}
-								</span>
-							</div>
-						</div>
 					</div>
+					{#if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
+						<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
+							<span class="loading loading-xs loading-spinner"></span>
+							Downloading
+						</div>
+					{:else}
+						<div class="flex shrink-0 items-center gap-1.5 text-xs text-emerald-500">
+							<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+							Active
+						</div>
+					{/if}
 				</div>
+			</div>
 
 			{/if}
 
@@ -994,7 +967,7 @@
 				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 					<div class="label px-0">
 						<span
-							class="label-text text-sm font-semibold tracking-[0.28em] text-[var(--sl-text-2)] uppercase"
+							class="label-text text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
 							>Available Models</span
 						>
 					</div>

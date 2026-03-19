@@ -44,6 +44,14 @@
 
 	async function fetchValues() {
 		if (!deviceId || !logtoClient) return;
+
+		// If values are already cached (from background prefetch), skip fetch
+		const existing = deviceState.deviceValues[deviceId] ?? {};
+		if (existing['CarPlatformBundle'] !== undefined || existing['CarFingerprint'] !== undefined) {
+			isLoadingValues = false;
+			return;
+		}
+
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 

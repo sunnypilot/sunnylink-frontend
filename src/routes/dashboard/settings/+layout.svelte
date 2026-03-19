@@ -110,6 +110,9 @@
 		const vehicleItems = brand && schema.vehicle_settings ? (schema.vehicle_settings[brand] ?? []) : [];
 		for (const item of vehicleItems) addItem(item);
 
+		// Also prefetch vehicle detection params (used by VehicleSelector)
+		allKeys.push('CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent');
+
 		// Filter to keys we don't have yet
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		const missing = allKeys.filter((k) => existing[k] === undefined);

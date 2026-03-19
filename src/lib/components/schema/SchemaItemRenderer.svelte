@@ -45,7 +45,7 @@
 	let enablementDeps = $derived(collectParamDependencies(item.enablement));
 	// Disabled if a dependency is currently being pushed by another item
 	let blockedByPush = $derived(pushStateStore.isAnyPushing(deviceId, enablementDeps));
-	let enabled = $derived(enabledByRules && !blockedByPush && !readonly);
+	let enabled = $derived(visible && enabledByRules && !blockedByPush && !readonly);
 
 	let currentValue = $derived(deviceState.deviceValues[deviceId]?.[item.key]);
 	let displayValue: unknown = $derived(
@@ -249,11 +249,12 @@
 	}
 </script>
 
-{#if visible}
 	<div
 		class="transition-all duration-150 {accentClass}"
-		class:opacity-40={!enabled}
-		class:opacity-60={enabled && isPushing}
+		class:opacity-30={!visible}
+		class:pointer-events-none={!visible}
+		class:opacity-40={visible && !enabled}
+		class:opacity-60={visible && enabled && isPushing}
 		id={item.key}
 	>
 		{#if item.widget === 'toggle'}
@@ -524,4 +525,3 @@
 			<svelte:self deviceId={deviceId} item={subItem} {loadingValues} {readonly} isLast={i === item.sub_items.length - 1 && isLast} />
 		{/each}
 	{/if}
-{/if}

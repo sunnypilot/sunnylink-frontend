@@ -85,15 +85,15 @@
 
 <div class="relative w-full {isFocused ? 'z-50' : ''}">
 	<div class="relative">
-		<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-			<Search class="h-5 w-5 text-[var(--sl-text-2)]" />
+		<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+			<Search class="h-4 w-4 text-[var(--sl-text-3)]" />
 		</div>
 		<input
 			bind:this={inputRef}
 			type="text"
 			bind:value={searchState.query}
 			placeholder="Search settings..."
-			class="input-bordered input w-full bg-[var(--sl-bg-elevated)] pr-10 pl-10 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-2)] focus:border-primary focus:outline-none"
+			class="w-full rounded-lg border border-transparent bg-[var(--sl-bg-elevated)] py-2 pr-10 pl-10 text-[0.8125rem] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] transition-colors focus:border-[var(--sl-border)] focus:bg-[var(--sl-bg-surface)] focus:outline-none"
 			onfocus={() => {
 				isFocused = true;
 				if (searchState.query.trim()) isOpen = true;
