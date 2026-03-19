@@ -147,6 +147,12 @@
 	// ── Value fetching ──────────────────────────────────────────────────────
 
 	let loadingValues = $state(false);
+
+	// Reset loading state on category change to prevent stale spinner
+	$effect(() => {
+		category; // track
+		loadingValues = false;
+	});
 	let jsonModalOpen = $state(false);
 	let jsonModalContent = $state('');
 	let jsonModalTitle = $state('');

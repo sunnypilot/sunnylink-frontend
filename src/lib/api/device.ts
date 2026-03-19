@@ -116,13 +116,22 @@ export async function fetchSettingsAsync(
 	}
 }
 
-export async function checkDeviceStatus(deviceId: string, token: string, force: boolean = false) {
+export async function checkDeviceStatus(
+	deviceId: string,
+	token: string,
+	force: boolean = false,
+	silent: boolean = false
+) {
 	if (!deviceId || !token) return;
 
 	// Skip if we have a fresh status (< 60s old) and not forcing
 	if (!force && deviceState.isStatusFresh(deviceId)) return;
 
-	deviceState.onlineStatuses[deviceId] = 'loading';
+	// Silent mode: don't flash 'loading' state — used by background polling
+	// to avoid UI disruption (devices moving between online/offline sections)
+	if (!silent) {
+		deviceState.onlineStatuses[deviceId] = 'loading';
+	}
 
 	try {
 		// Phase 1: Fast synchronous check - query available settings keys to determine if online

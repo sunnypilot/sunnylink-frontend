@@ -5,12 +5,20 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { loadCachedValues, saveCachedValues, getLastKnownCommit, setLastKnownCommit } from '$lib/stores/valuesCache';
+	import { fetchSettingsAsync } from '$lib/api/device';
+	import { decodeParamValue } from '$lib/utils/device';
+	import type { Panel } from '$lib/types/schema';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
+	import { toastState } from '$lib/stores/toast.svelte';
+	import { formatRelativeTime } from '$lib/utils/time';
 
 	let { children, data } = $props();
 
 	let retrying = $state(false);
+	let lastRetryAt = $state<number | null>(null);
+	let retryFailed = $state(false);
+	let wasOffline = $state(false);
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let deviceStatus = $derived(deviceId ? deviceState.onlineStatuses[deviceId] : undefined);
@@ -20,24 +28,43 @@
 	let isLoading = $derived(deviceStatus === 'loading' || deviceStatus === undefined);
 	let isError = $derived(deviceStatus === 'error');
 
-	// Load cached values into device state on mount.
-	// Uses getLastKnownCommit() to break the chicken-and-egg:
-	// previously, we needed schema or deviceValues to get gitCommit,
-	// but those aren't available on first render.
+	// Track when device transitions from offline → online for success toast
 	$effect(() => {
-		if (!deviceId) return;
+		if (isOnline && wasOffline) {
+			wasOffline = false;
+			toastState.show('Device reconnected', 'success');
+		}
+		if (isDeviceUnavailable && !isLoading) {
+			wasOffline = true;
+		}
+	});
 
-		// Try all sources for gitCommit, with lastKnownCommit as fallback
-		const schemaCommit = schemaState.schemas[deviceId]?.schema_version;
-		const valuesCommit = deviceState.deviceValues[deviceId]?.['GitCommit'] as string | undefined;
-		const lastKnown = getLastKnownCommit(deviceId);
+	// Synchronous cache hydration — runs before first render.
+	// Uses getLastKnownCommit() to break the chicken-and-egg.
+	// Must be synchronous (not $effect) so cached values are available
+	// for the first template render — prevents gray/empty toggles flash.
+	function hydrateCacheSync(did: string) {
+		if (!did) return;
+		const schemaCommit = schemaState.schemas[did]?.schema_version;
+		const valuesCommit = deviceState.deviceValues[did]?.['GitCommit'] as string | undefined;
+		const lastKnown = getLastKnownCommit(did);
 		const commit = valuesCommit || schemaCommit || lastKnown;
 		if (!commit) return;
 
-		const cached = loadCachedValues(deviceId, commit);
-		if (cached && (!deviceState.deviceValues[deviceId] || Object.keys(deviceState.deviceValues[deviceId]).length === 0)) {
-			deviceState.deviceValues[deviceId] = { ...cached };
+		const cached = loadCachedValues(did, commit);
+		if (cached && (!deviceState.deviceValues[did] || Object.keys(deviceState.deviceValues[did]).length === 0)) {
+			deviceState.deviceValues[did] = { ...cached };
 		}
+	}
+
+	// Hydrate immediately for the current device (synchronous, before first render)
+	if (deviceState.selectedDeviceId) {
+		hydrateCacheSync(deviceState.selectedDeviceId);
+	}
+
+	// Also re-hydrate reactively when device changes (for device switching)
+	$effect(() => {
+		if (deviceId) hydrateCacheSync(deviceId);
 	});
 
 	// Save values to cache whenever they change and device is online.
@@ -51,6 +78,75 @@
 			saveCachedValues(deviceId, gitCommit, values);
 			setLastKnownCommit(deviceId, gitCommit);
 		}
+	});
+
+	// Background prefetch: when schema is loaded and device is online,
+	// fetch ALL panel keys in the background so every settings page
+	// loads instantly from cache on subsequent visits or F5 refresh.
+	let prefetchDone = $state<Record<string, boolean>>({});
+
+	$effect(() => {
+		if (!deviceId || !isOnline || !logtoClient) return;
+		if (prefetchDone[deviceId]) return;
+		const schema = schemaState.schemas[deviceId];
+		if (!schema?.panels) return;
+
+		// Collect all keys from all panels
+		const allKeys: string[] = [];
+		function addItem(item: { key: string; sub_items?: { key: string }[] }) {
+			allKeys.push(item.key);
+			for (const sub of item.sub_items ?? []) allKeys.push(sub.key);
+		}
+		for (const panel of schema.panels) {
+			for (const item of panel.items) addItem(item);
+			for (const sp of panel.sub_panels ?? []) {
+				for (const item of sp.items) addItem(item);
+			}
+		}
+
+		// Filter to keys we don't have yet
+		const existing = deviceState.deviceValues[deviceId] ?? {};
+		const missing = allKeys.filter((k) => existing[k] === undefined);
+		if (missing.length === 0) {
+			prefetchDone[deviceId] = true;
+			return;
+		}
+
+		// Background fetch — silent, non-blocking
+		(async () => {
+			try {
+				const token = await logtoClient!.getIdToken();
+				if (!token) return;
+
+				// Chunk into batches of 10 (matching existing pattern)
+				const chunks: string[][] = [];
+				for (let i = 0; i < missing.length; i += 10) {
+					chunks.push(missing.slice(i, i + 10));
+				}
+
+				await Promise.all(
+					chunks.map(async (chunk) => {
+						try {
+							const response = await fetchSettingsAsync(deviceId!, chunk, token);
+							if (response.items) {
+								const vals = deviceState.deviceValues[deviceId!] ??= {};
+								for (const item of response.items) {
+									if (item.key && item.value !== undefined) {
+										vals[item.key] = decodeParamValue({
+											key: item.key,
+											value: item.value,
+											type: item.type ?? 'String'
+										});
+									}
+								}
+							}
+						} catch {}
+					})
+				);
+
+				prefetchDone[deviceId!] = true;
+			} catch {}
+		})();
 	});
 
 	// Educational banner
@@ -70,9 +166,19 @@
 	async function handleRetry() {
 		if (!deviceId || !logtoClient) return;
 		retrying = true;
+		retryFailed = false;
 		try {
 			const token = await logtoClient.getIdToken();
-			if (token) await checkDeviceStatus(deviceId, token);
+			if (token) await checkDeviceStatus(deviceId, token, true);
+			// Check if still offline after retry
+			const statusAfter = deviceState.onlineStatuses[deviceId];
+			if (statusAfter !== 'online') {
+				retryFailed = true;
+				lastRetryAt = Date.now();
+			}
+		} catch {
+			retryFailed = true;
+			lastRetryAt = Date.now();
 		} finally {
 			retrying = false;
 		}
@@ -132,22 +238,41 @@
 			{isError ? 'border-orange-500/20 bg-orange-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}">
 			{#if isError}
 				<AlertTriangle size={16} class="shrink-0 text-orange-400" />
-				<p class="flex-1 text-sm text-orange-200/80">
-					<span class="font-medium">Connection error</span> — Unable to reach device. Settings may be outdated.
-				</p>
+				<div class="flex-1">
+					<p class="text-sm text-orange-200/80">
+						<span class="font-medium">Connection error</span> — Unable to reach device. Settings may be outdated.
+					</p>
+					{#if lastRetryAt}
+						<p class="mt-0.5 text-[0.6875rem] text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+					{/if}
+				</div>
 			{:else}
 				<WifiOff size={16} class="shrink-0 text-yellow-500" />
-				<p class="flex-1 text-sm text-yellow-200/80">
-					<span class="font-medium">Offline</span> — Showing cached settings. Changes disabled until device is online.
-				</p>
+				<div class="flex-1">
+					<p class="text-sm text-yellow-200/80">
+						{#if retryFailed}
+							<span class="font-medium">Still offline</span> — Device not reachable. Showing cached settings.
+						{:else}
+							<span class="font-medium">Offline</span> — Showing cached settings. Changes disabled until device is online.
+						{/if}
+					</p>
+					{#if lastRetryAt}
+						<p class="mt-0.5 text-[0.6875rem] text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+					{/if}
+				</div>
 			{/if}
-			<button class="btn btn-ghost btn-xs {isError ? 'text-orange-400' : 'text-yellow-400'}" disabled={retrying} onclick={handleRetry}>
+			<button
+				class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-400' : 'text-yellow-400'}"
+				disabled={retrying}
+				onclick={handleRetry}
+			>
 				{#if retrying}
 					<span class="loading loading-spinner loading-xs"></span>
+					Checking...
 				{:else}
 					<RefreshCw size={14} />
+					Retry
 				{/if}
-				Retry
 			</button>
 		</div>
 	</div>

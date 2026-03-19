@@ -26,7 +26,6 @@
 		Smartphone
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
@@ -37,6 +36,7 @@
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
+	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
@@ -192,7 +192,10 @@
 
 			if (result.devices.length > 0) {
 				devices = result.devices;
-				checkAllDevicesStatus(result.devices);
+				checkAllDevicesStatus(result.devices).then(() => {
+					statusPolling.markChecked();
+					statusPolling.start();
+				});
 			}
 		});
 	});
@@ -281,11 +284,7 @@
 							{/if}
 						</div>
 
-						{#await data.streamed.deviceResult}
-							<div
-								class="h-9 w-44 animate-pulse self-end rounded-lg bg-[var(--sl-bg-elevated)] lg:self-auto"
-							></div>
-						{:then result}
+						{#await data.streamed.deviceResult then result}
 							{#if result.error === 'auth_expired'}
 								<button
 									class="btn btn-ghost btn-sm self-end text-warning lg:self-auto"
@@ -302,20 +301,7 @@
 								>
 									Failed to load — Retry
 								</button>
-							{:else if result.devices && result.devices.length > 0}
-								<div class="flex min-w-0 flex-1 justify-end self-end lg:flex-none lg:self-auto">
-									<DeviceSelector devices={result.devices} />
-								</div>
-							{:else}
-								<span class="self-end text-sm text-[var(--sl-text-2)] lg:self-auto">No devices found</span>
 							{/if}
-						{:catch}
-							<button
-								class="btn btn-ghost btn-sm self-end text-error lg:self-auto"
-								onclick={() => invalidate('app:devices')}
-							>
-								Failed to load — Retry
-							</button>
 						{/await}
 					</div>
 				</div>

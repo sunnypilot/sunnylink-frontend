@@ -14,6 +14,7 @@ import { browser } from '$app/environment';
 import type { SettingsSchema, Capabilities } from '$lib/types/schema';
 import { fetchSettingsAsync } from '$lib/api/device';
 import { decodeParamValue } from '$lib/utils/device';
+import { deviceState } from '$lib/stores/device.svelte';
 
 const SCHEMA_CACHE_PREFIX = 'sunnylink_schema_';
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -93,6 +94,11 @@ class SchemaStore {
 						const decoded = decodeParamValue({ key: item.key, value: item.value, type: 'String' });
 						if (typeof decoded === 'string') {
 							fetchedVersion = decoded;
+							// Also store in deviceValues so the values cache can key on it
+							if (!deviceState.deviceValues[deviceId]) {
+								deviceState.deviceValues[deviceId] = {};
+							}
+							deviceState.deviceValues[deviceId]['GitCommit'] = decoded;
 						}
 					}
 
@@ -178,16 +184,16 @@ class SchemaStore {
 
 	async _refreshCapabilities(deviceId: string, token: string): Promise<void> {
 		try {
-			const response = await fetchSettingsAsync(
-				deviceId,
-				['SettingsCapabilities'],
-				token
-			);
+			const response = await fetchSettingsAsync(deviceId, ['SettingsCapabilities'], token);
 
 			if (response.items) {
 				const capsItem = response.items.find((i) => i.key === 'SettingsCapabilities');
 				if (capsItem?.value) {
-					const decoded = decodeParamValue({ key: capsItem.key!, value: capsItem.value, type: 'String' });
+					const decoded = decodeParamValue({
+						key: capsItem.key!,
+						value: capsItem.value,
+						type: 'String'
+					});
 					if (typeof decoded === 'string') {
 						try {
 							const caps = JSON.parse(decoded) as Capabilities;
