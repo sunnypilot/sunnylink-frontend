@@ -95,17 +95,32 @@ class PendingChangesStore {
 		return this.getAll(deviceId).filter((c) => c.status === 'failed').length;
 	}
 
-	/** Enqueue a new change or update existing one for the same key */
+	/** Enqueue a new change or update existing one for the same key.
+	 *  If the user reverts to the original value, the entry is removed entirely. */
 	enqueue(deviceId: string, key: string, desiredValue: unknown, previousValue: unknown): void {
 		this.load(deviceId);
 		const changes = this._changes[deviceId] ?? [];
 
-		// Replace existing entry for the same key
 		const idx = changes.findIndex((c) => c.key === key);
+
+		// Preserve the true original value from the first queued entry
+		const existingEntry = idx >= 0 ? changes[idx] : undefined;
+		const originalValue = existingEntry ? existingEntry.previousValue : previousValue;
+
+		// If user reverted to the original value, remove the entry entirely
+		if (this.valuesEqual(desiredValue, originalValue)) {
+			if (idx >= 0) {
+				changes.splice(idx, 1);
+				this._changes[deviceId] = [...changes];
+				saveToStorage(deviceId, changes);
+			}
+			return;
+		}
+
 		const entry: PendingChange = {
 			key,
 			desiredValue,
-			previousValue,
+			previousValue: originalValue,
 			timestamp: Date.now(),
 			status: 'pending',
 			attempts: 0
@@ -127,6 +142,14 @@ class PendingChangesStore {
 
 		this._changes[deviceId] = [...changes]; // trigger reactivity
 		saveToStorage(deviceId, changes);
+	}
+
+	/** Compare values across types (handles string/number coercion for param values) */
+	private valuesEqual(a: unknown, b: unknown): boolean {
+		if (a === b) return true;
+		// Handle string/number coercion (e.g., "1" vs 1, "true" vs true)
+		if (String(a) === String(b)) return true;
+		return false;
 	}
 
 	/** Mark a change as pushing (idempotent — skips if already pushing) */
@@ -203,6 +226,35 @@ class PendingChangesStore {
 	/** Get the pending change for a specific key (if any) */
 	getForKey(deviceId: string, key: string): PendingChange | undefined {
 		return this.getAll(deviceId).find((c) => c.key === key);
+	}
+
+	/** Flush all pending changes to the device.
+	 *  Requires a pushFn callback that handles the actual API call per entry.
+	 *  Returns the count of successfully flushed changes. */
+	async flush(deviceId: string, pushFn: (change: PendingChange) => Promise<void>): Promise<number> {
+		if (this._flushing[deviceId]) return 0;
+		const pending = this.getByStatus(deviceId, 'pending');
+		if (pending.length === 0) return 0;
+
+		this._flushing[deviceId] = true;
+		let successCount = 0;
+
+		try {
+			for (const change of pending) {
+				this.markPushing(deviceId, change.key);
+				try {
+					await pushFn(change);
+					this.markConfirmed(deviceId, change.key);
+					successCount++;
+				} catch (e) {
+					this.markFailed(deviceId, change.key, (e as Error)?.message || 'Failed');
+				}
+			}
+		} finally {
+			this._flushing[deviceId] = false;
+		}
+
+		return successCount;
 	}
 }
 

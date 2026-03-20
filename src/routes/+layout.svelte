@@ -38,6 +38,7 @@
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
+	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
@@ -161,6 +162,12 @@
 			? deviceState.onlineStatuses[deviceState.selectedDeviceId]
 			: undefined
 	);
+
+	// Pending changes badge for sidebar
+	let sidebarPendingCount = $derived.by(() => {
+		if (!deviceState.selectedDeviceId) return 0;
+		return pendingChanges.getByStatus(deviceState.selectedDeviceId, 'pending').length;
+	});
 
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
@@ -366,6 +373,11 @@
 								<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
 									{sidebarDeviceAlias}
 								</span>
+								{#if sidebarPendingCount > 0}
+									<span class="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/20 px-1 text-[0.625rem] font-bold text-amber-400">
+										{sidebarPendingCount}
+									</span>
+								{/if}
 							</div>
 						{:else}
 							<span class="text-sm text-[var(--sl-text-2)]">Select a device</span>

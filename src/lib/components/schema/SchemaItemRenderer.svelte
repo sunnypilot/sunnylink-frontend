@@ -90,16 +90,21 @@
 
 		// Offline: queue the change instead of pushing immediately
 		if (!isDeviceOnline) {
+			const hadPending = !!pendingChanges.getForKey(deviceId, item.key);
 			deviceState.deviceValues[deviceId][item.key] = newValue;
 			pendingChanges.enqueue(deviceId, item.key, newValue, previousValue);
-			toastState.show('Change queued. Will sync when device reconnects.', 'info');
+			const stillPending = !!pendingChanges.getForKey(deviceId, item.key);
+
+			if (!stillPending && hadPending) {
+				toastState.show('Reverted to original. Queued change removed.', 'info');
+			} else if (stillPending) {
+				toastState.show('Change queued. Will sync when device reconnects.', 'info');
+			}
 			return;
 		}
 
-		// Online: immediate optimistic push
+		// Online: immediate optimistic push (no queue — per-row feedback is sufficient)
 		deviceState.deviceValues[deviceId][item.key] = newValue;
-		pendingChanges.enqueue(deviceId, item.key, newValue, previousValue);
-		pendingChanges.markPushing(deviceId, item.key);
 
 		pushState = 'pushing';
 		pushError = '';
@@ -117,7 +122,6 @@
 			await setDeviceParams(deviceId, [{ key: item.key, value: encoded }], token, 5000);
 
 			pushStateStore.endPush(deviceId, item.key);
-			pendingChanges.markConfirmed(deviceId, item.key);
 			pushState = 'success';
 
 			// Update localStorage cache with new value
@@ -131,7 +135,6 @@
 			// Rollback optimistic update
 			deviceState.deviceValues[deviceId][item.key] = previousValue;
 			pushStateStore.endPush(deviceId, item.key);
-			pendingChanges.markFailed(deviceId, item.key, (e as Error)?.message || 'Failed');
 			pushState = 'error';
 
 			// Rule 3: Contextual error handling

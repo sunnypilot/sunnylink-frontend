@@ -2,8 +2,8 @@
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { Upload, AlertTriangle, GitCompareArrows } from 'lucide-svelte';
-	import { fly, fade } from 'svelte/transition';
+	import { Upload, AlertTriangle, RefreshCw, X } from 'lucide-svelte';
+	import { slide } from 'svelte/transition';
 
 	interface Props {
 		deviceId: string;
@@ -13,13 +13,18 @@
 
 	let { deviceId, onRetryFailed, onReviewDrift }: Props = $props();
 
-	let pendingCount = $derived(pendingChanges.pendingCount(deviceId));
+	let queuedCount = $derived(
+		pendingChanges.getByStatus(deviceId, 'pending').length
+	);
+	let pushingCount = $derived(
+		pendingChanges.getByStatus(deviceId, 'pushing').length
+	);
 	let failedCount = $derived(pendingChanges.failedCount(deviceId));
 	let isFlushing = $derived(pendingChanges.isFlushing(deviceId));
 	let driftCount = $derived(driftStore.count(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 
-	let showBanner = $derived(pendingCount > 0 || failedCount > 0 || isFlushing || driftCount > 0);
+	let showBanner = $derived(queuedCount > 0 || failedCount > 0 || isFlushing || driftCount > 0);
 
 	function handleDismissFailed() {
 		const failed = pendingChanges.getByStatus(deviceId, 'failed');
@@ -32,17 +37,13 @@
 		driftStore.dismissAll(deviceId);
 	}
 
-	// Build a summary string for the floating pill
-	let summaryText = $derived.by(() => {
-		const parts: string[] = [];
-		if (isFlushing) parts.push(`Syncing ${pendingCount}`);
-		else if (pendingCount > 0) parts.push(`${pendingCount} queued`);
-		if (failedCount > 0) parts.push(`${failedCount} failed`);
-		if (driftCount > 0) parts.push(`${driftCount} drifted`);
-		return parts.join(' · ');
+	let statusText = $derived.by(() => {
+		if (isFlushing) return `Syncing ${queuedCount + pushingCount} change${(queuedCount + pushingCount) === 1 ? '' : 's'}...`;
+		if (queuedCount > 0) return `${queuedCount} change${queuedCount === 1 ? '' : 's'} queued`;
+		return '';
 	});
 
-	let pillColor = $derived(
+	let borderColor = $derived(
 		failedCount > 0 ? 'border-red-500/30' :
 		isFlushing ? 'border-primary/30' :
 		driftCount > 0 ? 'border-cyan-500/30' :
@@ -57,50 +58,66 @@
 	);
 </script>
 
-<!-- Floating status pill — fixed position, never pushes content.
-     Follows Figma/Google Docs/Linear pattern: ambient, non-disruptive. -->
+<!-- Inline sync status banner — sits at top of settings content, not floating -->
 {#if showBanner}
 	<div
-		class="fixed bottom-4 left-1/2 z-40 -translate-x-1/2"
-		in:fly={{ y: 20, duration: 200 }}
-		out:fade={{ duration: 150 }}
+		class="mb-4 rounded-lg border {borderColor} bg-[var(--sl-bg-elevated)] px-4 py-2.5"
+		transition:slide={{ duration: 200 }}
 	>
-		<div class="flex items-center gap-2.5 rounded-full border {pillColor} bg-[var(--sl-bg-elevated)] px-4 py-2 shadow-lg backdrop-blur-md">
+		<div class="flex items-center gap-3">
 			<span class="block h-2 w-2 shrink-0 rounded-full {dotColor}"></span>
-			<span class="whitespace-nowrap text-xs font-medium text-[var(--sl-text-2)]">{summaryText}</span>
 
-			{#if failedCount > 0 && onRetryFailed}
-				<button
-					class="ml-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
-					onclick={onRetryFailed}
-				>
-					Retry
-				</button>
+			<!-- Queued / Syncing -->
+			{#if statusText}
+				<span class="flex-1 text-sm text-[var(--sl-text-2)]">{statusText}</span>
+				{#if queuedCount > 0 && isOnline && !isFlushing}
+					<span class="text-xs text-[var(--sl-text-3)]">Will sync automatically</span>
+				{/if}
 			{/if}
 
+			<!-- Failed -->
 			{#if failedCount > 0}
+				<span class="flex items-center gap-1.5 text-sm text-red-400">
+					<AlertTriangle size={14} />
+					{failedCount} failed
+				</span>
+				{#if onRetryFailed}
+					<button
+						class="text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+						onclick={onRetryFailed}
+					>
+						Retry
+					</button>
+				{/if}
 				<button
-					class="text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					class="text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
 					onclick={handleDismissFailed}
+					aria-label="Dismiss failed"
 				>
-					Dismiss
+					<X size={14} />
 				</button>
 			{/if}
 
+			<!-- Drift -->
 			{#if driftCount > 0}
+				<span class="flex items-center gap-1.5 text-sm text-cyan-400">
+					<RefreshCw size={14} />
+					{driftCount} drifted
+				</span>
 				{#if onReviewDrift}
 					<button
-						class="ml-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+						class="text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
 						onclick={onReviewDrift}
 					>
 						Review
 					</button>
 				{/if}
 				<button
-					class="text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					class="text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
 					onclick={handleDismissDrift}
+					aria-label="Dismiss drift"
 				>
-					Dismiss
+					<X size={14} />
 				</button>
 			{/if}
 		</div>

@@ -4,10 +4,12 @@
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import { loadCachedValues, saveCachedValues, getLastKnownCommit, setLastKnownCommit } from '$lib/stores/valuesCache';
-	import { fetchSettingsAsync } from '$lib/api/device';
-	import { decodeParamValue } from '$lib/utils/device';
+	import { loadCachedValues, saveCachedValues, getLastKnownCommit, setLastKnownCommit, updateCachedValue } from '$lib/stores/valuesCache';
+	import { fetchSettingsAsync, setDeviceParams } from '$lib/api/device';
+	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
+	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import type { Panel } from '$lib/types/schema';
+	import type { PendingChange } from '$lib/stores/pendingChanges.svelte';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
@@ -28,16 +30,58 @@
 	let isLoading = $derived(deviceStatus === 'loading' || deviceStatus === undefined);
 	let isError = $derived(deviceStatus === 'error');
 
-	// Track when device transitions from offline → online for success toast
+	// Track when device transitions from offline → online for success toast + auto-flush
 	$effect(() => {
 		if (isOnline && wasOffline) {
 			wasOffline = false;
 			toastState.show('Device reconnected', 'success');
+			// Auto-flush any queued changes now that device is back online
+			if (deviceId) flushPendingChanges(deviceId);
 		}
 		if (isDeviceUnavailable && !isLoading) {
 			wasOffline = true;
 		}
 	});
+
+	// Also flush on initial load if device is online and has pending changes
+	$effect(() => {
+		if (deviceId && isOnline && pendingChanges.hasPending(deviceId)) {
+			flushPendingChanges(deviceId);
+		}
+	});
+
+	/** Flush all pending changes to the device via the settings API */
+	async function flushPendingChanges(did: string) {
+		if (!logtoClient || pendingChanges.isFlushing(did)) return;
+
+		const token = await logtoClient.getIdToken();
+		if (!token) return;
+
+		const count = await pendingChanges.flush(did, async (change: PendingChange) => {
+			// Infer param type from device settings metadata
+			const deviceParams = deviceState.deviceSettings[did];
+			const paramInfo = deviceParams?.find((p: any) => p.key === change.key);
+			const type = paramInfo?.type || 'String';
+
+			const encoded = encodeParamValue({ key: change.key, value: change.desiredValue, type });
+			if (encoded === null) throw new Error('Failed to encode value');
+
+			await setDeviceParams(did, [{ key: change.key, value: encoded }], token, 5000);
+
+			// Update localStorage cache
+			const gitCommit = (deviceState.deviceValues[did]?.['GitCommit'] as string) || '';
+			if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
+		});
+
+		if (count > 0) {
+			toastState.show(`Synced ${count} queued change${count === 1 ? '' : 's'}`, 'success');
+		}
+
+		const failedCount = pendingChanges.failedCount(did);
+		if (failedCount > 0) {
+			toastState.show(`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`, 'error');
+		}
+	}
 
 	// Synchronous cache hydration — runs before first render.
 	// Uses getLastKnownCommit() to break the chicken-and-egg.
