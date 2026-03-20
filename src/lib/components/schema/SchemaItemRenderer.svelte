@@ -262,20 +262,20 @@
 	>
 		{#if item.widget === 'toggle'}
 			<!-- ── Toggle Row ──────────────────────────────────────────────── -->
-			<button
-				class="group flex w-full items-center justify-between px-4 py-4 text-left hover:bg-[var(--sl-bg-subtle)]"
-				style="transition: background-color var(--dur-fast) var(--ease-out);"
-				class:cursor-not-allowed={!enabled}
-				disabled={!enabled || isPushing}
-				aria-pressed={isOn}
-				tabindex={!enabled ? -1 : 0}
-				onclick={() => {
-					if (enabled && !isPushing) handleChange(!isOn);
-				}}
+			<div
+				class="flex w-full items-center justify-between px-4 py-4"
+				class:opacity-40={!enabled}
 			>
 				<div class="mr-4 min-w-0 flex-1">
 					<div class="flex items-center gap-2">
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+						<button
+							class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2"
+							class:cursor-not-allowed={!enabled}
+							disabled={!enabled || isPushing}
+							onclick={() => {
+								if (enabled && !isPushing) handleChange(!isOn);
+							}}
+						>{item.title || item.key}</button>
 						{#if isQueued}
 							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Queued</span>
 						{:else if isPushing}
@@ -302,7 +302,7 @@
 				</div>
 				<div class="flex shrink-0 items-center">
 					{#if isLoading}
-						<div class="h-[31px] w-[51px] skeleton-shimmer rounded-full"></div>
+						<div class="h-[26px] w-[44px] skeleton-shimmer rounded-full"></div>
 					{:else}
 						{@const toggleTrackClass =
 							isOn && isPushing ? 'bg-primary/40'
@@ -310,19 +310,27 @@
 							: !enabled ? 'bg-[var(--sl-toggle-off-disabled)]'
 							: 'bg-[var(--sl-toggle-off)]'
 						}
-						<div
-							class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full {toggleTrackClass}"
+						<button
+							class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass}"
 							style="transition: background-color var(--dur-instant) var(--ease-out);"
+							class:cursor-not-allowed={!enabled}
+							disabled={!enabled || isPushing}
+							role="switch"
+							aria-checked={isOn}
+							aria-label={item.title || item.key}
+							onclick={() => {
+								if (enabled && !isPushing) handleChange(!isOn);
+							}}
 						>
 							<span
-								class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm"
-								class:translate-x-[20px]={isOn}
+								class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
+								class:translate-x-[18px]={isOn}
 								style="transition: transform var(--dur-instant) var(--ease-spring);"
 							></span>
-						</div>
+						</button>
 					{/if}
 				</div>
-			</button>
+			</div>
 
 		{:else if item.widget === 'option'}
 			<!-- ── Option Row (select / slider) ────────────────────────────── -->

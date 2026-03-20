@@ -64,7 +64,6 @@
 			'/dashboard/settings/visuals': 'Visuals',
 			'/dashboard/settings/vehicle': 'Vehicle',
 			'/dashboard/settings/developer': 'Developer',
-			'/dashboard/settings/other': 'Other',
 			'/dashboard/osm': 'Maps',
 			'/dashboard/preferences': 'Preferences'
 		};
@@ -102,8 +101,7 @@
 										{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
 										{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
 										{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
-										{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' },
-										{ icon: Settings, label: 'Other', href: '/dashboard/settings/other' }
+										{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
 									]
 								: [])
 						]
