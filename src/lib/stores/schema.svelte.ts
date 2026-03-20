@@ -40,6 +40,9 @@ class SchemaStore {
 	/** Loading state per device */
 	loading: Record<string, boolean> = $state({});
 
+	/** Background revalidation status: null=idle, 'revalidating'=in-flight, 'succeeded'|'failed'=done */
+	revalidationStatus: Record<string, 'revalidating' | 'succeeded' | 'failed' | null> = $state({});
+
 	/** Error state per device */
 	errors: Record<string, string | null> = $state({});
 
@@ -47,37 +50,45 @@ class SchemaStore {
 	schemaUnavailable: Record<string, boolean> = $state({});
 
 	/**
-	 * Load schema + capabilities for a device.
+	 * Load schema + capabilities for a device (stale-while-revalidate).
 	 *
-	 * 1. Check localStorage cache (keyed by deviceId + gitCommit)
-	 * 2. If cache miss or version mismatch → fetch from device via getParams
-	 * 3. Always refresh capabilities in background
+	 * 1. Check localStorage cache (keyed by deviceId + gitCommit) → serve instantly if hit
+	 * 2. Always fetch fresh schema from device (background revalidation on cache hit)
+	 * 3. Update store + cache only if schema actually changed (compared by generated_at)
+	 * 4. Always refresh capabilities (lightweight, car-dependent)
+	 *
+	 * This ensures manual edits to settings_ui.json on the device are picked up
+	 * after sunnylinkd restart, even if GitCommit hasn't changed.
 	 */
 	async loadSchema(deviceId: string, token: string, currentGitCommit?: string): Promise<void> {
-		// Check cache
+		// Stale-while-revalidate: serve cached schema instantly, always revalidate
+		let hadCache = false;
 		if (browser && currentGitCommit) {
 			const cached = _loadFromCache(deviceId, currentGitCommit);
 			if (cached) {
 				this.schemas[deviceId] = cached.schema;
 				this.versions[deviceId] = cached.version;
 				this.schemaUnavailable[deviceId] = false;
+				hadCache = true;
 
-				// Load cached capabilities too (will be refreshed in background)
+				// Load cached capabilities too (will be refreshed below)
 				const cachedCaps = _loadCapsFromCache(deviceId);
 				if (cachedCaps) {
 					this.capabilities[deviceId] = cachedCaps;
 				}
-
-				// Background refresh capabilities (they change more often than schema)
-				this._refreshCapabilities(deviceId, token);
-				return;
 			}
 		}
 
-		// Fetch from device
-		this.loading[deviceId] = true;
+		// Always fetch from device (background revalidation if cache hit)
+		if (hadCache) {
+			this.revalidationStatus[deviceId] = 'revalidating';
+		} else {
+			this.loading[deviceId] = true;
+		}
 		this.errors[deviceId] = null;
-		this.schemaUnavailable[deviceId] = false;
+		if (!hadCache) {
+			this.schemaUnavailable[deviceId] = false;
+		}
 
 		try {
 			const response = await fetchSettingsAsync(
@@ -109,20 +120,29 @@ class SchemaStore {
 							try {
 								const parsed = await _parseSchema(decoded);
 								if (parsed) {
-									this.schemas[deviceId] = parsed;
-									this.versions[deviceId] = fetchedVersion;
-									schemaFound = true;
+									// SWR: only update store + cache if schema actually changed
+									const existingSchema = this.schemas[deviceId];
+									const schemaChanged =
+										!existingSchema || existingSchema.generated_at !== parsed.generated_at;
 
-									// Cache it
-									if (browser && fetchedVersion) {
-										_saveToCache(deviceId, fetchedVersion, parsed);
+									if (schemaChanged) {
+										this.schemas[deviceId] = parsed;
+										this.versions[deviceId] = fetchedVersion;
+
+										// Cache it
+										if (browser && fetchedVersion) {
+											_saveToCache(deviceId, fetchedVersion, parsed);
+										}
 									}
-								} else {
+									schemaFound = true;
+								} else if (!hadCache) {
 									this.errors[deviceId] = 'Failed to parse schema';
 								}
 							} catch (e) {
 								console.error(`Failed to parse SettingsSchema for ${deviceId}`, e);
-								this.errors[deviceId] = 'Failed to parse schema';
+								if (!hadCache) {
+									this.errors[deviceId] = 'Failed to parse schema';
+								}
 							}
 						}
 					}
@@ -143,15 +163,23 @@ class SchemaStore {
 					}
 				}
 
-				if (!schemaFound) {
-					this.schemaUnavailable[deviceId] = true;
+				if (schemaFound) {
+					if (hadCache) this.revalidationStatus[deviceId] = 'succeeded';
+				} else {
+					if (hadCache) this.revalidationStatus[deviceId] = 'failed';
+					if (!hadCache) this.schemaUnavailable[deviceId] = true;
 				}
 			} else {
-				this.errors[deviceId] = response.error || 'Failed to fetch schema';
+				if (hadCache) this.revalidationStatus[deviceId] = 'failed';
+				if (!hadCache) this.errors[deviceId] = response.error || 'Failed to fetch schema';
 			}
 		} catch (e) {
 			console.error(`Failed to load schema for ${deviceId}`, e);
-			this.errors[deviceId] = 'Network error';
+			if (hadCache) {
+				this.revalidationStatus[deviceId] = 'failed';
+			} else {
+				this.errors[deviceId] = 'Network error';
+			}
 		} finally {
 			this.loading[deviceId] = false;
 		}
@@ -179,6 +207,7 @@ class SchemaStore {
 		delete this.schemas[deviceId];
 		delete this.capabilities[deviceId];
 		delete this.versions[deviceId];
+		delete this.revalidationStatus[deviceId];
 		delete this.schemaUnavailable[deviceId];
 		if (browser) {
 			_evictDeviceCache(deviceId);

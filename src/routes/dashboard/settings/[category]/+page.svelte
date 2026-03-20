@@ -22,6 +22,7 @@
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 
+	import { untrack } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
@@ -152,11 +153,66 @@
 	// ── Value fetching ──────────────────────────────────────────────────────
 
 	let loadingValues = $state(false);
+	let revalidatingValues = $state(false);
+	let valuesFetchFailed = $state(false);
 
-	// Reset loading state on category change to prevent stale spinner
+	// Schema revalidation status from the store
+	let schemaRevalStatus = $derived(
+		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
+	);
+
+	// True when any background work is in-flight
+	let isRevalidating = $derived(
+		revalidatingValues || schemaRevalStatus === 'revalidating'
+	);
+
+	// Overall revalidation succeeded only if nothing failed
+	let revalidationSucceeded = $derived(
+		!revalidatingValues && !valuesFetchFailed &&
+		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
+	);
+
+	// ── Sync status pill state machine ──────────────────────────────────
+	// 'idle' → 'revalidating' → 'synced' | 'failed' (3s) → 'idle'
+	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
+	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
+
+	function clearSyncTimer() {
+		if (syncTimerId !== undefined) {
+			clearTimeout(syncTimerId);
+			syncTimerId = undefined;
+		}
+	}
+
+	// Only track isRevalidating — read/write syncStatus inside untrack
+	$effect(() => {
+		const revalidating = isRevalidating; // tracked
+		const succeeded = revalidationSucceeded; // tracked
+
+		untrack(() => {
+			if (revalidating && syncStatus !== 'revalidating') {
+				clearSyncTimer();
+				syncStatus = 'revalidating';
+			} else if (!revalidating && syncStatus === 'revalidating') {
+				syncStatus = succeeded ? 'synced' : 'failed';
+				syncTimerId = setTimeout(() => {
+					syncStatus = 'idle';
+					syncTimerId = undefined;
+				}, 3000);
+			}
+		});
+	});
+
+	// Reset loading state on category change
 	$effect(() => {
 		category; // track
 		loadingValues = false;
+		revalidatingValues = false;
+		valuesFetchFailed = false;
+		untrack(() => {
+			syncStatus = 'idle';
+			clearSyncTimer();
+		});
 	});
 	let jsonModalOpen = $state(false);
 	let jsonModalContent = $state('');
@@ -198,7 +254,7 @@
 		return result;
 	}
 
-	/** Collect all param keys from a schema panel (items + sub_items + sub_panels) */
+	/** Collect all param keys from a schema panel (items + sub_items + sub_panels + sections) */
 	function collectPanelKeys(panel: Panel): string[] {
 		const keys: string[] = [];
 		function addItem(item: { key: string; sub_items?: { key: string }[] }) {
@@ -211,12 +267,20 @@
 		for (const sp of panel.sub_panels ?? []) {
 			for (const item of sp.items) addItem(item);
 		}
-		return keys;
+		// Walk sections (V2 path) for robustness
+		for (const section of panel.sections ?? []) {
+			for (const item of section.items) addItem(item);
+			for (const sp of section.sub_panels ?? []) {
+				for (const item of sp.items) addItem(item);
+			}
+		}
+		return [...new Set(keys)];
 	}
 
 	async function fetchSchemaValues(signal?: AbortSignal) {
 		if (!deviceId || !logtoClient || !schemaPanel) return;
 		const did = deviceId; // capture for async closures
+		valuesFetchFailed = false;
 
 		// Skip keys we already have values for (delta fetch)
 		const allKeys = collectPanelKeys(schemaPanel);
@@ -232,10 +296,11 @@
 		const gitCommit = (existing['GitCommit'] as string) || '';
 		const cachedSnapshot = gitCommit ? loadCachedValues(did, gitCommit) : null;
 
-		// Only show spinner if we don't have ANY values yet for this panel
-		// (delta-fetch of a few missing keys shouldn't flash the spinner)
+		// Show full spinner only on cold start (no cached values at all)
+		// Show subtle revalidation indicator for delta-fetches
 		const hasAnyValues = allKeys.some((k) => existing[k] !== undefined);
 		if (!hasAnyValues) loadingValues = true;
+		else revalidatingValues = true;
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token || signal?.aborted) return;
@@ -281,7 +346,16 @@
 			// when the param simply doesn't exist on the device yet.
 			if (schemaPanel) {
 				const vals = deviceState.deviceValues[did] ??= {};
-				for (const item of [...schemaPanel.items, ...(schemaPanel.sub_panels ?? []).flatMap(sp => sp.items)]) {
+				// Collect all items from flat items, sub_panels, and sections
+				const allItems = [
+					...schemaPanel.items,
+					...(schemaPanel.sub_panels ?? []).flatMap(sp => sp.items),
+					...(schemaPanel.sections ?? []).flatMap(s => [
+						...s.items,
+						...(s.sub_panels ?? []).flatMap(sp => sp.items)
+					])
+				];
+				for (const item of allItems) {
 					if (vals[item.key] === undefined) {
 						// Use widget-appropriate defaults
 						if (item.widget === 'toggle') vals[item.key] = false;
@@ -303,8 +377,12 @@
 		} catch (e) {
 			if ((e as any)?.name === 'AbortError') return;
 			console.error('Failed to fetch schema values:', e);
+			valuesFetchFailed = true;
 		} finally {
-			if (!signal?.aborted) loadingValues = false;
+			if (!signal?.aborted) {
+				loadingValues = false;
+				revalidatingValues = false;
+			}
 		}
 	}
 
@@ -425,7 +503,7 @@
 
 <div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
 	<!-- ── Page Header ──────────────────────────────────────────────────── -->
-	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
+	<div class="mx-auto w-full max-w-2xl px-4 xl:max-w-3xl" style="display: grid;">
 		{#key activeSubPanel?.id ?? '__root__'}
 			<div
 				style="grid-area: 1 / 1;"
@@ -450,16 +528,32 @@
 						>
 						{schemaPanel?.label ?? category}
 					</button>
-					<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">
+					<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
 						{activeSubPanel.label}
 					</h2>
 				{:else}
-					<h2 class="text-2xl font-medium text-[var(--sl-text-1)] capitalize">
-						{schemaPanel?.label ?? category}
+					<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)] capitalize">
+						<span>{schemaPanel?.label ?? category}</span>
 						{#if loadingValues}
-							<span class="loading loading-spinner loading-xs ml-2 text-primary"></span>
+							<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+						{:else if syncStatus !== 'idle'}
+							<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
+								{#if syncStatus === 'revalidating'}
+									<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
+									<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
+								{:else if syncStatus === 'synced'}
+									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+									<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
+								{:else if syncStatus === 'failed'}
+									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+									<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
+								{/if}
+							</span>
 						{/if}
 					</h2>
+					{#if schemaPanel?.description}
+						<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{schemaPanel.description}</p>
+					{/if}
 				{/if}
 			</div>
 		{/key}
