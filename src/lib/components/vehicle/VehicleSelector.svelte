@@ -13,9 +13,12 @@
 
 	let { deviceId } = $props<{ deviceId: string }>();
 
-	let carList = $state<Record<string, any> | null>(null);
+	// Module-level CarList cache (survives component re-mounts during SPA navigation)
+	const carListCache: Record<string, Record<string, any>> = (globalThis as any).__carListCache ??= {};
+
+	let carList = $state<Record<string, any> | null>(carListCache[deviceId] ?? null);
 	let isFetchingCarList = $state(false);
-	let hasAttemptedAutoFetch = $state(false);
+	let hasAttemptedAutoFetch = $state(carListCache[deviceId] ? true : false);
 	let modalOpen = $state(false);
 
 	// Confirmation Modal State
@@ -39,18 +42,43 @@
 			''
 	);
 
-	// Loading state: start false if values already cached, true otherwise
+	// Try to extract fingerprint from cached CarParamsPersistent synchronously
+	function tryExtractFingerprintFromCache(did: string): void {
+		const vals = deviceState.deviceValues[did];
+		if (!vals) return;
+		// Skip if we already have a fingerprint
+		if (vals['CarFingerprint'] || vals['_ExtractedFingerprint']) return;
+		const persistentVal = vals['CarParamsPersistent'];
+		if (!persistentVal || typeof persistentVal !== 'string') return;
+		try {
+			const binary = atob(persistentVal);
+			const matches = binary.match(/(?=[A-Z0-9]*_)[A-Z0-9_]{4,}/g);
+			if (matches?.[0]) {
+				vals['_ExtractedFingerprint'] = matches[0];
+			}
+		} catch {}
+	}
+
+	// Synchronous extraction at init
+	if (deviceState.deviceValues[deviceId]) {
+		tryExtractFingerprintFromCache(deviceId);
+	}
+
+	// Loading state: start false if ANY vehicle data already cached
 	let isLoadingValues = $state(
 		!(deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
-		  deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined)
+		  deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
+		  deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined)
 	);
 
 	async function fetchValues() {
 		if (!deviceId || !logtoClient) return;
 
-		// If values are already cached (from background prefetch), skip fetch
+		// If values are already cached (from background prefetch or extraction), skip fetch
 		const existing = deviceState.deviceValues[deviceId] ?? {};
-		if (existing['CarPlatformBundle'] !== undefined || existing['CarFingerprint'] !== undefined) {
+		if (existing['CarPlatformBundle'] !== undefined ||
+		    existing['CarFingerprint'] !== undefined ||
+		    existing['_ExtractedFingerprint'] !== undefined) {
 			isLoadingValues = false;
 			return;
 		}
@@ -152,7 +180,7 @@
 					const token = await logtoClient?.getIdToken();
 					if (token) {
 						const list = await getCarList(deviceId, token);
-						if (list) carList = list;
+						if (list) { carList = list; carListCache[deviceId] = list; }
 					}
 				} catch (e) {
 					console.error('Effect fetch failed', e);
@@ -177,6 +205,7 @@
 					const list = await getCarList(deviceId, token);
 					if (list) {
 						carList = list;
+						carListCache[deviceId] = list;
 					} else {
 						console.warn('No CarList found on device');
 					}
@@ -334,7 +363,7 @@
 		bundle={carPlatformBundle}
 		fingerprint={carFingerprint}
 		{carList}
-		isLoading={isLoadingValues || isFetchingCarList}
+		isLoading={isLoadingValues}
 	/>
 
 	<CarSelectionModal bind:open={modalOpen} {carList} onSelect={handleSelect} />

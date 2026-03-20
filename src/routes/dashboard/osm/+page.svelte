@@ -394,30 +394,17 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-4">
-			<div
-				class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400"
-			>
-				<MapIcon size={24} />
-			</div>
-			<div>
-				<h1 class="text-2xl font-medium text-[var(--sl-text-1)]">OpenStreetMap</h1>
-				<p class="text-[var(--sl-text-2)]">Manage offline maps</p>
-			</div>
-		</div>
+<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
+	<div>
+		<h1 class="text-2xl font-medium text-[var(--sl-text-1)]">Maps</h1>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage offline OpenStreetMap data on your device</p>
 	</div>
 
 	{#if authState.loading}
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
-		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="mb-4 rounded-full bg-[var(--sl-bg-elevated)]/50 p-4">
-				<MapIcon class="h-12 w-12 text-[var(--sl-text-2)]" />
-			</div>
-			<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
-			<p class="mt-2 text-[var(--sl-text-2)]">Select a device to manage maps.</p>
+		<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
+			<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">Select a device to manage maps</p>
 		</div>
 	{:else if isOffline}
 		{#await data.streamed.deviceResult then result}
@@ -425,199 +412,147 @@
 			{@const selectedDevice = devices?.find(
 				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-red-500/10 p-4">
-					<AlertCircle class="h-12 w-12 text-red-500" />
-				</div>
-				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">
-					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
-					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-[var(--sl-text-2)]"
-							>({selectedDevice?.device_id})</span
-						>
-					{/if}
-				</h3>
-				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">Your device needs to be online to manage maps.</p>
-				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
+			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
+				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+					Device Offline{selectedDevice?.alias ? `: ${selectedDevice.alias}` : ''}
+				</p>
+				<p class="mt-1 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">Your device needs to be online to manage maps.</p>
+				<div class="mt-4 flex flex-col items-center gap-3">
 					<button
 						class="btn btn-sm btn-primary"
 						onclick={async () => {
 							if (deviceState.selectedDeviceId && logtoClient) {
 								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceState.selectedDeviceId, token);
-								}
+								if (token) await checkDeviceStatus(deviceState.selectedDeviceId, token);
 							}
 						}}
 					>
 						Retry Connection
 					</button>
-					<div class="divider text-xs tracking-widest text-[var(--sl-text-3)]">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
+					{#if devices && devices.length > 1}
 						<DeviceSelector {devices} />
 					{/if}
 				</div>
 			</div>
 		{/await}
-	{:else if isCheckingStatus && !hasMap}
-		<div class="animate-pulse space-y-6">
-			<div class="flex items-center gap-2 text-[var(--sl-text-2)]">
-				<span class="loading loading-sm loading-spinner"></span>
-				<span>Checking device status...</span>
-			</div>
-			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-			<div class="h-64 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
-		</div>
 	{:else}
 		<div class="space-y-6">
-			{#if loadingOsmParams && !isDownloading && !hasMap}
-				<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-12 backdrop-blur-sm">
-					<div class="flex flex-col items-center justify-center text-center">
-						<Loader2 size={32} class="animate-spin text-indigo-400" />
-						<p class="mt-4 text-sm text-[var(--sl-text-2)]">Fetching map details...</p>
+			<!-- ── Current Map Section ──────────────────────────────── -->
+			<div>
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Current Map</p>
+				<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Offline map data downloaded on device</p>
+			</div>
+
+			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				{#if loadingOsmParams && !isDownloading && !hasMap}
+					<div class="flex items-center gap-2.5 px-4 py-3.5">
+						<span class="loading loading-spinner loading-xs text-[var(--sl-text-3)]"></span>
+						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Loading map details...</span>
 					</div>
-				</div>
-			{:else if hasMap || isDownloading}
-				<!-- Status Card: Shown if we have a map OR if we are currently downloading one -->
-				<div class="overflow-hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5">
-					<div class="border-b border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+				{:else if isCheckingStatus && !hasMap}
+					<div class="flex items-center gap-2.5 px-4 py-3.5">
+						<span class="loading loading-spinner loading-xs text-[var(--sl-text-3)]"></span>
+						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Checking device status...</span>
+					</div>
+				{:else if hasMap || isDownloading}
+					<div class="px-4 py-3.5">
 						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								{#if isDownloading}
-									<Loader2 size={16} class="animate-spin text-indigo-400" />
-								{:else}
-									<MapIcon size={16} class="text-indigo-400" />
-								{/if}
-								<span class="text-xs font-bold tracking-wider text-indigo-300 uppercase">
-									{#if isDownloading}
-										Downloading
-									{:else}
-										Downloaded
-									{/if}
-									On Device
-								</span>
-							</div>
-						</div>
-					</div>
-					<div class="p-4">
-						<div class="flex items-start justify-between gap-4">
 							<div>
 								{#if isDownloading && !currentCountryTitle}
-									<h3 class="text-lg font-bold text-[var(--sl-text-1)]">Downloading Map...</h3>
-									<p class="mt-1 text-sm font-medium text-[var(--sl-text-2)]">Please wait...</p>
+									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Downloading map...</p>
 								{:else}
-									<h3 class="text-lg font-bold text-[var(--sl-text-1)]">
-										{currentCountryTitle || currentCountryName || 'Unknown Location'}
-									</h3>
-									{#if currentStateTitle || currentStateName}
-										<p class="mt-1 text-sm font-medium text-[var(--sl-text-2)]">
-											{currentStateTitle || currentStateName}
-										</p>
-									{/if}
+									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+										{currentCountryTitle || currentCountryName || 'Unknown'}
+										{#if currentStateTitle || currentStateName}
+											— {currentStateTitle || currentStateName}
+										{/if}
+									</p>
+								{/if}
+								{#if isDownloading}
+									<p class="mt-0.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+										{downloadProgress ? `Downloading ${downloadProgress}` : 'Processing...'}
+									</p>
+								{:else}
+									<p class="mt-0.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+										Updated {formatTimeAgo(downloadedDateParam)}
+									</p>
 								{/if}
 							</div>
-							{#if isDownloading}
-								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1.5 text-xs font-medium text-indigo-200"
-								>
-									{#if downloadProgress}
-										Downloading {downloadProgress}
-									{:else}
-										Pending / Processing...
-									{/if}
-								</div>
-							{:else}
-								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1.5 text-xs font-medium text-indigo-200"
-								>
-									Last Updated {formatTimeAgo(downloadedDateParam)}
-								</div>
-							{/if}
-						</div>
-
-						<div class="mt-6 flex flex-col gap-3 sm:flex-row">
-							<button
-								class="btn w-full border-none bg-indigo-600 text-sm font-medium text-[var(--sl-text-1)] transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-[var(--sl-text-1)]/40"
-								onclick={handleCheckForUpdates}
-								disabled={isDownloading}
-							>
-								<RefreshCw size={14} />
-								Download Updates
-							</button>
+							<div class="flex items-center gap-2">
+								{#if isDownloading}
+									<Loader2 size={14} class="animate-spin text-[var(--sl-text-3)]" />
+								{:else}
+									<button
+										class="text-[0.75rem] font-[450] text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)] transition-colors"
+										onclick={handleCheckForUpdates}
+									>
+										Check for Updates
+									</button>
+								{/if}
+							</div>
 						</div>
 					</div>
-				</div>
-			{:else}
-				<!-- Empty State -->
-				<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-8 backdrop-blur-sm">
-					<div class="flex flex-col items-center justify-center text-center">
-						<div class="mb-3 rounded-full bg-[var(--sl-bg-surface)] p-3">
-							<MapIcon class="h-8 w-8 text-[var(--sl-text-3)]" />
-						</div>
-						<p class="text-sm text-[var(--sl-text-2)]">No offline map downloaded on this device</p>
+				{:else}
+					<div class="px-4 py-8 text-center">
+						<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">No offline map downloaded on this device</p>
 					</div>
-				</div>
-			{/if}
+				{/if}
+			</div>
 
-			<!-- Configuration/Download Form -->
-			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 backdrop-blur-sm">
-				<div class="mb-6 flex items-center justify-between">
-					<h3 class="font-medium text-[var(--sl-text-1)]">Download New Map</h3>
-				</div>
+			<!-- ── Download Section ─────────────────────────────────── -->
+			<div>
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Download Map</p>
+				<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Select a region to download for offline use</p>
+			</div>
 
-				<div class="space-y-4">
-					<div class="form-control">
-						<ComboBox
-							label="Country"
-							placeholder="Select a country"
-							options={countries.map((c) => ({ value: c.ref, label: c.display_name }))}
-							bind:value={selectedCountry}
-							disabled={isDownloading || loadingRegions}
-						/>
-					</div>
+			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				<div class="space-y-4 px-4 py-4">
+					<ComboBox
+						label="Country"
+						placeholder="Select a country"
+						options={countries.map((c) => ({ value: c.ref, label: c.display_name }))}
+						bind:value={selectedCountry}
+						disabled={isDownloading || loadingRegions}
+					/>
 
 					{#if selectedCountry === 'US'}
-						<div class="form-control">
-							<ComboBox
-								label="State"
-								placeholder="Select a state"
-								options={states.map((s) => ({ value: s.ref, label: s.display_name }))}
-								bind:value={selectedState}
-								disabled={isDownloading || loadingRegions}
-							/>
-						</div>
+						<ComboBox
+							label="State"
+							placeholder="Select a state"
+							options={states.map((s) => ({ value: s.ref, label: s.display_name }))}
+							bind:value={selectedState}
+							disabled={isDownloading || loadingRegions}
+						/>
 					{/if}
 
-					<div class="flex flex-col gap-3 pt-4 sm:flex-row">
+					{#if selectedCountry === 'US' && !selectedState}
+						<p class="text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+							State selection is required for US maps
+						</p>
+					{/if}
+				</div>
+
+				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
+					<div class="flex items-center justify-between">
+						<p class="text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+							Map downloads can be large (up to several GB)
+						</p>
 						<button
-							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-[var(--sl-text-1)] transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-[var(--sl-text-1)]/40"
+							class="btn btn-sm btn-primary"
 							disabled={!selectedCountry ||
 								(selectedCountry === 'US' && !selectedState) ||
 								isDownloading}
 							onclick={handleSaveAndDownload}
 						>
 							{#if isDownloading}
-								<Loader2 size={18} class="animate-spin" />
+								<Loader2 size={14} class="animate-spin" />
+								Downloading...
 							{:else}
-								<Download size={18} />
-							{/if}
-							{#if isDownloading}
-								Download in Progress...
-							{:else}
-								Download Map
+								<Download size={14} />
+								Download
 							{/if}
 						</button>
 					</div>
-
-					{#if selectedCountry === 'US' && !selectedState}
-						<p class="flex items-center gap-1 text-xs text-amber-400">
-							<AlertCircle size={12} />
-							State selection is required for US maps
-						</p>
-					{/if}
-					<p class="text-xs text-[var(--sl-text-3)]">
-						Map downloads can be large (up to several GB). Wi-Fi connection is recommended.
-					</p>
 				</div>
 			</div>
 		</div>

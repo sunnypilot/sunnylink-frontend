@@ -52,8 +52,22 @@
 		if (!commit) return;
 
 		const cached = loadCachedValues(did, commit);
-		if (cached && (!deviceState.deviceValues[did] || Object.keys(deviceState.deviceValues[did]).length === 0)) {
-			deviceState.deviceValues[did] = { ...cached };
+		if (cached) {
+			const existing = deviceState.deviceValues[did];
+			if (!existing || Object.keys(existing).length === 0) {
+				// No values yet — full hydration
+				deviceState.deviceValues[did] = { ...cached };
+			} else {
+				// Merge: fill in any keys missing from the live store
+				let merged = false;
+				for (const key in cached) {
+					if (existing[key] === undefined) {
+						existing[key] = cached[key];
+						merged = true;
+					}
+				}
+				if (merged) deviceState.deviceValues[did] = { ...existing };
+			}
 		}
 	}
 

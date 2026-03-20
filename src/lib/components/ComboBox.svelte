@@ -88,7 +88,7 @@
 	<button
 		{id}
 		type="button"
-		class="flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-3 text-left text-sm text-[var(--sl-text-1)] transition-colors hover:border-[#475569] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+		class="flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-3 text-left text-sm text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-border-emphasis)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 		onclick={toggle}
 		{disabled}
 	>
@@ -116,7 +116,7 @@
 						bind:value={searchQuery}
 						onkeydown={handleKeydown}
 						type="text"
-						class="w-full rounded-lg bg-[var(--sl-bg-input)] py-2.5 pr-4 pl-9 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:ring-2 focus:ring-indigo-500/50 focus:outline-none"
+						class="w-full rounded-lg bg-[var(--sl-bg-input)] py-2.5 pr-4 pl-9 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:ring-2 focus:ring-primary/50 focus:outline-none"
 						placeholder="Search..."
 					/>
 				</div>
@@ -130,12 +130,12 @@
 					{#each filteredOptions as option (option.value)}
 						<button
 							type="button"
-							class="group flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-left text-sm text-[var(--sl-text-2)] hover:bg-indigo-500/10 hover:text-[var(--sl-text-1)]"
+							class="group flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-left text-sm text-[var(--sl-text-2)] hover:bg-[var(--sl-accent-muted)] hover:text-[var(--sl-text-1)]"
 							onclick={() => select(option)}
 						>
 							<span>{option.label}</span>
 							{#if value === option.value}
-								<Check size={16} class="text-indigo-400" />
+								<Check size={16} class="text-primary" />
 							{/if}
 						</button>
 					{/each}
