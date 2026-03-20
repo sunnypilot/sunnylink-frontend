@@ -4,6 +4,7 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
+	import { fade, scale } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
 
 	let { open = $bindable(false), onSuccess } = $props<{
@@ -99,9 +100,21 @@
 </script>
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		role="dialog"
+		aria-modal="true"
+	>
+		<button
+			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+			transition:fade={{ duration: 200 }}
+			onclick={() => { if (!pushing) open = false; }}
+			aria-label="Close modal"
+			disabled={pushing}
+		></button>
 		<div
-			class="w-full max-w-lg overflow-hidden rounded-xl border border-red-500/30 bg-[var(--sl-bg-elevated)] shadow-2xl"
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-red-500/30 bg-[var(--sl-bg-elevated)] shadow-2xl"
+			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			<div class="border-b border-red-500/20 bg-red-500/10 p-6">
 				<div class="flex items-center gap-3 text-red-500">

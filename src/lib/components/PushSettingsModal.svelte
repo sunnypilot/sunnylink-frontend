@@ -5,6 +5,7 @@
 	import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
 	import { Loader2, AlertTriangle, ArrowRight } from 'lucide-svelte';
+	import { fade, scale } from 'svelte/transition';
 
 	let {
 		open = $bindable(false),
@@ -149,9 +150,21 @@
 </script>
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		role="dialog"
+		aria-modal="true"
+	>
+		<button
+			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+			transition:fade={{ duration: 200 }}
+			onclick={() => { if (!pushing && !fetchingLatest) open = false; }}
+			aria-label="Close modal"
+			disabled={pushing || fetchingLatest}
+		></button>
 		<div
-			class="w-full max-w-2xl overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
+			class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
+			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
 				<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Review Changes</h3>

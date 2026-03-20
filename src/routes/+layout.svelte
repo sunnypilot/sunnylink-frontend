@@ -28,6 +28,7 @@
 	import { checkDeviceStatus } from '$lib/api/device';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
+	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import PairingModal from '$lib/components/PairingModal.svelte';
 	import Toast from '$lib/components/Toast.svelte';
@@ -60,8 +61,10 @@
 			'/dashboard/settings/steering': 'Steering',
 			'/dashboard/settings/cruise': 'Cruise',
 			'/dashboard/settings/visuals': 'Visuals',
+			'/dashboard/settings/vehicle': 'Vehicle',
 			'/dashboard/settings/developer': 'Developer',
 			'/dashboard/settings/other': 'Other',
+			'/dashboard/osm': 'Maps',
 			'/dashboard/preferences': 'Preferences'
 		};
 		return `sunnylink${titles[path] ? ` - ${titles[path]}` : ''}`;
@@ -500,6 +503,9 @@
 		</div>
 	{/if}
 </div>
+
+<!-- DeviceSelector: trigger hidden (sidebar has its own), modal renders via deviceSelectorState -->
+<DeviceSelector {devices} triggerHidden />
 
 <BackupStatusIndicator />
 

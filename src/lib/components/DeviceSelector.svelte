@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
@@ -16,7 +17,7 @@
 	import { ChevronRight } from 'lucide-svelte';
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let { devices } = $props<{ devices: any[] }>();
+	let { devices, triggerHidden = false } = $props<{ devices: any[]; triggerHidden?: boolean }>();
 
 	let offlineSectionOpen = $state(false);
 
@@ -63,30 +64,12 @@
 	}
 
 	function clearSelection() {
-		deviceState.setSelectedDevice(''); // Or handle undefined better in store if needed, currently string
-		if (typeof localStorage !== 'undefined') {
-			localStorage.removeItem('selectedDeviceId');
-		}
-		// Force update store state if needed, but setSelectedDevice handles it
-		// Actually deviceState.selectedDeviceId is string | undefined.
-		// Let's make sure we set it to undefined effectively.
-		// The store setter takes string. Let's pass empty string or modify store to accept undefined?
-		// Store definition: setSelectedDevice(deviceId: string).
-		// Let's assume empty string is "no selection" or modify store.
-		// Checking store: selectedDeviceId: ... as string | undefined.
-		// setSelectedDevice(deviceId: string) { this.selectedDeviceId = deviceId; ... }
-		// So passing '' sets it to ''.
-		// In layout we check `deviceState.selectedDeviceId`. '' is falsy. So it works.
-
-		// Wait, better to be explicit.
-		// But I can't change store signature here easily without another file edit.
-		// Passing '' is fine for now as it is falsy.
 		deviceState.selectedDeviceId = undefined;
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem('selectedDeviceId');
 		}
-
 		deviceSelectorState.isOpen = false;
+		goto('/dashboard');
 	}
 
 	function toggleModal() {
@@ -104,6 +87,7 @@
 </script>
 
 <!-- Trigger -->
+{#if !triggerHidden}
 <button
 	class="group flex max-w-full items-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
 	onclick={toggleModal}
@@ -164,6 +148,7 @@
 		class="ml-auto text-[var(--sl-text-3)] transition-transform duration-200 {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
 	/>
 </button>
+{/if}
 
 <!-- Modal -->
 {#if deviceSelectorState.isOpen}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Shield, Info, Wifi } from 'lucide-svelte';
+	import { fade, scale } from 'svelte/transition';
 	import { preferences } from '$lib/stores/preferences.svelte';
 
 	let { open = $bindable(false) } = $props<{
@@ -21,12 +22,18 @@
 		role="dialog"
 		aria-modal="true"
 		aria-label="Device connection required"
-		class="fixed inset-0 z-[60] overflow-y-auto bg-black/50 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
 	>
-		<div class="flex min-h-full items-center justify-center p-4 sm:p-6">
-			<div
-				class="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
-			>
+		<button
+			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+			transition:fade={{ duration: 200 }}
+			onclick={handleClose}
+			aria-label="Close modal"
+		></button>
+		<div
+			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
+			transition:scale={{ start: 0.95, duration: 200 }}
+		>
 				<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-4 sm:p-6">
 					<div class="flex items-center gap-3">
 						<div class="rounded-full bg-primary/10 p-2 text-primary">
@@ -81,6 +88,5 @@
 					<button class="btn min-w-[100px] btn-primary" onclick={handleClose}> Got it </button>
 				</div>
 			</div>
-		</div>
 	</div>
 {/if}
