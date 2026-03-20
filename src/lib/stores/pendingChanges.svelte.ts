@@ -60,18 +60,29 @@ class PendingChangesStore {
 	/** Guard to prevent concurrent flushes per device */
 	private _flushing: Record<string, boolean> = {};
 
-	/** Load pending changes for a device from localStorage */
+	/** Load pending changes for a device from localStorage.
+	 *  Purges stale 'confirmed' entries — they're transient feedback
+	 *  that shouldn't survive a page reload. */
 	load(deviceId: string): void {
 		if (!this._changes[deviceId]) {
-			this._changes[deviceId] = loadFromStorage(deviceId);
+			const loaded = loadFromStorage(deviceId);
+			const cleaned = loaded.filter((c) => c.status !== 'confirmed');
+			if (cleaned.length !== loaded.length) {
+				saveToStorage(deviceId, cleaned);
+			}
+			this._changes[deviceId] = cleaned;
 		}
 	}
 
 	/** Get all pending changes for a device.
 	 *  Safe for $derived — reads state without mutation.
-	 *  Falls back to direct localStorage read if not yet loaded. */
+	 *  Falls back to localStorage (filtering stale confirmed entries). */
 	getAll(deviceId: string): PendingChange[] {
-		return this._changes[deviceId] ?? loadFromStorage(deviceId);
+		const cached = this._changes[deviceId];
+		if (cached) return cached;
+		// Direct read from localStorage, filtering confirmed entries
+		// (confirmed entries are transient and shouldn't survive a reload)
+		return loadFromStorage(deviceId).filter((c) => c.status !== 'confirmed');
 	}
 
 	/** Get only changes with a specific status */

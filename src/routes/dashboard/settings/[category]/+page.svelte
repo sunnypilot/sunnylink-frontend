@@ -503,7 +503,7 @@
 
 <div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
 	<!-- ── Page Header ──────────────────────────────────────────────────── -->
-	<div class="mx-auto w-full max-w-2xl px-4 xl:max-w-3xl" style="display: grid;">
+	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
 		{#key activeSubPanel?.id ?? '__root__'}
 			<div
 				style="grid-area: 1 / 1;"
@@ -511,49 +511,53 @@
 				out:fly={{ x: subPanelDirection === 'forward' ? -30 : 30, duration: 120 }}
 			>
 				{#if activeSubPanel}
-					<button
-						class="row-press mb-1 flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
-						onclick={closeSubPanel}
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="14"
-							height="14"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
+					<div class="px-4">
+						<button
+							class="row-press mb-1 flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
+							onclick={closeSubPanel}
 						>
-						{schemaPanel?.label ?? category}
-					</button>
-					<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
-						{activeSubPanel.label}
-					</h2>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
+							>
+							{schemaPanel?.label ?? category}
+						</button>
+						<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+							{activeSubPanel.label}
+						</h2>
+					</div>
 				{:else}
-					<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)] capitalize">
-						<span>{schemaPanel?.label ?? category}</span>
-						{#if loadingValues}
-							<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
-						{:else if syncStatus !== 'idle'}
-							<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
-								{#if syncStatus === 'revalidating'}
-									<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
-									<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
-								{:else if syncStatus === 'synced'}
-									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
-									<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
-								{:else if syncStatus === 'failed'}
-									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-									<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
-								{/if}
-							</span>
+					<div class="px-4">
+						<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)] capitalize">
+							<span>{schemaPanel?.label ?? category}</span>
+							{#if loadingValues}
+								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+							{:else if syncStatus !== 'idle'}
+								<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
+									{#if syncStatus === 'revalidating'}
+										<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
+										<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
+									{:else if syncStatus === 'synced'}
+										<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+										<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
+									{:else if syncStatus === 'failed'}
+										<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+										<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
+									{/if}
+								</span>
+							{/if}
+						</h2>
+						{#if schemaPanel?.description}
+							<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{schemaPanel.description}</p>
 						{/if}
-					</h2>
-					{#if schemaPanel?.description}
-						<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{schemaPanel.description}</p>
-					{/if}
+					</div>
 				{/if}
 			</div>
 		{/key}
@@ -627,7 +631,7 @@
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 					{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
-						<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+						<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 							{group.label}
 						</p>
 					{/if}
@@ -654,7 +658,7 @@
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 					{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
-						<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+						<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 							{group.label}
 						</p>
 					{/if}

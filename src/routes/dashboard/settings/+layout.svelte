@@ -83,6 +83,16 @@
 		}
 	}
 
+	function retryFailedChanges() {
+		if (!deviceId) return;
+		const failed = pendingChanges.getByStatus(deviceId, 'failed');
+		for (const entry of failed) {
+			// Re-enqueue as pending so the next flush picks them up
+			pendingChanges.enqueue(deviceId, entry.key, entry.desiredValue, entry.previousValue);
+		}
+		flushPendingChanges(deviceId);
+	}
+
 	// Synchronous cache hydration — runs before first render.
 	// Uses getLastKnownCommit() to break the chicken-and-egg.
 	// Must be synchronous (not $effect) so cached values are available
@@ -361,7 +371,9 @@
 
 <!-- Sync status banner — pending/failed/drift indicators -->
 {#if deviceId}
-	<SyncStatusBanner {deviceId} />
+	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+		<SyncStatusBanner {deviceId} onRetryFailed={retryFailedChanges} />
+	</div>
 {/if}
 
 <!-- Always render children — never gate on device status.

@@ -19,12 +19,15 @@
 	let pushingCount = $derived(
 		pendingChanges.getByStatus(deviceId, 'pushing').length
 	);
+	let confirmedCount = $derived(
+		pendingChanges.getByStatus(deviceId, 'confirmed').length
+	);
 	let failedCount = $derived(pendingChanges.failedCount(deviceId));
 	let isFlushing = $derived(pendingChanges.isFlushing(deviceId));
 	let driftCount = $derived(driftStore.count(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 
-	let showBanner = $derived(queuedCount > 0 || failedCount > 0 || isFlushing || driftCount > 0);
+	let showBanner = $derived(queuedCount > 0 || confirmedCount > 0 || failedCount > 0 || isFlushing || driftCount > 0);
 
 	function handleDismissFailed() {
 		const failed = pendingChanges.getByStatus(deviceId, 'failed');
@@ -40,12 +43,14 @@
 	let statusText = $derived.by(() => {
 		if (isFlushing) return `Syncing ${queuedCount + pushingCount} change${(queuedCount + pushingCount) === 1 ? '' : 's'}...`;
 		if (queuedCount > 0) return `${queuedCount} change${queuedCount === 1 ? '' : 's'} queued`;
+		if (confirmedCount > 0 && failedCount === 0) return `${confirmedCount} change${confirmedCount === 1 ? '' : 's'} synced`;
 		return '';
 	});
 
 	let borderColor = $derived(
 		failedCount > 0 ? 'border-red-500/30' :
 		isFlushing ? 'border-primary/30' :
+		confirmedCount > 0 ? 'border-emerald-500/30' :
 		driftCount > 0 ? 'border-cyan-500/30' :
 		'border-amber-500/30'
 	);
@@ -53,6 +58,7 @@
 	let dotColor = $derived(
 		failedCount > 0 ? 'bg-red-500' :
 		isFlushing ? 'bg-primary animate-pulse' :
+		confirmedCount > 0 ? 'bg-emerald-500' :
 		driftCount > 0 ? 'bg-cyan-500' :
 		'bg-amber-500'
 	);
