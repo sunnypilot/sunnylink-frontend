@@ -3,7 +3,7 @@
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { v0Client } from '$lib/api/client';
-	import { checkDeviceStatus, fetchSettingsAsync } from '$lib/api/device';
+	import { checkDeviceStatus, fetchSettingsAsync, fetchDeviceMessage } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import {
 		SETTINGS_DEFINITIONS,
@@ -349,8 +349,6 @@
 					'ModelManager_ModelsCache',
 					'ModelManager_ActiveBundle',
 					'ModelManager_DownloadIndex',
-					'IsOffroad',
-					'OffroadMode',
 					'ModelManager_Favs',
 					...MODEL_SETTINGS
 				],
@@ -379,8 +377,6 @@
 				const modelsCacheParam = models.items.find((i) => i.key === 'ModelManager_ModelsCache');
 				const activeBundleParam = models.items.find((i) => i.key === 'ModelManager_ActiveBundle');
 				const downloadIndexParam = models.items.find((i) => i.key === 'ModelManager_DownloadIndex');
-				const isOffroadParam = models.items.find((i) => i.key === 'IsOffroad');
-				const offroadModeParam = models.items.find((i) => i.key === 'OffroadMode');
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
 
 				// Populate deviceValues for the other settings too to ensure they are available
@@ -400,27 +396,6 @@
 					if (typeof decodedFavs === 'string') {
 						favorites = new Set(decodedFavs.split(';').filter((f) => f.length > 0));
 					}
-				}
-
-				let isOffroadVal = false;
-				if (isOffroadParam) {
-					const val = decodeParamValue(isOffroadParam);
-					// IsOffroad is usually "1" or "0" or boolean
-					isOffroadVal = val === '1' || val === 1 || val === true || val === 'true';
-				}
-
-				let forceOffroad = false;
-				if (offroadModeParam) {
-					const val = decodeParamValue(offroadModeParam);
-					forceOffroad = val === '1' || val === 1 || val === true || val === 'true';
-				}
-
-				// Update global state
-				if (deviceState.selectedDeviceId) {
-					deviceState.offroadStatuses[deviceState.selectedDeviceId] = {
-						isOffroad: isOffroadVal,
-						forceOffroad
-					};
 				}
 
 				if (modelsCacheParam) {
@@ -543,47 +518,29 @@
 		try {
 			sendingModel = true;
 
-			// Pre-push check: Verify IsOffroad is still true
+			// Pre-push check: Verify device is offroad via fresh getMessage
 			const token = await logtoClient.getIdToken();
 			if (!token) throw new Error('Not authenticated');
 
-			const statusRes = await fetchSettingsAsync(
-				deviceState.selectedDeviceId,
-				['IsOffroad'],
-				token
-			);
+			const deviceMessage = await fetchDeviceMessage(deviceState.selectedDeviceId, token);
+			if (deviceMessage === null) {
+				throw new Error('Device not reachable. Please check connection.');
+			}
 
-			// Handle fetch errors before checking IsOffroad
-			if (statusRes.error) {
-				const errorMessages: Record<string, string> = {
-					timeout: 'Device took too long to respond. Please try again.',
-					expired: 'Request expired. Please try again.',
-					not_found: 'Device not reachable. Please check connection.',
-					error: 'Failed to verify device status. Please try again.'
+			const currentIsOffroad = !((deviceMessage.started as boolean) ?? false);
+			const forceOffroad =
+				deviceState.offroadStatuses[deviceState.selectedDeviceId]?.forceOffroad ?? false;
+
+			// Update global state to reflect real-time status
+			if (deviceState.selectedDeviceId) {
+				deviceState.offroadStatuses[deviceState.selectedDeviceId] = {
+					isOffroad: currentIsOffroad,
+					forceOffroad
 				};
-				const err = statusRes.error;
-				const message: string =
-					(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
-					'Failed to verify device status. Please try again.';
-				throw new Error(message);
 			}
 
-			const isOffroadParam = statusRes.items?.find((i) => i.key === 'IsOffroad');
-			let currentIsOffroad = false;
-			if (isOffroadParam) {
-				const val = decodeParamValue(isOffroadParam);
-				currentIsOffroad = val === '1' || val === 1 || val === true || val === 'true';
-			}
-
-			if (!currentIsOffroad) {
-				// Update global state to reflect reality
-				if (deviceState.selectedDeviceId) {
-					deviceState.offroadStatuses[deviceState.selectedDeviceId] = {
-						isOffroad: false,
-						forceOffroad:
-							deviceState.offroadStatuses[deviceState.selectedDeviceId]?.forceOffroad ?? false
-					};
-				}
+			// Allow push if device is offroad OR forceOffroad is enabled
+			if (!currentIsOffroad && !forceOffroad) {
 				throw new Error('Device is Onroad. Cannot push model.');
 			}
 
@@ -635,8 +592,10 @@
 
 			// Refresh status silently
 			fetchModelsForDevice(true);
-		} catch (e) {
+		} catch (e: unknown) {
+			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);
+			toastState.show(message, 'error');
 		} finally {
 			sendingModel = false;
 		}

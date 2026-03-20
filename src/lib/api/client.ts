@@ -13,7 +13,7 @@ import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
  */
 const API_TIMEOUT_MS = 10_000; // 10s max for any single API call
 
-const customFetch: typeof fetch = async (input, init) => {
+export const customFetch: typeof fetch = async (input, init) => {
 	// Wrap every request in an AbortController timeout so stale/slow calls
 	// never block SvelteKit navigation indefinitely.
 	const controller = new AbortController();
@@ -50,12 +50,14 @@ const customFetch: typeof fetch = async (input, init) => {
 	}
 };
 
+export const API_BASE_URL = 'https://stg.api.sunnypilot.ai';
+
 export const v1Client = createClient<v1Paths>({
-	baseUrl: 'https://stg.api.sunnypilot.ai/',
+	baseUrl: API_BASE_URL + '/',
 	fetch: customFetch
 });
 
 export const v0Client = createClient<v0Paths>({
-	baseUrl: 'https://stg.api.sunnypilot.ai/',
+	baseUrl: API_BASE_URL + '/',
 	fetch: customFetch
 });

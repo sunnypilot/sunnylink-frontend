@@ -13,6 +13,18 @@ export const deviceState = $state({
 	lastStatusCheck: {} as Record<string, number>,
 	lastErrorMessages: {} as Record<string, string>,
 	offroadStatuses: {} as Record<string, { isOffroad: boolean; forceOffroad: boolean }>,
+	deviceTelemetry: {} as Record<
+		string,
+		{
+			started: boolean;
+			networkType: string;
+			networkMetered: boolean;
+			freeSpacePercent: number;
+			thermalStatus: string;
+			maxTempC: number;
+			deviceType: string;
+		}
+	>,
 	aliases: {} as Record<string, string>,
 	aliasOverrides: {} as Record<string, string>,
 	stagedChanges: {} as Record<string, Record<string, unknown>>,

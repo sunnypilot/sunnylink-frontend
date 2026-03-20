@@ -14,7 +14,7 @@ import { browser } from '$app/environment';
 import type { SettingsSchema, Capabilities } from '$lib/types/schema';
 import { fetchSettingsAsync } from '$lib/api/device';
 import { decodeParamValue } from '$lib/utils/device';
-import { decompressBase64Gzip, isCompressedBase64 } from '$lib/utils/compression';
+import { decodeCompressedJson, isCompressedBase64 } from '$lib/utils/compression';
 import { deviceState } from '$lib/stores/device.svelte';
 
 const SCHEMA_CACHE_PREFIX = 'sunnylink_schema_';
@@ -227,8 +227,7 @@ class SchemaStore {
 async function _parseSchema(decoded: string): Promise<SettingsSchema | null> {
 	try {
 		if (isCompressedBase64(decoded)) {
-			const json = await decompressBase64Gzip(decoded);
-			return JSON.parse(json) as SettingsSchema;
+			return await decodeCompressedJson<SettingsSchema>(decoded);
 		}
 		// Fallback: plain JSON (older device versions)
 		return JSON.parse(decoded) as SettingsSchema;
