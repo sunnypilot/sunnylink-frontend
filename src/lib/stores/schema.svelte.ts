@@ -14,6 +14,7 @@ import { browser } from '$app/environment';
 import type { SettingsSchema, Capabilities } from '$lib/types/schema';
 import { fetchSettingsAsync } from '$lib/api/device';
 import { decodeParamValue } from '$lib/utils/device';
+import { decompressBase64Gzip, isCompressedBase64 } from '$lib/utils/compression';
 import { deviceState } from '$lib/stores/device.svelte';
 
 const SCHEMA_CACHE_PREFIX = 'sunnylink_schema_';
@@ -106,14 +107,18 @@ class SchemaStore {
 						const decoded = decodeParamValue({ key: item.key, value: item.value, type: 'String' });
 						if (typeof decoded === 'string') {
 							try {
-								const parsed = JSON.parse(decoded) as SettingsSchema;
-								this.schemas[deviceId] = parsed;
-								this.versions[deviceId] = fetchedVersion;
-								schemaFound = true;
+								const parsed = await _parseSchema(decoded);
+								if (parsed) {
+									this.schemas[deviceId] = parsed;
+									this.versions[deviceId] = fetchedVersion;
+									schemaFound = true;
 
-								// Cache it
-								if (browser && fetchedVersion) {
-									_saveToCache(deviceId, fetchedVersion, parsed);
+									// Cache it
+									if (browser && fetchedVersion) {
+										_saveToCache(deviceId, fetchedVersion, parsed);
+									}
+								} else {
+									this.errors[deviceId] = 'Failed to parse schema';
 								}
 							} catch (e) {
 								console.error(`Failed to parse SettingsSchema for ${deviceId}`, e);
@@ -210,6 +215,26 @@ class SchemaStore {
 		} catch (e) {
 			console.error(`Failed to refresh capabilities for ${deviceId}`, e);
 		}
+	}
+}
+
+// ── Schema Parsing (handles both compressed and plain JSON) ─────────────────
+
+/**
+ * Parse a SettingsSchema string, handling both compressed (gzip+base64)
+ * and plain JSON formats for backward compatibility.
+ */
+async function _parseSchema(decoded: string): Promise<SettingsSchema | null> {
+	try {
+		if (isCompressedBase64(decoded)) {
+			const json = await decompressBase64Gzip(decoded);
+			return JSON.parse(json) as SettingsSchema;
+		}
+		// Fallback: plain JSON (older device versions)
+		return JSON.parse(decoded) as SettingsSchema;
+	} catch (e) {
+		console.error('Failed to parse SettingsSchema', e);
+		return null;
 	}
 }
 

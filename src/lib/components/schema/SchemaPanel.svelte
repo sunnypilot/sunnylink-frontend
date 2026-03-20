@@ -77,8 +77,14 @@
 		return groups;
 	});
 
+	// Sort sections by order field (if present), preserving array order as fallback
+	let orderedSections = $derived.by(() => {
+		if (!panel.sections) return [];
+		return [...panel.sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+	});
+
 	let hasContent = $derived(
-		useSections ? panel.sections!.length > 0 :
+		useSections ? orderedSections.length > 0 :
 		itemGroups.length > 0 || activeSubPanels.length > 0
 	);
 
@@ -103,7 +109,7 @@
 	<div class="space-y-6">
 		{#if useSections}
 			<!-- ═══ V2: Sections-based rendering ═══ -->
-			{#each panel.sections! as section (section.id)}
+			{#each orderedSections as section (section.id)}
 				<!-- Section title + description (outside card, Linear-style) -->
 				<div>
 					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{section.title}</p>

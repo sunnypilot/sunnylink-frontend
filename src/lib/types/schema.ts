@@ -118,6 +118,7 @@ export interface PanelSection {
 	id: string;
 	title: string;
 	description?: string;
+	order?: number;
 	items: SchemaItem[];
 	sub_panels?: SubPanel[];
 }
