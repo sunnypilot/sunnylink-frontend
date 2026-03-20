@@ -103,8 +103,8 @@
 
 <div class="mx-auto max-w-2xl xl:max-w-3xl space-y-6">
 	<div>
-		<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">Vehicle</h2>
-		<p class="mt-0.5 text-[0.8125rem] text-[var(--sl-text-3)]">Fingerprint and platform selection</p>
+		<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">Vehicle</h2>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Fingerprint and platform selection</p>
 	</div>
 
 	{#if deviceId}

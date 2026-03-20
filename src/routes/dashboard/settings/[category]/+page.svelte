@@ -450,11 +450,11 @@
 						>
 						{schemaPanel?.label ?? category}
 					</button>
-					<h2 class="text-lg font-semibold text-[var(--sl-text-1)]">
+					<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">
 						{activeSubPanel.label}
 					</h2>
 				{:else}
-					<h2 class="text-lg font-semibold text-[var(--sl-text-1)] capitalize">
+					<h2 class="text-2xl font-medium text-[var(--sl-text-1)] capitalize">
 						{schemaPanel?.label ?? category}
 						{#if loadingValues}
 							<span class="loading loading-spinner loading-xs ml-2 text-primary"></span>

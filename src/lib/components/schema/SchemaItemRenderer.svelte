@@ -272,7 +272,7 @@
 			>
 				<div class="mr-4 min-w-0 flex-1">
 					<div class="flex items-center gap-2">
-						<span class="text-sm font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 						{#if isQueued}
 							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Queued</span>
 						{:else if isPushing}
@@ -291,7 +291,7 @@
 						{/if}
 					</div>
 					{#if item.description}
-						<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
 					{#if pushState === 'error'}
 						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
@@ -325,7 +325,7 @@
 			<!-- ── Option Row (select / slider) ────────────────────────────── -->
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
-					<span class="text-sm font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
@@ -342,7 +342,7 @@
 					{/if}
 				</div>
 				{#if item.description}
-					<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				{#if pushState === 'error'}
 					<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
@@ -418,7 +418,7 @@
 							</div>
 						</div>
 					{:else}
-						<div class="rounded-lg bg-[var(--sl-bg-input)] px-3 py-1.5 text-center text-sm font-medium text-[var(--sl-text-1)]">
+						<div class="rounded-lg bg-[var(--sl-bg-input)] px-3 py-1.5 text-center text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 							{formatDisplay(displayValue)}
 						</div>
 					{/if}
@@ -429,7 +429,7 @@
 			<!-- ── Segmented Button Row ────────────────────────────────────── -->
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
-					<span class="text-sm font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
@@ -446,7 +446,7 @@
 					{/if}
 				</div>
 				{#if item.description}
-					<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				{#if pushState === 'error'}
 					<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
@@ -503,9 +503,9 @@
 		{:else if item.widget === 'info'}
 			<!-- ── Info Row ────────────────────────────────────────────────── -->
 			<div class="px-4 py-4">
-				<span class="text-sm font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 				{#if item.description}
-					<p class="mt-0.5 text-sm leading-snug text-[var(--sl-text-2)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				<div class="mt-2 rounded-lg bg-[var(--sl-bg-input)] px-3 py-1.5 text-center text-sm font-medium tabular-nums text-[var(--sl-text-1)]">
 					{formatDisplay(displayValue)}

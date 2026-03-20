@@ -218,7 +218,7 @@
 				</div>
 				<p class="flex-1 text-sm font-medium text-[var(--sl-text-1)]">Device Connection Required</p>
 				<button
-					class="btn btn-ghost btn-xs text-[var(--sl-text-3)]"
+					class="btn btn-ghost btn-xs text-[var(--sl-text-2)]"
 					onclick={() => dismissHelp(false)}
 				>
 					Dismiss
@@ -227,13 +227,13 @@
 			<div class="space-y-2 px-4 py-3">
 				<div class="flex gap-2.5">
 					<Shield class="mt-0.5 shrink-0 text-primary" size={16} />
-					<p class="text-[0.8125rem] text-[var(--sl-text-2)]">
+					<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
 						We do <strong class="text-[var(--sl-text-1)]">not</strong> store your device settings on our servers. A direct device connection is required.
 					</p>
 				</div>
 				<div class="flex gap-2.5">
 					<Info class="mt-0.5 shrink-0 text-primary" size={16} />
-					<p class="text-[0.8125rem] text-[var(--sl-text-2)]">
+					<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
 						Backups are encrypted with your device's private key. Only your device can decrypt them.
 					</p>
 				</div>
@@ -247,7 +247,7 @@
 							if ((e.target as HTMLInputElement).checked) dismissHelp(true);
 						}}
 					/>
-					<span class="text-xs text-[var(--sl-text-3)]">Don't show again</span>
+					<span class="text-xs text-[var(--sl-text-2)]">Don't show again</span>
 				</label>
 			</div>
 		</div>

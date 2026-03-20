@@ -762,42 +762,11 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
-		<div>
-			<h1 class="text-2xl font-bold text-[var(--sl-text-1)]">Models</h1>
-			<p class="text-[var(--sl-text-2)]">
-				Manage and switch driving models & related settings for your device.
-			</p>
-		</div>
-
-		<div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-			<button
-				class="btn border-red-500/30 bg-red-500/10 text-red-400 transition-all btn-md hover:border-red-500/50 hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
-				onclick={() => (clearCacheModalOpen = true)}
-				disabled={clearingCache || sendingModel || loadingModels || !isOffroad}
-			>
-				{#if clearingCache}
-					<span class="loading loading-xs loading-spinner"></span>
-				{:else}
-					<Trash2 size={14} class="mr-1.5" />
-				{/if}
-				Clear Models Cache
-			</button>
-			{#if currentModelShortName !== undefined && (!loadingModels || modelList)}
-				<button
-					class="btn border-[var(--sl-border)] bg-[var(--sl-bg-surface)] text-[var(--sl-text-1)] transition-all btn-md hover:border-[var(--sl-border-emphasis)] hover:bg-[var(--sl-bg-elevated)] active:scale-95 disabled:opacity-50"
-					onclick={() => (resetModalOpen = true)}
-					disabled={sendingModel || clearingCache || loadingModels || !isOffroad}
-				>
-					{#if sendingModel}
-						<span class="loading loading-xs loading-spinner"></span>
-					{:else}
-						<RotateCcw size={14} class="mr-1.5" />
-					{/if}
-					Reset to Default Model
-				</button>
-			{/if}
-		</div>
+	<div>
+		<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">Models</h2>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+			Manage and switch driving models & related settings for your device.
+		</p>
 	</div>
 
 	{#if authState.loading}
@@ -953,12 +922,33 @@
 							Downloading
 						</div>
 					{:else}
-						<div class="flex shrink-0 items-center gap-1.5 text-xs text-emerald-500">
-							<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+						<div class="flex shrink-0 items-center gap-1.5 text-xs text-[var(--sl-green)]">
+							<span class="h-1.5 w-1.5 rounded-full bg-[var(--sl-green)]"></span>
 							Active
 						</div>
 					{/if}
 				</div>
+				{#if currentModelShortName !== undefined || true}
+					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
+						{#if currentModelShortName !== undefined}
+							<button
+								class="text-xs text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] disabled:opacity-40"
+								onclick={() => (resetModalOpen = true)}
+								disabled={sendingModel || !isOffroad}
+							>
+								Reset to Default
+							</button>
+							<span class="text-[var(--sl-border)]">|</span>
+						{/if}
+						<button
+							class="text-xs text-[var(--sl-text-2)] transition-colors hover:text-red-400 disabled:opacity-40"
+							onclick={() => (clearCacheModalOpen = true)}
+							disabled={clearingCache || !isOffroad}
+						>
+							Clear Cache
+						</button>
+					</div>
+				{/if}
 			</div>
 
 			{/if}
@@ -1074,57 +1064,74 @@
 									{#if openFolders[group.name]}
 										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
 											{#each group.models as model (model.short_name)}
-												<div
-													class="group relative flex w-full items-center justify-between px-4 py-3 pl-11 text-left transition-all hover:bg-[var(--sl-bg-surface)]/50 {selectedModelShortName ===
-													model.short_name
-														? 'bg-primary/10 hover:bg-primary/20'
-														: ''}"
+												<div role="button" tabindex="0"
+													class="group flex w-full items-center justify-between px-4 py-3 pl-11 text-left transition-all hover:bg-[var(--sl-bg-surface)]/50"
+													onclick={() => (selectedModelShortName = selectedModelShortName === model.short_name ? undefined : model.short_name)}
 												>
-													{#if selectedModelShortName === model.short_name}
-														<div
-															class="absolute top-0 left-0 h-full w-0.5 bg-primary shadow-[0_0_10px_rgba(89,74,226,0.3)]"
-														></div>
-													{/if}
-
-													<button
-														class="flex flex-1 items-center gap-3 py-1 text-left focus:outline-none"
-														onclick={() => (selectedModelShortName = model.short_name)}
+													<span
+														class="text-sm font-medium transition-colors {selectedModelShortName === model.short_name
+															? 'text-[var(--sl-text-1)]'
+															: 'text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]'}"
 													>
-														<span
-															class="text-sm font-medium transition-colors {selectedModelShortName ===
-															model.short_name
-																? 'text-[var(--sl-text-1)]'
-																: 'text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]'}"
-														>
-															{model.display_name}
-														</span>
-													</button>
-
-													<div class="flex items-center gap-3">
+														{model.display_name}
+													</span>
+													<div class="flex items-center gap-2">
 														<button
-															class="min-h-[40px] min-w-[40px] p-2 text-[var(--sl-text-3)] transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
-															updatingFavShortName === model.short_name
-																? 'animate-pulse-slow'
-																: ''}"
-															onclick={(e) => toggleFavorite(model, e)}
+															class="p-1.5 text-[var(--sl-text-3)] transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50"
+															onclick={(e) => { e.stopPropagation(); toggleFavorite(model, e); }}
 															disabled={updatingFavShortName !== null}
-															title={favorites.has(model.ref)
-																? 'Remove from Favorites'
-																: 'Add to Favorites'}
+															title={favorites.has(model.ref) ? 'Remove from Favorites' : 'Add to Favorites'}
 														>
-															<Star
-																size={16}
-																class={favorites.has(model.ref)
-																	? 'fill-amber-400 text-amber-400'
-																	: ''}
-															/>
+															<Star size={14} class={favorites.has(model.ref) ? 'fill-amber-400 text-amber-400' : ''} />
 														</button>
-
-														{#if selectedModelShortName === model.short_name}
-															<Check size={16} class="text-primary" />
-														{/if}
+														<ChevronRight size={14} class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName === model.short_name ? 'rotate-90' : ''}" />
 													</div>
 												</div>
+												<!-- Inline detail panel -->
+												{#if selectedModelShortName === model.short_name}
+													<div transition:slide={{ duration: 150 }} class="border-t border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)]/60 px-4 py-4 pl-11">
+														<div class="flex items-start justify-between gap-4">
+															<div>
+																<code class="rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{model.short_name}</code>
+																<div class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+																	<div>
+																		<span class="text-[var(--sl-text-3)]">Environment</span>
+																		<p class="text-[var(--sl-text-2)]">{model.environment}</p>
+																	</div>
+																	<div>
+																		<span class="text-[var(--sl-text-3)]">Build</span>
+																		<p class="text-[var(--sl-text-2)]">{model.build_time ? new Date(model.build_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown'}</p>
+																	</div>
+																	<div>
+																		<span class="text-[var(--sl-text-3)]">Runner</span>
+																		<p class="text-[var(--sl-text-2)]">{model.runner ?? 'Unknown'}</p>
+																	</div>
+																	<div>
+																		<span class="text-[var(--sl-text-3)]">Generation</span>
+																		<p class="text-[var(--sl-text-2)]">{model.generation ?? 'Unknown'}</p>
+																	</div>
+																</div>
+															</div>
+														</div>
+														{#if !isOffroad}
+															<p class="mt-3 text-xs text-amber-500">Device is onroad. Models cannot be changed while driving.</p>
+														{/if}
+														<div class="mt-4 flex items-center gap-3">
+															<button
+																class="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-40"
+																onclick={() => sendModelToDevice()}
+																disabled={sendingModel || !isOffroad}
+															>
+																{#if sendingModel}
+																	<span class="loading loading-xs loading-spinner mr-1"></span>
+																	Sending...
+																{:else}
+																	Send to Device
+																{/if}
+															</button>
+														</div>
+													</div>
+												{/if}
 											{/each}
 										</div>
 									{/if}
@@ -1164,150 +1171,7 @@
 			{/if}
 		</div>
 
-		{#if selectedModel}
-			<!-- Backdrop -->
-			<button
-				class="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-sm transition-opacity"
-				transition:fade={{ duration: 200 }}
-				onclick={() => {
-					selectedModelShortName = undefined;
-				}}
-				aria-label="Close modal"
-			></button>
-
-			<!-- Modal -->
-			<div
-				class="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 p-4"
-				transition:fly={{ y: 20, duration: 300 }}
-			>
-				<div
-					class="relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-page)] p-6 shadow-2xl"
-				>
-					<button
-						class="absolute top-3 right-3 min-h-[40px] min-w-[40px] p-2 text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
-						onclick={() => (selectedModelShortName = undefined)}
-					>
-						<X size={20} />
-					</button>
-
-					<div class="mb-6">
-						<div class="flex items-center justify-between gap-4">
-							<h3 class="text-2xl font-bold text-[var(--sl-text-1)]">
-								{selectedModel.display_name}
-							</h3>
-							<button
-								class="rounded-full p-2 text-[var(--sl-text-2)] transition-all hover:bg-[var(--sl-bg-surface)] hover:text-amber-400 active:scale-95 disabled:opacity-50 {updatingFavShortName &&
-								updatingFavShortName === selectedModel.short_name
-									? 'animate-pulse-slow'
-									: ''}"
-								onclick={() => toggleFavorite(selectedModel)}
-								disabled={updatingFavShortName !== null}
-								title={favorites.has(selectedModel.ref)
-									? 'Remove from Favorites'
-									: 'Add to Favorites'}
-							>
-								<Star
-									size={24}
-									class={favorites.has(selectedModel.ref) ? 'fill-amber-400 text-amber-400' : ''}
-								/>
-							</button>
-						</div>
-
-						<div class="mt-2">
-							<code class="rounded bg-[var(--sl-bg-surface)] px-2 py-1 font-mono text-xs text-primary">
-								{selectedModel.short_name}
-							</code>
-						</div>
-					</div>
-
-					<div class="mb-8 grid grid-cols-2 gap-6">
-						<div>
-							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">
-								Environment
-							</div>
-							<div class="mt-1 text-sm text-[var(--sl-text-1)]">{selectedModel.environment}</div>
-						</div>
-						<div>
-							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">
-								Build Date
-							</div>
-							<div class="mt-1 text-sm text-[var(--sl-text-1)]">
-								{selectedModel.build_time
-									? new Date(selectedModel.build_time).toLocaleDateString(undefined, {
-											year: 'numeric',
-											month: 'short',
-											day: 'numeric'
-										})
-									: 'Unknown'}
-							</div>
-						</div>
-						<div>
-							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">Runner</div>
-							<div class="mt-1 text-sm text-[var(--sl-text-1)]">{selectedModel.runner ?? 'Unknown'}</div>
-						</div>
-						<div>
-							<div class="text-xs font-medium tracking-wider text-[var(--sl-text-3)] uppercase">
-								Generation
-							</div>
-							<div class="mt-1 text-sm text-[var(--sl-text-1)]">
-								{selectedModel.generation ?? 'Unknown'}
-							</div>
-						</div>
-					</div>
-
-					{#if !isOffroad}
-						<div class="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-							<div class="flex items-start gap-3">
-								<ShieldAlert class="mt-0.5 shrink-0 text-amber-500" size={20} />
-								<div class="space-y-2">
-									<p class="text-sm font-medium text-amber-500">Device is Onroad</p>
-									<p class="text-xs text-amber-500/80">Models cannot be changed while driving.</p>
-									<div class="flex flex-wrap gap-3">
-										<button
-											class="text-xs font-semibold text-amber-500 underline decoration-amber-500/50 underline-offset-2 hover:text-amber-400"
-											onclick={() => (forceOffroadModalOpen = true)}
-										>
-											Force Offroad Mode
-										</button>
-										<button
-											class="text-xs font-semibold text-[var(--sl-text-2)] underline decoration-[var(--sl-text-3)]/50 underline-offset-2 hover:text-[var(--sl-text-2)]"
-											onclick={recheckStatus}
-										>
-											Recheck Status
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					{/if}
-
-					<div class="flex gap-3">
-						<button
-							class="btn flex-1 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => (selectedModelShortName = undefined)}
-						>
-							Cancel
-						</button>
-						<button
-							class="btn flex-[2] border-primary bg-primary text-[var(--sl-text-1)] hover:border-primary hover:bg-primary/80"
-							onclick={sendModelToDevice}
-							disabled={sendingModel || !selectedModel || !isOffroad}
-						>
-							{#if sendingModel}
-								<span class="loading loading-xs loading-spinner"></span>
-								Sending...
-							{:else}
-								Send to Device 🚀
-							{/if}
-						</button>
-					</div>
-
-					{#if sendingModel}
-						<progress class="progress mt-4 w-full progress-primary"></progress>
-					{/if}
-				</div>
-			</div>
-		{/if}
+		<!-- Modal removed — model selection is now inline within the folder list -->
 	{/if}
 </div>
 

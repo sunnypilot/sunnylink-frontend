@@ -66,14 +66,13 @@
 	$effect(() => {
 		const did = deviceState.selectedDeviceId;
 		if (!did) return;
-		// Only hydrate if we don't already have data
-		const existing = deviceState.deviceSettings[did];
+		// Only hydrate if we don't already have data — read via untrack to avoid loop
+		const existing = untrack(() => deviceState.deviceSettings[did]);
 		const hasOsmData = existing?.some((p) => p.key === 'OsmLocationName');
 		if (hasOsmData) return;
 		const cached = loadOsmCache(did);
 		if (cached) {
 			const filtered = (existing || []).filter((i) => i.key && !OSM_PARAMS.includes(i.key));
-			// Cast cached params — they were originally ExtendedDeviceParamKey objects
 			deviceState.deviceSettings[did] = [...filtered, ...(cached.params as any)];
 		}
 	});
@@ -173,7 +172,11 @@
 	async function fetchOsmParams(deviceId: string, token: string, silent: boolean = false) {
 		if (!silent) loadingOsmParams = true;
 		try {
-			const res = await fetchSettingsAsync(deviceId, OSM_PARAMS, token);
+			const controller = new AbortController();
+			const res = await fetchSettingsAsync(deviceId, OSM_PARAMS, token, {
+				maxPollTimeMs: 8000,
+				signal: controller.signal
+			});
 
 			if (res.items) {
 				const existing = deviceState.deviceSettings[deviceId] || [];
@@ -194,16 +197,18 @@
 		}
 	}
 
+	let osmFetchDone = $state<Record<string, boolean>>({});
+
 	$effect(() => {
 		const deviceId = deviceState.selectedDeviceId;
-		if (
-			deviceId &&
-			logtoClient &&
-			deviceState.onlineStatuses[deviceId] === 'online' &&
-			!isDownloading
-		) {
+		const isOnline = deviceId ? deviceState.onlineStatuses[deviceId] === 'online' : false;
+		const downloading = isDownloading;
+		if (deviceId && logtoClient && isOnline && !downloading && !untrack(() => osmFetchDone[deviceId])) {
 			// Use silent fetch when we already have cached data to avoid spinner flash
-			const hasCachedData = deviceState.deviceSettings[deviceId]?.some((p) => p.key === 'OsmLocationName');
+			const hasCachedData = untrack(() =>
+				deviceState.deviceSettings[deviceId]?.some((p: any) => p.key === 'OsmLocationName')
+			);
+			osmFetchDone[deviceId] = true;
 			logtoClient.getIdToken().then((token) => {
 				if (token) fetchOsmParams(deviceId, token, hasCachedData);
 			});
@@ -240,22 +245,31 @@
 		await fetchCountries();
 	});
 
+	// Sync device values → local selections (read-only deps, write via untrack)
 	$effect(() => {
-		if (currentCountryName && !selectedCountry && !isDownloading) {
-			selectedCountry = currentCountryName;
+		const country = currentCountryName;
+		const state = currentStateName;
+		const downloading = isDownloading;
+		if (country && !untrack(() => selectedCountry) && !downloading) {
+			selectedCountry = country;
 		}
-		if (currentStateName && !selectedState && !isDownloading) {
-			if (selectedCountry === 'US' && states.length === 0) {
-				fetchStates().then(() => {
-					selectedState = currentStateName;
-				});
-			} else {
-				selectedState = currentStateName;
-			}
+		if (state && !untrack(() => selectedState) && !downloading) {
+			selectedState = state;
 		}
+	});
 
-		if (selectedCountry === 'US' && states.length === 0) {
-			fetchStates();
+	// Fetch US states when country is US (separate effect to avoid loop)
+	let fetchStatesRequested = $state(false);
+	$effect(() => {
+		if (selectedCountry === 'US' && states.length === 0 && !untrack(() => fetchStatesRequested)) {
+			fetchStatesRequested = true;
+			fetchStates().then(() => {
+				// After states load, sync state selection if available
+				const state = untrack(() => currentStateName);
+				if (state && !untrack(() => selectedState)) {
+					selectedState = state;
+				}
+			});
 		}
 	});
 
@@ -389,7 +403,7 @@
 				<MapIcon size={24} />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-[var(--sl-text-1)]">OpenStreetMap</h1>
+				<h1 class="text-2xl font-medium text-[var(--sl-text-1)]">OpenStreetMap</h1>
 				<p class="text-[var(--sl-text-2)]">Manage offline maps</p>
 			</div>
 		</div>

@@ -169,7 +169,7 @@
 
 <div class="space-y-8">
 	<div>
-		<h2 class="text-2xl font-bold text-[var(--sl-text-1)]">User Preferences</h2>
+		<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">User Preferences</h2>
 		<p class="text-[var(--sl-text-2)]">Manage your local interface settings.</p>
 	</div>
 
@@ -233,7 +233,7 @@
 		<div>
 			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h2 class="text-2xl font-bold text-[var(--sl-text-1)]">Settings Metadata Editor</h2>
+					<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">Settings Metadata Editor</h2>
 					<p class="text-[var(--sl-text-2)]">Customize setting definitions and generate code.</p>
 				</div>
 				<div class="flex gap-2">

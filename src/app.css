@@ -74,7 +74,8 @@
 	--sl-border-emphasis: #d0d0d0;
 	--sl-text-1: #1a1a1a;
 	--sl-text-2: #666666;
-	--sl-text-3: #888888;
+	--sl-text-3: #6b6b6b;
+	--sl-green: #1a8f35;
 	--sl-accent-muted: rgba(89, 74, 226, 0.08);
 	--sl-toggle-off: #d4d4d4;
 	--sl-toggle-off-disabled: #e5e5e5;
@@ -91,7 +92,8 @@
 	--sl-border-emphasis: #3a3a3a;
 	--sl-text-1: #ececec;
 	--sl-text-2: #a0a0a0;
-	--sl-text-3: #808080;
+	--sl-text-3: #949496;
+	--sl-green: #4aba60;
 	--sl-accent-muted: rgba(124, 111, 235, 0.12);
 	--sl-toggle-off: #333333;
 	--sl-toggle-off-disabled: #282828;
@@ -107,6 +109,8 @@ body {
 	background-color: var(--sl-bg-page);
 	color: var(--sl-text-1);
 	min-height: 100vh;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 	transition:
 		background-color 0.15s ease,
 		color 0.15s ease;

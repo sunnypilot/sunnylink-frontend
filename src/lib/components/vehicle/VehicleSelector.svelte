@@ -39,8 +39,11 @@
 			''
 	);
 
-	// Loading state: If device is online but values are missing/empty, we might be loading.
-	let isLoadingValues = $state(true);
+	// Loading state: start false if values already cached, true otherwise
+	let isLoadingValues = $state(
+		!(deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
+		  deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined)
+	);
 
 	async function fetchValues() {
 		if (!deviceId || !logtoClient) return;
@@ -318,7 +321,7 @@
 	});
 </script>
 
-<div class="mx-auto flex max-w-2xl flex-col gap-6">
+<div class="flex flex-col gap-6">
 	<PlatformSelector
 		manualBundle={carPlatformBundle}
 		autoFingerprint={carFingerprint}

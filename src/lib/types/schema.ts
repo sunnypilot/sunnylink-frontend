@@ -112,6 +112,16 @@ export interface SubPanel {
 	items: SchemaItem[];
 }
 
+// ── Panel Section (v2) ──────────────────────────────────────────────────────
+
+export interface PanelSection {
+	id: string;
+	title: string;
+	description?: string;
+	items: SchemaItem[];
+	sub_panels?: SubPanel[];
+}
+
 // ── Panel ───────────────────────────────────────────────────────────────────
 
 export interface Panel {
@@ -119,7 +129,9 @@ export interface Panel {
 	label: string;
 	icon: string;
 	order: number;
+	description?: string;
 	remote_configurable: boolean;
+	sections?: PanelSection[];
 	items: SchemaItem[];
 	sub_panels?: SubPanel[];
 }
