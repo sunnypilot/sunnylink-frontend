@@ -185,6 +185,35 @@
 	let clearCacheModalOpen = $state(false);
 	let clearingCache = $state(false);
 
+	// Retry state for offline/error banner (matches settings layout)
+	let retrying = $state(false);
+	let retryFailed = $state(false);
+	let lastRetryAt = $state<Date | null>(null);
+
+	async function handleRetry() {
+		if (!deviceState.selectedDeviceId || !logtoClient) return;
+		retrying = true;
+		try {
+			const token = await logtoClient.getIdToken();
+			if (token) await checkDeviceStatus(deviceState.selectedDeviceId, token);
+			lastRetryAt = new Date();
+			// If still offline/error after retry
+			const status = deviceState.onlineStatuses[deviceState.selectedDeviceId];
+			retryFailed = status === 'offline' || status === 'error';
+		} catch {
+			retryFailed = true;
+		} finally {
+			retrying = false;
+		}
+	}
+
+	function formatRelativeTime(date: Date): string {
+		const seconds = Math.round((Date.now() - date.getTime()) / 1000);
+		if (seconds < 60) return 'just now';
+		const minutes = Math.floor(seconds / 60);
+		return `${minutes}m ago`;
+	}
+
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
 			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'offline'
@@ -202,26 +231,39 @@
 	);
 
 	// ── Sync status pill state machine (matches settings [category] page) ──
+	// Only tracks revalidation (data already cached), NOT cold load.
 	// 'idle' → 'revalidating' → 'synced' (3s) → 'idle'
 	//                         → 'failed'
 	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
 	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
 
+	// True only when refreshing with data already present (not cold load)
+	let isRevalidating = $derived(loadingModels && modelList !== null);
+
+	function clearSyncTimer() {
+		if (syncTimerId !== undefined) { clearTimeout(syncTimerId); syncTimerId = undefined; }
+	}
+
 	$effect(() => {
-		const loading = loadingModels;
-		const checking = isCheckingStatus;
+		const revalidating = isRevalidating;
 		const offline = isOffline;
 		const error = isError;
 
 		untrack(() => {
-			if ((loading || checking) && syncStatus !== 'revalidating') {
-				clearTimeout(syncTimerId);
+			if (revalidating && syncStatus !== 'revalidating') {
+				clearSyncTimer();
 				syncStatus = 'revalidating';
-			} else if (!loading && !checking && syncStatus === 'revalidating') {
+			} else if (!revalidating && syncStatus === 'revalidating') {
 				syncStatus = (offline || error) ? 'failed' : 'synced';
 				syncTimerId = setTimeout(() => { syncStatus = 'idle'; }, 3000);
 			}
 		});
+	});
+
+	// Cleanup timer on device change
+	$effect(() => {
+		deviceState.selectedDeviceId; // tracked
+		untrack(() => { clearSyncTimer(); syncStatus = 'idle'; });
 	});
 
 	// Group models by folder
@@ -751,7 +793,7 @@
 			<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">Models</h2>
 			{#if (loadingModels || isCheckingStatus) && !modelList}
 				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
-			{:else if syncStatus !== 'idle'}
+			{:else if syncStatus !== 'idle' && modelList}
 				<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
 					{#if syncStatus === 'revalidating'}
 						<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
@@ -806,34 +848,47 @@
 			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 		</div>
 	{:else}
-		<!-- Inline offline/error banner — matches settings layout pattern -->
+		<!-- Inline offline/error banner — identical to settings/+layout.svelte -->
 		{#if isOffline || isError}
 			<div class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
 				{isError ? 'border-orange-500/20 bg-orange-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}">
 				{#if isError}
 					<AlertTriangle size={16} class="shrink-0 text-orange-400" />
-					<p class="flex-1 text-sm text-orange-200/80">
-						<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] || 'Unable to reach device.'} Showing cached models.
-					</p>
+					<div class="flex-1">
+						<p class="text-sm text-orange-200/80">
+							<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] || 'Unable to reach device.'} Showing cached models.
+						</p>
+						{#if lastRetryAt}
+							<p class="mt-0.5 text-[0.6875rem] text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+						{/if}
+					</div>
 				{:else}
 					<WifiOff size={16} class="shrink-0 text-yellow-500" />
-					<p class="flex-1 text-sm text-yellow-200/80">
-						<span class="font-medium">Offline</span> — Showing cached models. Changes disabled until device is online.
-					</p>
+					<div class="flex-1">
+						<p class="text-sm text-yellow-200/80">
+							{#if retryFailed}
+								<span class="font-medium">Still offline</span> — Device not reachable. Showing cached models.
+							{:else}
+								<span class="font-medium">Offline</span> — Showing cached models. Changes disabled until device is online.
+							{/if}
+						</p>
+						{#if lastRetryAt}
+							<p class="mt-0.5 text-[0.6875rem] text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+						{/if}
+					</div>
 				{/if}
 				<button
 					class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-400' : 'text-yellow-400'}"
-					onclick={async () => {
-						if (deviceState.selectedDeviceId && logtoClient) {
-							const token = await logtoClient.getIdToken();
-							if (token) {
-								await checkDeviceStatus(deviceState.selectedDeviceId, token);
-							}
-						}
-					}}
+					disabled={retrying}
+					onclick={handleRetry}
 				>
-					<RefreshCw size={14} />
-					Retry
+					{#if retrying}
+						<span class="loading loading-spinner loading-xs"></span>
+						Checking...
+					{:else}
+						<RefreshCw size={14} />
+						Retry
+					{/if}
 				</button>
 			</div>
 		{/if}

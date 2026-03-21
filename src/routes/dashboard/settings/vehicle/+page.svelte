@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -46,6 +48,7 @@
 
 	// Fetch brand setting values when brand settings are available
 	let loadingBrandValues = $state(false);
+	let brandValuesFetchFailed = $state(false);
 
 	$effect(() => {
 		if (deviceId && logtoClient && brandSettings.length > 0) {
@@ -62,6 +65,7 @@
 		if (missing.length === 0) return;
 
 		loadingBrandValues = true;
+		brandValuesFetchFailed = false;
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
@@ -91,16 +95,67 @@
 			}
 		} catch (e) {
 			console.error('Failed to fetch brand values:', e);
+			brandValuesFetchFailed = true;
 		} finally {
 			loadingBrandValues = false;
 		}
 	}
+
+	// ── Sync status pill state machine (matches settings [category] page) ──
+	let schemaRevalStatus = $derived(
+		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
+	);
+	let isRevalidating = $derived(
+		loadingBrandValues || schemaRevalStatus === 'revalidating'
+	);
+	let revalidationSucceeded = $derived(
+		!loadingBrandValues && !brandValuesFetchFailed &&
+		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
+	);
+
+	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
+	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
+
+	function clearSyncTimer() {
+		if (syncTimerId !== undefined) { clearTimeout(syncTimerId); syncTimerId = undefined; }
+	}
+
+	$effect(() => {
+		const revalidating = isRevalidating;
+		const succeeded = revalidationSucceeded;
+
+		untrack(() => {
+			if (revalidating && syncStatus !== 'revalidating') {
+				clearSyncTimer();
+				syncStatus = 'revalidating';
+			} else if (!revalidating && syncStatus === 'revalidating') {
+				syncStatus = succeeded ? 'synced' : 'failed';
+				syncTimerId = setTimeout(() => { syncStatus = 'idle'; }, 3000);
+			}
+		});
+	});
 </script>
 
 <div class="mx-auto max-w-2xl xl:max-w-3xl space-y-6">
 	<!-- Page header -->
 	<div class="px-4">
-		<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">Vehicle</h2>
+		<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+			<span>Vehicle</span>
+			{#if syncStatus !== 'idle'}
+				<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
+					{#if syncStatus === 'revalidating'}
+						<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
+						<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
+					{:else if syncStatus === 'synced'}
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+						<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
+					{:else if syncStatus === 'failed'}
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+						<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
+					{/if}
+				</span>
+			{/if}
+		</h2>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Fingerprint and platform selection</p>
 	</div>
 
