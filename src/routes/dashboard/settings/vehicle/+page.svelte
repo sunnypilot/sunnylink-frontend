@@ -56,7 +56,6 @@
 	async function fetchBrandValues() {
 		if (!deviceId || !logtoClient || brandSettings.length === 0) return;
 
-		// Skip fetch if all keys already have values (from background prefetch cache)
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		const keys = brandSettings.map((item) => item.key);
 		const missing = keys.filter((k) => existing[k] === undefined);
@@ -82,7 +81,6 @@
 				}
 			}
 
-			// Fill defaults for keys the device didn't return
 			const vals = deviceState.deviceValues[deviceId] ??= {};
 			for (const item of brandSettings) {
 				if (vals[item.key] === undefined) {
@@ -97,23 +95,28 @@
 			loadingBrandValues = false;
 		}
 	}
-
-
 </script>
 
 <div class="mx-auto max-w-2xl xl:max-w-3xl space-y-6">
-	<div>
-		<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">Vehicle</h2>
+	<!-- Page header -->
+	<div class="px-4">
+		<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">Vehicle</h2>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Fingerprint and platform selection</p>
 	</div>
 
 	{#if deviceId}
-		<VehicleSelector {deviceId} />
+		<!-- Vehicle section -->
+		<div>
+			<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+				Vehicle
+			</p>
+			<VehicleSelector {deviceId} />
+		</div>
 
-		<!-- Brand-specific settings grouped card -->
+		<!-- Brand-specific settings -->
 		{#if brandSettings.length > 0}
 			<div>
-				<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+				<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 					{currentBrand} Settings
 				</p>
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">

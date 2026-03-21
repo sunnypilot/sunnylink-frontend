@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { getCarList, setDeviceParams, fetchSettingsAsync } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
+	import { loadCachedValues, getLastKnownCommit } from '$lib/stores/valuesCache';
+	import { schemaState } from '$lib/stores/schema.svelte';
+	import { ChevronRight, ChevronDown, X, Loader2 } from 'lucide-svelte';
 
-	import PlatformSelector from './PlatformSelector.svelte';
-	import LegendWidget from './LegendWidget.svelte';
 	import CarSelectionModal from './CarSelectionModal.svelte';
-	import VehicleMetadata from './VehicleMetadata.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 
 	let { deviceId } = $props<{ deviceId: string }>();
@@ -16,10 +16,28 @@
 	// Module-level CarList cache (survives component re-mounts during SPA navigation)
 	const carListCache: Record<string, Record<string, any>> = (globalThis as any).__carListCache ??= {};
 
-	let carList = $state<Record<string, any> | null>(carListCache[deviceId] ?? null);
+	// localStorage cache for carList (survives full page refreshes)
+	const CARLIST_STORAGE_KEY = `sunnylink_carlist_${deviceId}`;
+
+	function loadCarListFromStorage(): Record<string, any> | null {
+		try {
+			const raw = localStorage.getItem(CARLIST_STORAGE_KEY);
+			if (!raw) return null;
+			const parsed = JSON.parse(raw);
+			carListCache[deviceId] = parsed;
+			return parsed;
+		} catch { return null; }
+	}
+
+	function saveCarListToStorage(list: Record<string, any>) {
+		try { localStorage.setItem(CARLIST_STORAGE_KEY, JSON.stringify(list)); } catch {}
+	}
+
+	let carList = $state<Record<string, any> | null>(carListCache[deviceId] ?? loadCarListFromStorage());
 	let isFetchingCarList = $state(false);
-	let hasAttemptedAutoFetch = $state(carListCache[deviceId] ? true : false);
+	let hasAttemptedAutoFetch = $state(carList ? true : false);
 	let modalOpen = $state(false);
+	let detailsOpen = $state(false);
 
 	// Confirmation Modal State
 	let confirmOpen = $state(false);
@@ -31,22 +49,19 @@
 			[key: string]: any;
 		} | null;
 		if (!val) return null;
-		// Check for empty object "{}"
 		if (Object.keys(val).length === 0) return null;
 		return val;
 	});
-	// let carPlatformBundle = $derived({ name: "TEST VEHICLE", make: "Test", model: "Car", year: "2024" });
+
 	let carFingerprint = $derived(
 		(deviceState.deviceValues[deviceId]?.CarFingerprint as string) ||
 			(deviceState.deviceValues[deviceId]?._ExtractedFingerprint as string) ||
 			''
 	);
 
-	// Try to extract fingerprint from cached CarParamsPersistent synchronously
 	function tryExtractFingerprintFromCache(did: string): void {
 		const vals = deviceState.deviceValues[did];
 		if (!vals) return;
-		// Skip if we already have a fingerprint
 		if (vals['CarFingerprint'] || vals['_ExtractedFingerprint']) return;
 		const persistentVal = vals['CarParamsPersistent'];
 		if (!persistentVal || typeof persistentVal !== 'string') return;
@@ -59,12 +74,34 @@
 		} catch {}
 	}
 
-	// Synchronous extraction at init
+	// Synchronous cache hydration
+	{
+		const existing = deviceState.deviceValues[deviceId] ?? {};
+		const vehicleKeys = ['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'];
+		const missingVehicleKeys = vehicleKeys.some(k => existing[k] === undefined);
+		if (missingVehicleKeys) {
+			const commit = (existing['GitCommit'] as string) ||
+				schemaState.schemas[deviceId]?.schema_version ||
+				getLastKnownCommit(deviceId);
+			if (commit) {
+				const cached = loadCachedValues(deviceId, commit);
+				if (cached) {
+					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+					const vals = deviceState.deviceValues[deviceId];
+					for (const key of vehicleKeys) {
+						if (vals[key] === undefined && cached[key] !== undefined) {
+							vals[key] = cached[key];
+						}
+					}
+				}
+			}
+		}
+	}
+
 	if (deviceState.deviceValues[deviceId]) {
 		tryExtractFingerprintFromCache(deviceId);
 	}
 
-	// Loading state: start false if ANY vehicle data already cached
 	let isLoadingValues = $state(
 		!(deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
 		  deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
@@ -73,8 +110,6 @@
 
 	async function fetchValues() {
 		if (!deviceId || !logtoClient) return;
-
-		// If values are already cached (from background prefetch or extraction), skip fetch
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		if (existing['CarPlatformBundle'] !== undefined ||
 		    existing['CarFingerprint'] !== undefined ||
@@ -93,17 +128,12 @@
 				['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'],
 				token
 			);
-
-			// Handle fetch errors
 			if (res.error) {
 				console.error('[VehicleSelector] Failed to fetch vehicle params:', res.error);
-				// Still allow the component to render, but values will be empty/default
 				return;
 			}
-
 			if (res.items) {
 				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-
 				for (const item of res.items) {
 					if (item.key === 'CarPlatformBundle') {
 						const val = decodeParamValue(item);
@@ -116,38 +146,13 @@
 					} else if (item.key === 'CarFingerprint') {
 						deviceState.deviceValues[deviceId]['CarFingerprint'] = decodeParamValue(item);
 					} else if (item.key === 'CarParamsPersistent') {
-						// Attempts to extract carFingerprint from Cap'n Proto bytes
 						try {
 							const base64 = item.value;
-							console.log(
-								'[VehicleSelector] CarParamsPersistent raw:',
-								base64?.substring(0, 20) + '...',
-								'Length:',
-								base64?.length
-							);
-
 							if (base64) {
 								const binary = atob(base64);
-								// Simple heuristic: Car fingerprints are usually uppercase, alphanumeric, with an underscore, min length 4
-								// e.g. HONDA_CIVIC, TOYOTA_RAV4_2022
-								// We look for the first string matching this pattern.
 								const matches = binary.match(/(?=[A-Z0-9]*_)[A-Z0-9_]{4,}/g);
-								if (matches) {
-									const bestMatch = matches[0];
-									if (bestMatch) {
-										console.log(
-											'[VehicleSelector] Extracted fingerprint from CarParamsPersistent:',
-											bestMatch
-										);
-										deviceState.deviceValues[deviceId]['_ExtractedFingerprint'] = bestMatch;
-									} else {
-										console.log(
-											'[VehicleSelector] No suitable match found in CarParamsPersistent matches:',
-											matches
-										);
-									}
-								} else {
-									console.log('[VehicleSelector] No regex matches in CarParamsPersistent binary');
+								if (matches?.[0]) {
+									deviceState.deviceValues[deviceId]['_ExtractedFingerprint'] = matches[0];
 								}
 							}
 						} catch (e) {
@@ -163,16 +168,9 @@
 		}
 	}
 
-	// Reactive fetch for CarList whenever we have a fingerprint but no manual bundle
+	// Reactive auto-fetch CarList
 	$effect(() => {
-		if (
-			carFingerprint &&
-			!carPlatformBundle &&
-			!carList &&
-			!isFetchingCarList &&
-			!hasAttemptedAutoFetch
-		) {
-			console.log('Auto-detected vehicle (via effect), fetching CarList...');
+		if (carFingerprint && !carPlatformBundle && !carList && !isFetchingCarList && !hasAttemptedAutoFetch) {
 			hasAttemptedAutoFetch = true;
 			(async () => {
 				isFetchingCarList = true;
@@ -180,7 +178,7 @@
 					const token = await logtoClient?.getIdToken();
 					if (token) {
 						const list = await getCarList(deviceId, token);
-						if (list) { carList = list; carListCache[deviceId] = list; }
+						if (list) { carList = list; carListCache[deviceId] = list; saveCarListToStorage(list); }
 					}
 				} catch (e) {
 					console.error('Effect fetch failed', e);
@@ -191,9 +189,7 @@
 		}
 	});
 
-	onMount(() => {
-		fetchValues();
-	});
+	onMount(() => { fetchValues(); });
 
 	async function handleOpen() {
 		modalOpen = true;
@@ -206,8 +202,7 @@
 					if (list) {
 						carList = list;
 						carListCache[deviceId] = list;
-					} else {
-						console.warn('No CarList found on device');
+						saveCarListToStorage(list);
 					}
 				}
 			} finally {
@@ -216,9 +211,7 @@
 		}
 	}
 
-	function requestClear() {
-		confirmOpen = true;
-	}
+	function requestClear() { confirmOpen = true; }
 
 	async function handleClearConfirm() {
 		if (!deviceId) return;
@@ -226,52 +219,28 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-
-			isLoadingValues = true; // Show loading during clear
-
-			console.log('Clearing CarPlatformBundle with empty JSON...');
-
-			// Encode an empty JSON object to clear it
-			const encodedValue = encodeParamValue({
-				key: 'CarPlatformBundle',
-				value: '{}',
-				type: 'Json'
-			});
-
-			const res = await setDeviceParams(
-				deviceId,
-				[
-					{
-						key: 'CarPlatformBundle',
-						value: String(encodedValue),
-						is_compressed: false
-					}
-				],
-				token,
-				5000
-			); // 5s timeout
-
+			isLoadingValues = true;
+			const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: '{}', type: 'Json' });
+			const res = await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }], token, 5000);
 			if (res.error) {
-				const errorMsg =
-					typeof res.error === 'object' && res.error !== null
-						? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
-						: 'Unknown API error';
+				const errorMsg = typeof res.error === 'object' && res.error !== null
+					? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
+					: 'Unknown API error';
 				throw new Error(errorMsg);
 			}
-
-			// Refresh values in background / after closing modal
+			// Optimistically clear the bundle
+			if (deviceState.deviceValues[deviceId]) {
+				deviceState.deviceValues[deviceId]['CarPlatformBundle'] = null;
+			}
+			isLoadingValues = false;
 			confirmOpen = false;
-			await fetchValues();
 		} catch (e: any) {
-			// If it's a timeout, the device likely received the command but response was slow.
-			// We proceed to refresh values.
-			if (e.message && e.message.includes('Timeout')) {
-				console.warn(
-					'Timeout waiting for device response, but proceeding as command was likely sent.',
-					e
-				);
-				// Swallow error and refresh
-				await fetchValues();
+			if (e.message?.includes('Timeout')) {
+				// Timeout likely means device received it — optimistically clear
+				if (deviceState.deviceValues[deviceId]) {
+					deviceState.deviceValues[deviceId]['CarPlatformBundle'] = null;
+				}
+				isLoadingValues = false;
 				confirmOpen = false;
 			} else {
 				console.error('Failed to clear selection', e);
@@ -288,51 +257,29 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-
-			isLoadingValues = true; // Show loading immediately
-
-			// Construct bundle, ensuring name is set and removing internal UI id if present
+			isLoadingValues = true;
 			const { id, ...rest } = data;
 			const bundle = { ...rest, name };
-
-			const bundleStr = JSON.stringify(bundle);
-
-			// Encode the value using device utils
-			const encodedValue = encodeParamValue({
-				key: 'CarPlatformBundle',
-				value: bundleStr,
-				type: 'Json'
-			});
-
-			const res = await setDeviceParams(
-				deviceId,
-				[
-					{
-						key: 'CarPlatformBundle',
-						value: String(encodedValue),
-						is_compressed: false
-					}
-				],
-				token,
-				5000
-			); // 5s timeout
-
+			const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: JSON.stringify(bundle), type: 'Json' });
+			const res = await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }], token, 5000);
 			if (res.error) {
-				const errorMsg =
-					typeof res.error === 'object' && res.error !== null
-						? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
-						: 'Unknown API error';
+				const errorMsg = typeof res.error === 'object' && res.error !== null
+					? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
+					: 'Unknown API error';
 				throw new Error(errorMsg);
 			}
-
-			// Refresh values
-			await fetchValues();
+			// Optimistically update local state (fetchValues early-returns if values exist)
+			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+			deviceState.deviceValues[deviceId]['CarPlatformBundle'] = bundle;
+			isLoadingValues = false;
 			modalOpen = false;
 		} catch (e: any) {
-			// Handle timeout gracefully
-			if (e.message && e.message.includes('Timeout')) {
-				console.warn('Timeout waiting for device response during selection, assuming success.', e);
-				await fetchValues();
+			if (e.message?.includes('Timeout')) {
+				// Timeout likely means device received it — optimistically update
+				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+				const { id: _id, ...rest2 } = data;
+				deviceState.deviceValues[deviceId]['CarPlatformBundle'] = { ...rest2, name };
+				isLoadingValues = false;
 				modalOpen = false;
 			} else {
 				console.error('Failed to set vehicle', e);
@@ -348,33 +295,166 @@
 		if (!isMock) return 'auto';
 		return 'none';
 	});
+
+	// Display values
+	let vehicleName = $derived.by(() => {
+		if (isLoadingValues) return 'Loading...';
+		if (carPlatformBundle) return carPlatformBundle.name;
+		if (!isMock) return carFingerprint.replace(/_/g, ' ');
+		return 'No vehicle detected';
+	});
+
+	let statusLabel = $derived.by(() => {
+		if (isLoadingValues) return 'Checking status';
+		if (carPlatformBundle) return 'Manually selected';
+		if (!isMock) return 'Auto-detected';
+		return 'Not fingerprinted';
+	});
+
+	// Matching cars from carList
+	let matchingCars = $derived.by(() => {
+		if (carPlatformBundle || !carFingerprint || !carList) return [];
+		return Object.entries(carList)
+			.filter(([, data]) => (data as any).platform === carFingerprint)
+			.map(([name, data]) => ({ name, ...(data as object) }));
+	});
+
+	let dotColor = $derived.by(() => {
+		if (mode === 'auto') return 'bg-emerald-500';
+		if (mode === 'manual') return 'bg-blue-500';
+		return 'bg-yellow-500';
+	});
 </script>
 
-<div class="flex flex-col gap-6">
-	<PlatformSelector
-		manualBundle={carPlatformBundle}
-		autoFingerprint={carFingerprint}
-		isLoading={isLoadingValues}
-		onSelect={handleOpen}
-		onRemove={requestClear}
-	/>
-	<LegendWidget {mode} isLoading={isLoadingValues} />
-	<VehicleMetadata
-		bundle={carPlatformBundle}
-		fingerprint={carFingerprint}
-		{carList}
-		isLoading={isLoadingValues}
-	/>
+<!-- Vehicle Status Card -->
+<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<!-- Main status row -->
+	<div class="flex items-center gap-4 px-4 py-3">
+		<!-- Color dot -->
+		<div class="flex shrink-0 items-center">
+			{#if isLoadingValues}
+				<Loader2 size={16} class="animate-spin text-[var(--sl-text-3)]" />
+			{:else}
+				<div class="h-2.5 w-2.5 rounded-full {dotColor}"></div>
+			{/if}
+		</div>
 
-	<CarSelectionModal bind:open={modalOpen} {carList} onSelect={handleSelect} />
+		<!-- Vehicle info -->
+		<div class="min-w-0 flex-1">
+			<div class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">
+				{vehicleName}
+			</div>
+			<div class="text-[0.8125rem] text-[var(--sl-text-2)]">
+				{statusLabel}{#if !isLoadingValues && carFingerprint && !carPlatformBundle}
+					<span class="text-[var(--sl-text-3)]"> · {carFingerprint}</span>
+				{/if}
+			</div>
+		</div>
 
-	<ConfirmationModal
-		bind:open={confirmOpen}
-		title="Remove Manual Selection"
-		message="Are you sure you want to remove the manual vehicle selection? This will revert the device to automatic fingerprinting."
-		confirmText="Remove"
-		variant="danger"
-		isProcessing={isClearing}
-		onConfirm={handleClearConfirm}
-	/>
+		<!-- Actions -->
+		<div class="flex shrink-0 items-center gap-2">
+			{#if !isLoadingValues}
+				{#if mode === 'manual'}
+					<button
+						class="rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-red-400 transition-colors hover:bg-red-500/10"
+						onclick={(e) => { e.stopPropagation(); requestClear(); }}
+					>
+						Remove
+					</button>
+				{/if}
+				<button
+					class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+					onclick={handleOpen}
+				>
+					{mode === 'manual' ? 'Change' : 'Select'}
+					<ChevronRight size={14} />
+				</button>
+			{/if}
+		</div>
+	</div>
+
+	<!-- Details disclosure -->
+	{#if !isLoadingValues && (carFingerprint || carPlatformBundle)}
+		<div class="border-t border-[var(--sl-border-muted)]">
+			<button
+				class="flex w-full items-center gap-2 px-4 py-2.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
+				onclick={() => detailsOpen = !detailsOpen}
+			>
+				<ChevronDown size={14} class="transition-transform {detailsOpen ? '' : '-rotate-90'}" />
+				View details
+			</button>
+
+			{#if detailsOpen}
+				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3 text-[0.8125rem]">
+					{#if carPlatformBundle}
+						<div class="space-y-2">
+							<div class="flex justify-between">
+								<span class="text-[var(--sl-text-3)]">Platform</span>
+								<span class="font-mono text-[var(--sl-text-1)]">{carPlatformBundle.name}</span>
+							</div>
+							{#if carPlatformBundle.make}
+								<div class="flex justify-between">
+									<span class="text-[var(--sl-text-3)]">Make</span>
+									<span class="text-[var(--sl-text-1)]">{carPlatformBundle.make}</span>
+								</div>
+							{/if}
+							{#if carPlatformBundle.model}
+								<div class="flex justify-between">
+									<span class="text-[var(--sl-text-3)]">Model</span>
+									<span class="text-[var(--sl-text-1)]">{carPlatformBundle.model}</span>
+								</div>
+							{/if}
+							{#if carPlatformBundle.year}
+								<div class="flex justify-between">
+									<span class="text-[var(--sl-text-3)]">Year</span>
+									<span class="text-[var(--sl-text-1)]">
+										{Array.isArray(carPlatformBundle.year) ? carPlatformBundle.year.join(', ') : carPlatformBundle.year}
+									</span>
+								</div>
+							{/if}
+							{#if carPlatformBundle.package}
+								<div class="flex justify-between">
+									<span class="text-[var(--sl-text-3)]">Package</span>
+									<span class="text-[var(--sl-text-1)]">{carPlatformBundle.package}</span>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<div class="space-y-2">
+							<div class="flex justify-between">
+								<span class="text-[var(--sl-text-3)]">Fingerprint</span>
+								<span class="font-mono text-[var(--sl-text-1)]">{carFingerprint}</span>
+							</div>
+							{#if matchingCars.length > 0}
+								<div class="flex justify-between">
+									<span class="text-[var(--sl-text-3)]">Match</span>
+									<span class="text-[var(--sl-text-1)]">{matchingCars.map(c => c.name).join(', ')}</span>
+								</div>
+							{/if}
+						</div>
+					{/if}
+
+					<!-- Raw config -->
+					<details class="mt-3">
+						<summary class="cursor-pointer font-mono text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]">
+							Raw configuration
+						</summary>
+						<pre class="mt-2 overflow-x-auto rounded-lg bg-[var(--sl-bg-input)] p-3 text-xs text-[var(--sl-text-2)]">{JSON.stringify(carPlatformBundle || matchingCars, null, 2)}</pre>
+					</details>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>
+
+<CarSelectionModal bind:open={modalOpen} {carList} onSelect={handleSelect} />
+
+<ConfirmationModal
+	bind:open={confirmOpen}
+	title="Remove Manual Selection"
+	message="Are you sure you want to remove the manual vehicle selection? This will revert the device to automatic fingerprinting."
+	confirmText="Remove"
+	variant="danger"
+	isProcessing={isClearing}
+	onConfirm={handleClearConfirm}
+/>

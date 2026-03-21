@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
 	import { AlertTriangle, Loader2, Trash2, X, ArrowRight, Wifi, WifiOff } from 'lucide-svelte';
 	import { deregisterDevice, removeUserFromDevice } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -115,13 +116,14 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<!-- Backdrop -->
 		<button
-			class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+			class="absolute inset-0 bg-black/40 transition-opacity"
 			transition:fade={{ duration: 200 }}
 			onclick={close}
 			aria-label="Close modal"

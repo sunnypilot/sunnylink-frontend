@@ -254,22 +254,19 @@
 
 	<div
 		class="transition-all duration-150 {accentClass}"
-		class:opacity-30={!visible}
-		class:pointer-events-none={!visible}
-		class:opacity-40={visible && !enabled}
-		class:opacity-60={visible && enabled && isPushing}
+		class:opacity-50={!visible || !enabled}
+		class:pointer-events-none={!visible || !enabled}
 		id={item.key}
 	>
 		{#if item.widget === 'toggle'}
 			<!-- ── Toggle Row ──────────────────────────────────────────────── -->
 			<div
 				class="flex w-full items-center justify-between px-4 py-4"
-				class:opacity-40={!enabled}
 			>
 				<div class="mr-4 min-w-0 flex-1">
 					<div class="flex items-center gap-2">
 						<button
-							class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2"
+							class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left"
 							class:cursor-not-allowed={!enabled}
 							disabled={!enabled || isPushing}
 							onclick={() => {

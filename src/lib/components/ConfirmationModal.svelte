@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
-	import { AlertTriangle, Loader2 } from 'lucide-svelte';
+	import { Loader2 } from 'lucide-svelte';
+	import { portal } from '$lib/utils/portal';
 
 	let {
 		open = $bindable(false),
@@ -26,21 +27,18 @@
 		if (isProcessing) return;
 		open = false;
 	}
-
-	let borderClass = $derived(
-		variant === 'danger' ? 'border-red-500/20' : variant === 'primary' ? 'border-blue-500/20' : 'border-[var(--sl-border)]'
-	);
 </script>
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<!-- Backdrop -->
 		<button
-			class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+			class="absolute inset-0 bg-black/40 transition-opacity"
 			transition:fade={{ duration: 200 }}
 			onclick={close}
 			aria-label="Close modal"
@@ -49,43 +47,34 @@
 
 		<!-- Modal Content -->
 		<div
-			class="relative w-full max-w-md overflow-hidden rounded-2xl border bg-[var(--sl-bg-input)] shadow-2xl {borderClass}"
+			class="relative w-full max-w-sm overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 		>
-			<div class="p-6">
-				<div class="flex items-start gap-4">
-					{#if variant === 'danger'}
-						<div class="flex-shrink-0 rounded-full bg-red-500/10 p-3 text-red-500">
-							<AlertTriangle size={24} />
-						</div>
-					{/if}
-					<div>
-						<h3 class="text-lg font-bold text-[var(--sl-text-1)]">{title}</h3>
-						<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-							{message}
-						</p>
-					</div>
-				</div>
+			<div class="p-5">
+				<h3 class="text-[15px] font-semibold text-[var(--sl-text-1)]">{title}</h3>
+				<p class="mt-2 text-[13px] leading-relaxed text-[var(--sl-text-2)]">
+					{message}
+				</p>
 
-				<div class="mt-6 flex justify-end gap-3">
+				<div class="mt-5 flex items-center justify-center gap-3">
 					<button
-						class="rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)] disabled:opacity-50"
+						class="rounded-full border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-5 py-2 text-[13px] font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-input)] disabled:opacity-50"
 						onclick={close}
 						disabled={isProcessing}
 					>
 						{cancelText}
 					</button>
 					<button
-						class="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-[var(--sl-text-1)] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 						class:bg-red-600={variant === 'danger'}
 						class:hover:bg-red-700={variant === 'danger'}
-						class:bg-blue-600={variant === 'primary'}
-						class:hover:bg-blue-700={variant === 'primary'}
+						class:bg-primary={variant === 'primary'}
+						class:hover:opacity-90={variant === 'primary'}
 						onclick={onConfirm}
 						disabled={isProcessing}
 					>
 						{#if isProcessing}
-							<Loader2 size={16} class="animate-spin" />
+							<Loader2 size={14} class="animate-spin" />
 						{/if}
 						{confirmText}
 					</button>

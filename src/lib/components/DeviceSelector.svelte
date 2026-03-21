@@ -14,6 +14,7 @@
 		TriangleAlert
 	} from 'lucide-svelte';
 	import { fade, fly, slide } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
 	import { ChevronRight } from 'lucide-svelte';
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,13 +154,14 @@
 <!-- Modal -->
 {#if deviceSelectorState.isOpen}
 	<div
-		class="fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:pt-20"
+		class="fixed inset-0 z-[9999] flex items-end justify-center sm:items-start sm:pt-20"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<!-- Backdrop -->
 		<button
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+			class="absolute inset-0 bg-black/40 transition-opacity"
 			transition:fade={{ duration: 200 }}
 			onclick={() => (deviceSelectorState.isOpen = false)}
 			aria-label="Close modal"

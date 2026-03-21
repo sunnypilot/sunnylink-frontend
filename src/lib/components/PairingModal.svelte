@@ -2,6 +2,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { X, RectangleHorizontal, ArrowLeft } from 'lucide-svelte';
+	import { portal } from '$lib/utils/portal';
 
 	let { open = $bindable(false), deviceType = $bindable(null) } = $props<{
 		open: boolean;
@@ -140,9 +141,10 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
+		class="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<!-- Backdrop -->
 		<button

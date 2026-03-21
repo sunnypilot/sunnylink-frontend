@@ -32,16 +32,18 @@
 	let useSections = $derived(!!(panel.sections && panel.sections.length > 0));
 
 	// ── V1: Legacy flat items rendering ─────────────────────────────────
-	let activeSubPanels: SubPanel[] = $derived(
-		(panel.sub_panels ?? []).filter((sp) => {
-			if (!sp.trigger_condition) return true;
-			return evaluateRule(sp.trigger_condition, ruleContext);
-		})
-	);
+	/** All sub-panels (never filtered — dim instead of hide) */
+	let allSubPanels: SubPanel[] = $derived(panel.sub_panels ?? []);
+
+	/** Check if a V1 sub-panel's trigger condition is met */
+	function isV1SubPanelEnabled(sp: SubPanel): boolean {
+		if (!sp.trigger_condition) return true;
+		return evaluateRule(sp.trigger_condition, ruleContext);
+	}
 
 	let subPanelByTrigger: Record<string, SubPanel> = $derived.by(() => {
 		const map: Record<string, SubPanel> = {};
-		for (const sp of activeSubPanels) {
+		for (const sp of allSubPanels) {
 			map[sp.trigger_key] = sp;
 		}
 		return map;
@@ -49,7 +51,7 @@
 
 	let orphanedSubPanels: SubPanel[] = $derived.by(() => {
 		const itemKeys = new Set(panel.items.map((i) => i.key));
-		return activeSubPanels.filter((sp) => !itemKeys.has(sp.trigger_key));
+		return allSubPanels.filter((sp) => !itemKeys.has(sp.trigger_key));
 	});
 
 	// Group flat items into sections (legacy inference from info widgets)
@@ -85,20 +87,24 @@
 
 	let hasContent = $derived(
 		useSections ? orderedSections.length > 0 :
-		itemGroups.length > 0 || activeSubPanels.length > 0
+		itemGroups.length > 0 || allSubPanels.length > 0
 	);
 
 	// ── Section sub-panel helpers ───────────────────────────────────────
-	function getActiveSectionSubPanels(section: PanelSection): SubPanel[] {
-		return (section.sub_panels ?? []).filter((sp) => {
-			if (!sp.trigger_condition) return true;
-			return evaluateRule(sp.trigger_condition, ruleContext);
-		});
+	/** All sub-panels for a section (never filtered out — dim instead of hide) */
+	function getAllSectionSubPanels(section: PanelSection): SubPanel[] {
+		return section.sub_panels ?? [];
+	}
+
+	/** Check if a sub-panel's trigger condition is met (enabled) */
+	function isSubPanelEnabled(sp: SubPanel): boolean {
+		if (!sp.trigger_condition) return true;
+		return evaluateRule(sp.trigger_condition, ruleContext);
 	}
 
 	function getSectionSubPanelByTrigger(section: PanelSection): Record<string, SubPanel> {
 		const map: Record<string, SubPanel> = {};
-		for (const sp of getActiveSectionSubPanels(section)) {
+		for (const sp of getAllSectionSubPanels(section)) {
 			map[sp.trigger_key] = sp;
 		}
 		return map;
@@ -118,9 +124,9 @@
 					{/if}
 				</div>
 
-				{#if section.items.length > 0 || getActiveSectionSubPanels(section).length > 0}
+				{#if section.items.length > 0 || getAllSectionSubPanels(section).length > 0}
 					{@const spMap = getSectionSubPanelByTrigger(section)}
-					{@const orphans = getActiveSectionSubPanels(section).filter(sp => !section.items.some(i => i.key === sp.trigger_key))}
+					{@const orphans = getAllSectionSubPanels(section).filter(sp => !section.items.some(i => i.key === sp.trigger_key))}
 					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 						{#each section.items as item, i (item.key)}
 							<SchemaItemRenderer
@@ -131,11 +137,16 @@
 								isLast={i === section.items.length - 1 && !spMap[item.key] && orphans.length === 0}
 							/>
 							{#if spMap[item.key] !== undefined}
+								{@const spEnabled = isSubPanelEnabled(spMap[item.key]!)}
 								<button
-									class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left hover:bg-[var(--sl-bg-subtle)]"
+									class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
+									class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
+									class:opacity-50={!spEnabled}
+									class:pointer-events-none={!spEnabled}
+									disabled={!spEnabled}
 									onclick={() => { const s = spMap[item.key]; if (s) onSubPanelOpen?.(s); }}
 								>
-									<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{spMap[item.key]?.label}</span>
+									<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{spMap[item.key]?.label}</span>
 									<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 								</button>
 								{#if i < section.items.length - 1 || orphans.length > 0}
@@ -144,11 +155,16 @@
 							{/if}
 						{/each}
 						{#each orphans as subPanel, i (subPanel.id)}
+							{@const spEnabled = isSubPanelEnabled(subPanel)}
 							<button
-								class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left hover:bg-[var(--sl-bg-subtle)]"
+								class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
+								class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
+								class:opacity-50={!spEnabled}
+								class:pointer-events-none={!spEnabled}
+								disabled={!spEnabled}
 								onclick={() => onSubPanelOpen?.(subPanel)}
 							>
-								<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{subPanel.label}</span>
+								<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{subPanel.label}</span>
 								<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 							</button>
 							{#if i < orphans.length - 1}
@@ -178,11 +194,16 @@
 							isLast={isLastItem && !orphanedSubPanels.length}
 						/>
 						{#if subPanelByTrigger[item.key] !== undefined}
+							{@const spEnabled = isV1SubPanelEnabled(subPanelByTrigger[item.key]!)}
 							<button
-								class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left hover:bg-[var(--sl-bg-subtle)]"
+								class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
+								class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
+								class:opacity-50={!spEnabled}
+								class:pointer-events-none={!spEnabled}
+								disabled={!spEnabled}
 								onclick={() => { const s = subPanelByTrigger[item.key]; if (s) onSubPanelOpen?.(s); }}
 							>
-								<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{subPanelByTrigger[item.key]?.label}</span>
+								<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{subPanelByTrigger[item.key]?.label}</span>
 								<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 							</button>
 							{#if i < group.items.length - 1 || orphanedSubPanels.length > 0}
@@ -191,11 +212,16 @@
 						{/if}
 					{/each}
 					{#each orphanedSubPanels as subPanel, i (subPanel.id)}
+						{@const spEnabled = isV1SubPanelEnabled(subPanel)}
 						<button
-							class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left hover:bg-[var(--sl-bg-subtle)]"
+							class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
+							class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
+							class:opacity-50={!spEnabled}
+							class:pointer-events-none={!spEnabled}
+							disabled={!spEnabled}
 							onclick={() => onSubPanelOpen?.(subPanel)}
 						>
-							<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{subPanel.label}</span>
+							<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{subPanel.label}</span>
 							<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 						</button>
 						{#if i < orphanedSubPanels.length - 1}

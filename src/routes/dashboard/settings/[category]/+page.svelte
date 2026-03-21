@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { goto, beforeNavigate } from '$app/navigation';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
@@ -83,18 +83,57 @@
 		}
 	}
 
-	// Sub-panel state with transition direction
-	let activeSubPanel: SubPanel | null = $state(null);
+	// Sub-panel state driven by URL query param for browser back support
 	let subPanelDirection: 'forward' | 'back' = $state('forward');
+
+	// Collect all sub-panels from the schema panel (flat + sections)
+	let allSubPanels = $derived.by(() => {
+		if (!schemaPanel) return [];
+		const sps: SubPanel[] = [...(schemaPanel.sub_panels ?? [])];
+		for (const section of schemaPanel.sections ?? []) {
+			for (const sp of section.sub_panels ?? []) {
+				sps.push(sp);
+			}
+		}
+		return sps;
+	});
+
+	// Derive active sub-panel from URL ?panel= param
+	let activeSubPanel: SubPanel | null = $derived.by(() => {
+		const panelId = page.url.searchParams.get('panel');
+		if (!panelId || allSubPanels.length === 0) return null;
+		return allSubPanels.find((sp) => sp.id === panelId) ?? null;
+	});
+
+	// Detect browser back/forward (popstate) to set correct animation direction
+	// beforeNavigate fires BEFORE SvelteKit processes the navigation,
+	// so subPanelDirection is set before the template re-renders.
+	beforeNavigate(({ type, to }) => {
+		if (type === 'popstate') {
+			const toPanel = to?.url.searchParams.get('panel');
+			const fromPanel = page.url.searchParams.get('panel');
+			if (fromPanel && !toPanel) {
+				// Going back from sub-panel to parent
+				subPanelDirection = 'back';
+			} else if (!fromPanel && toPanel) {
+				// Going forward into a sub-panel (browser forward button)
+				subPanelDirection = 'forward';
+			}
+		}
+	});
 
 	function openSubPanel(subPanel: SubPanel) {
 		subPanelDirection = 'forward';
-		activeSubPanel = subPanel;
+		const url = new URL(page.url);
+		url.searchParams.set('panel', subPanel.id);
+		goto(url.toString(), { keepFocus: true, noScroll: true });
 	}
 
 	function closeSubPanel() {
 		subPanelDirection = 'back';
-		activeSubPanel = null;
+		const url = new URL(page.url);
+		url.searchParams.delete('panel');
+		goto(url.toString(), { keepFocus: true, noScroll: true });
 	}
 
 	// ── Legacy rendering ────────────────────────────────────────────────────

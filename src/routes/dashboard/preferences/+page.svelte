@@ -135,7 +135,7 @@
 		<!-- Show Device Online Help -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2" onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}>Device Connection Help</button>
+				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}>Device Connection Help</button>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Show the explanation modal when visiting settings</p>
 			</div>
 			<button
@@ -163,7 +163,7 @@
 		<!-- Device Offline -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2" onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}>Device Offline Alerts</button>
+				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}>Device Offline Alerts</button>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Notify when device loses connection</p>
 			</div>
 			<button
@@ -186,7 +186,7 @@
 		<!-- Sync Failure -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2" onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}>Sync Failure Alerts</button>
+				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}>Sync Failure Alerts</button>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Notify when settings fail to push to device</p>
 			</div>
 			<button
@@ -209,7 +209,7 @@
 		<!-- Settings Drift -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2" onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}>Settings Drift Alerts</button>
+				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}>Settings Drift Alerts</button>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Notify when device values differ from your last known state</p>
 			</div>
 			<button
@@ -291,7 +291,7 @@
 			<!-- Debug Mode -->
 			<div class="flex items-center justify-between px-4 py-3.5">
 				<div>
-					<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left hover:underline decoration-[var(--sl-text-3)] underline-offset-2" onclick={() => (preferences.debugMode = !preferences.debugMode)}>Debug Mode</button>
+					<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.debugMode = !preferences.debugMode)}>Debug Mode</button>
 					<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Show setting keys instead of labels</p>
 				</div>
 				<button

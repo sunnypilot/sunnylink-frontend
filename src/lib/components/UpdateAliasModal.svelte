@@ -4,6 +4,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { Loader2, ArrowRight, AlertCircle } from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
 
 	let { open = $bindable(false), changes = [] } = $props<{
 		open: boolean;
@@ -77,12 +78,13 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<button
-			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+			class="absolute inset-0 bg-black/40"
 			transition:fade={{ duration: 200 }}
 			onclick={() => { if (!saving) open = false; }}
 			aria-label="Close modal"

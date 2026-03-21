@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
 	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
 	import {
@@ -465,9 +466,10 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
+		class="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<button
 			class="absolute inset-0 bg-black/40"

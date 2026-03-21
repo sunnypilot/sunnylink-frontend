@@ -125,18 +125,21 @@
 			</div>
 		</div>
 	{:else if fingerprint}
-		<!-- Fingerprint exists but not in CarList -->
-		<div class="flex flex-1 flex-col items-center justify-center space-y-4 py-10 text-center">
-			<div class="rounded-full bg-[var(--sl-bg-surface)] p-4">
-				<Car size={32} class="text-[var(--sl-text-3)]" />
-			</div>
+		<!-- Fingerprint exists but CarList not loaded or no match -->
+		<div class="space-y-6">
 			<div>
-				<h4 class="font-bold text-[var(--sl-text-1)]">Unknown Vehicle</h4>
-				<p class="mt-1 text-sm text-[var(--sl-text-2)]">
-					Fingerprint: <code class="rounded bg-[var(--sl-bg-surface)] px-1 py-0.5">{fingerprint}</code>
-				</p>
-				<p class="mt-2 text-xs text-[var(--sl-text-3)]">This platform is not in the known vehicle list.</p>
+				<div class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase">
+					Detected Platform
+				</div>
+				<div class="mt-1 font-mono text-lg font-bold break-all text-[var(--sl-text-1)]">
+					{fingerprint}
+				</div>
 			</div>
+			{#if carList}
+				<p class="text-xs text-[var(--sl-text-3)]">
+					This platform is not in the known vehicle list.
+				</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="flex flex-1 flex-col items-center justify-center py-10 text-center text-[var(--sl-text-3)]">

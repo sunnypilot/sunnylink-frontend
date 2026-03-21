@@ -6,6 +6,7 @@
 	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
 	import { Loader2, AlertTriangle, ArrowRight } from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
 
 	let {
 		open = $bindable(false),
@@ -20,11 +21,6 @@
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let changes = $derived(deviceId ? deviceState.stagedChanges[deviceId] : {});
 
-	$effect(() => {
-		if (open) {
-			console.log('PushSettingsModal Open:', { deviceId, alias, changes });
-		}
-	});
 	let changeList = $derived(
 		Object.entries(changes || {}).map(([key, value]) => {
 			const def = SETTINGS_DEFINITIONS.find((d) => d.key === key);
@@ -151,12 +147,13 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<button
-			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+			class="absolute inset-0 bg-black/40"
 			transition:fade={{ duration: 200 }}
 			onclick={() => { if (!pushing && !fetchingLatest) open = false; }}
 			aria-label="Close modal"

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Shield, Info, Wifi } from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
 	import { preferences } from '$lib/stores/preferences.svelte';
 
 	let { open = $bindable(false) } = $props<{
@@ -22,10 +23,11 @@
 		role="dialog"
 		aria-modal="true"
 		aria-label="Device connection required"
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0"
+		use:portal
 	>
 		<button
-			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+			class="absolute inset-0 bg-black/40"
 			transition:fade={{ duration: 200 }}
 			onclick={handleClose}
 			aria-label="Close modal"
