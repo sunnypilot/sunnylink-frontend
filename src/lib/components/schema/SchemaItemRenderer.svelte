@@ -11,6 +11,8 @@
 	import { encodeParamValue } from '$lib/utils/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
+	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
+	import { Loader2 } from 'lucide-svelte';
 
 	interface Props {
 		deviceId: string;
@@ -55,6 +57,13 @@
 	let isLoading = $derived(loadingValues && currentValue === undefined);
 	let isFloat = $derived(item.step !== undefined && item.step < 1);
 	let isOn = $derived(displayValue === true || displayValue === 1 || displayValue === '1');
+
+	// Live slider preview: shows value during drag, resets on release
+	let sliderPreview = $state<number | null>(null);
+
+	// Force Offroad: special handling for OffroadMode key
+	let isOffroadMode = $derived(item.key === 'OffroadMode');
+	let offroadConfirmOpen = $state(false);
 
 	// Pending change state for this specific item
 	let pendingChange = $derived(pendingChanges.getForKey(deviceId, item.key));
@@ -258,7 +267,60 @@
 		class:pointer-events-none={!visible || !enabled}
 		id={item.key}
 	>
-		{#if item.widget === 'toggle'}
+		{#if isOffroadMode}
+			<!-- ── Force Offroad Mode: Button pattern (matches device UI) ── -->
+			<div class="flex w-full items-center justify-between px-4 py-4">
+				<div class="mr-4 min-w-0 flex-1">
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+						{item.title || 'Force Offroad Mode'}
+					</span>
+					{#if isOn}
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-amber-400">Vehicle engagement is disabled</p>
+					{:else if item.description}
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+					{/if}
+					{#if pushState === 'error'}
+						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+					{/if}
+				</div>
+				<div class="flex shrink-0 items-center">
+					{#if isLoading}
+						<div class="h-8 w-24 skeleton-shimmer rounded-full"></div>
+					{:else if isPushing}
+						<Loader2 size={16} class="animate-spin text-[var(--sl-text-2)]" />
+					{:else if isOn}
+						<button
+							class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-400 transition-colors hover:bg-amber-500/25"
+							disabled={!enabled}
+							onclick={() => handleChange(false)}
+						>
+							Exit Offroad
+						</button>
+					{:else}
+						<button
+							class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-400 transition-colors hover:bg-red-500/25"
+							disabled={!enabled}
+							onclick={() => (offroadConfirmOpen = true)}
+						>
+							Enable
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<ConfirmationModal
+				bind:open={offroadConfirmOpen}
+				title="Enable Force Offroad Mode?"
+				message="This will immediately prevent the vehicle from engaging. Only use this when the vehicle is parked and you need to force maintenance mode."
+				confirmText="Enable Offroad"
+				variant="danger"
+				isProcessing={isPushing}
+				onConfirm={() => {
+					offroadConfirmOpen = false;
+					handleChange(true);
+				}}
+			/>
+		{:else if item.widget === 'toggle'}
 			<!-- ── Toggle Row ──────────────────────────────────────────────── -->
 			<div
 				class="flex w-full items-center justify-between px-4 py-4"
@@ -378,8 +440,8 @@
 						<div class="flex w-full flex-col gap-2">
 							<div class="flex items-center justify-between text-xs text-[var(--sl-text-3)]">
 								<span>{isFloat ? Number(item.min).toFixed(2) : item.min}</span>
-								<span class="text-sm font-semibold text-primary tabular-nums">
-									{formatDisplay(displayValue !== undefined ? displayValue : item.min)}
+								<span class="text-sm font-semibold tabular-nums transition-colors" class:text-primary={sliderPreview === null} class:text-[var(--sl-text-1)]={sliderPreview !== null}>
+									{formatDisplay(sliderPreview ?? (displayValue !== undefined ? displayValue : item.min))}
 									{#if item.unit}<span class="ml-0.5 text-xs font-normal text-[var(--sl-text-3)]">{item.unit}</span>{/if}
 								</span>
 								<span>{isFloat ? Number(item.max).toFixed(2) : item.max}</span>
@@ -405,9 +467,14 @@
 									value={displayValue !== undefined ? Number(displayValue) : item.min}
 									class="range flex-1 range-primary range-xs"
 									disabled={!enabled || isPushing}
+									oninput={(e) => {
+										const val = (e.currentTarget as HTMLInputElement).value;
+										sliderPreview = isFloat ? parseFloat(val) : parseInt(val, 10);
+									}}
 									onchange={(e) => {
 										const val = (e.currentTarget as HTMLInputElement).value;
 										const numVal = isFloat ? parseFloat(val) : parseInt(val, 10);
+										sliderPreview = null;
 										handleChange(numVal);
 									}}
 								/>

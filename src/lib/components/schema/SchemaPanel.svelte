@@ -146,7 +146,7 @@
 									disabled={!spEnabled}
 									onclick={() => { const s = spMap[item.key]; if (s) onSubPanelOpen?.(s); }}
 								>
-									<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{spMap[item.key]?.label}</span>
+									<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{spMap[item.key]?.label}</span>
 									<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 								</button>
 								{#if i < section.items.length - 1 || orphans.length > 0}
@@ -164,7 +164,7 @@
 								disabled={!spEnabled}
 								onclick={() => onSubPanelOpen?.(subPanel)}
 							>
-								<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{subPanel.label}</span>
+								<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{subPanel.label}</span>
 								<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 							</button>
 							{#if i < orphans.length - 1}
@@ -203,7 +203,7 @@
 								disabled={!spEnabled}
 								onclick={() => { const s = subPanelByTrigger[item.key]; if (s) onSubPanelOpen?.(s); }}
 							>
-								<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{subPanelByTrigger[item.key]?.label}</span>
+								<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{subPanelByTrigger[item.key]?.label}</span>
 								<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 							</button>
 							{#if i < group.items.length - 1 || orphanedSubPanels.length > 0}
@@ -221,7 +221,7 @@
 							disabled={!spEnabled}
 							onclick={() => onSubPanelOpen?.(subPanel)}
 						>
-							<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-1b)]">{subPanel.label}</span>
+							<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{subPanel.label}</span>
 							<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 						</button>
 						{#if i < orphanedSubPanels.length - 1}
