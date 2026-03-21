@@ -277,7 +277,7 @@
 							<Menu size={20} />
 						</label>
 						<p
-							class="font-audiowide text-[0.6875rem] font-semibold tracking-[0.06em] text-[var(--sl-text-3)] uppercase"
+							class="font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-3)] uppercase"
 						>
 							sunnylink
 						</p>
@@ -354,7 +354,7 @@
 					onclick={() => deviceSelectorState.toggle()}
 				>
 					<div class={['min-w-0 flex-1 space-y-0.5', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-						<p class="font-audiowide text-[0.6875rem] font-semibold tracking-[0.06em] text-[var(--sl-text-3)] uppercase">
+						<p class="font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-3)] uppercase">
 							sunnylink
 						</p>
 						{#if sidebarDeviceAlias}
