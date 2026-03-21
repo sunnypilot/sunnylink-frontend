@@ -73,10 +73,7 @@
 			if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
 		});
 
-		if (count > 0) {
-			toastState.show(`Synced ${count} queued change${count === 1 ? '' : 's'}`, 'success');
-		}
-
+		// Failed changes get a toast (synced feedback handled by SyncStatusBanner + title pill)
 		const failedCount = pendingChanges.failedCount(did);
 		if (failedCount > 0) {
 			toastState.show(`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`, 'error');

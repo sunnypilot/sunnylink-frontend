@@ -42,7 +42,7 @@
 
 	let statusText = $derived.by(() => {
 		if (isFlushing) return `Syncing ${queuedCount + pushingCount} change${(queuedCount + pushingCount) === 1 ? '' : 's'}...`;
-		if (queuedCount > 0) return `${queuedCount} change${queuedCount === 1 ? '' : 's'} queued`;
+		if (queuedCount > 0) return `${queuedCount} change${queuedCount === 1 ? '' : 's'} pending`;
 		if (confirmedCount > 0 && failedCount === 0) return `${confirmedCount} change${confirmedCount === 1 ? '' : 's'} synced`;
 		return '';
 	});

@@ -10,7 +10,7 @@
 
 const STORAGE_PREFIX = 'sunnylink_pending_';
 const MAX_PENDING_PER_DEVICE = 50;
-const CONFIRMED_PURGE_DELAY_MS = 30_000; // auto-remove confirmed entries after 30s
+const CONFIRMED_PURGE_DELAY_MS = 5_000; // auto-remove confirmed entries after 5s
 
 export type ChangeStatus = 'pending' | 'pushing' | 'confirmed' | 'failed';
 

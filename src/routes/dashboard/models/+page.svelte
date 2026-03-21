@@ -237,8 +237,11 @@
 	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
 	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
 
+	// Tracks any active fetch (silent or not) for the sync pill
+	let isFetchingModels = $state(false);
+
 	// True only when refreshing with data already present (not cold load)
-	let isRevalidating = $derived(loadingModels && modelList !== null);
+	let isRevalidating = $derived(isFetchingModels && modelList !== null);
 
 	function clearSyncTimer() {
 		if (syncTimerId !== undefined) { clearTimeout(syncTimerId); syncTimerId = undefined; }
@@ -260,10 +263,17 @@
 		});
 	});
 
-	// Cleanup timer on device change
+	// Cleanup timer on device change (skip initial mount)
+	let prevDeviceId = $state(deviceState.selectedDeviceId);
 	$effect(() => {
-		deviceState.selectedDeviceId; // tracked
-		untrack(() => { clearSyncTimer(); syncStatus = 'idle'; });
+		const did = deviceState.selectedDeviceId;
+		untrack(() => {
+			if (did !== prevDeviceId) {
+				prevDeviceId = did;
+				clearSyncTimer();
+				syncStatus = 'idle';
+			}
+		});
 	});
 
 	// Group models by folder
@@ -394,6 +404,7 @@
 	});
 
 	async function fetchModelsForDevice(silent = false) {
+		isFetchingModels = true;
 		if (!silent) {
 			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
 			currentModelShortName = undefined;
@@ -523,6 +534,7 @@
 			console.error('Error fetching models:', e);
 		} finally {
 			loadingModels = false;
+			isFetchingModels = false;
 		}
 	}
 
@@ -540,6 +552,7 @@
 
 		try {
 			loadingModels = true;
+			isFetchingModels = true;
 			const token = await logtoClient.getIdToken();
 
 			// 1. Clear the last update time to force a refresh
@@ -575,6 +588,7 @@
 			console.error('Error refreshing models:', e);
 		} finally {
 			loadingModels = false;
+			isFetchingModels = false;
 		}
 	}
 

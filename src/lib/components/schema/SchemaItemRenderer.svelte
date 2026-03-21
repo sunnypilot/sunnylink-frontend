@@ -105,9 +105,9 @@
 			const stillPending = !!pendingChanges.getForKey(deviceId, item.key);
 
 			if (!stillPending && hadPending) {
-				toastState.show('Reverted to original. Queued change removed.', 'info');
+				toastState.show('Reverted to original. Pending change removed.', 'info');
 			} else if (stillPending) {
-				toastState.show('Change queued. Will sync when device reconnects.', 'info');
+				toastState.show('Change pending. Will sync when device reconnects.', 'info');
 			}
 			return;
 		}
@@ -336,7 +336,7 @@
 							}}
 						>{item.title || item.key}</button>
 						{#if isQueued}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Queued</span>
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}

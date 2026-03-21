@@ -254,7 +254,7 @@
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear Pending Changes</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Remove all queued settings changes for current device</p>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Remove all pending settings changes for current device</p>
 			</div>
 			<button
 				class="rounded-lg border border-[var(--sl-border)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"

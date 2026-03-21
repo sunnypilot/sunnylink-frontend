@@ -34,6 +34,7 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
+	import PendingChangesPill from '$lib/components/PendingChangesPill.svelte';
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
@@ -531,6 +532,7 @@
 />
 
 <Toast />
+<PendingChangesPill />
 {#if isIOS && !isLandingPage}
 	<PWAPrompt
 		copyTitle="Add to Home Screen"
