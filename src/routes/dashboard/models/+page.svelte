@@ -32,7 +32,8 @@
 		Star,
 		CircleHelp,
 		Trash2,
-		RefreshCw
+		RefreshCw,
+		WifiOff
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 	import { toastState } from '$lib/stores/toast.svelte';
@@ -161,12 +162,13 @@
 			const downloadingModel = modelList.find((m) => m.index === downloadingModelIndex);
 			if (downloadingModel) return downloadingModel;
 		}
-		return (
-			modelList?.find((m) => m.short_name === currentModelShortName) ??
-			(currentModelShortName === undefined && !loadingModels && modelList
-				? DEFAULT_MODEL
-				: undefined)
-		);
+		if (!modelList) return undefined;
+		if (currentModelShortName !== undefined) {
+			return modelList.find((m) => m.short_name === currentModelShortName) ?? DEFAULT_MODEL;
+		}
+		// Don't flash DEFAULT_MODEL while still loading/resolving
+		if (loadingModels) return undefined;
+		return DEFAULT_MODEL;
 	});
 	let isLegacyActive = $derived(
 		currentModel?.overrides?.folder?.toLowerCase().includes('legacy') ?? false
@@ -198,6 +200,29 @@
 			(deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'loading' ||
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
+
+	// ── Sync status pill state machine (matches settings [category] page) ──
+	// 'idle' → 'revalidating' → 'synced' (3s) → 'idle'
+	//                         → 'failed'
+	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
+	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
+
+	$effect(() => {
+		const loading = loadingModels;
+		const checking = isCheckingStatus;
+		const offline = isOffline;
+		const error = isError;
+
+		untrack(() => {
+			if ((loading || checking) && syncStatus !== 'revalidating') {
+				clearTimeout(syncTimerId);
+				syncStatus = 'revalidating';
+			} else if (!loading && !checking && syncStatus === 'revalidating') {
+				syncStatus = (offline || error) ? 'failed' : 'synced';
+				syncTimerId = setTimeout(() => { syncStatus = 'idle'; }, 3000);
+			}
+		});
+	});
 
 	// Group models by folder
 	let groupedModels = $derived.by(() => {
@@ -721,8 +746,26 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-	<div>
-		<h2 class="text-2xl font-medium text-[var(--sl-text-1)]">Models</h2>
+	<div class="px-4">
+		<div class="flex items-baseline gap-3">
+			<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">Models</h2>
+			{#if (loadingModels || isCheckingStatus) && !modelList}
+				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+			{:else if syncStatus !== 'idle'}
+				<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
+					{#if syncStatus === 'revalidating'}
+						<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
+						<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
+					{:else if syncStatus === 'synced'}
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500" style="align-self: center;"><path d="M20 6 9 17l-5-5" /></svg>
+						<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
+					{:else if syncStatus === 'failed'}
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500" style="align-self: center;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+						<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
+					{/if}
+				</span>
+			{/if}
+		</div>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
 			Manage and switch driving models & related settings for your device.
 		</p>
@@ -751,61 +794,6 @@
 			<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
 			<p class="mt-2 text-[var(--sl-text-2)]">Select a device to view available models.</p>
 		</div>
-	{:else if isOffline}
-		{#await data.streamed.deviceResult then result}
-			{@const devices = result.devices ?? []}
-			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
-			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-red-500/10 p-4">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-12 w-12 text-red-500"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-						/>
-					</svg>
-				</div>
-				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">
-					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
-					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-[var(--sl-text-2)]"
-							>({selectedDevice?.device_id})</span
-						>
-					{/if}
-				</h3>
-				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
-					Your device needs to be online to fetch and manage models.
-				</p>
-				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
-					<button
-						class="btn btn-sm btn-primary"
-						onclick={async () => {
-							if (deviceState.selectedDeviceId && logtoClient) {
-								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceState.selectedDeviceId, token);
-								}
-							}
-						}}
-					>
-						Retry Connection
-					</button>
-					<div class="divider text-xs tracking-widest text-[var(--sl-text-3)]">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
-						<DeviceSelector {devices} />
-					{/if}
-				</div>
-			</div>
-		{/await}
 	{:else if (loadingModels || isCheckingStatus) && !modelList}
 		<div class="animate-pulse space-y-6">
 			{#if isCheckingStatus}
@@ -817,44 +805,38 @@
 			<div class="h-12 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 		</div>
-	{:else if isError}
-		{#await data.streamed.deviceResult then result}
-			{@const devices = result.devices ?? []}
-			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
-			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-amber-500/10 p-4">
-					<!-- AlertTriangle is already imported -->
-					<AlertTriangle class="h-12 w-12 text-amber-500" />
-				</div>
-				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">Connection Error</h3>
-				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
-					{deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] ||
-						'Failed to connect to device.'}
-				</p>
-				<div class="mt-6">
-					<button
-						class="btn btn-sm btn-primary"
-						onclick={async () => {
-							if (deviceState.selectedDeviceId && logtoClient) {
-								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceState.selectedDeviceId, token);
-								}
-							}
-						}}
-					>
-						Retry Connection
-					</button>
-					<div class="divider text-xs tracking-widest text-[var(--sl-text-3)]">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
-						<DeviceSelector {devices} />
-					{/if}
-				</div>
-			</div>
-		{/await}
 	{:else}
+		<!-- Inline offline/error banner — matches settings layout pattern -->
+		{#if isOffline || isError}
+			<div class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
+				{isError ? 'border-orange-500/20 bg-orange-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}">
+				{#if isError}
+					<AlertTriangle size={16} class="shrink-0 text-orange-400" />
+					<p class="flex-1 text-sm text-orange-200/80">
+						<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] || 'Unable to reach device.'} Showing cached models.
+					</p>
+				{:else}
+					<WifiOff size={16} class="shrink-0 text-yellow-500" />
+					<p class="flex-1 text-sm text-yellow-200/80">
+						<span class="font-medium">Offline</span> — Showing cached models. Changes disabled until device is online.
+					</p>
+				{/if}
+				<button
+					class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-400' : 'text-yellow-400'}"
+					onclick={async () => {
+						if (deviceState.selectedDeviceId && logtoClient) {
+							const token = await logtoClient.getIdToken();
+							if (token) {
+								await checkDeviceStatus(deviceState.selectedDeviceId, token);
+							}
+						}
+					}}
+				>
+					<RefreshCw size={14} />
+					Retry
+				</button>
+			</div>
+		{/if}
 		<div class="space-y-6">
 			{#if currentModel}
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
@@ -914,25 +896,25 @@
 
 			<div class="space-y-3">
 				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-					<div class="label px-0">
+					<div class="flex items-center gap-2 px-4">
 						<span
-							class="label-text text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+							class="text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
 							>Available Models</span
 						>
+						<button
+							type="button"
+							class="rounded-md p-1 text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] disabled:opacity-40"
+							onclick={refreshModels}
+							disabled={loadingModels}
+							aria-label="Refresh model list from device"
+							title="Refresh model list from device"
+						>
+							<RefreshCw size={14} class={loadingModels ? 'animate-spin' : ''} />
+						</button>
 					</div>
 					<div
 						class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
 					>
-						<button
-							type="button"
-							class="btn border-[var(--sl-border)] bg-[var(--sl-bg-surface)] text-[var(--sl-text-1)] btn-ghost transition-all btn-md hover:border-[var(--sl-border-emphasis)] hover:bg-[var(--sl-bg-elevated)] active:scale-95 disabled:opacity-50"
-							onclick={refreshModels}
-							disabled={loadingModels}
-							aria-label="Fetch Latest"
-						>
-							<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
-							Fetch Latest
-						</button>
 						<div class="relative w-full">
 							<input
 								type="text"
@@ -964,7 +946,7 @@
 				<div class="relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
 					{#if loadingModels && modelList}
 						<div
-							class="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-[1px]"
+							class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/40"
 							transition:fade={{ duration: 200 }}
 						>
 							<span class="loading loading-lg loading-spinner text-primary"></span>
@@ -1112,7 +1094,7 @@
 				].filter((p): p is NonNullable<typeof p> => p !== null)}
 				{#if modelSettingItems.length > 0}
 					<div>
-						<p class="mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
+						<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 							Model Settings
 						</p>
 						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">

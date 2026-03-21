@@ -8,6 +8,23 @@ import type { components } from '../../sunnylink/v1/schema';
 type DeviceParam = components['schemas']['DeviceParam'];
 type ParamType = components['schemas']['ParamType'];
 
+/** Maps raw JS error messages to user-friendly text */
+function friendlyErrorMessage(raw: string | undefined): string {
+	if (!raw) return 'Connection failed';
+	const lower = raw.toLowerCase();
+	if (lower.includes('abort') || lower.includes('signal')) return 'Device did not respond in time';
+	if (lower.includes('timeout')) return 'Connection timed out';
+	if (lower.includes('network') || lower.includes('fetch'))
+		return 'Network error — check your connection';
+	if (lower.includes('401') || lower.includes('unauthorized'))
+		return 'Session expired — please sign in again';
+	if (lower.includes('403') || lower.includes('forbidden')) return 'Access denied';
+	if (lower.includes('404') || lower.includes('not found')) return 'Device not found';
+	if (lower.includes('502') || lower.includes('503') || lower.includes('504'))
+		return 'Server temporarily unavailable';
+	return raw;
+}
+
 export interface AsyncFetchResult {
 	items: DeviceParam[] | null;
 	error?: 'expired' | 'not_found' | 'timeout' | 'error';
@@ -292,7 +309,7 @@ export async function checkDeviceStatus(
 					messageResult.status === 'rejected'
 						? (messageResult.reason as Error)?.message
 						: (metadataResult as PromiseRejectedResult).reason?.message;
-				deviceState.lastErrorMessages[deviceId] = reason || 'Connection failed';
+				deviceState.lastErrorMessages[deviceId] = friendlyErrorMessage(reason);
 			} else {
 				// Both returned null (HTTP error responses) — device is offline
 				deviceState.onlineStatuses[deviceId] = 'offline';
@@ -361,8 +378,9 @@ export async function checkDeviceStatus(
 	} catch (e: unknown) {
 		console.error(`Failed to check status for ${deviceId}`, e);
 		deviceState.onlineStatuses[deviceId] = 'error';
-		deviceState.lastErrorMessages[deviceId] =
-			(e as { message?: string })?.message || 'Connection failed';
+		deviceState.lastErrorMessages[deviceId] = friendlyErrorMessage(
+			(e as { message?: string })?.message
+		);
 	}
 }
 
