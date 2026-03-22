@@ -60,7 +60,6 @@ class BatchPushStore {
 		// Net-change detection: user reverted to original → cancel the key
 		if (this.valuesEqual(newValue, originalValue)) {
 			this.cancel(deviceId, key);
-			// If batch is now empty, cancel the timer
 			const remaining = Object.keys(this.queues[deviceId] ?? {}).length;
 			if (remaining === 0) this.clearTimer(deviceId);
 			else this.resetTimer(deviceId);

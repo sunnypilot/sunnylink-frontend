@@ -322,14 +322,14 @@
 						<div class="h-[26px] w-[44px] skeleton-shimmer rounded-full"></div>
 					{:else}
 						{@const toggleTrackClass =
-							isOn && isPushing ? 'bg-primary/40'
-							: isOn ? 'bg-primary'
+							isOn ? 'bg-primary'
 							: !enabled ? 'bg-[var(--sl-toggle-off-disabled)]'
 							: 'bg-[var(--sl-toggle-off)]'
 						}
 						<button
-							class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass}"
+							class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass} transition-opacity duration-200"
 							style="transition: background-color var(--dur-instant) var(--ease-out);"
+							class:opacity-50={isPushing}
 							class:cursor-not-allowed={!enabled || isPushing}
 							class:pointer-events-none={isPushing}
 							disabled={!enabled || isPushing}
