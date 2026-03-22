@@ -14,6 +14,8 @@
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
+	import { versionPoller } from '$lib/stores/versionPoller.svelte';
+	import { onDestroy } from 'svelte';
 
 	let { children, data } = $props();
 
@@ -57,23 +59,51 @@
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 
-		const count = await pendingChanges.flush(did, async (change: PendingChange) => {
-			// Infer param type from device settings metadata
+		const pending = pendingChanges.getByStatus(did, 'pending');
+		if (pending.length === 0) return;
+
+		pendingChanges.setFlushing(did, true);
+
+		// Mark all as pushing
+		for (const change of pending) pendingChanges.markPushing(did, change.key);
+
+		// Encode all changes and batch into a single API call
+		const payload: { key: string; value: string }[] = [];
+		const encoded: PendingChange[] = [];
+		for (const change of pending) {
 			const deviceParams = deviceState.deviceSettings[did];
 			const paramInfo = deviceParams?.find((p: any) => p.key === change.key);
 			const type = paramInfo?.type || 'String';
+			const enc = encodeParamValue({ key: change.key, value: change.desiredValue, type });
+			if (enc !== null) {
+				payload.push({ key: change.key, value: enc });
+				encoded.push(change);
+			} else {
+				pendingChanges.markFailed(did, change.key, 'Failed to encode value');
+			}
+		}
 
-			const encoded = encodeParamValue({ key: change.key, value: change.desiredValue, type });
-			if (encoded === null) throw new Error('Failed to encode value');
+		if (payload.length > 0) {
+			try {
+				await setDeviceParams(did, payload, token, 5000);
 
-			await setDeviceParams(did, [{ key: change.key, value: encoded }], token, 5000);
+				// Success: mark all confirmed, update cache
+				const gitCommit = (deviceState.deviceValues[did]?.['GitCommit'] as string) || '';
+				for (const change of encoded) {
+					pendingChanges.markConfirmed(did, change.key);
+					if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
+				}
+			} catch (e) {
+				// Batch failed: mark all as failed
+				for (const change of encoded) {
+					pendingChanges.markFailed(did, change.key, (e as Error)?.message || 'Failed');
+				}
+			}
+		}
 
-			// Update localStorage cache
-			const gitCommit = (deviceState.deviceValues[did]?.['GitCommit'] as string) || '';
-			if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
-		});
+		pendingChanges.setFlushing(did, false);
 
-		// Failed changes get a toast (synced feedback handled by SyncStatusBanner + title pill)
+		// Failed changes get a toast
 		const failedCount = pendingChanges.failedCount(did);
 		if (failedCount > 0) {
 			toastState.show(`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`, 'error');
@@ -145,6 +175,22 @@
 		}
 	});
 
+	// ── ParamsVersion poller: detect device-side changes ──
+	$effect(() => {
+		if (deviceId && isOnline) {
+			versionPoller.start({
+				deviceId,
+				onVersionChange: () => {
+					// Version changed — invalidate prefetch so next page visit re-fetches
+					if (deviceId) prefetchDone[deviceId] = false;
+				}
+			});
+		} else {
+			versionPoller.stop();
+		}
+	});
+	onDestroy(() => versionPoller.stop());
+
 	// Background prefetch: when schema is loaded and device is online,
 	// fetch ALL panel keys + vehicle_settings keys in the background so every
 	// settings page loads instantly from cache on subsequent visits or F5 refresh.
@@ -172,7 +218,8 @@
 		// Also collect vehicle_settings keys (brand-specific settings)
 		const caps = schemaState.capabilities[deviceId];
 		const brand = caps?.brand ?? '';
-		const vehicleItems = brand && schema.vehicle_settings ? (schema.vehicle_settings[brand] ?? []) : [];
+		const brandData = brand && schema.vehicle_settings ? schema.vehicle_settings[brand] : null;
+		const vehicleItems = brandData?.items ?? [];
 		for (const item of vehicleItems) addItem(item);
 
 		// Also prefetch vehicle detection params (used by VehicleSelector)

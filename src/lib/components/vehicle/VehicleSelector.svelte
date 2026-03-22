@@ -133,11 +133,8 @@
 		}
 
 		try {
-			const res = await fetchSettingsAsync(
-				deviceId,
-				['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'],
-				token
-			);
+			const requestedKeys = ['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'];
+			const res = await fetchSettingsAsync(deviceId, requestedKeys, token);
 			if (res.error) {
 				console.error('[VehicleSelector] Failed to fetch vehicle params:', res.error);
 				onApiEnd?.(false);
@@ -145,6 +142,8 @@
 			}
 			if (res.items) {
 				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+				const returnedKeys = new Set(res.items.map(i => i.key));
+
 				for (const item of res.items) {
 					if (item.key === 'CarPlatformBundle') {
 						const val = decodeParamValue(item);
@@ -169,6 +168,13 @@
 						} catch (e) {
 							console.warn('Failed to parse CarParamsPersistent', e);
 						}
+					}
+				}
+
+				// Clear stale values for keys the device no longer has
+				for (const key of requestedKeys) {
+					if (!returnedKeys.has(key)) {
+						deviceState.deviceValues[deviceId][key] = null;
 					}
 				}
 			}

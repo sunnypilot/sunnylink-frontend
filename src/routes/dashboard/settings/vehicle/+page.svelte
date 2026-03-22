@@ -5,6 +5,7 @@
 	import { fetchSettingsAsync } from '$lib/api/device';
 	import { decodeParamValue } from '$lib/utils/device';
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import VehicleSelector from '$lib/components/vehicle/VehicleSelector.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
@@ -39,12 +40,14 @@
 	});
 
 	// Get brand-specific settings from schema
-	let brandSettings: SchemaItem[] = $derived.by(() => {
-		if (!deviceId || !currentBrand) return [];
+	let brandData = $derived.by(() => {
+		if (!deviceId || !currentBrand) return null;
 		const schema = schemaState.schemas[deviceId];
-		if (!schema?.vehicle_settings) return [];
-		return schema.vehicle_settings[currentBrand] ?? [];
+		if (!schema?.vehicle_settings) return null;
+		return schema.vehicle_settings[currentBrand] ?? null;
 	});
+
+	let brandSettings: SchemaItem[] = $derived(brandData?.items ?? []);
 
 	// Fetch brand setting values when brand settings are available
 	let loadingBrandValues = $state(false);
@@ -120,9 +123,10 @@
 		vehicleApiFailed = !success;
 	}
 
+	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
 	const sync = createSyncStatus(
-		() => loadingBrandValues || vehicleApiInFlight || schemaRevalStatus === 'revalidating',
-		() => !loadingBrandValues && !vehicleApiInFlight && !brandValuesFetchFailed && !vehicleApiFailed &&
+		() => loadingBrandValues || vehicleApiInFlight || batchActive || schemaRevalStatus === 'revalidating',
+		() => !loadingBrandValues && !vehicleApiInFlight && !batchActive && !brandValuesFetchFailed && !vehicleApiFailed &&
 			schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 </script>
@@ -139,24 +143,23 @@
 
 	{#if deviceId}
 		<!-- Vehicle section -->
-		<div>
-			<div class="mb-2 px-4">
-				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Vehicle</p>
-			</div>
-			<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
+		<div class="px-4">
+			<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Vehicle</p>
 		</div>
+		<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
 
 		<!-- Brand-specific settings -->
 		{#if brandSettings.length > 0}
-			<div>
-				<div class="mb-2 px-4">
-					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{currentBrand} Settings</p>
-				</div>
-				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-					{#each brandSettings as item, i (item.key)}
-						<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />
-					{/each}
-				</div>
+			<div class="px-4">
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{brandData?.title ?? currentBrand}</p>
+				{#if brandData?.description}
+					<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{brandData.description}</p>
+				{/if}
+			</div>
+			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				{#each brandSettings as item, i (item.key)}
+					<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />
+				{/each}
 			</div>
 		{/if}
 	{/if}

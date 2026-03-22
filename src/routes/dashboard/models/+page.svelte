@@ -37,6 +37,7 @@
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 
@@ -239,9 +240,10 @@
 	// True only when refreshing with data already present (not cold load)
 	let isRevalidating = $derived(isFetchingModels && modelList !== null);
 
+	let batchActive = $derived(deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false);
 	const sync = createSyncStatus(
-		() => isRevalidating,
-		() => !isOffline && !isError
+		() => isRevalidating || batchActive,
+		() => !isOffline && !isError && !batchActive
 	);
 
 	// Reset on device change (skip initial mount)
@@ -535,50 +537,6 @@
 		}
 	}
 
-	async function refreshModels() {
-		if (!logtoClient || !deviceState.selectedDeviceId) return;
-
-		try {
-			loadingModels = true;
-			isFetchingModels = true;
-			const token = await logtoClient.getIdToken();
-
-			// 1. Clear the last update time to force a refresh
-			await v0Client.POST('/settings/{deviceId}', {
-				params: {
-					path: {
-						deviceId: deviceState.selectedDeviceId
-					}
-				},
-				body: [
-					{
-						key: 'ModelManager_LastSyncTime',
-						value: encodeParamValue({
-							key: 'ModelManager_LastSyncTime',
-							value: '0',
-							type: 'String'
-						})
-					}
-				],
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			});
-
-			// 2. Wait a moment for the device to process and potentially update
-			// We can't really know when it's done, but giving it a few seconds helps.
-			// Ideally we would poll ModelManager_LastSyncTime, but for now a delay + fetch is a good start.
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-
-			// 3. Fetch the fresh list
-			await fetchModelsForDevice(true);
-		} catch (e) {
-			console.error('Error refreshing models:', e);
-		} finally {
-			loadingModels = false;
-			isFetchingModels = false;
-		}
-	}
 
 	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
@@ -940,64 +898,38 @@
 
 			{/if}
 
-			<div class="space-y-3">
-				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-					<div class="flex items-center gap-2 px-4">
-						<span
-							class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]"
-							>Available Models</span
-						>
-						<button
-							type="button"
-							class="rounded-md p-1 text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] disabled:opacity-40"
-							onclick={refreshModels}
-							disabled={loadingModels}
-							aria-label="Refresh model list from device"
-							title="Refresh model list from device"
-						>
-							<RefreshCw size={14} class={loadingModels ? 'animate-spin' : ''} />
-						</button>
-					</div>
-					<div
-						class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
-					>
-						<div class="relative w-full">
-							<input
-								type="text"
-								placeholder="Search models..."
-								class="input input-md min-h-[44px] w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] pr-9 pl-10 text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-								bind:value={searchQuery}
-							/>
-							<div
-								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
-							>
-								<Search size={16} class="text-[var(--sl-text-3)]" />
-							</div>
-							{#if searchQuery}
-								<button
-									type="button"
-									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
-									onclick={() => {
-										searchQuery = '';
-									}}
-									aria-label="Clear search"
-								>
-									<X size={16} />
-								</button>
-							{/if}
+			<div class="px-4">
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Available Models</p>
+			</div>
+
+			<div class="relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
+				<!-- Search toolbar row -->
+				<div class="border-b border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)] px-4 py-2.5">
+					<div class="relative">
+						<input
+							type="text"
+							placeholder="Search models..."
+							class="w-full rounded-lg border-none bg-[var(--sl-bg-input)] py-2 pr-9 pl-9 text-[0.8125rem] text-[var(--sl-text-1)] placeholder:text-[var(--sl-text-3)] focus:outline-none focus:ring-1 focus:ring-[var(--sl-border)]"
+							bind:value={searchQuery}
+						/>
+						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+							<Search size={14} class="text-[var(--sl-text-3)]" />
 						</div>
+						{#if searchQuery}
+							<button
+								type="button"
+								class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+								onclick={() => { searchQuery = ''; }}
+								aria-label="Clear search"
+							>
+								<X size={14} />
+							</button>
+						{/if}
 					</div>
 				</div>
 
-				<div class="relative rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
-					{#if loadingModels && modelList}
-						<div
-							class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/40"
-							transition:fade={{ duration: 200 }}
-						>
-							<span class="loading loading-lg loading-spinner text-primary"></span>
-						</div>
-					{/if}
+				<!-- Model list -->
+				<div class="relative">
 					{#if loadingModels && !modelList}
 						<div class="p-6 text-center text-[var(--sl-text-3)]">
 							<span class="loading loading-spinner text-primary"></span>
@@ -1139,20 +1071,18 @@
 					nnlcParam && isLegacyActive ? nnlcParam : null
 				].filter((p): p is NonNullable<typeof p> => p !== null)}
 				{#if modelSettingItems.length > 0}
-					<div>
-						<div class="mb-2 px-4">
+					<div class="px-4">
 						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
 					</div>
-						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-							{#each modelSettingItems as param, i (param.key)}
-								<SchemaItemRenderer
-									deviceId={deviceState.selectedDeviceId!}
-									item={settingToSchemaItem(param)}
-									loadingValues={loadingModels}
-									isLast={i === modelSettingItems.length - 1}
-								/>
-							{/each}
-						</div>
+					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+						{#each modelSettingItems as param, i (param.key)}
+							<SchemaItemRenderer
+								deviceId={deviceState.selectedDeviceId!}
+								item={settingToSchemaItem(param)}
+								loadingValues={loadingModels}
+								isLast={i === modelSettingItems.length - 1}
+							/>
+						{/each}
 					</div>
 				{/if}
 			{/if}

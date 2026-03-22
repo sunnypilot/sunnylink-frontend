@@ -3,12 +3,10 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { isVisible, isEnabled, requiresOffroad, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
-	import { setDeviceParams, DeviceRejectionError } from '$lib/api/device';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
-	import { updateCachedValue } from '$lib/stores/valuesCache';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
-	import { encodeParamValue } from '$lib/utils/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
@@ -26,8 +24,23 @@
 
 	// ── Push state per item ─────────────────────────────────────────────────
 
-	type PushState = 'idle' | 'pushing' | 'success' | 'error';
-	let pushState = $state<PushState>('idle');
+	// Unified push state — merges online (batchPush) and offline (pendingChanges) stores.
+	// Online debounce ('pending') is invisible — no badge, toggle stays interactive.
+	// Only 'syncing'/'pushing' disables the toggle.
+	let batchKeyState = $derived(batchPush.getKeyState(deviceId, item.key));
+	let pushState = $derived.by((): 'idle' | 'pending' | 'pushing' | 'success' | 'error' => {
+		// Online batch push takes priority
+		if (batchKeyState === 'syncing') return 'pushing';
+		if (batchKeyState === 'confirmed') return 'success';
+		if (batchKeyState === 'failed') return 'error';
+		if (batchKeyState === 'pending') return 'pending';
+		// Offline pending changes fallback (for flush checkmarks/spinners)
+		const pcStatus = pendingChanges.getForKey(deviceId, item.key)?.status;
+		if (pcStatus === 'pushing') return 'pushing';
+		if (pcStatus === 'confirmed') return 'success';
+		if (pcStatus === 'failed') return 'error';
+		return 'idle';
+	});
 	let pushError = $state('');
 
 	// ── Derived state ───────────────────────────────────────────────────────
@@ -89,15 +102,13 @@
 		return 'String';
 	}
 
-	async function pushValue(newValue: unknown) {
-		if (!logtoClient) return;
-
+	function pushValue(newValue: unknown) {
 		if (!deviceState.deviceValues[deviceId]) {
 			deviceState.deviceValues[deviceId] = {};
 		}
 		const previousValue = deviceState.deviceValues[deviceId][item.key];
 
-		// Offline: queue the change instead of pushing immediately
+		// Offline: queue the change for later sync
 		if (!isDeviceOnline) {
 			const hadPending = !!pendingChanges.getForKey(deviceId, item.key);
 			deviceState.deviceValues[deviceId][item.key] = newValue;
@@ -112,65 +123,10 @@
 			return;
 		}
 
-		// Online: immediate optimistic push (no queue — per-row feedback is sufficient)
+		// Online: optimistic update + enqueue to batch (4s debounce)
 		deviceState.deviceValues[deviceId][item.key] = newValue;
-
-		pushState = 'pushing';
 		pushError = '';
-		pushStateStore.startPush(deviceId, item.key);
-
-		try {
-			const token = await logtoClient.getIdToken();
-			if (!token) throw new Error('Session expired');
-
-			const paramType = inferParamType();
-			const encoded = encodeParamValue({ key: item.key, value: newValue, type: paramType });
-			if (encoded === null) throw new Error('Failed to encode value');
-
-			// Rule 2: 5s timeout per edge case rules
-			await setDeviceParams(deviceId, [{ key: item.key, value: encoded }], token, 5000);
-
-			pushStateStore.endPush(deviceId, item.key);
-			pushState = 'success';
-
-			// Update localStorage cache with new value
-			const gitCommit = (deviceState.deviceValues[deviceId]?.['GitCommit'] as string) || '';
-			if (gitCommit) updateCachedValue(deviceId, gitCommit, item.key, newValue);
-
-			setTimeout(() => {
-				if (pushState === 'success') pushState = 'idle';
-			}, 3000); // extended from 1.5s for clarity
-		} catch (e) {
-			// Rollback optimistic update
-			deviceState.deviceValues[deviceId][item.key] = previousValue;
-			pushStateStore.endPush(deviceId, item.key);
-			pushState = 'error';
-
-			// Rule 3: Contextual error handling
-			if (e instanceof DeviceRejectionError) {
-				pushError = e.message;
-				toastState.show(`Setting rejected: ${e.message}`, 'error');
-			} else if ((e as Error)?.name === 'AbortError' || (e as Error)?.message === 'Timeout') {
-				pushError = 'Device did not respond';
-				toastState.show('Timeout: Could not reach device. Please check connection.', 'warning', {
-					label: 'Retry',
-					onclick: () => pushValue(newValue)
-				});
-			} else if ((e as Error)?.message === 'Session expired') {
-				pushError = 'Session expired';
-				toastState.show('Session expired. Please sign in again.', 'error');
-			} else {
-				pushError = (e as Error)?.message || 'Failed to save';
-				toastState.show(`Failed to save: ${pushError}`, 'error');
-			}
-
-			// Don't auto-dismiss rejection errors — user should see them
-			if (!(e instanceof DeviceRejectionError)) {
-				setTimeout(() => {
-					if (pushState === 'error') pushState = 'idle';
-				}, 5000);
-			}
-		}
+		batchPush.enqueue(deviceId, item.key, newValue, previousValue, inferParamType());
 	}
 
 	function handleChange(newValue: unknown) {
@@ -183,11 +139,13 @@
 			? 'border-l-2 border-l-emerald-500'
 			: pushState === 'error'
 				? 'border-l-2 border-l-red-500'
-				: isQueued
-					? 'border-l-2 border-l-amber-500'
-					: hasDrift
-						? 'border-l-2 border-l-cyan-500'
-						: 'border-l-2 border-l-transparent'
+				: pushState === 'pushing'
+					? 'border-l-2 border-l-blue-500'
+					: (pushState === 'pending' || isQueued)
+						? 'border-l-2 border-l-amber-500'
+						: hasDrift
+							? 'border-l-2 border-l-cyan-500'
+							: 'border-l-2 border-l-transparent'
 	);
 
 	// Divider: show unless this is the last item
@@ -372,7 +330,8 @@
 						<button
 							class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass}"
 							style="transition: background-color var(--dur-instant) var(--ease-out);"
-							class:cursor-not-allowed={!enabled}
+							class:cursor-not-allowed={!enabled || isPushing}
+							class:pointer-events-none={isPushing}
 							disabled={!enabled || isPushing}
 							role="switch"
 							aria-checked={isOn}
@@ -396,7 +355,9 @@
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
-					{#if isPushing}
+					{#if isQueued || pushState === 'pending'}
+						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+					{:else if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
 						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -423,7 +384,8 @@
 						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
 					{:else if item.options}
 						<select
-							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-colors focus:border-primary focus:outline-none"
+							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-all focus:border-primary focus:outline-none"
+							class:opacity-50={isPushing}
 							value={displayValue}
 							disabled={!enabled || isPushing}
 							onchange={(e) => {
@@ -446,7 +408,7 @@
 								</span>
 								<span>{isFloat ? Number(item.max).toFixed(2) : item.max}</span>
 							</div>
-							<div class="flex items-center gap-2">
+							<div class="flex items-center gap-2 transition-opacity duration-200" class:opacity-50={isPushing} class:pointer-events-none={isPushing}>
 								<button
 									class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
 									disabled={!enabled || isPushing}
@@ -505,7 +467,9 @@
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
-					{#if isPushing}
+					{#if isQueued || pushState === 'pending'}
+						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+					{:else if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
 						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -533,7 +497,8 @@
 					{:else if item.options && useDropdownForSegments}
 						<!-- Dropdown fallback for many options on narrow screens -->
 						<select
-							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-colors focus:border-primary focus:outline-none"
+							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-all focus:border-primary focus:outline-none"
+							class:opacity-50={isPushing}
 							value={displayValue}
 							disabled={!enabled || isPushing}
 							onchange={(e) => {
@@ -549,7 +514,7 @@
 					{:else if item.options}
 						{@const selectedIdx = item.options.findIndex((o) => String(displayValue) === String(o.value))}
 						{@const optCount = item.options.length}
-						<div class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1">
+						<div class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200" class:opacity-50={isPushing} class:pointer-events-none={isPushing}>
 							<!-- Sliding highlight pill -->
 							{#if selectedIdx >= 0}
 								<div
@@ -563,7 +528,8 @@
 									class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments ? 'px-1.5 text-[0.8125rem] tracking-tight' : 'px-2.5 text-sm'}"
 									class:text-white={isSelected}
 									class:text-[var(--sl-text-2)]={!isSelected}
-									class:hover:text-[var(--sl-text-1)]={!isSelected}
+									class:hover:text-[var(--sl-text-1)]={!isSelected && !isPushing}
+									class:pointer-events-none={isPushing}
 									disabled={!enabled || isPushing}
 									onclick={() => handleChange(option.value)}
 								>

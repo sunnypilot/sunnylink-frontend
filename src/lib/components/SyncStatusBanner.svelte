@@ -27,7 +27,9 @@
 	let driftCount = $derived(driftStore.count(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 
-	let showBanner = $derived(queuedCount > 0 || confirmedCount > 0 || failedCount > 0 || isFlushing || driftCount > 0);
+	// Only show for actionable states: failed (retry), drift (review), or actively syncing.
+	// Confirmed changes don't need a banner — per-row checkmarks + page header indicator are sufficient.
+	let showBanner = $derived(failedCount > 0 || isFlushing || driftCount > 0);
 
 	function handleDismissFailed() {
 		const failed = pendingChanges.getByStatus(deviceId, 'failed');

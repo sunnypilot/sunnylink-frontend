@@ -25,6 +25,7 @@
 	import { untrack } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
@@ -213,10 +214,11 @@
 		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 
-	// ── Sync status ──
+	// ── Sync status (includes batch push activity) ──
+	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
 	const sync = createSyncStatus(
-		() => isRevalidating,
-		() => revalidationSucceeded
+		() => isRevalidating || batchActive,
+		() => revalidationSucceeded && !batchActive
 	);
 
 	// Reset loading state on category change
@@ -542,8 +544,13 @@
 							>
 							{schemaPanel?.label ?? category}
 						</button>
-						<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
-							{activeSubPanel.label}
+						<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+							<span>{activeSubPanel.label}</span>
+							{#if loadingValues}
+								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+							{:else}
+								<SyncStatusIndicator status={sync.status} />
+							{/if}
 						</h2>
 					</div>
 				{:else}
@@ -633,7 +640,7 @@
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 					{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
-						<div class="mb-2 px-4">
+						<div class="px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
 						</div>
 					{/if}
@@ -660,7 +667,7 @@
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 					{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
-						<div class="mb-2 px-4">
+						<div class="px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
 						</div>
 					{/if}

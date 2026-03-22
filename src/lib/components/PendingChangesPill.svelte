@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { fly, fade } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
-	import { Clock, Check } from 'lucide-svelte';
+	import { Clock } from 'lucide-svelte';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 
@@ -26,19 +26,6 @@
 	);
 
 	let showPill = $derived(totalPending > 0 && isDeviceUnavailable);
-
-	// Track "just synced" state for the checkmark flash
-	let justSynced = $state(false);
-	let prevPending = $state(0);
-
-	$effect(() => {
-		const current = totalPending;
-		if (prevPending > 0 && current === 0 && !isDeviceUnavailable) {
-			justSynced = true;
-			setTimeout(() => { justSynced = false; }, 3000);
-		}
-		prevPending = current;
-	});
 </script>
 
 {#if showPill}
@@ -53,18 +40,6 @@
 			</span>
 			<span class="text-[0.75rem] text-[var(--sl-text-3)]">
 				Waiting for device to reconnect
-			</span>
-		</div>
-	</div>
-{:else if justSynced}
-	<div
-		class="fixed bottom-6 left-1/2 z-[9998] -translate-x-1/2"
-		transition:fly={{ y: 40, duration: 300 }}
-	>
-		<div class="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[var(--sl-bg-surface)] px-4 py-2 shadow-lg">
-			<Check size={14} class="text-emerald-400" />
-			<span class="text-[0.8125rem] font-medium text-emerald-400">
-				Changes synced
 			</span>
 		</div>
 	</div>

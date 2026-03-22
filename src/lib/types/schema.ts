@@ -139,10 +139,16 @@ export interface Panel {
 
 // ── Full Schema ─────────────────────────────────────────────────────────────
 
+export interface VehicleBrandSettings {
+	title: string;
+	description?: string;
+	items: SchemaItem[];
+}
+
 export interface SettingsSchema {
 	schema_version: string;
 	generated_at: string;
 	panels: Panel[];
-	vehicle_settings: Record<string, SchemaItem[]>;
+	vehicle_settings: Record<string, VehicleBrandSettings>;
 	capability_fields: string[];
 }
