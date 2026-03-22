@@ -96,8 +96,34 @@
 
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
-	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
+	// Track which model refs were toggled in this batch for per-row badge display
+	let toggledFavRefs = $state<Set<string>>(new Set());
+
+	// Sync favorites from deviceValues (handles batchPush rollback + device-side changes)
+	// Clear the per-row badge refs when the batch completes
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (!did || toggledFavRefs.size === 0) return;
+		const state = batchPush.getKeyState(did, 'ModelManager_Favs');
+		if (!state) toggledFavRefs = new Set();
+	});
+
+	let deviceFavString = $derived(
+		deviceState.selectedDeviceId
+			? (deviceState.deviceValues[deviceState.selectedDeviceId]?.['ModelManager_Favs'] as string) ?? ''
+			: ''
+	);
+	let prevDeviceFavString = $state('');
+	$effect(() => {
+		const current = deviceFavString;
+		if (current !== prevDeviceFavString) {
+			prevDeviceFavString = current;
+			// Only sync from device if it wasn't our own optimistic update
+			// (deviceValues is set by toggleFavorite AND by batchPush rollback/fetch)
+			favorites = new Set(current ? current.split(';').filter(Boolean) : []);
+		}
+	});
 
 	// Synchronous cache hydration — runs before first render, no $effect loop.
 	function hydrateModelsCache(did: string) {
@@ -675,50 +701,30 @@
 		}
 	}
 
-	async function toggleFavorite(bundle: ModelBundle, event?: Event) {
+	function toggleFavorite(bundle: ModelBundle, event?: Event) {
 		if (event) {
 			event.stopPropagation();
 		}
-		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		const did = deviceState.selectedDeviceId;
+		if (!did) return;
 
+		// Optimistic: update UI immediately
 		const newFavorites = new Set(favorites);
 		if (newFavorites.has(bundle.ref)) {
 			newFavorites.delete(bundle.ref);
 		} else {
 			newFavorites.add(bundle.ref);
 		}
+		favorites = newFavorites;
+		toggledFavRefs = new Set([...toggledFavRefs, bundle.ref]);
 
 		const favString = Array.from(newFavorites).join(';');
 
-		try {
-			updatingFavShortName = bundle.short_name;
-			await v0Client.POST('/settings/{deviceId}', {
-				params: {
-					path: {
-						deviceId: deviceState.selectedDeviceId
-					}
-				},
-				body: [
-					{
-						key: 'ModelManager_Favs',
-						value: encodeParamValue({
-							key: 'ModelManager_Favs',
-							value: favString,
-							type: 'string'
-						}),
-						is_compressed: false
-					}
-				],
-				headers: {
-					Authorization: `Bearer ${await logtoClient.getIdToken()}`
-				}
-			});
-			favorites = newFavorites;
-		} catch (e) {
-			console.error('Error updating favorites:', e);
-		} finally {
-			updatingFavShortName = null;
-		}
+		// Update deviceValues so it's tracked, then batch push
+		if (!deviceState.deviceValues[did]) deviceState.deviceValues[did] = {};
+		const previousValue = deviceState.deviceValues[did]['ModelManager_Favs'];
+		deviceState.deviceValues[did]['ModelManager_Favs'] = favString;
+		batchPush.enqueue(did, 'ModelManager_Favs', favString, previousValue, 'String');
 	}
 
 	const FOLDER_EXPLANATIONS: Record<string, string> = {
@@ -943,12 +949,12 @@
 							{#each groupedModels as group (group.name)}
 								<div class="border-b border-[var(--sl-border-muted)] last:border-0">
 									<button
-										class="flex w-full items-center gap-3 bg-[var(--sl-bg-surface)]/80 px-4 py-3 text-left transition-colors hover:bg-[var(--sl-bg-surface)] focus:outline-none"
+										class="flex w-full items-center gap-3 bg-[var(--sl-bg-surface)]/80 px-4 py-3.5 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] focus:outline-none"
 										onclick={() => toggleFolder(group.name)}
 									>
 										<ChevronRight
 											size={16}
-											class="text-[var(--sl-text-2)] transition-transform duration-200 {openFolders[
+											class="text-[var(--sl-text-3)] transition-transform duration-200 {openFolders[
 												group.name
 											]
 												? 'rotate-90'
@@ -960,7 +966,7 @@
 											<Folder size={16} class="text-primary" />
 										{/if}
 										<div class="flex items-center gap-2">
-											<span class="font-medium text-[var(--sl-text-1)]">{group.name}</span>
+											<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{group.name}</span>
 											{#if getFolderExplanation(group.name)}
 												<div
 													class="tooltip tooltip-right flex items-center"
@@ -973,9 +979,7 @@
 												</div>
 											{/if}
 										</div>
-										<span
-											class="ml-auto rounded-full bg-[var(--sl-bg-elevated)]/50 px-2 py-0.5 text-xs text-[var(--sl-text-2)]"
-										>
+										<span class="ml-auto text-[0.75rem] text-[var(--sl-text-3)]">
 											{group.models.length}
 										</span>
 									</button>
@@ -983,25 +987,36 @@
 									{#if openFolders[group.name]}
 										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
 											{#each group.models as model (model.short_name)}
+												{@const favKeyState = toggledFavRefs.has(model.ref) && deviceState.selectedDeviceId ? batchPush.getKeyState(deviceState.selectedDeviceId, 'ModelManager_Favs') : undefined}
+												{@const isFavSyncing = favKeyState === 'syncing'}
 												<div role="button" tabindex="0"
-													class="group flex w-full items-center justify-between px-4 py-3 pl-11 text-left transition-all hover:bg-[var(--sl-bg-surface)]/50"
+													class="group flex w-full items-center justify-between px-4 py-3.5 pl-11 text-left transition-all hover:bg-[var(--sl-bg-subtle)]"
+													class:opacity-50={isFavSyncing}
+													class:pointer-events-none={isFavSyncing}
 													onclick={() => (selectedModelShortName = selectedModelShortName === model.short_name ? undefined : model.short_name)}
 												>
-													<span
-														class="text-sm font-medium transition-colors {selectedModelShortName === model.short_name
-															? 'text-[var(--sl-text-1)]'
-															: 'text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]'}"
-													>
-														{model.display_name}
-													</span>
+													<div class="flex items-center gap-2">
+														<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+															{model.display_name}
+														</span>
+														{#if favKeyState === 'pending'}
+															<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+														{:else if isFavSyncing}
+															<span class="loading loading-spinner loading-xs text-primary"></span>
+														{:else if favKeyState === 'confirmed'}
+															<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+																stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+																class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+														{/if}
+													</div>
 													<div class="flex items-center gap-2">
 														<button
-															class="p-1.5 text-[var(--sl-text-3)] transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50"
+															class="p-1.5 text-[var(--sl-text-3)] transition-all duration-150 hover:text-amber-400 active:scale-90"
+															class:pointer-events-none={isFavSyncing}
 															onclick={(e) => { e.stopPropagation(); toggleFavorite(model, e); }}
-															disabled={updatingFavShortName !== null}
 															title={favorites.has(model.ref) ? 'Remove from Favorites' : 'Add to Favorites'}
 														>
-															<Star size={14} class={favorites.has(model.ref) ? 'fill-amber-400 text-amber-400' : ''} />
+															<Star size={14} class="transition-all duration-150 {favorites.has(model.ref) ? 'fill-amber-400 text-amber-400 scale-110' : 'scale-100'}" />
 														</button>
 														<ChevronRight size={14} class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName === model.short_name ? 'rotate-90' : ''}" />
 													</div>
@@ -1036,18 +1051,26 @@
 															<p class="mt-3 text-xs text-amber-500">Device is onroad. Models cannot be changed while driving.</p>
 														{/if}
 														<div class="mt-4 flex items-center gap-3">
-															<button
-																class="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-40"
-																onclick={() => sendModelToDevice()}
-																disabled={sendingModel || !isOffroad}
-															>
-																{#if sendingModel}
-																	<span class="loading loading-xs loading-spinner mr-1"></span>
-																	Sending...
-																{:else}
-																	Send to Device
-																{/if}
-															</button>
+															{#if currentModel?.short_name === model.short_name}
+																<div class="flex items-center gap-1.5 text-xs text-emerald-500">
+																	<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+																		stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+																	Active
+																</div>
+															{:else}
+																<button
+																	class="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-40"
+																	onclick={() => sendModelToDevice()}
+																	disabled={sendingModel || !isOffroad}
+																>
+																	{#if sendingModel}
+																		<span class="loading loading-xs loading-spinner mr-1"></span>
+																		Activating...
+																	{:else}
+																		Activate
+																	{/if}
+																</button>
+															{/if}
 														</div>
 													</div>
 												{/if}

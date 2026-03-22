@@ -293,7 +293,7 @@
 								if (enabled && !isPushing) handleChange(!isOn);
 							}}
 						>{item.title || item.key}</button>
-						{#if isQueued}
+						{#if isQueued || pushState === 'pending'}
 							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
