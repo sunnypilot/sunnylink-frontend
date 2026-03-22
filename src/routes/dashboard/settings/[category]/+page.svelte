@@ -24,6 +24,8 @@
 
 	import { untrack } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
+	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
@@ -211,36 +213,11 @@
 		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 
-	// ── Sync status pill state machine ──────────────────────────────────
-	// 'idle' → 'revalidating' → 'synced' | 'failed' (3s) → 'idle'
-	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
-	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
-
-	function clearSyncTimer() {
-		if (syncTimerId !== undefined) {
-			clearTimeout(syncTimerId);
-			syncTimerId = undefined;
-		}
-	}
-
-	// Only track isRevalidating — read/write syncStatus inside untrack
-	$effect(() => {
-		const revalidating = isRevalidating; // tracked
-		const succeeded = revalidationSucceeded; // tracked
-
-		untrack(() => {
-			if (revalidating && syncStatus !== 'revalidating') {
-				clearSyncTimer();
-				syncStatus = 'revalidating';
-			} else if (!revalidating && syncStatus === 'revalidating') {
-				syncStatus = succeeded ? 'synced' : 'failed';
-				syncTimerId = setTimeout(() => {
-					syncStatus = 'idle';
-					syncTimerId = undefined;
-				}, 3000);
-			}
-		});
-	});
+	// ── Sync status ──
+	const sync = createSyncStatus(
+		() => isRevalidating,
+		() => revalidationSucceeded
+	);
 
 	// Reset loading state on category change
 	$effect(() => {
@@ -248,10 +225,7 @@
 		loadingValues = false;
 		revalidatingValues = false;
 		valuesFetchFailed = false;
-		untrack(() => {
-			syncStatus = 'idle';
-			clearSyncTimer();
-		});
+		untrack(() => { sync.reset(); });
 	});
 	let jsonModalOpen = $state(false);
 	let jsonModalContent = $state('');
@@ -578,19 +552,8 @@
 							<span>{schemaPanel?.label ?? category}</span>
 							{#if loadingValues}
 								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
-							{:else if syncStatus !== 'idle'}
-								<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
-									{#if syncStatus === 'revalidating'}
-										<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
-										<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
-									{:else if syncStatus === 'synced'}
-										<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
-										<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
-									{:else if syncStatus === 'failed'}
-										<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-										<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
-									{/if}
-								</span>
+							{:else}
+								<SyncStatusIndicator status={sync.status} />
 							{/if}
 						</h2>
 						{#if schemaPanel?.description}

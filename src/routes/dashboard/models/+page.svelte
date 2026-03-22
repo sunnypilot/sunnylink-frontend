@@ -36,6 +36,8 @@
 		WifiOff
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
+	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 
 	const DEFAULT_MODEL: ModelBundle = {
@@ -230,48 +232,26 @@
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
 
-	// ── Sync status pill state machine (matches settings [category] page) ──
-	// Only tracks revalidation (data already cached), NOT cold load.
-	// 'idle' → 'revalidating' → 'synced' (3s) → 'idle'
-	//                         → 'failed'
-	let syncStatus: 'idle' | 'revalidating' | 'synced' | 'failed' = $state('idle');
-	let syncTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
-
-	// Tracks any active fetch (silent or not) for the sync pill
+	// ── Sync status ──
+	// Tracks any active fetch (silent or not) for the sync indicator
 	let isFetchingModels = $state(false);
 
 	// True only when refreshing with data already present (not cold load)
 	let isRevalidating = $derived(isFetchingModels && modelList !== null);
 
-	function clearSyncTimer() {
-		if (syncTimerId !== undefined) { clearTimeout(syncTimerId); syncTimerId = undefined; }
-	}
+	const sync = createSyncStatus(
+		() => isRevalidating,
+		() => !isOffline && !isError
+	);
 
-	$effect(() => {
-		const revalidating = isRevalidating;
-		const offline = isOffline;
-		const error = isError;
-
-		untrack(() => {
-			if (revalidating && syncStatus !== 'revalidating') {
-				clearSyncTimer();
-				syncStatus = 'revalidating';
-			} else if (!revalidating && syncStatus === 'revalidating') {
-				syncStatus = (offline || error) ? 'failed' : 'synced';
-				syncTimerId = setTimeout(() => { syncStatus = 'idle'; }, 3000);
-			}
-		});
-	});
-
-	// Cleanup timer on device change (skip initial mount)
+	// Reset on device change (skip initial mount)
 	let prevDeviceId = $state(deviceState.selectedDeviceId);
 	$effect(() => {
 		const did = deviceState.selectedDeviceId;
 		untrack(() => {
 			if (did !== prevDeviceId) {
 				prevDeviceId = did;
-				clearSyncTimer();
-				syncStatus = 'idle';
+				sync.reset();
 			}
 		});
 	});
@@ -815,19 +795,8 @@
 			<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">Models</h2>
 			{#if (loadingModels || isCheckingStatus) && !modelList}
 				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
-			{:else if syncStatus !== 'idle' && modelList}
-				<span class="inline-flex items-center gap-1.5" transition:fade={{ duration: 150 }}>
-					{#if syncStatus === 'revalidating'}
-						<span class="loading loading-spinner text-[var(--sl-text-3)]" style="width: 12px; height: 12px;"></span>
-						<span class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]">Refreshing...</span>
-					{:else if syncStatus === 'synced'}
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500" style="align-self: center;"><path d="M20 6 9 17l-5-5" /></svg>
-						<span class="text-[0.8125rem] font-normal text-emerald-500/80">Up to date</span>
-					{:else if syncStatus === 'failed'}
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500" style="align-self: center;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-						<span class="text-[0.8125rem] font-normal text-amber-500/80">Could not refresh</span>
-					{/if}
-				</span>
+			{:else if modelList}
+				<SyncStatusIndicator status={sync.status} />
 			{/if}
 		</div>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
