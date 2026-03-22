@@ -11,7 +11,11 @@
 	import CarSelectionModal from './CarSelectionModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 
-	let { deviceId } = $props<{ deviceId: string }>();
+	let { deviceId, onApiStart, onApiEnd } = $props<{
+		deviceId: string;
+		onApiStart?: () => void;
+		onApiEnd?: (success: boolean) => void;
+	}>();
 
 	// Module-level CarList cache (survives component re-mounts during SPA navigation)
 	const carListCache: Record<string, Record<string, any>> = (globalThis as any).__carListCache ??= {};
@@ -102,26 +106,32 @@
 		tryExtractFingerprintFromCache(deviceId);
 	}
 
-	let isLoadingValues = $state(
-		!(deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
-		  deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
-		  deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined)
+	// Whether we have any cached vehicle data (for showing content vs skeleton)
+	let hasCachedValues = $derived(
+		deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
+		deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
+		deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined
 	);
+
+	let isLoadingValues = $state(!hasCachedValues);
+	let isRevalidatingValues = $state(false);
 
 	async function fetchValues() {
 		if (!deviceId || !logtoClient) return;
-		const existing = deviceState.deviceValues[deviceId] ?? {};
-		if (existing['CarPlatformBundle'] !== undefined ||
-		    existing['CarFingerprint'] !== undefined ||
-		    existing['_ExtractedFingerprint'] !== undefined) {
+
+		// SWR: show cached data immediately, always revalidate in background
+		const isColdLoad = !hasCachedValues;
+		if (isColdLoad) isLoadingValues = true;
+		else isRevalidatingValues = true;
+
+		onApiStart?.();
+		const token = await logtoClient.getIdToken();
+		if (!token) {
 			isLoadingValues = false;
+			isRevalidatingValues = false;
 			return;
 		}
 
-		const token = await logtoClient.getIdToken();
-		if (!token) return;
-
-		isLoadingValues = true;
 		try {
 			const res = await fetchSettingsAsync(
 				deviceId,
@@ -130,6 +140,7 @@
 			);
 			if (res.error) {
 				console.error('[VehicleSelector] Failed to fetch vehicle params:', res.error);
+				onApiEnd?.(false);
 				return;
 			}
 			if (res.items) {
@@ -161,10 +172,13 @@
 					}
 				}
 			}
+			onApiEnd?.(true);
 		} catch (e) {
 			console.error('Failed to fetch vehicle params', e);
+			onApiEnd?.(false);
 		} finally {
 			isLoadingValues = false;
+			isRevalidatingValues = false;
 		}
 	}
 
@@ -215,11 +229,19 @@
 
 	async function handleClearConfirm() {
 		if (!deviceId) return;
-		isClearing = true;
+
+		// Optimistic: clear UI instantly, close modal, fire API in background
+		const previousBundle = deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] ?? null;
+		if (deviceState.deviceValues[deviceId]) {
+			deviceState.deviceValues[deviceId]['CarPlatformBundle'] = null;
+		}
+		confirmOpen = false;
+
+		// Background API call
+		onApiStart?.();
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-			isLoadingValues = true;
 			const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: '{}', type: 'Json' });
 			const res = await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }], token, 5000);
 			if (res.error) {
@@ -228,38 +250,38 @@
 					: 'Unknown API error';
 				throw new Error(errorMsg);
 			}
-			// Optimistically clear the bundle
-			if (deviceState.deviceValues[deviceId]) {
-				deviceState.deviceValues[deviceId]['CarPlatformBundle'] = null;
-			}
-			isLoadingValues = false;
-			confirmOpen = false;
+			onApiEnd?.(true);
 		} catch (e: any) {
-			if (e.message?.includes('Timeout')) {
-				// Timeout likely means device received it — optimistically clear
-				if (deviceState.deviceValues[deviceId]) {
-					deviceState.deviceValues[deviceId]['CarPlatformBundle'] = null;
-				}
-				isLoadingValues = false;
-				confirmOpen = false;
-			} else {
+			if (!e.message?.includes('Timeout')) {
+				// Real error — rollback
 				console.error('Failed to clear selection', e);
-				alert(`Failed to clear selection: ${e.message}`);
+				if (deviceState.deviceValues[deviceId]) {
+					deviceState.deviceValues[deviceId]['CarPlatformBundle'] = previousBundle;
+				}
+				onApiEnd?.(false);
+			} else {
+				// Timeout: device likely received it, keep optimistic state
+				onApiEnd?.(true);
 			}
-			isLoadingValues = false;
-		} finally {
-			isClearing = false;
 		}
 	}
 
 	async function handleSelect(name: string, data: any) {
 		if (!deviceId) return;
+
+		// Optimistic: update UI instantly, close modal, fire API in background
+		const previousBundle = deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] ?? null;
+		const { id, ...rest } = data;
+		const bundle = { ...rest, name };
+		if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+		deviceState.deviceValues[deviceId]['CarPlatformBundle'] = bundle;
+		modalOpen = false;
+
+		// Background API call
+		onApiStart?.();
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-			isLoadingValues = true;
-			const { id, ...rest } = data;
-			const bundle = { ...rest, name };
 			const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: JSON.stringify(bundle), type: 'Json' });
 			const res = await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }], token, 5000);
 			if (res.error) {
@@ -268,23 +290,18 @@
 					: 'Unknown API error';
 				throw new Error(errorMsg);
 			}
-			// Optimistically update local state (fetchValues early-returns if values exist)
-			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-			deviceState.deviceValues[deviceId]['CarPlatformBundle'] = bundle;
-			isLoadingValues = false;
-			modalOpen = false;
+			onApiEnd?.(true);
 		} catch (e: any) {
-			if (e.message?.includes('Timeout')) {
-				// Timeout likely means device received it — optimistically update
-				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-				const { id: _id, ...rest2 } = data;
-				deviceState.deviceValues[deviceId]['CarPlatformBundle'] = { ...rest2, name };
-				isLoadingValues = false;
-				modalOpen = false;
-			} else {
+			if (!e.message?.includes('Timeout')) {
+				// Real error — rollback
 				console.error('Failed to set vehicle', e);
-				alert(`Failed to set vehicle: ${e.message}`);
-				isLoadingValues = false;
+				if (deviceState.deviceValues[deviceId]) {
+					deviceState.deviceValues[deviceId]['CarPlatformBundle'] = previousBundle;
+				}
+				onApiEnd?.(false);
+			} else {
+				// Timeout: device likely received it, keep optimistic state
+				onApiEnd?.(true);
 			}
 		}
 	}

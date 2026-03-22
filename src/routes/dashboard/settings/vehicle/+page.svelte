@@ -105,11 +105,25 @@
 	let schemaRevalStatus = $derived(
 		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
 	);
+	// Vehicle API in-flight tracking (select/remove operations)
+	let vehicleApiInFlight = $state(false);
+	let vehicleApiFailed = $state(false);
+
+	function handleVehicleApiStart() {
+		vehicleApiInFlight = true;
+		vehicleApiFailed = false;
+	}
+
+	function handleVehicleApiEnd(success: boolean) {
+		vehicleApiInFlight = false;
+		vehicleApiFailed = !success;
+	}
+
 	let isRevalidating = $derived(
-		loadingBrandValues || schemaRevalStatus === 'revalidating'
+		loadingBrandValues || vehicleApiInFlight || schemaRevalStatus === 'revalidating'
 	);
 	let revalidationSucceeded = $derived(
-		!loadingBrandValues && !brandValuesFetchFailed &&
+		!loadingBrandValues && !vehicleApiInFlight && !brandValuesFetchFailed && !vehicleApiFailed &&
 		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 
@@ -162,18 +176,18 @@
 	{#if deviceId}
 		<!-- Vehicle section -->
 		<div>
-			<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
-				Vehicle
-			</p>
-			<VehicleSelector {deviceId} />
+			<div class="mb-2 px-4">
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Vehicle</p>
+			</div>
+			<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
 		</div>
 
 		<!-- Brand-specific settings -->
 		{#if brandSettings.length > 0}
 			<div>
-				<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
-					{currentBrand} Settings
-				</p>
+				<div class="mb-2 px-4">
+					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{currentBrand} Settings</p>
+				</div>
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 					{#each brandSettings as item, i (item.key)}
 						<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />

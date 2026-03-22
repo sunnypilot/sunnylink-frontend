@@ -670,9 +670,9 @@
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 					{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
-						<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
-							{group.label}
-						</p>
+						<div class="mb-2 px-4">
+							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
+						</div>
 					{/if}
 					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 						{#each group.settings as setting, i (setting.key)}
@@ -697,9 +697,9 @@
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
 					{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
-						<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
-							{group.label}
-						</p>
+						<div class="mb-2 px-4">
+							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
+						</div>
 					{/if}
 					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 						{#each group.settings as setting, i (setting.key)}
@@ -739,9 +739,9 @@
 					<div class="border-t border-[var(--sl-border)] p-4">
 						{#each readonlyGroups as group (group.label ?? '__ro_default__')}
 							{#if group.label}
-								<p class="mt-4 mb-2 px-1 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase first:mt-0">
-									{group.label}
-								</p>
+								<div class="mt-4 mb-2 first:mt-0">
+									<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
+								</div>
 							{/if}
 							<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 								{#each group.settings as setting, i (setting.key)}

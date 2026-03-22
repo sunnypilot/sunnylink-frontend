@@ -178,9 +178,9 @@
 			<!-- ═══ V1: Legacy flat items rendering ═══ -->
 			{#each itemGroups as group, gi (gi)}
 				{#if group.label}
-					<p class="px-1 text-[0.9375rem] font-medium text-[var(--sl-text-1)] {gi > 0 ? 'mt-2' : ''}">
-						{group.label}
-					</p>
+					<div class="px-4 {gi > 0 ? 'mt-2' : ''}">
+						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
+					</div>
 				{/if}
 
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">

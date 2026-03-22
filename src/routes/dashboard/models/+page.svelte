@@ -380,15 +380,23 @@
 		}
 	});
 
-	// Auto-refresh when device comes online
-	// Use silent=true when we already have cached data to avoid UI flash
+	// Auto-refresh when device comes online OR immediately revalidate cached data
+	// When cached data exists, fetch starts immediately (shows "Refreshing..." right away)
+	// When no cache, waits for online status before cold loading
 	$effect(() => {
-		if (
-			deviceState.selectedDeviceId &&
-			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'online'
-		) {
+		const did = deviceState.selectedDeviceId;
+		const online = did ? deviceState.onlineStatuses[did] === 'online' : false;
+		if (did && authState.isAuthenticated) {
 			const hasCached = untrack(() => !!modelList);
-			fetchModelsForDevice(hasCached);
+			const alreadyFetching = untrack(() => isFetchingModels);
+			if (alreadyFetching) return;
+			if (hasCached) {
+				// Revalidate immediately — don't wait for online status
+				fetchModelsForDevice(true);
+			} else if (online) {
+				// Cold load — only when device is confirmed online
+				fetchModelsForDevice(false);
+			}
 		}
 	});
 
@@ -967,7 +975,7 @@
 				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 					<div class="flex items-center gap-2 px-4">
 						<span
-							class="text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+							class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]"
 							>Available Models</span
 						>
 						<button
@@ -1163,9 +1171,9 @@
 				].filter((p): p is NonNullable<typeof p> => p !== null)}
 				{#if modelSettingItems.length > 0}
 					<div>
-						<p class="mb-2 px-4 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
-							Model Settings
-						</p>
+						<div class="mb-2 px-4">
+						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
+					</div>
 						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 							{#each modelSettingItems as param, i (param.key)}
 								<SchemaItemRenderer
