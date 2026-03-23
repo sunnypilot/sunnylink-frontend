@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, Check } from 'lucide-svelte';
+	import { ChevronDown, ChevronUp, Check } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { tick } from 'svelte';
 
@@ -20,13 +20,15 @@
 	let open = $state(false);
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let menuEl = $state<HTMLDivElement | null>(null);
+	let scrollEl = $state<HTMLDivElement | null>(null);
 	let menuStyle = $state('position:fixed;visibility:hidden;');
-	let isClipped = $state(false);
 
-	let currentMenuTop = 0;
 	let menuRight = 0;
 	let menuMinWidth = 0;
 	let menuFullHeight = 0;
+	let isClipped = $state(false);
+	let canScrollUp = $state(false);
+	let canScrollDown = $state(false);
 
 	let selectedLabel = $derived(
 		options.find((o) => String(o.value) === String(value))?.label ?? ''
@@ -51,23 +53,18 @@
 		close();
 	}
 
-	function buildStyle(top: number, maxHeight?: number) {
-		let s = `position:fixed;right:${menuRight}px;top:${top}px;min-width:${menuMinWidth}px;`;
-		if (maxHeight !== undefined) s += `max-height:${maxHeight}px;`;
-		return s;
-	}
-
 	function alignMenu() {
-		if (!triggerEl || !menuEl) return;
+		if (!triggerEl || !menuEl || !scrollEl) return;
 		const triggerRect = triggerEl.getBoundingClientRect();
 		const viewH = window.innerHeight;
 		const margin = 8;
 
-		const optionEls = menuEl.querySelectorAll('[role="option"]');
+		const optionEls = scrollEl.querySelectorAll('[role="option"]');
 		const selIdx = Math.max(0, options.findIndex((o) => String(o.value) === String(value)));
 		const selectedEl = optionEls[selIdx] as HTMLElement | undefined;
 		if (!selectedEl) return;
 
+		// Measure with no constraints (visibility:hidden, no max-height)
 		const menuRect = menuEl.getBoundingClientRect();
 		const selectedRect = selectedEl.getBoundingClientRect();
 		const selectedOffsetInMenu = selectedRect.top - menuRect.top;
@@ -77,75 +74,90 @@
 		menuMinWidth = Math.max(triggerRect.width, 120);
 
 		// Ideal: selected option overlaps trigger
-		currentMenuTop = triggerRect.top - selectedOffsetInMenu;
-
-		const menuBottom = currentMenuTop + menuFullHeight;
-		const fitsInViewport = currentMenuTop >= margin && menuBottom <= viewH - margin;
+		const idealTop = triggerRect.top - selectedOffsetInMenu;
+		const idealBottom = idealTop + menuFullHeight;
+		const fitsInViewport = idealTop >= margin && idealBottom <= viewH - margin;
 
 		if (fitsInViewport) {
 			isClipped = false;
-			menuStyle = buildStyle(currentMenuTop);
+			canScrollUp = false;
+			canScrollDown = false;
+			menuStyle = `position:fixed;right:${menuRight}px;top:${idealTop}px;min-width:${menuMinWidth}px;`;
 		} else {
 			isClipped = true;
-			const clampedTop = Math.max(margin, currentMenuTop);
-			const maxHeight = Math.min(menuFullHeight, viewH - clampedTop - margin);
-			currentMenuTop = clampedTop;
-			menuStyle = buildStyle(clampedTop, maxHeight);
+			const clampedTop = Math.max(margin, idealTop);
+			const maxHeight = viewH - clampedTop - margin;
 
+			menuStyle = `position:fixed;right:${menuRight}px;top:${clampedTop}px;min-width:${menuMinWidth}px;max-height:${maxHeight}px;`;
+
+			// Scroll selected into view after style applies
 			requestAnimationFrame(() => {
 				selectedEl.scrollIntoView({ block: 'nearest' });
+				updateScrollIndicators();
 			});
 		}
 	}
 
-	function handleMenuScroll() {
-		// Continuously expand the menu as user scrolls, revealing more items gradually
-		if (!menuEl || !isClipped) return;
+	function updateScrollIndicators() {
+		if (!scrollEl) return;
+		const el = scrollEl;
+		canScrollUp = el.scrollTop > 1;
+		canScrollDown = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+	}
 
+	let initialMaxHeight = 0;
+
+	function handleScroll() {
+		updateScrollIndicators();
+
+		if (!scrollEl || !isClipped || !menuEl) return;
+		const el = scrollEl;
 		const viewH = window.innerHeight;
 		const margin = 8;
-		const el = menuEl;
+		const maxAvailable = viewH - margin * 2;
 
-		// How much the user has scrolled inside the clipped menu
-		const scrolled = el.scrollTop;
+		// Can't expand beyond viewport
+		if (menuFullHeight > maxAvailable) return;
+
+		// Track initial max-height on first scroll
+		if (initialMaxHeight === 0) {
+			initialMaxHeight = menuEl.getBoundingClientRect().height;
+		}
+
+		// Calculate how much the user has scrolled (0 to maxScroll)
 		const maxScroll = el.scrollHeight - el.clientHeight;
 		if (maxScroll <= 0) return;
+		const progress = el.scrollTop / maxScroll;
 
-		// Progress: 0 = at top, 1 = at bottom
-		const progress = scrolled / maxScroll;
+		// Grow max-height proportionally: from initial constrained height toward full height
+		const growAmount = (menuFullHeight - initialMaxHeight) * progress;
+		const newMaxHeight = initialMaxHeight + growAmount;
 
-		// Calculate the expanded height based on scroll progress
-		const currentMaxHeight = el.clientHeight;
-		const targetHeight = menuFullHeight;
-		const maxAvailable = viewH - margin * 2;
-		const expandedHeight = Math.min(targetHeight, maxAvailable);
+		// Adjust top position: shift upward as menu grows taller
+		const currentTop = parseFloat(menuStyle.match(/top:([^p]+)px/)?.[1] || '8');
+		const heightDelta = newMaxHeight - menuEl.getBoundingClientRect().height;
+		let newTop = currentTop - heightDelta * 0.5; // grow evenly from center
+		newTop = Math.max(margin, Math.min(viewH - newMaxHeight - margin, newTop));
 
-		// Lerp between current constrained height and fully expanded height
-		const newHeight = currentMaxHeight + (expandedHeight - currentMaxHeight) * progress;
-
-		// Adjust top position to grow toward the available space
-		// If originally clipped at top, grow upward; if at bottom, grow downward
-		const originalClampedTop = Math.max(margin, currentMenuTop);
-		let newTop: number;
-
-		if (expandedHeight <= viewH - originalClampedTop - margin) {
-			// Can grow downward from current top
-			newTop = originalClampedTop;
-		} else {
-			// Need to shift up as we grow
-			newTop = Math.max(margin, viewH - newHeight - margin);
-		}
-
-		// If fully expanded, remove scrollbar
-		if (newHeight >= targetHeight - 1) {
+		// If fully expanded, remove clipping
+		if (newMaxHeight >= menuFullHeight - 1) {
 			isClipped = false;
-			const finalTop = Math.max(margin, Math.min(viewH - menuFullHeight - margin, newTop));
-			currentMenuTop = finalTop;
-			menuStyle = buildStyle(finalTop);
+			canScrollUp = false;
+			canScrollDown = false;
+			initialMaxHeight = 0;
+			menuStyle = `position:fixed;right:${menuRight}px;top:${newTop}px;min-width:${menuMinWidth}px;`;
 			el.scrollTop = 0;
 		} else {
-			menuStyle = buildStyle(newTop, newHeight);
+			menuStyle = `position:fixed;right:${menuRight}px;top:${newTop}px;min-width:${menuMinWidth}px;max-height:${newMaxHeight}px;`;
 		}
+	}
+
+	function scrollUpClick() {
+		scrollEl?.scrollBy({ top: -80, behavior: 'smooth' });
+	}
+
+	function scrollDownClick() {
+		scrollEl?.scrollBy({ top: 80, behavior: 'smooth' });
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -193,7 +205,7 @@
 
 {#if open}
 	<div use:portal>
-		<!-- Invisible overlay: click to close, blocks interaction -->
+		<!-- Invisible overlay: click to close -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="fixed inset-0 z-[9998]"
@@ -201,31 +213,75 @@
 		></div>
 		<div
 			bind:this={menuEl}
-			class="z-[9999] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-lg"
-			class:overflow-hidden={!isClipped}
-			class:overflow-y-auto={isClipped}
+			class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-lg"
 			style={menuStyle}
 			role="listbox"
-			onscroll={handleMenuScroll}
 		>
-			<div class="py-[5px]">
-				{#each options as opt (opt.value)}
-					{@const isSelected = String(opt.value) === String(value)}
-					<button
-						type="button"
-						class="flex w-full items-center justify-between px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-subtle)]"
-						class:bg-[var(--sl-bg-subtle)]={isSelected}
-						role="option"
-						aria-selected={isSelected}
-						onclick={() => select(opt)}
-					>
-						<span>{opt.label}</span>
-						{#if isSelected}
-							<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
-						{/if}
-					</button>
-				{/each}
+			<!-- Up arrow indicator -->
+			{#if canScrollUp}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					onmousedown={scrollUpClick}
+				>
+					<ChevronUp size={12} />
+				</div>
+			{/if}
+
+			<!-- Scrollable options -->
+			<div
+				bind:this={scrollEl}
+				class="relative flex-1 overflow-y-auto"
+				class:scroll-fade-top={canScrollUp}
+				class:scroll-fade-bottom={canScrollDown}
+				onscroll={handleScroll}
+			>
+				<div class="py-[5px]">
+					{#each options as opt (opt.value)}
+						{@const isSelected = String(opt.value) === String(value)}
+						<button
+							type="button"
+							class="flex w-full items-center justify-between px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							class:bg-[var(--sl-bg-subtle)]={isSelected}
+							role="option"
+							aria-selected={isSelected}
+							onclick={() => select(opt)}
+						>
+							<span>{opt.label}</span>
+							{#if isSelected}
+								<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
+							{/if}
+						</button>
+					{/each}
+				</div>
 			</div>
+
+			<!-- Down arrow indicator -->
+			{#if canScrollDown}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					onmousedown={scrollDownClick}
+				>
+					<ChevronDown size={12} />
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Fade gradient masks for clipped edges */
+	.scroll-fade-top {
+		mask-image: linear-gradient(to bottom, transparent 0%, black 20px);
+		-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20px);
+	}
+	.scroll-fade-bottom {
+		mask-image: linear-gradient(to top, transparent 0%, black 20px);
+		-webkit-mask-image: linear-gradient(to top, transparent 0%, black 20px);
+	}
+	.scroll-fade-top.scroll-fade-bottom {
+		mask-image: linear-gradient(to bottom, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+		-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+	}
+</style>
