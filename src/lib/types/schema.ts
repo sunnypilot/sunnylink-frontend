@@ -100,6 +100,7 @@ export interface SchemaItem {
 	enablement?: Rule[];
 	sub_items?: SchemaItem[];
 	action?: string;
+	needs_onroad_cycle?: boolean;
 }
 
 // ── Sub-Panel ───────────────────────────────────────────────────────────────

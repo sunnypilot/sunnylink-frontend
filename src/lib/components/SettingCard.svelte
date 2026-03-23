@@ -3,6 +3,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import type { RenderableSetting } from '$lib/types/settings';
+	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 
 	interface Props {
 		deviceId: string;
@@ -239,22 +240,16 @@
 			{#if isLoading}
 				<div class="h-8 w-full animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else if options}
-				<select
-					class="select w-full bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+				<SelectDropdown
+					{options}
 					value={displayValue}
-					onchange={(e: Event & { currentTarget: HTMLSelectElement }) => {
-						const val = e.currentTarget.value;
+					onchange={(val) => {
 						let newValue: string | number = val;
-						// Try to convert to number if the original type is Int/Float
-						if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
-						if (setting.value?.type === 'Float') newValue = parseFloat(val);
+						if (setting.value?.type === 'Int') newValue = typeof val === 'string' ? parseInt(val, 10) : val;
+						if (setting.value?.type === 'Float') newValue = typeof val === 'string' ? parseFloat(val) : val;
 						handleChange(newValue);
 					}}
-				>
-					{#each options as option}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				/>
 			{:else if isJson}
 				<button
 					class="btn w-full text-[var(--sl-text-2)] btn-outline hover:border-primary hover:text-primary"

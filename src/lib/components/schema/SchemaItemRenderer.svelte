@@ -11,6 +11,7 @@
 	import type { SchemaItem } from '$lib/types/schema';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import { Loader2 } from 'lucide-svelte';
+	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 
 	interface Props {
 		deviceId: string;
@@ -309,6 +310,11 @@
 								Offroad
 							</span>
 						{/if}
+						{#if item.needs_onroad_cycle}
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+								Restart
+							</span>
+						{/if}
 					</div>
 					{#if item.description}
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
@@ -350,8 +356,60 @@
 				</div>
 			</div>
 
-		{:else if item.widget === 'option'}
-			<!-- ── Option Row (select / slider) ────────────────────────────── -->
+		{:else if item.widget === 'option' && item.options && !(item.min !== undefined && item.max !== undefined)}
+			<!-- ── Dropdown Row (Linear-style inline select) ────────────────── -->
+			<div class="flex items-center justify-between gap-4 px-4 py-3.5">
+				<div class="min-w-0 flex-1">
+					<div class="flex items-center gap-2">
+						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+						{#if isQueued || pushState === 'pending'}
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+						{:else if isPushing}
+							<span class="loading loading-spinner loading-xs text-primary"></span>
+						{:else if pushState === 'success'}
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+						{:else if hasDrift}
+							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+						{/if}
+						{#if needsOffroad && !ruleContext.isOffroad}
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+								Offroad
+							</span>
+						{/if}
+						{#if item.needs_onroad_cycle}
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+								Restart
+							</span>
+						{/if}
+					</div>
+					{#if item.description}
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+					{/if}
+					{#if pushState === 'error'}
+						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+					{/if}
+				</div>
+				<div class="shrink-0">
+					{#if isLoading}
+						<div class="h-8 w-20 skeleton-shimmer rounded-lg"></div>
+					{:else}
+						<SelectDropdown
+							options={item.options}
+							value={displayValue}
+							disabled={!enabled || isPushing}
+							onchange={(val) => {
+								const numVal = Number(val);
+								handleChange(isNaN(numVal) ? val : numVal);
+							}}
+						/>
+					{/if}
+				</div>
+			</div>
+
+		{:else if item.widget === 'option' && item.min !== undefined && item.max !== undefined}
+			<!-- ── Slider Row (range input below label) ────────────────────── -->
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
@@ -371,6 +429,11 @@
 							Offroad
 						</span>
 					{/if}
+					{#if item.needs_onroad_cycle}
+						<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+							Restart
+						</span>
+					{/if}
 				</div>
 				{#if item.description}
 					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
@@ -382,23 +445,7 @@
 				<div class="mt-2.5">
 					{#if isLoading}
 						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
-					{:else if item.options}
-						<select
-							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-all focus:border-primary focus:outline-none"
-							class:opacity-50={isPushing}
-							value={displayValue}
-							disabled={!enabled || isPushing}
-							onchange={(e) => {
-								const val = (e.currentTarget as HTMLSelectElement).value;
-								const numVal = Number(val);
-								handleChange(isNaN(numVal) ? val : numVal);
-							}}
-						>
-							{#each item.options as option}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
-					{:else if item.min !== undefined && item.max !== undefined}
+					{:else}
 						<div class="flex w-full flex-col gap-2">
 							<div class="flex items-center justify-between text-xs text-[var(--sl-text-3)]">
 								<span>{isFloat ? Number(item.min).toFixed(2) : item.min}</span>
@@ -454,12 +501,52 @@
 								</button>
 							</div>
 						</div>
-					{:else}
-						<div class="rounded-lg bg-[var(--sl-bg-input)] px-3 py-1.5 text-center text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-							{formatDisplay(displayValue)}
-						</div>
 					{/if}
 				</div>
+			</div>
+
+		{:else if item.widget === 'option'}
+			<!-- ── Option Display-Only Row (inline right-aligned value) ────── -->
+			<div class="flex w-full items-center justify-between px-4 py-4">
+				<div class="mr-4 min-w-0 flex-1">
+					<div class="flex items-center gap-2">
+						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+						{#if isQueued || pushState === 'pending'}
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+						{:else if isPushing}
+							<span class="loading loading-spinner loading-xs text-primary"></span>
+						{:else if pushState === 'success'}
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+						{:else if hasDrift}
+							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+						{/if}
+						{#if needsOffroad && !ruleContext.isOffroad}
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+								Offroad
+							</span>
+						{/if}
+						{#if item.needs_onroad_cycle}
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+								Restart
+							</span>
+						{/if}
+					</div>
+					{#if item.description}
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+					{/if}
+					{#if pushState === 'error'}
+						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+					{/if}
+				</div>
+				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">
+					{#if isLoading}
+						<div class="h-4 w-12 skeleton-shimmer rounded"></div>
+					{:else}
+						{formatDisplay(displayValue)}{#if item.unit}<span class="ml-0.5 text-[var(--sl-text-3)]">{item.unit}</span>{/if}
+					{/if}
+				</span>
 			</div>
 
 		{:else if item.widget === 'multiple_button'}
@@ -483,6 +570,11 @@
 							Offroad
 						</span>
 					{/if}
+					{#if item.needs_onroad_cycle}
+						<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+							Restart
+						</span>
+					{/if}
 				</div>
 				{#if item.description}
 					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
@@ -496,21 +588,15 @@
 						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
 					{:else if item.options && useDropdownForSegments}
 						<!-- Dropdown fallback for many options on narrow screens -->
-						<select
-							class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2.5 text-sm text-[var(--sl-text-1)] transition-all focus:border-primary focus:outline-none"
-							class:opacity-50={isPushing}
+						<SelectDropdown
+							options={item.options}
 							value={displayValue}
 							disabled={!enabled || isPushing}
-							onchange={(e) => {
-								const val = (e.currentTarget as HTMLSelectElement).value;
+							onchange={(val) => {
 								const numVal = Number(val);
 								handleChange(isNaN(numVal) ? val : numVal);
 							}}
-						>
-							{#each item.options as option}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
+						/>
 					{:else if item.options}
 						{@const selectedIdx = item.options.findIndex((o) => String(displayValue) === String(o.value))}
 						{@const optCount = item.options.length}
@@ -542,15 +628,17 @@
 			</div>
 
 		{:else if item.widget === 'info'}
-			<!-- ── Info Row ────────────────────────────────────────────────── -->
-			<div class="px-4 py-4">
-				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
-				{#if item.description}
-					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-				{/if}
-				<div class="mt-2 rounded-lg bg-[var(--sl-bg-input)] px-3 py-1.5 text-center text-sm font-medium tabular-nums text-[var(--sl-text-1)]">
-					{formatDisplay(displayValue)}
+			<!-- ── Info Row (inline right-aligned value) ───────────────────── -->
+			<div class="flex w-full items-center justify-between px-4 py-4">
+				<div class="mr-4 min-w-0 flex-1">
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+					{#if item.description}
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+					{/if}
 				</div>
+				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">
+					{formatDisplay(displayValue)}
+				</span>
 			</div>
 		{/if}
 

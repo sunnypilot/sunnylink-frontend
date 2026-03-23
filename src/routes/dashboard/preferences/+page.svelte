@@ -7,6 +7,7 @@
 	import { toastState } from '$lib/stores/toast.svelte';
 	import { browser } from '$app/environment';
 	import { Sun, Moon, Monitor } from 'lucide-svelte';
+	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 
 	const isDev =
 		import.meta.env.DEV || (browser && localStorage.getItem('debug_override') === 'true');
@@ -120,14 +121,11 @@
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Default Landing Page</p>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Page shown when you open sunnylink</p>
 			</div>
-			<select
-				class="rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-				bind:value={preferences.defaultLandingPage}
-			>
-				{#each landingPageOptions as opt}
-					<option value={opt.value}>{opt.label}</option>
-				{/each}
-			</select>
+			<SelectDropdown
+				options={landingPageOptions}
+				value={preferences.defaultLandingPage}
+				onchange={(v) => { preferences.defaultLandingPage = String(v) as typeof preferences.defaultLandingPage; }}
+			/>
 		</div>
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
