@@ -134,7 +134,7 @@ export interface Panel {
 	description?: string;
 	remote_configurable: boolean;
 	sections?: PanelSection[];
-	items: SchemaItem[];
+	items?: SchemaItem[];
 	sub_panels?: SubPanel[];
 }
 
@@ -148,8 +148,9 @@ export interface VehicleBrandSettings {
 
 export interface SettingsSchema {
 	schema_version: string;
-	generated_at: string;
+	generated_at?: string;
 	panels: Panel[];
 	vehicle_settings: Record<string, VehicleBrandSettings>;
-	capability_fields: string[];
+	capability_fields?: string[];
+	capabilities?: Capabilities;
 }

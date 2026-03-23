@@ -1,20 +1,17 @@
 /**
  * Schema Store
  *
- * Manages the settings schema and capabilities state per device.
+ * Manages the settings schema + capabilities state per device.
  *
- * - Schema is fetched via getParams(["SettingsSchema", "SettingsCapabilities", "GitCommit"])
- * - Version-aware caching: schema cached by deviceId + GitCommit in localStorage
- * - Capabilities are always refreshed in background (lightweight, car-dependent)
- * - Graceful fallback when device lacks SettingsSchema param (older sunnypilot versions)
- * - Capabilities refreshed after pushing settings (some params affect capabilities)
+ * - Schema (including live capabilities) is fetched via getParamsMetadata RPC
+ * - checkDeviceStatus() in device.ts calls fetchParamsMetadata() and stores the result here
+ * - loadSchema() provides stale-while-revalidate with localStorage caching by GitCommit
+ * - Capabilities are embedded in the schema response (schema.capabilities)
  */
 
 import { browser } from '$app/environment';
 import type { SettingsSchema, Capabilities } from '$lib/types/schema';
-import { fetchSettingsAsync } from '$lib/api/device';
-import { decodeParamValue } from '$lib/utils/device';
-import { decodeCompressedJson, isCompressedBase64 } from '$lib/utils/compression';
+import { fetchParamsMetadata } from '$lib/api/device';
 import { deviceState } from '$lib/stores/device.svelte';
 
 const SCHEMA_CACHE_PREFIX = 'sunnylink_schema_';
@@ -28,11 +25,8 @@ interface CacheEntry {
 }
 
 class SchemaStore {
-	/** Parsed schema per device */
+	/** Parsed schema per device (includes capabilities) */
 	schemas: Record<string, SettingsSchema> = $state({});
-
-	/** Parsed capabilities per device */
-	capabilities: Record<string, Capabilities> = $state({});
 
 	/** Schema version (GitCommit) per device */
 	versions: Record<string, string> = $state({});
@@ -50,15 +44,26 @@ class SchemaStore {
 	schemaUnavailable: Record<string, boolean> = $state({});
 
 	/**
+	 * Capabilities per device — derived from schema.capabilities.
+	 * Components read this; it stays in sync because schemas[] is the source of truth.
+	 */
+	get capabilities(): Record<string, Capabilities> {
+		const result: Record<string, Capabilities> = {};
+		for (const [deviceId, schema] of Object.entries(this.schemas)) {
+			if (schema.capabilities) {
+				result[deviceId] = schema.capabilities;
+			}
+		}
+		return result;
+	}
+
+	/**
 	 * Load schema + capabilities for a device (stale-while-revalidate).
 	 *
 	 * 1. Check localStorage cache (keyed by deviceId + gitCommit) → serve instantly if hit
-	 * 2. Always fetch fresh schema from device (background revalidation on cache hit)
-	 * 3. Update store + cache only if schema actually changed (compared by generated_at)
-	 * 4. Always refresh capabilities (lightweight, car-dependent)
-	 *
-	 * This ensures manual edits to settings_ui.json on the device are picked up
-	 * after sunnylinkd restart, even if GitCommit hasn't changed.
+	 * 2. Always fetch fresh schema from device via getParamsMetadata RPC
+	 * 3. Update store + cache only if schema actually changed
+	 * 4. Capabilities are embedded in schema — no separate fetch needed
 	 */
 	async loadSchema(deviceId: string, token: string, currentGitCommit?: string): Promise<void> {
 		// Stale-while-revalidate: serve cached schema instantly, always revalidate
@@ -70,12 +75,6 @@ class SchemaStore {
 				this.versions[deviceId] = cached.version;
 				this.schemaUnavailable[deviceId] = false;
 				hadCache = true;
-
-				// Load cached capabilities too (will be refreshed below)
-				const cachedCaps = _loadCapsFromCache(deviceId);
-				if (cachedCaps) {
-					this.capabilities[deviceId] = cachedCaps;
-				}
 			}
 		}
 
@@ -91,87 +90,29 @@ class SchemaStore {
 		}
 
 		try {
-			const response = await fetchSettingsAsync(
-				deviceId,
-				['SettingsSchema', 'SettingsCapabilities', 'GitCommit'],
-				token
-			);
+			const parsed = await fetchParamsMetadata(deviceId, token);
 
-			if (response.items) {
-				let fetchedVersion = currentGitCommit || '';
-				let schemaFound = false;
+			if (parsed) {
+				const fetchedVersion = currentGitCommit || '';
 
-				for (const item of response.items) {
-					if (item.key === 'GitCommit' && item.value) {
-						const decoded = decodeParamValue({ key: item.key, value: item.value, type: 'String' });
-						if (typeof decoded === 'string') {
-							fetchedVersion = decoded;
-							// Also store in deviceValues so the values cache can key on it
-							if (!deviceState.deviceValues[deviceId]) {
-								deviceState.deviceValues[deviceId] = {};
-							}
-							deviceState.deviceValues[deviceId]['GitCommit'] = decoded;
-						}
-					}
+				// SWR: only update store + cache if schema actually changed
+				const existingSchema = this.schemas[deviceId];
+				const schemaChanged =
+					!existingSchema || existingSchema.generated_at !== parsed.generated_at;
 
-					if (item.key === 'SettingsSchema' && item.value) {
-						const decoded = decodeParamValue({ key: item.key, value: item.value, type: 'String' });
-						if (typeof decoded === 'string') {
-							try {
-								const parsed = await _parseSchema(decoded);
-								if (parsed) {
-									// SWR: only update store + cache if schema actually changed
-									const existingSchema = this.schemas[deviceId];
-									const schemaChanged =
-										!existingSchema || existingSchema.generated_at !== parsed.generated_at;
+				if (schemaChanged) {
+					this.schemas[deviceId] = parsed;
+					this.versions[deviceId] = fetchedVersion;
 
-									if (schemaChanged) {
-										this.schemas[deviceId] = parsed;
-										this.versions[deviceId] = fetchedVersion;
-
-										// Cache it
-										if (browser && fetchedVersion) {
-											_saveToCache(deviceId, fetchedVersion, parsed);
-										}
-									}
-									schemaFound = true;
-								} else if (!hadCache) {
-									this.errors[deviceId] = 'Failed to parse schema';
-								}
-							} catch (e) {
-								console.error(`Failed to parse SettingsSchema for ${deviceId}`, e);
-								if (!hadCache) {
-									this.errors[deviceId] = 'Failed to parse schema';
-								}
-							}
-						}
-					}
-
-					if (item.key === 'SettingsCapabilities' && item.value) {
-						const decoded = decodeParamValue({ key: item.key, value: item.value, type: 'String' });
-						if (typeof decoded === 'string') {
-							try {
-								const caps = JSON.parse(decoded) as Capabilities;
-								this.capabilities[deviceId] = caps;
-								if (browser) {
-									_saveCapsToCache(deviceId, caps);
-								}
-							} catch (e) {
-								console.error(`Failed to parse SettingsCapabilities for ${deviceId}`, e);
-							}
-						}
+					if (browser && fetchedVersion) {
+						_saveToCache(deviceId, fetchedVersion, parsed);
 					}
 				}
 
-				if (schemaFound) {
-					if (hadCache) this.revalidationStatus[deviceId] = 'succeeded';
-				} else {
-					if (hadCache) this.revalidationStatus[deviceId] = 'failed';
-					if (!hadCache) this.schemaUnavailable[deviceId] = true;
-				}
+				if (hadCache) this.revalidationStatus[deviceId] = 'succeeded';
 			} else {
 				if (hadCache) this.revalidationStatus[deviceId] = 'failed';
-				if (!hadCache) this.errors[deviceId] = response.error || 'Failed to fetch schema';
+				if (!hadCache) this.schemaUnavailable[deviceId] = true;
 			}
 		} catch (e) {
 			console.error(`Failed to load schema for ${deviceId}`, e);
@@ -186,11 +127,25 @@ class SchemaStore {
 	}
 
 	/**
-	 * Refresh capabilities only (lightweight, no schema re-fetch).
-	 * Call after pushing settings or on reconnect.
+	 * Refresh capabilities by re-fetching the schema from the device.
+	 * Since capabilities are bundled in the schema response, this
+	 * re-fetches via getParamsMetadata and updates the schema in-place.
 	 */
 	async refreshCapabilities(deviceId: string, token: string): Promise<void> {
-		await this._refreshCapabilities(deviceId, token);
+		try {
+			const parsed = await fetchParamsMetadata(deviceId, token);
+			if (parsed?.capabilities) {
+				// Update capabilities in the existing schema without replacing the whole schema
+				const existing = this.schemas[deviceId];
+				if (existing) {
+					this.schemas[deviceId] = { ...existing, capabilities: parsed.capabilities };
+				} else {
+					this.schemas[deviceId] = parsed;
+				}
+			}
+		} catch (e) {
+			console.error(`Failed to refresh capabilities for ${deviceId}`, e);
+		}
 	}
 
 	/**
@@ -205,7 +160,6 @@ class SchemaStore {
 	 */
 	clearCache(deviceId: string): void {
 		delete this.schemas[deviceId];
-		delete this.capabilities[deviceId];
 		delete this.versions[deviceId];
 		delete this.revalidationStatus[deviceId];
 		delete this.schemaUnavailable[deviceId];
@@ -213,67 +167,12 @@ class SchemaStore {
 			_evictDeviceCache(deviceId);
 		}
 	}
-
-	// ── Internal ──────────────────────────────────────────────────────────────
-
-	async _refreshCapabilities(deviceId: string, token: string): Promise<void> {
-		try {
-			const response = await fetchSettingsAsync(deviceId, ['SettingsCapabilities'], token);
-
-			if (response.items) {
-				const capsItem = response.items.find((i) => i.key === 'SettingsCapabilities');
-				if (capsItem?.value) {
-					const decoded = decodeParamValue({
-						key: capsItem.key!,
-						value: capsItem.value,
-						type: 'String'
-					});
-					if (typeof decoded === 'string') {
-						try {
-							const caps = JSON.parse(decoded) as Capabilities;
-							this.capabilities[deviceId] = caps;
-							if (browser) {
-								_saveCapsToCache(deviceId, caps);
-							}
-						} catch (e) {
-							console.error(`Failed to parse refreshed capabilities for ${deviceId}`, e);
-						}
-					}
-				}
-			}
-		} catch (e) {
-			console.error(`Failed to refresh capabilities for ${deviceId}`, e);
-		}
-	}
-}
-
-// ── Schema Parsing (handles both compressed and plain JSON) ─────────────────
-
-/**
- * Parse a SettingsSchema string, handling both compressed (gzip+base64)
- * and plain JSON formats for backward compatibility.
- */
-async function _parseSchema(decoded: string): Promise<SettingsSchema | null> {
-	try {
-		if (isCompressedBase64(decoded)) {
-			return await decodeCompressedJson<SettingsSchema>(decoded);
-		}
-		// Fallback: plain JSON (older device versions)
-		return JSON.parse(decoded) as SettingsSchema;
-	} catch (e) {
-		console.error('Failed to parse SettingsSchema', e);
-		return null;
-	}
 }
 
 // ── localStorage Cache Helpers ──────────────────────────────────────────────
 
 function _cacheKey(deviceId: string, version: string): string {
 	return `${SCHEMA_CACHE_PREFIX}${deviceId}_${version}`;
-}
-
-function _capsKey(deviceId: string): string {
-	return `${SCHEMA_CACHE_PREFIX}caps_${deviceId}`;
 }
 
 function _loadFromCache(deviceId: string, version: string): CacheEntry | null {
@@ -308,24 +207,6 @@ function _saveToCache(deviceId: string, version: string, schema: SettingsSchema)
 	}
 }
 
-function _loadCapsFromCache(deviceId: string): Capabilities | null {
-	try {
-		const raw = localStorage.getItem(_capsKey(deviceId));
-		if (!raw) return null;
-		return JSON.parse(raw) as Capabilities;
-	} catch {
-		return null;
-	}
-}
-
-function _saveCapsToCache(deviceId: string, caps: Capabilities): void {
-	try {
-		localStorage.setItem(_capsKey(deviceId), JSON.stringify(caps));
-	} catch (e) {
-		console.warn('Failed to cache capabilities', e);
-	}
-}
-
 function _evictDeviceCache(deviceId: string): void {
 	const prefix = `${SCHEMA_CACHE_PREFIX}${deviceId}`;
 	for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -334,7 +215,6 @@ function _evictDeviceCache(deviceId: string): void {
 			localStorage.removeItem(key);
 		}
 	}
-	localStorage.removeItem(_capsKey(deviceId));
 }
 
 function _evictOldEntries(): void {
@@ -342,7 +222,7 @@ function _evictOldEntries(): void {
 
 	for (let i = 0; i < localStorage.length; i++) {
 		const key = localStorage.key(i);
-		if (!key?.startsWith(SCHEMA_CACHE_PREFIX) || key.includes('_caps_')) continue;
+		if (!key?.startsWith(SCHEMA_CACHE_PREFIX)) continue;
 
 		try {
 			const raw = localStorage.getItem(key);

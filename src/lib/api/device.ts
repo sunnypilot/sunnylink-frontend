@@ -1,8 +1,10 @@
 import { v1Client, v0Client, API_BASE_URL, customFetch } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
+import { schemaState } from '$lib/stores/schema.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
-import { decodeCompressedJson } from '$lib/utils/compression';
+import { decodeCompressedJson, isCompressedBase64 } from '$lib/utils/compression';
+import type { SettingsSchema } from '$lib/types/schema';
 import type { components } from '../../sunnylink/v1/schema';
 
 type DeviceParam = components['schemas']['DeviceParam'];
@@ -147,11 +149,10 @@ const PARAM_TYPE_NAMES: Record<number, ParamType> = {
 };
 
 /**
- * Fetches compressed settings from the device via the paramsMetadata endpoint.
+ * Fetches the SettingsSchema from the device via the paramsMetadata endpoint.
  *
- * Returns the same struct as getParamsAllKeysV1 (keys + types + defaults + _extra),
- * but gzip-compressed for ~80% bandwidth reduction. The device sends type as an integer
- * enum; this function maps it to the string form the frontend expects.
+ * The device generates the schema from settings_ui.json (with flattened
+ * sections, capability_fields, etc.) and returns it gzip+base64 compressed.
  *
  * Returns null if the device does not support this endpoint (404/500),
  * indicating the caller should fall back to legacy getParamsAllKeysV1.
@@ -159,7 +160,7 @@ const PARAM_TYPE_NAMES: Record<number, ParamType> = {
 export async function fetchParamsMetadata(
 	deviceId: string,
 	token: string
-): Promise<ExtendedDeviceParamKey[] | null> {
+): Promise<SettingsSchema | null> {
 	const response = await customFetch(
 		`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
 		{
@@ -168,7 +169,6 @@ export async function fetchParamsMetadata(
 	);
 
 	if (!response.ok) {
-		// Device doesn't support getParamsMetadata — fall back to V1
 		return null;
 	}
 
@@ -178,16 +178,7 @@ export async function fetchParamsMetadata(
 			console.error(`getParamsMetadata: missing or invalid params_metadata field`);
 			return null;
 		}
-		const items = await decodeCompressedJson<ExtendedDeviceParamKey[]>(json.params_metadata);
-
-		// Map integer type enum to ParamType string (device sends raw enum, backend does this for V1)
-		return items.map((item) => ({
-			...item,
-			type:
-				typeof item.type === 'number'
-					? (PARAM_TYPE_NAMES[item.type as number] ?? ('Unknown' as ParamType))
-					: item.type
-		}));
+		return await decodeCompressedJson<SettingsSchema>(json.params_metadata);
 	} catch (e) {
 		console.error(`getParamsMetadata: data parsing failed for ${deviceId}:`, e);
 		return null;
@@ -346,9 +337,9 @@ export async function checkDeviceStatus(
 			};
 		}
 
-		// Store settings from compressed metadata (primary)
+		// Store schema from compressed metadata (primary path for new devices)
 		if (compressedSettings !== null) {
-			deviceState.deviceSettings[deviceId] = compressedSettings;
+			schemaState.schemas[deviceId] = compressedSettings;
 			deviceState.markStatusChecked(deviceId);
 			return;
 		}

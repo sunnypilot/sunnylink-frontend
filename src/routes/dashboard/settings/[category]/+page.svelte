@@ -198,19 +198,25 @@
 	let revalidatingValues = $state(false);
 	let valuesFetchFailed = $state(false);
 
+	// Device-level verification: shared across all settings pages.
+	// Once any page successfully fetches values, all pages are instantly "Up to Date".
+	let deviceVerified = $derived(
+		deviceId ? !!deviceState.valuesVerifiedThisSession[deviceId] : false
+	);
+
 	// Schema revalidation status from the store
 	let schemaRevalStatus = $derived(
 		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
 	);
 
-	// True when any background work is in-flight
+	// True when any background work is in-flight OR device hasn't been verified yet
 	let isRevalidating = $derived(
-		revalidatingValues || schemaRevalStatus === 'revalidating'
+		revalidatingValues || schemaRevalStatus === 'revalidating' || !deviceVerified
 	);
 
-	// Overall revalidation succeeded only if nothing failed
+	// Overall revalidation succeeded only if nothing failed AND device is verified
 	let revalidationSucceeded = $derived(
-		!revalidatingValues && !valuesFetchFailed &&
+		deviceVerified && !revalidatingValues && !valuesFetchFailed &&
 		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 
@@ -221,13 +227,12 @@
 		() => revalidationSucceeded && !batchActive
 	);
 
-	// Reset loading state on category change
+	// Reset per-category loading state on category change
 	$effect(() => {
 		category; // track
 		loadingValues = false;
 		revalidatingValues = false;
 		valuesFetchFailed = false;
-		untrack(() => { sync.reset(); });
 	});
 	let jsonModalOpen = $state(false);
 	let jsonModalContent = $state('');
@@ -278,7 +283,7 @@
 				keys.push(sub.key);
 			}
 		}
-		for (const item of panel.items) addItem(item);
+		for (const item of panel.items ?? []) addItem(item);
 		for (const sp of panel.sub_panels ?? []) {
 			for (const item of sp.items) addItem(item);
 		}
@@ -297,12 +302,16 @@
 		const did = deviceId; // capture for async closures
 		valuesFetchFailed = false;
 
-		// Skip keys we already have values for (delta fetch)
+		// Delta fetch: only fetch keys we don't have values for yet
 		const allKeys = collectPanelKeys(schemaPanel);
 		const existing = deviceState.deviceValues[did] ?? {};
 		const keysToFetch = allKeys.filter((k) => existing[k] === undefined);
 		if (keysToFetch.length === 0) {
-			// All cached — ensure spinner is cleared (may be stuck from an aborted prior fetch)
+			// All cached — mark device verified (values exist from localStorage hydration
+			// and device was online enough to provide schema)
+			if (!deviceState.valuesVerifiedThisSession[did]) {
+				deviceState.valuesVerifiedThisSession[did] = true;
+			}
 			loadingValues = false;
 			return;
 		}
@@ -363,7 +372,7 @@
 				const vals = deviceState.deviceValues[did] ??= {};
 				// Collect all items from flat items, sub_panels, and sections
 				const allItems = [
-					...schemaPanel.items,
+					...(schemaPanel.items ?? []),
 					...(schemaPanel.sub_panels ?? []).flatMap(sp => sp.items),
 					...(schemaPanel.sections ?? []).flatMap(s => [
 						...s.items,
@@ -397,6 +406,7 @@
 			if (!signal?.aborted) {
 				loadingValues = false;
 				revalidatingValues = false;
+				deviceState.valuesVerifiedThisSession[did] = true;
 			}
 		}
 	}

@@ -28,6 +28,9 @@ export const deviceState = $state({
 	aliases: {} as Record<string, string>,
 	aliasOverrides: {} as Record<string, string>,
 	stagedChanges: {} as Record<string, Record<string, unknown>>,
+	/** Device-level flag: true after values have been fetched from device this page session.
+	 *  Shared across all settings pages — once verified, navigating between pages is instant. */
+	valuesVerifiedThisSession: {} as Record<string, boolean>,
 	version: 0,
 
 	// Migration State

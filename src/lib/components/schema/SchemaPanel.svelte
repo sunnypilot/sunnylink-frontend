@@ -50,7 +50,7 @@
 	});
 
 	let orphanedSubPanels: SubPanel[] = $derived.by(() => {
-		const itemKeys = new Set(panel.items.map((i) => i.key));
+		const itemKeys = new Set((panel.items ?? []).map((i) => i.key));
 		return allSubPanels.filter((sp) => !itemKeys.has(sp.trigger_key));
 	});
 
@@ -67,7 +67,7 @@
 		const groups: ItemGroup[] = [];
 		let current: ItemGroup = { items: [] };
 
-		for (const item of panel.items) {
+		for (const item of panel.items ?? []) {
 			if (isSectionHeader(item) && isVisible(item.visibility, ruleContext)) {
 				if (current.items.length > 0) groups.push(current);
 				current = { label: item.title || item.key, items: [] };

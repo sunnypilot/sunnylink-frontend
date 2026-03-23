@@ -209,9 +209,15 @@
 			for (const sub of item.sub_items ?? []) allKeys.push(sub.key);
 		}
 		for (const panel of schema.panels) {
-			for (const item of panel.items) addItem(item);
+			for (const item of panel.items ?? []) addItem(item);
 			for (const sp of panel.sub_panels ?? []) {
 				for (const item of sp.items) addItem(item);
+			}
+			for (const section of panel.sections ?? []) {
+				for (const item of section.items) addItem(item);
+				for (const sp of section.sub_panels ?? []) {
+					for (const item of sp.items) addItem(item);
+				}
 			}
 		}
 
@@ -268,7 +274,7 @@
 				// Fill defaults for keys the device didn't return
 				const vals = deviceState.deviceValues[deviceId!] ??= {};
 				const allSchemaItems = [
-					...schema.panels.flatMap((p: Panel) => [...p.items, ...(p.sub_panels ?? []).flatMap((sp: any) => sp.items)]),
+					...schema.panels.flatMap((p: Panel) => [...(p.items ?? []), ...(p.sub_panels ?? []).flatMap((sp: any) => sp.items), ...(p.sections ?? []).flatMap((s: any) => [...(s.items ?? []), ...(s.sub_panels ?? []).flatMap((sp: any) => sp.items)])]),
 					...vehicleItems
 				];
 				for (const item of allSchemaItems) {

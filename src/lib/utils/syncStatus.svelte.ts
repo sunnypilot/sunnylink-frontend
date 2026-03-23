@@ -52,7 +52,9 @@ export function createSyncStatus(
 	});
 
 	return {
-		get status() { return status; },
+		get status() {
+			return status;
+		},
 		reset
 	};
 }
