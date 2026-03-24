@@ -12,10 +12,11 @@
 		options: Option[];
 		value: unknown;
 		disabled?: boolean;
+		disabledValues?: Set<string | number>;
 		onchange: (value: string | number) => void;
 	}
 
-	let { options, value, disabled = false, onchange }: Props = $props();
+	let { options, value, disabled = false, disabledValues, onchange }: Props = $props();
 
 	let open = $state(false);
 	let triggerEl = $state<HTMLButtonElement | null>(null);
@@ -49,6 +50,7 @@
 	}
 
 	function select(opt: Option) {
+		if (disabledValues?.has(opt.value)) return;
 		onchange(opt.value);
 		close();
 	}
@@ -166,11 +168,15 @@
 		if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
 			e.preventDefault();
 			const idx = options.findIndex((o) => String(o.value) === String(value));
-			const next = e.key === 'ArrowDown'
-				? Math.min(idx + 1, options.length - 1)
-				: Math.max(idx - 1, 0);
-			const opt = options[next];
-			if (opt) onchange(opt.value);
+			const dir = e.key === 'ArrowDown' ? 1 : -1;
+			let next = idx + dir;
+			while (next >= 0 && next < options.length && disabledValues?.has(options[next]!.value)) {
+				next += dir;
+			}
+			if (next >= 0 && next < options.length) {
+				const opt = options[next];
+				if (opt && !disabledValues?.has(opt.value)) onchange(opt.value);
+			}
 		}
 		if (e.key === 'Enter') { close(); e.preventDefault(); }
 	}
@@ -236,16 +242,23 @@
 				<div class="py-[5px]">
 					{#each options as opt (opt.value)}
 						{@const isSelected = String(opt.value) === String(value)}
+						{@const isOptDisabled = !!disabledValues?.has(opt.value)}
 						<button
 							type="button"
-							class="flex w-full items-center justify-between px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-subtle)]"
-							class:bg-[var(--sl-bg-subtle)]={isSelected}
+							class="flex w-full items-center justify-between px-2.5 py-1.5 text-[0.8125rem] transition-colors"
+							class:text-[var(--sl-text-1)]={!isOptDisabled}
+							class:hover:bg-[var(--sl-bg-subtle)]={!isOptDisabled}
+							class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
+							class:text-[var(--sl-text-3)]={isOptDisabled}
+							class:opacity-40={isOptDisabled}
+							class:cursor-not-allowed={isOptDisabled}
 							role="option"
 							aria-selected={isSelected}
+							aria-disabled={isOptDisabled}
 							onclick={() => select(opt)}
 						>
 							<span>{opt.label}</span>
-							{#if isSelected}
+							{#if isSelected && !isOptDisabled}
 								<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
 							{/if}
 						</button>

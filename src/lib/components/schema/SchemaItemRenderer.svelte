@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
-	import { isVisible, isEnabled, requiresOffroad, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
+	import { isVisible, isEnabled, evaluateRules, requiresOffroad, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
-	import type { SchemaItem } from '$lib/types/schema';
+	import type { SchemaItem, SchemaOption } from '$lib/types/schema';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import { Loader2 } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
@@ -66,6 +66,32 @@
 	let displayValue: unknown = $derived(
 		currentValue !== undefined ? currentValue : undefined
 	);
+
+	function isOptionEnabled(option: SchemaOption): boolean {
+		if (!option.enablement || option.enablement.length === 0) return true;
+		return evaluateRules(option.enablement, ruleContext);
+	}
+
+	let disabledOptionValues = $derived.by(() => {
+		if (!item.options) return undefined;
+		const disabled = new Set<string | number>();
+		for (const opt of item.options) {
+			if (!isOptionEnabled(opt)) disabled.add(opt.value);
+		}
+		return disabled.size > 0 ? disabled : undefined;
+	});
+
+	// Auto-snap: when the current value is a disabled option, push the nearest enabled one.
+	// Mirrors device-side behavior (e.g. MadsSteeringMode → DISENGAGE, SpeedLimitMode → Warning).
+	$effect(() => {
+		if (!item.options || !disabledOptionValues || currentValue === undefined) return;
+		if (!disabledOptionValues.has(currentValue as string | number)) return;
+		// Current value is disabled — find the last enabled option (closest to device-side snap behavior)
+		const enabledOptions = item.options.filter((o) => !disabledOptionValues.has(o.value));
+		if (enabledOptions.length === 0) return;
+		const snapTo = enabledOptions[enabledOptions.length - 1]!;
+		pushValue(snapTo.value);
+	});
 
 	let isLoading = $derived(loadingValues && currentValue === undefined);
 	let isFloat = $derived(item.step !== undefined && item.step < 1);
@@ -411,6 +437,7 @@
 							options={item.options}
 							value={displayValue}
 							disabled={!enabled || isPushing}
+							disabledValues={disabledOptionValues}
 							onchange={(val) => {
 								const numVal = Number(val);
 								handleChange(isNaN(numVal) ? val : numVal);
@@ -616,6 +643,7 @@
 							options={item.options}
 							value={displayValue}
 							disabled={!enabled || isPushing}
+							disabledValues={disabledOptionValues}
 							onchange={(val) => {
 								const numVal = Number(val);
 								handleChange(isNaN(numVal) ? val : numVal);
@@ -633,13 +661,17 @@
 							{/if}
 							{#each item.options as option, oi}
 								{@const isSelected = oi === selectedIdx}
+								{@const optEnabled = isOptionEnabled(option)}
 								<button
 									class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments ? 'px-1.5 text-[0.8125rem] tracking-tight' : 'px-2.5 text-sm'}"
-									class:text-white={isSelected}
-									class:text-[var(--sl-text-2)]={!isSelected}
-									class:hover:text-[var(--sl-text-1)]={!isSelected && !isPushing}
+									class:text-white={isSelected && optEnabled}
+									class:text-[var(--sl-text-2)]={!isSelected && optEnabled}
+									class:hover:text-[var(--sl-text-1)]={!isSelected && optEnabled && !isPushing}
+									class:opacity-30={!optEnabled}
+									class:cursor-not-allowed={!optEnabled}
 									class:pointer-events-none={isPushing}
-									disabled={!enabled || isPushing}
+									disabled={!enabled || isPushing || !optEnabled}
+									aria-disabled={!optEnabled}
 									onclick={() => handleChange(option.value)}
 								>
 									{option.label}

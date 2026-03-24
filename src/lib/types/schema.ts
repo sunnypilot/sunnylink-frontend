@@ -7,7 +7,6 @@
  * SettingsSchema param via the getParams RPC.
  */
 
-
 export type Rule =
 	| OffroadOnlyRule
 	| CapabilityRule
@@ -55,7 +54,6 @@ export interface AllRule {
 	conditions: Rule[];
 }
 
-
 export interface Capabilities {
 	has_longitudinal_control: boolean;
 	has_icbm: boolean;
@@ -74,12 +72,12 @@ export interface Capabilities {
 	stock_longitudinal: boolean;
 }
 
-
 export type WidgetType = 'toggle' | 'option' | 'multiple_button' | 'button' | 'info';
 
 export interface SchemaOption {
 	value: number | string;
 	label: string;
+	enablement?: Rule[];
 }
 
 export interface SchemaItem {
@@ -100,7 +98,6 @@ export interface SchemaItem {
 	needs_onroad_cycle?: boolean;
 }
 
-
 export interface SubPanel {
 	id: string;
 	label: string;
@@ -108,7 +105,6 @@ export interface SubPanel {
 	trigger_condition?: Rule;
 	items: SchemaItem[];
 }
-
 
 export interface PanelSection {
 	id: string;
@@ -118,7 +114,6 @@ export interface PanelSection {
 	items: SchemaItem[];
 	sub_panels?: SubPanel[];
 }
-
 
 export interface Panel {
 	id: string;
@@ -131,7 +126,6 @@ export interface Panel {
 	items?: SchemaItem[];
 	sub_panels?: SubPanel[];
 }
-
 
 export interface VehicleBrandSettings {
 	title: string;
