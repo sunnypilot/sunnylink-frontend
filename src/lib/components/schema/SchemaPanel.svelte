@@ -117,12 +117,14 @@
 			<!-- ═══ V2: Sections-based rendering ═══ -->
 			{#each orderedSections as section (section.id)}
 				<!-- Section title + description (outside card, indented to match page title) -->
-				<div class="px-4">
-					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{section.title}</p>
-					{#if section.description}
-						<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{section.description}</p>
-					{/if}
-				</div>
+				{#if section.title}
+					<div class="px-4">
+						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{section.title}</p>
+						{#if section.description}
+							<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{section.description}</p>
+						{/if}
+					</div>
+				{/if}
 
 				{#if section.items.length > 0 || getAllSectionSubPanels(section).length > 0}
 					{@const spMap = getSectionSubPanelByTrigger(section)}

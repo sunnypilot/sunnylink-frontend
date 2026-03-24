@@ -73,14 +73,14 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
-			class="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] py-1 shadow-lg"
+			class="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5 shadow-lg"
 			onclick={(e) => e.stopPropagation()}
 			in:fly={{ y: -8, duration: 150, easing: cubicOut }}
 			out:fade={{ duration: 100 }}
 		>
 			{#if onRename}
 				<button
-					class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 					onclick={(e) => handleAction(e, onRename)}
 				>
 					<Pencil size={14} />
@@ -89,7 +89,7 @@
 			{/if}
 
 			<button
-				class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+				class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 				onclick={(e) => copyToClipboard(e, deviceId, 'sunnylink')}
 			>
 				<span class="relative flex h-[14px] w-[14px] items-center justify-center">
@@ -110,7 +110,7 @@
 
 			{#if dongleId}
 				<button
-					class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 					onclick={(e) => copyToClipboard(e, dongleId, 'dongle')}
 				>
 					<span class="relative flex h-[14px] w-[14px] items-center justify-center">
@@ -132,7 +132,7 @@
 
 			{#if onDownloadBackup}
 				<button
-					class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 					onclick={(e) => handleAction(e, onDownloadBackup)}
 					disabled={isDownloading}
 				>
@@ -146,17 +146,17 @@
 			{/if}
 
 			{#if pairedAt}
-				<div class="mx-2 my-1 border-t border-[var(--sl-border-emphasis)]"></div>
-				<div class="flex items-center gap-2.5 px-3 py-2 text-[0.75rem] text-[var(--sl-text-3)]">
+				<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
+				<div class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.75rem] text-[var(--sl-text-3)]">
 					<Calendar size={13} />
 					Paired {formatPairedDate(pairedAt)}
 				</div>
 			{/if}
 
 			{#if onDeregister}
-				<div class="mx-2 my-1 border-t border-[var(--sl-border-emphasis)]"></div>
+				<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
 				<button
-					class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/5"
+					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/5"
 					onclick={(e) => handleAction(e, onDeregister)}
 				>
 					<Trash2 size={14} />

@@ -277,12 +277,12 @@
 		<!-- Popover -->
 		{#if popoverOpen}
 			<div
-				class="absolute right-0 top-full z-[100] mt-2 w-72 overflow-hidden rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-lg"
+				class="absolute right-0 top-full z-[100] mt-2 w-72 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-lg"
 				role="dialog"
 				aria-label="Device status details"
 			>
 				<!-- Header: device name + status line -->
-				<div class="border-b border-[var(--sl-border-muted)] px-4 pb-3 pt-3.5">
+				<div class="px-2.5 pb-2 pt-2">
 					<div class="flex items-center justify-between">
 						<span class="text-[0.875rem] font-semibold text-[var(--sl-text-1)]">
 							{deviceName}
@@ -290,7 +290,7 @@
 						<button
 							onclick={refreshStatus}
 							disabled={refreshing}
-							class="rounded p-1 text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							class="rounded-md p-1 text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
 							aria-label="Refresh status"
 						>
 							<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
@@ -307,8 +307,10 @@
 					</div>
 				</div>
 
+				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+
 				<!-- Telemetry rows -->
-				<div class="border-b border-[var(--sl-border-muted)] px-4 py-3 space-y-2">
+				<div class="px-2.5 py-2 space-y-2">
 					{#if isOnline && telemetry}
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-1.5 text-[var(--sl-text-3)]">
@@ -372,31 +374,31 @@
 
 				<!-- Quick actions (online only) -->
 				{#if isOnline}
-					<div class="border-b border-[var(--sl-border-muted)] px-1.5 py-1">
-						<button
-							onclick={handleForceOffroadClick}
-							disabled={stoppingForce}
-							class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] disabled:opacity-50"
-						>
-							{#if stoppingForce}
-								<Loader2 size={13} class="shrink-0 animate-spin" />
-								<span>Stopping...</span>
-							{:else if offroadStatus?.forceOffroad}
-								<AlertTriangle size={13} class="shrink-0 text-amber-600 dark:text-amber-400" />
-								<span>Stop Force Offroad</span>
-							{:else}
-								<AlertTriangle size={13} class="shrink-0" />
-								<span>Force Offroad</span>
-							{/if}
-						</button>
-					</div>
+					<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+					<button
+						onclick={handleForceOffroadClick}
+						disabled={stoppingForce}
+						class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] disabled:opacity-50"
+					>
+						{#if stoppingForce}
+							<Loader2 size={13} class="shrink-0 animate-spin" />
+							<span>Stopping...</span>
+						{:else if offroadStatus?.forceOffroad}
+							<AlertTriangle size={13} class="shrink-0 text-amber-600 dark:text-amber-400" />
+							<span>Stop Force Offroad</span>
+						{:else}
+							<AlertTriangle size={13} class="shrink-0" />
+							<span>Force Offroad</span>
+						{/if}
+					</button>
 				{/if}
 
 				<!-- Footer: copy ID + overview link -->
-				<div class="flex items-center justify-between px-1.5 py-1.5">
+				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+				<div class="flex items-center justify-between">
 					<button
 						onclick={copyDeviceId}
-						class="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
+						class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
 						aria-label="Copy device ID"
 					>
 						{#if copiedId}
@@ -409,7 +411,7 @@
 					</button>
 					<button
 						onclick={() => { closePopover(); goto('/dashboard'); }}
-						class="flex items-center gap-0.5 rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:bg-[var(--sl-bg-subtle)]"
+						class="flex items-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:bg-[var(--sl-bg-subtle)]"
 					>
 						<span>Overview</span>
 						<ChevronRight size={12} />

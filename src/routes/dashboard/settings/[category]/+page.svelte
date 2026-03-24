@@ -11,7 +11,7 @@
 		type RenderableSetting
 	} from '$lib/types/settings';
 	import type { Panel, SubPanel } from '$lib/types/schema';
-	import { fetchSettingsAsync } from '$lib/api/device';
+	import { fetchSettingsAsync, checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import { getAllSettings } from '$lib/utils/settings';
@@ -459,10 +459,15 @@
 	}
 
 	function handleManualRefresh() {
-		if (!deviceId) return;
-		// Set stale to trigger layout's global prefetch (single fetch for all keys + drift detection).
-		// isRevalidating watches isStale → shows "Refreshing..." until layout prefetch completes.
+		if (!deviceId || !logtoClient) return;
+		// Set stale immediately for instant "Refreshing..." feedback.
 		deviceState.valuesStale[deviceId] = true;
+		// Fire-and-forget: re-fetch schema (settings_ui.json) from device in parallel.
+		// checkDeviceStatus calls fetchParamsMetadata which picks up schema changes
+		// (new items, renamed labels, etc.) without requiring a full browser refresh.
+		logtoClient.getIdToken().then((token) => {
+			if (token && deviceId) checkDeviceStatus(deviceId, token, true, true);
+		});
 	}
 
 	function syntaxHighlightJson(json: string): string {

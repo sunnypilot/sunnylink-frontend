@@ -87,12 +87,12 @@
 	<!-- Popover menu -->
 	{#if open}
 		<div
-			class="absolute bottom-full left-0 right-0 z-50 mb-1.5 origin-bottom overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]"
+			class="absolute bottom-full left-0 right-0 z-50 mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
 			role="menu"
 			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 		>
 			<!-- User identity -->
-			<div class="px-3.5 pt-3 pb-2">
+			<div class="px-2.5 pt-1.5 pb-1.5">
 				<p class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 					{authState.profile?.name}
 				</p>
@@ -101,10 +101,10 @@
 				{/if}
 			</div>
 
-			<div class="mx-3 border-b border-[var(--sl-border-muted)]"></div>
+			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
 			<!-- Theme selector -->
-			<div class="px-3.5 py-3">
+			<div class="px-2.5 py-2">
 				<p class="mb-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 					Theme
 				</p>
@@ -131,13 +131,13 @@
 				</div>
 			</div>
 
-			<div class="mx-3 border-b border-[var(--sl-border-muted)]"></div>
+			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
 			<!-- Menu items -->
-			<div class="py-1">
+			<div class="space-y-0.5">
 				<a
 					href="/dashboard/preferences"
-					class="flex items-center gap-2.5 px-3.5 py-2 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 					role="menuitem"
 					onclick={() => (open = false)}
 				>
@@ -148,7 +148,7 @@
 					href="https://community.sunnypilot.ai/c/bug-reports/8"
 					target="_blank"
 					rel="noopener"
-					class="flex items-center gap-2.5 px-3.5 py-2 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 					role="menuitem"
 					onclick={() => (open = false)}
 				>
@@ -157,20 +157,18 @@
 				</a>
 			</div>
 
-			<div class="mx-3 border-b border-[var(--sl-border-muted)]"></div>
+			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
 			<!-- Logout -->
-			<div class="py-1">
-				<button
-					type="button"
-					class="flex w-full items-center gap-2.5 px-3.5 py-2 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-red-400"
-					role="menuitem"
-					onclick={handleLogout}
-				>
-					<LogOut size={15} class="shrink-0" />
-					<span>Log out</span>
-				</button>
-			</div>
+			<button
+				type="button"
+				class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-red-400"
+				role="menuitem"
+				onclick={handleLogout}
+			>
+				<LogOut size={15} class="shrink-0" />
+				<span>Log out</span>
+			</button>
 		</div>
 	{/if}
 </div>
