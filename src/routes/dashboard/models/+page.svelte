@@ -261,7 +261,6 @@
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
 
-	// ── Sync status ──
 	// Tracks any active fetch (silent or not) for the sync indicator
 	let isFetchingModels = $state(false);
 
@@ -861,7 +860,6 @@
 		<div class="space-y-6">
 			{#if currentModel}
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel ? 'opacity-60' : ''}  transition-opacity duration-200">
-				<!-- Header: model name + status badge -->
 				<div class="flex items-center justify-between px-4 py-4">
 					<div class="flex items-center gap-3 min-w-0">
 						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]">
@@ -946,7 +944,6 @@
 			</div>
 
 			<div class="relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
-				<!-- Search toolbar row -->
 				<div class="border-b border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)] px-4 py-2.5">
 					<div class="relative">
 						<input
@@ -971,7 +968,6 @@
 					</div>
 				</div>
 
-				<!-- Model list -->
 				<div class="relative">
 					{#if loadingModels && !modelList}
 						<div class="p-6 text-center text-[var(--sl-text-3)]">
@@ -1058,7 +1054,6 @@
 														<ChevronRight size={14} class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName === model.short_name ? 'rotate-90' : ''}" />
 													</div>
 												</div>
-												<!-- Inline detail panel -->
 												{#if selectedModelShortName === model.short_name}
 													<div transition:slide={{ duration: 150 }} class="border-t border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)]/60 px-4 py-4 pl-11">
 														<div class="flex items-start justify-between gap-4">

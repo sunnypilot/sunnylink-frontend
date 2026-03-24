@@ -24,7 +24,6 @@
 
 	let { deviceId, item, loadingValues = false, isLast = false, readonly = false }: Props = $props();
 
-	// ── Push state per item ─────────────────────────────────────────────────
 
 	// Unified push state — merges online (batchPush) and offline (pendingChanges) stores.
 	// Online debounce ('pending') is invisible — no badge, toggle stays interactive.
@@ -45,7 +44,6 @@
 	});
 	let pushError = $state('');
 
-	// ── Derived state ───────────────────────────────────────────────────────
 
 	let ruleContext: RuleContext = $derived({
 		capabilities: schemaState.capabilities[deviceId] ?? null,
@@ -96,7 +94,6 @@
 	let driftEntry = $derived(driftStore.getForKey(deviceId, item.key));
 	let hasDrift = $derived(!!driftEntry);
 
-	// ── Immediate push ──────────────────────────────────────────────────────
 
 	function inferParamType(): string {
 		const deviceParams = deviceState.deviceSettings[deviceId];
@@ -166,7 +163,6 @@
 		return String(val);
 	}
 
-	// ── Responsive segmented → compact → dropdown ─────────────────────────
 	// Two-tier overflow check using Canvas text measurement for accuracy:
 	//   Normal (14px, px-2.5=20px pad): if labels fit → standard segments
 	//   Compact (13px, px-1.5=12px pad, tracking-tight): if labels fit → compact segments
@@ -629,7 +625,6 @@
 						{@const selectedIdx = item.options.findIndex((o) => String(displayValue) === String(o.value))}
 						{@const optCount = item.options.length}
 						<div class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200" class:opacity-50={isPushing} class:pointer-events-none={isPushing}>
-							<!-- Sliding highlight pill -->
 							{#if selectedIdx >= 0}
 								<div
 									class="absolute top-1 bottom-1 rounded-md bg-primary shadow-sm transition-transform duration-350 ease-out"
@@ -670,13 +665,11 @@
 			</div>
 		{/if}
 
-		<!-- Hairline divider between rows -->
 		{#if showDivider}
 			<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 		{/if}
 	</div>
 
-	<!-- Recursive sub_items -->
 	{#if item.sub_items}
 		{#each item.sub_items as subItem, i (subItem.key)}
 			<svelte:self deviceId={deviceId} item={subItem} {loadingValues} {readonly} isLast={i === item.sub_items.length - 1 && isLast} />

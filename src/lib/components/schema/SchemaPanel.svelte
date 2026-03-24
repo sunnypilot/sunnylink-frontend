@@ -28,10 +28,8 @@
 		isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true
 	});
 
-	// ── V2: Sections-based rendering ────────────────────────────────────
 	let useSections = $derived(!!(panel.sections && panel.sections.length > 0));
 
-	// ── V1: Legacy flat items rendering ─────────────────────────────────
 	/** All sub-panels (never filtered — dim instead of hide) */
 	let allSubPanels: SubPanel[] = $derived(panel.sub_panels ?? []);
 
@@ -90,7 +88,6 @@
 		itemGroups.length > 0 || allSubPanels.length > 0
 	);
 
-	// ── Section sub-panel helpers ───────────────────────────────────────
 	/** All sub-panels for a section (never filtered out — dim instead of hide) */
 	function getAllSectionSubPanels(section: PanelSection): SubPanel[] {
 		return section.sub_panels ?? [];

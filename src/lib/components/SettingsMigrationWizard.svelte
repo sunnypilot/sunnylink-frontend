@@ -113,7 +113,6 @@
 		deviceState.cancelMigration();
 	}
 
-	// ── Scroll lock + iOS page sheet parent transform ───────────────────
 	// Locks body + main (the actual scroll container in the DaisyUI drawer layout).
 	// Timeout ref prevents race conditions between close→open sequences.
 	let savedScrollY = 0;
@@ -179,7 +178,6 @@
 		};
 	});
 
-	// ── M3 emphasized easing for modal transitions ──────────────────────
 	// Open: emphasized.decelerate — fast start, smooth decel (iOS spring approx)
 	function emphasizedDecelerate(t: number): number {
 		// cubic-bezier(0.05, 0.7, 0.1, 1) approximation
@@ -196,7 +194,6 @@
 	const isMobileWizard = typeof window !== 'undefined' && window.innerWidth < 640;
 
 
-	// ── Step transition direction ────────────────────────────────────────
 	// Set direction SYNCHRONOUSLY before step changes so out:fly reads the correct value
 	let stepDirection: 'forward' | 'back' = $state('forward');
 

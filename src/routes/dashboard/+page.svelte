@@ -26,7 +26,6 @@
 	let renamingDeviceId = $state<string | null>(null);
 	let offlineSectionOpen = $state(false);
 
-	// ── Backup logic ────────────────────────────────────────────────────
 
 	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
 		if (!deviceId || deviceState.backupState.isDownloading) return;
@@ -128,7 +127,6 @@
 		}
 	}
 
-	// ── Auth guard ──────────────────────────────────────────────────────
 
 	$effect(() => {
 		if (!authState.loading && !authState.isAuthenticated) {
@@ -136,7 +134,6 @@
 		}
 	});
 
-	// ── Helpers ─────────────────────────────────────────────────────────
 
 	function getAlias(device: any) {
 		return (
@@ -303,7 +300,6 @@
 		goto('/dashboard/settings/device');
 	}
 
-	// ── Device data ────────────────────────────────────────────────────
 
 	// Use cached devices from deviceState for instant rendering; update when API returns
 	let devices = $derived(deviceState.pairedDevices);
@@ -347,7 +343,6 @@
 					</button>
 				</div>
 			{:else}
-				<!-- Page header -->
 				<div class="mb-6 px-4">
 					<h1 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
 						Dashboard
@@ -357,7 +352,6 @@
 					</p>
 				</div>
 
-				<!-- Section header -->
 				<div class="mb-3 flex items-center justify-between px-4">
 					<h2 class="text-xs font-semibold tracking-[0.2em] text-[var(--sl-text-3)] uppercase">
 						Devices
@@ -365,7 +359,6 @@
 					<RefreshIndicator />
 				</div>
 
-				<!-- Device cards -->
 				<div class="flex flex-col gap-3" role="list" aria-label="Device list">
 					{#each onlineDevices as device (device.device_id)}
 						{@const isLoading = !deviceState.onlineStatuses[device.device_id] || deviceState.onlineStatuses[device.device_id] === 'loading'}
@@ -382,9 +375,7 @@
 							aria-label="{getAlias(device)} - {getStatusText(device)}"
 						>
 							<div class="flex items-start gap-3 px-4 py-4">
-								<!-- Name + telemetry -->
 								<div class="min-w-0 flex-1">
-									<!-- Row 1: Name -->
 									<div class="flex items-center gap-2">
 										{#if isRenaming}
 											<input
@@ -412,7 +403,6 @@
 										{/if}
 									</div>
 
-									<!-- Telemetry rows -->
 									<div class="mt-3 max-w-[280px] space-y-1.5">
 										{#if getDeviceTypeName(device)}
 											<div class="flex items-center gap-3">
@@ -459,7 +449,6 @@
 									</div>
 								</div>
 
-								<!-- Kebab menu -->
 								<div class="shrink-0 pt-0.5" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 									<DeviceRowMenu
 										deviceId={device.device_id}
@@ -475,7 +464,6 @@
 						</div>
 					{/each}
 
-					<!-- Offline section -->
 					{#if offlineDevices.length > 0}
 						<button
 							class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/30"
@@ -509,7 +497,6 @@
 												>
 										<div class="flex items-start gap-3 px-4 py-4">
 											<div class="min-w-0 flex-1">
-												<!-- Row 1: Name -->
 												<div class="flex items-center gap-2">
 													{#if isRenaming}
 														<input
@@ -534,7 +521,6 @@
 													{/if}
 												</div>
 
-												<!-- Telemetry rows -->
 												<div class="mt-3 max-w-[280px] space-y-1.5">
 													{#if getDeviceTypeName(device)}
 														<div class="flex items-center gap-3">
@@ -586,7 +572,6 @@
 					{/if}
 				</div>
 
-				<!-- Pair New Device -->
 				<button
 					class="group mt-4 flex w-full items-center gap-4 rounded-xl border border-dashed border-[var(--sl-border)] px-4 py-3.5 text-left transition-colors hover:border-[var(--sl-text-3)]/50 hover:bg-[var(--sl-bg-surface)]/50"
 					onclick={() => deviceState.openPairingModal()}
@@ -598,7 +583,6 @@
 				</button>
 			{/if}
 
-			<!-- Unsaved Changes Bar -->
 			{#if pendingChanges.length > 0}
 				<div
 					class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-xl -translate-x-1/2 px-4 duration-300"

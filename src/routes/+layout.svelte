@@ -84,7 +84,6 @@
 		}
 	});
 
-	// ── Navigation sections ─────────────────────────────────────────────────
 
 	// Dashboard is a standalone top-level item (not a setting)
 	let dashboardItem: NavItem | null = $derived(
@@ -126,7 +125,6 @@
 		}
 	];
 
-	// ── Active state helper ─────────────────────────────────────────────────
 
 	const isActive = (href?: string) => href === pathname;
 
@@ -140,12 +138,10 @@
 				: 'text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]'
 		].join(' ');
 
-	// ── Device status ───────────────────────────────────────────────────────
 
 	let devices = $state<any[]>([]);
 	let deviceFetchError = $state<import('./+layout').DeviceFetchError>(null);
 
-	// ── Sidebar brand context ──────────────────────────────────────────────
 
 	let selectedDeviceForBrand = $derived(
 		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)
@@ -272,7 +268,6 @@
 >
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 
-	<!-- ── Main Content ──────────────────────────────────────────────────── -->
 	<div
 		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isLandingPage
 			? 'h-auto overflow-visible'
@@ -359,7 +354,6 @@
 		</main>
 	</div>
 
-	<!-- ── Sidebar ────────────────────────────────────────────────────────── -->
 	{#if !isLandingPage}
 		<div class="drawer-side z-[51]">
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
@@ -411,7 +405,6 @@
 					/>
 				</button>
 
-				<!-- Navigation -->
 				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
 					<!-- Dashboard (standalone, above settings sections) -->
 					{#if dashboardItem}
@@ -508,7 +501,6 @@
 					</li>
 				{/snippet}
 
-				<!-- Account Menu (replaces separate theme toggle + profile + bottom items) -->
 				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
 					{#if authState.isAuthenticated}
 						<div class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
@@ -545,7 +537,6 @@
 	{/if}
 </div>
 
-<!-- DeviceSelector: trigger hidden (sidebar has its own), modal renders via deviceSelectorState -->
 <DeviceSelector {devices} triggerHidden />
 
 <BackupStatusIndicator />

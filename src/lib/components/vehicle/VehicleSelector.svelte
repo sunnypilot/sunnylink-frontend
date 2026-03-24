@@ -349,11 +349,8 @@
 	});
 </script>
 
-<!-- Vehicle Status Card -->
 <div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-	<!-- Main status row -->
 	<div class="flex items-center gap-4 px-4 py-3">
-		<!-- Color dot -->
 		<div class="flex shrink-0 items-center">
 			{#if isLoadingValues}
 				<Loader2 size={16} class="animate-spin text-[var(--sl-text-3)]" />
@@ -362,7 +359,6 @@
 			{/if}
 		</div>
 
-		<!-- Vehicle info -->
 		<div class="min-w-0 flex-1">
 			<div class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">
 				{vehicleName}
@@ -374,7 +370,6 @@
 			</div>
 		</div>
 
-		<!-- Actions -->
 		<div class="flex shrink-0 items-center gap-2">
 			{#if !isLoadingValues}
 				{#if mode === 'manual'}
@@ -396,7 +391,6 @@
 		</div>
 	</div>
 
-	<!-- Details disclosure -->
 	{#if !isLoadingValues && (carFingerprint || carPlatformBundle)}
 		<div class="border-t border-[var(--sl-border-muted)]">
 			<button
@@ -457,7 +451,6 @@
 						</div>
 					{/if}
 
-					<!-- Raw config -->
 					<details class="mt-3">
 						<summary class="cursor-pointer font-mono text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]">
 							Raw configuration

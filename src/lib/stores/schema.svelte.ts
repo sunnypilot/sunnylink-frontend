@@ -174,7 +174,6 @@ class SchemaStore {
 	}
 }
 
-// ── localStorage Cache Helpers ──────────────────────────────────────────────
 
 function _cacheKey(deviceId: string, version: string): string {
 	return `${SCHEMA_CACHE_PREFIX}${deviceId}_${version}`;

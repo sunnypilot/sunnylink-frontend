@@ -84,7 +84,6 @@
 		</label>
 	{/if}
 
-	<!-- Trigger -->
 	<button
 		{id}
 		type="button"

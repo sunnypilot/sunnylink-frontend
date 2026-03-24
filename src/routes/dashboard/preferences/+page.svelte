@@ -63,7 +63,6 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-	<!-- Page Header -->
 	<div class="px-4">
 		<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
 			Preferences
@@ -73,13 +72,11 @@
 		</p>
 	</div>
 
-	<!-- ═══ Appearance ═══ -->
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Appearance</p>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Theme and visual preferences</p>
 	</div>
 	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-		<!-- Theme -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Theme</p>
@@ -109,13 +106,11 @@
 		</div>
 	</div>
 
-	<!-- ═══ Display ═══ -->
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Display</p>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Page behavior and information display</p>
 	</div>
 	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-		<!-- Default Landing Page -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Default Landing Page</p>
@@ -130,7 +125,6 @@
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 
-		<!-- Show Device Online Help -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}>Device Connection Help</button>
@@ -152,13 +146,11 @@
 		</div>
 	</div>
 
-	<!-- ═══ Notifications ═══ -->
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Notifications</p>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Control which alerts and status updates you see</p>
 	</div>
 	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-		<!-- Device Offline -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}>Device Offline Alerts</button>
@@ -181,7 +173,6 @@
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 
-		<!-- Sync Failure -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}>Sync Failure Alerts</button>
@@ -204,7 +195,6 @@
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 
-		<!-- Settings Drift -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}>Settings Drift Alerts</button>
@@ -226,13 +216,11 @@
 		</div>
 	</div>
 
-	<!-- ═══ Data ═══ -->
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Data</p>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage cached data and local storage</p>
 	</div>
 	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-		<!-- Clear Schema Cache -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear Schema Cache</p>
@@ -248,7 +236,6 @@
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 
-		<!-- Clear Pending Changes -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear Pending Changes</p>
@@ -264,7 +251,6 @@
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 
-		<!-- Clear All Cached Data -->
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear All Cached Data</p>
@@ -279,7 +265,6 @@
 		</div>
 	</div>
 
-	<!-- ═══ Developer (dev-only) ═══ -->
 	{#if isDev}
 		<div class="px-4">
 			<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Developer</p>

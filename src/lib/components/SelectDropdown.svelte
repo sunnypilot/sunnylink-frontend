@@ -205,7 +205,6 @@
 
 {#if open}
 	<div use:portal>
-		<!-- Invisible overlay: click to close -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="fixed inset-0 z-[9998]"
@@ -217,7 +216,6 @@
 			style={menuStyle}
 			role="listbox"
 		>
-			<!-- Up arrow indicator -->
 			{#if canScrollUp}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
@@ -228,7 +226,6 @@
 				</div>
 			{/if}
 
-			<!-- Scrollable options -->
 			<div
 				bind:this={scrollEl}
 				class="relative flex-1 overflow-y-auto"
@@ -256,7 +253,6 @@
 				</div>
 			</div>
 
-			<!-- Down arrow indicator -->
 			{#if canScrollDown}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div

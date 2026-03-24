@@ -258,7 +258,6 @@
 
 {#if deviceId}
 	<div class="relative" bind:this={pillRef}>
-		<!-- Pill trigger -->
 		<button
 			onclick={togglePopover}
 			class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors duration-[var(--dur-fast)] hover:brightness-110 {pillState.bgClass} {pillState.borderClass}"
@@ -274,14 +273,12 @@
 			</span>
 		</button>
 
-		<!-- Popover -->
 		{#if popoverOpen}
 			<div
 				class="absolute right-0 top-full z-[100] mt-2 w-72 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-lg"
 				role="dialog"
 				aria-label="Device status details"
 			>
-				<!-- Header: device name + status line -->
 				<div class="px-2.5 pb-2 pt-2">
 					<div class="flex items-center justify-between">
 						<span class="text-[0.875rem] font-semibold text-[var(--sl-text-1)]">
@@ -309,7 +306,6 @@
 
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
-				<!-- Telemetry rows -->
 				<div class="px-2.5 py-2 space-y-2">
 					{#if isOnline && telemetry}
 						<div class="flex items-center justify-between">
@@ -372,7 +368,6 @@
 					{/if}
 				</div>
 
-				<!-- Quick actions (online only) -->
 				{#if isOnline}
 					<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 					<button
@@ -393,7 +388,6 @@
 					</button>
 				{/if}
 
-				<!-- Footer: copy ID + overview link -->
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 				<div class="flex items-center justify-between">
 					<button
@@ -421,6 +415,5 @@
 		{/if}
 	</div>
 
-	<!-- Force Offroad safety modal (with countdown + confirmation) -->
 	<ForceOffroadModal bind:open={forceModalOpen} onSuccess={onForceOffroadSuccess} />
 {/if}

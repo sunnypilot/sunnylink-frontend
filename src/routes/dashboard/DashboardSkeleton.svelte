@@ -3,13 +3,11 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6 xl:max-w-3xl">
-	<!-- Section header skeleton -->
 	<div class="flex items-center justify-between">
 		<div class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 		<div class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 	</div>
 
-	<!-- Device card skeleton -->
 	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 		{#each [1, 2] as _, i}
 			<div class="flex items-center gap-3 px-4 py-3.5">

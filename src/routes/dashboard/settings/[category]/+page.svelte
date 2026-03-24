@@ -50,7 +50,6 @@
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 	let hasChanges = $derived(deviceId ? deviceState.hasChanges(deviceId) : false);
 
-	// ── Schema-driven rendering ─────────────────────────────────────────────
 
 	let useSchema = $derived(deviceId ? schemaState.hasSchema(deviceId) : false);
 	// True while schema is being fetched — show skeleton instead of legacy flash
@@ -137,7 +136,6 @@
 		goto(url.toString(), { keepFocus: true, noScroll: true });
 	}
 
-	// ── Legacy rendering ────────────────────────────────────────────────────
 
 	let currentDeviceAlias = $derived.by(() => {
 		if (!deviceId) return undefined;
@@ -190,7 +188,6 @@
 	let writableGroups = $derived(groupSettingsBySection(writableSettings));
 	let readonlyGroups = $derived(groupSettingsBySection(readonlySettings));
 
-	// ── Value fetching ──────────────────────────────────────────────────────
 
 	let loadingValues = $state(false);
 	let revalidatingValues = $state(false);
@@ -219,7 +216,6 @@
 		!isDeviceOfflineOrError && deviceVerified && !revalidatingValues && !valuesFetchFailed && !isStale
 	);
 
-	// ── Sync status (includes batch push activity) ──
 	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
 	const sync = createSyncStatus(
 		() => isRevalidating || batchActive,
@@ -519,7 +515,6 @@
 </script>
 
 <div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
-	<!-- ── Page Header ──────────────────────────────────────────────────── -->
 	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
 		{#key activeSubPanel?.id ?? '__root__'}
 			<div
@@ -749,7 +744,6 @@
 	/>
 {/if}
 
-<!-- JSON Modal -->
 {#if jsonModalOpen}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
 		<div class="w-full max-w-3xl rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-6 shadow-2xl">

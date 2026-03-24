@@ -36,7 +36,6 @@
 		aria-modal="true"
 		use:portal
 	>
-		<!-- Backdrop -->
 		<button
 			class="absolute inset-0 bg-black/40 transition-opacity"
 			transition:fade={{ duration: 200 }}

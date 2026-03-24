@@ -49,7 +49,6 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="relative" data-account-menu>
-	<!-- Trigger: user profile button -->
 	<button
 		type="button"
 		class="group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)]"
@@ -84,14 +83,12 @@
 		/>
 	</button>
 
-	<!-- Popover menu -->
 	{#if open}
 		<div
 			class="absolute bottom-full left-0 right-0 z-50 mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
 			role="menu"
 			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 		>
-			<!-- User identity -->
 			<div class="px-2.5 pt-1.5 pb-1.5">
 				<p class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 					{authState.profile?.name}
@@ -103,7 +100,6 @@
 
 			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
-			<!-- Theme selector -->
 			<div class="px-2.5 py-2">
 				<p class="mb-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 					Theme
@@ -133,7 +129,6 @@
 
 			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
-			<!-- Menu items -->
 			<div class="space-y-0.5">
 				<a
 					href="/dashboard/preferences"
@@ -159,7 +154,6 @@
 
 			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
-			<!-- Logout -->
 			<button
 				type="button"
 				class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-red-400"

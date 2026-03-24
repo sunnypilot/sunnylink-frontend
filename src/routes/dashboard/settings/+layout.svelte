@@ -178,7 +178,6 @@
 		}
 	});
 
-	// ── ParamsVersion poller: detect device-side changes ──
 	$effect(() => {
 		if (deviceId && isOnline) {
 			versionPoller.start({

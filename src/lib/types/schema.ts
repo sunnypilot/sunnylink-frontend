@@ -7,7 +7,6 @@
  * SettingsSchema param via the getParams RPC.
  */
 
-// ── Rule Types ──────────────────────────────────────────────────────────────
 
 export type Rule =
 	| OffroadOnlyRule
@@ -56,7 +55,6 @@ export interface AllRule {
 	conditions: Rule[];
 }
 
-// ── Capabilities ────────────────────────────────────────────────────────────
 
 export interface Capabilities {
 	has_longitudinal_control: boolean;
@@ -76,7 +74,6 @@ export interface Capabilities {
 	stock_longitudinal: boolean;
 }
 
-// ── Schema Item Types ───────────────────────────────────────────────────────
 
 export type WidgetType = 'toggle' | 'option' | 'multiple_button' | 'button' | 'info';
 
@@ -103,7 +100,6 @@ export interface SchemaItem {
 	needs_onroad_cycle?: boolean;
 }
 
-// ── Sub-Panel ───────────────────────────────────────────────────────────────
 
 export interface SubPanel {
 	id: string;
@@ -113,7 +109,6 @@ export interface SubPanel {
 	items: SchemaItem[];
 }
 
-// ── Panel Section (v2) ──────────────────────────────────────────────────────
 
 export interface PanelSection {
 	id: string;
@@ -124,7 +119,6 @@ export interface PanelSection {
 	sub_panels?: SubPanel[];
 }
 
-// ── Panel ───────────────────────────────────────────────────────────────────
 
 export interface Panel {
 	id: string;
@@ -138,7 +132,6 @@ export interface Panel {
 	sub_panels?: SubPanel[];
 }
 
-// ── Full Schema ─────────────────────────────────────────────────────────────
 
 export interface VehicleBrandSettings {
 	title: string;

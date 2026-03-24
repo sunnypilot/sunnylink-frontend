@@ -45,7 +45,6 @@
 		selectedDeviceType = null;
 	}
 
-	// ── Scroll lock + iOS page sheet parent transform ───────────────────
 	// iOS page sheet: background shrinks on open, smoothly expands on close.
 	// Scroll locked on body + main (the actual scroll container in the drawer layout).
 	// Timeout ref prevents race conditions between close→open sequences.
@@ -118,7 +117,6 @@
 		};
 	});
 
-	// ── M3 emphasized easing ────────────────────────────────────────────
 	function emphasizedDecelerate(t: number): number {
 		return 1 - Math.pow(1 - t, 3);
 	}
@@ -130,7 +128,6 @@
 	const isMobilePairing = typeof window !== 'undefined' && window.innerWidth < 640;
 
 
-	// ── Step transition direction ────────────────────────────────────────
 	let stepDirection: 'forward' | 'back' = $state('forward');
 
 	function goToStep(newStep: number) {
@@ -146,7 +143,6 @@
 		aria-modal="true"
 		use:portal
 	>
-		<!-- Backdrop -->
 		<button
 			class="absolute inset-0 bg-black/40"
 			in:fade={{ duration: 400, easing: cubicOut }}
@@ -155,7 +151,6 @@
 			aria-label="Close modal"
 		></button>
 
-		<!-- Content -->
 		<div
 			class="relative mx-2 mb-2 flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl bg-[var(--sl-bg-surface)] shadow-2xl sm:mx-0 sm:mb-0 sm:min-h-[360px] sm:w-full sm:max-w-lg sm:border sm:border-[var(--sl-border)]"
 			style="max-height: calc(100dvh - 3rem);"
@@ -201,7 +196,6 @@
 						</p>
 
 						<div class="grid gap-4 sm:grid-cols-2">
-							<!-- comma four -->
 							<button
 								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 								onclick={() => selectDevice('c4')}
@@ -217,7 +211,6 @@
 								</div>
 							</button>
 
-							<!-- comma 3X -->
 							<button
 								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 								onclick={() => selectDevice('c3')}

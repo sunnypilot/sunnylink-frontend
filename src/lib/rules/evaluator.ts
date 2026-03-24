@@ -133,7 +133,6 @@ export function collectParamDependencies(rules: Rule[] | undefined): string[] {
 	return keys;
 }
 
-// ── Internal helpers ────────────────────────────────────────────────────────
 
 /**
  * Compare a param value against an expected value with type coercion.

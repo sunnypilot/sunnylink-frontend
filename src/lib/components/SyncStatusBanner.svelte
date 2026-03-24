@@ -156,7 +156,6 @@
 		<div class="flex items-center gap-3">
 			<span class="block h-2 w-2 shrink-0 rounded-full {dotColor}"></span>
 
-			<!-- Queued / Syncing -->
 			{#if statusText}
 				<span class="flex-1 text-sm text-[var(--sl-text-2)]">{statusText}</span>
 				{#if queuedCount > 0 && isOnline && !isFlushing}
@@ -164,7 +163,6 @@
 				{/if}
 			{/if}
 
-			<!-- Failed -->
 			{#if failedCount > 0}
 				<span class="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
 					<AlertTriangle size={14} />
@@ -180,7 +178,6 @@
 				{/if}
 			{/if}
 
-			<!-- Drift -->
 			{#if driftCount > 0}
 				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
 					<RefreshCw size={14} />
@@ -212,7 +209,6 @@
 			{/if}
 		</div>
 
-		<!-- Expanded drift list, grouped by panel -->
 		{#if driftExpanded && driftEntries.length > 0}
 			<div class="mt-2 border-t border-[var(--sl-border-muted)] pt-2" transition:slide={{ duration: 150 }}>
 				{#each driftsByPanel as group (group.panelId)}

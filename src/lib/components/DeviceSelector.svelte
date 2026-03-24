@@ -105,7 +105,6 @@
 	}
 </script>
 
-<!-- Trigger -->
 {#if !triggerHidden}
 <button
 	class="group flex max-w-full items-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
@@ -169,7 +168,6 @@
 </button>
 {/if}
 
-<!-- Modal -->
 {#if deviceSelectorState.isOpen}
 	<div
 		class="fixed inset-0 z-[9999] flex items-end justify-center sm:items-start sm:pt-20"
@@ -177,7 +175,6 @@
 		aria-modal="true"
 		use:portal
 	>
-		<!-- Backdrop -->
 		<button
 			class="absolute inset-0 bg-black/40 transition-opacity"
 			transition:fade={{ duration: 200 }}
@@ -185,7 +182,6 @@
 			aria-label="Close modal"
 		></button>
 
-		<!-- Content -->
 		<div
 			class="relative w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-input)] shadow-2xl sm:rounded-2xl"
 			transition:fly={{ y: 20, duration: 300 }}

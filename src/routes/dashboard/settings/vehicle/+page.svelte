@@ -105,7 +105,6 @@
 		}
 	}
 
-	// ── Sync status ──
 	let schemaRevalStatus = $derived(
 		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
 	);
@@ -133,7 +132,6 @@
 </script>
 
 <div class="mx-auto max-w-2xl xl:max-w-3xl space-y-6">
-	<!-- Page header -->
 	<div class="px-4">
 		<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
 			<span>Vehicle</span>
@@ -143,13 +141,11 @@
 	</div>
 
 	{#if deviceId}
-		<!-- Vehicle section -->
 		<div class="px-4">
 			<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Vehicle</p>
 		</div>
 		<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
 
-		<!-- Brand-specific settings -->
 		{#if brandSettings.length > 0}
 			<div class="px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{brandData?.title ?? currentBrand}</p>
