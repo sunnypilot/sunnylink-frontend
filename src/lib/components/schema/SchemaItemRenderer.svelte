@@ -313,7 +313,7 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-600 dark:text-emerald-400 transition-opacity"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+							<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 						{/if}
@@ -385,7 +385,7 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+							<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 						{/if}
@@ -440,7 +440,7 @@
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 					{:else if hasDrift}
-						<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+						<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 					{/if}
@@ -542,7 +542,7 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+							<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 						{/if}
@@ -589,7 +589,7 @@
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 					{:else if hasDrift}
-						<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+						<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 					{/if}

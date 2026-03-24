@@ -137,7 +137,7 @@
 	<div class="px-4">
 		<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
 			<span>Vehicle</span>
-			<SyncStatusIndicator status={sync.status} />
+			<SyncStatusIndicator status={sync.status} onRefresh={() => fetchBrandValues()} />
 		</h2>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Fingerprint and platform selection</p>
 	</div>

@@ -411,7 +411,10 @@
 			{#if loadingOsmParams}
 				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
 			{:else}
-				<SyncStatusIndicator status={sync.status} />
+				<SyncStatusIndicator status={sync.status} onRefresh={() => {
+					const did = deviceState.selectedDeviceId;
+					if (did && logtoClient) logtoClient.getIdToken().then((token) => { if (token) fetchOsmParams(did, token, true); });
+				}} />
 			{/if}
 		</h1>
 		<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage offline OpenStreetMap data on your device</p>

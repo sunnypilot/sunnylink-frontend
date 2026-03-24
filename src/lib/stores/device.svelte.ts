@@ -46,6 +46,9 @@ export const deviceState = $state({
 	/** Device-level flag: true after values have been fetched from device this page session.
 	 *  Shared across all settings pages — once verified, navigating between pages is instant. */
 	valuesVerifiedThisSession: {} as Record<string, boolean>,
+	/** Device-level flag: true when ParamsVersion changed since last fetch.
+	 *  Triggers full re-fetch (all keys, not delta) with stale-while-revalidate UX. */
+	valuesStale: {} as Record<string, boolean>,
 	version: 0,
 
 	// Migration State

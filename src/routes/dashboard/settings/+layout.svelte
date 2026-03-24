@@ -181,8 +181,13 @@
 			versionPoller.start({
 				deviceId,
 				onVersionChange: () => {
-					// Version changed — invalidate prefetch so next page visit re-fetches
-					if (deviceId) prefetchDone[deviceId] = false;
+					// Version changed — invalidate prefetch and mark values stale
+					// so next page visit re-fetches all keys (stale-while-revalidate)
+					if (deviceId) {
+						prefetchDone[deviceId] = false;
+						deviceState.valuesStale[deviceId] = true;
+						deviceState.valuesVerifiedThisSession[deviceId] = false;
+					}
 				}
 			});
 		} else {

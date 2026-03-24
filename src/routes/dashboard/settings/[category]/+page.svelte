@@ -308,16 +308,12 @@
 		const did = deviceId; // capture for async closures
 		valuesFetchFailed = false;
 
-		// Delta fetch: only fetch keys we don't have values for yet
+		// Always fetch all keys for the current page on every navigation.
+		// Cached values stay visible (stale-while-revalidate) while fresh values load in background.
 		const allKeys = collectPanelKeys(schemaPanel);
 		const existing = deviceState.deviceValues[did] ?? {};
-		const keysToFetch = allKeys.filter((k) => existing[k] === undefined);
+		const keysToFetch = allKeys;
 		if (keysToFetch.length === 0) {
-			// All cached — mark device verified (values exist from localStorage hydration
-			// and device was online enough to provide schema)
-			if (!deviceState.valuesVerifiedThisSession[did]) {
-				deviceState.valuesVerifiedThisSession[did] = true;
-			}
 			loadingValues = false;
 			return;
 		}
@@ -327,10 +323,10 @@
 		const cachedSnapshot = gitCommit ? loadCachedValues(did, gitCommit) : null;
 
 		// Show full spinner only on cold start (no cached values at all)
-		// Show subtle revalidation indicator for delta-fetches
+		// Show subtle revalidation indicator for delta-fetches and stale re-fetches
 		const hasAnyValues = allKeys.some((k) => existing[k] !== undefined);
 		if (!hasAnyValues) loadingValues = true;
-		else revalidatingValues = true;
+		else revalidatingValues = true;  // Stale or delta: cached values stay visible, header shows "Refreshing..."
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token || signal?.aborted) return;
@@ -413,6 +409,7 @@
 				loadingValues = false;
 				revalidatingValues = false;
 				deviceState.valuesVerifiedThisSession[did] = true;
+				deviceState.valuesStale[did] = false;
 			}
 		}
 	}
@@ -482,6 +479,14 @@
 			fetchCurrentValues();
 		}
 		toastState.show('Settings pushed successfully!', 'success');
+	}
+
+	function handleManualRefresh() {
+		if (!deviceId) return;
+		deviceState.valuesStale[deviceId] = true;
+		deviceState.valuesVerifiedThisSession[deviceId] = false;
+		if (useSchema) fetchSchemaValues();
+		else fetchCurrentValues();
 	}
 
 	function syntaxHighlightJson(json: string): string {
@@ -565,7 +570,7 @@
 							{#if loadingValues}
 								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
 							{:else}
-								<SyncStatusIndicator status={sync.status} />
+								<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
 							{/if}
 						</h2>
 					</div>
@@ -576,7 +581,7 @@
 							{#if loadingValues}
 								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
 							{:else}
-								<SyncStatusIndicator status={sync.status} />
+								<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
 							{/if}
 						</h2>
 						{#if schemaPanel?.description}

@@ -771,7 +771,7 @@
 			{#if (loadingModels || isCheckingStatus) && !modelList}
 				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
 			{:else if modelList}
-				<SyncStatusIndicator status={sync.status} />
+				<SyncStatusIndicator status={sync.status} onRefresh={() => fetchModelsForDevice(true)} />
 			{/if}
 		</div>
 		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
