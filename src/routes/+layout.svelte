@@ -183,6 +183,7 @@
 	}
 
 	let authRetried = false;
+	let statusCheckStarted = false;
 	$effect(() => {
 		data.streamed.deviceResult.then(async (result) => {
 			deviceFetchError = result.error;
@@ -211,10 +212,16 @@
 						deviceState.aliases = { ...deviceState.aliases, [d.device_id]: d.alias };
 					}
 				}
-				checkAllDevicesStatus(result.devices).then(() => {
-					statusPolling.markChecked();
-					statusPolling.start();
-				});
+				// Only run the initial status check once. Subsequent invalidate()
+				// calls (e.g. from auth re-check) re-hydrate device list but skip
+				// the status check — statusPolling handles ongoing updates.
+				if (!statusCheckStarted) {
+					statusCheckStarted = true;
+					checkAllDevicesStatus(result.devices).then(() => {
+						statusPolling.markChecked();
+						statusPolling.start();
+					});
+				}
 			}
 		});
 	});

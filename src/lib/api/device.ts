@@ -268,10 +268,14 @@ export async function checkDeviceStatus(
 	// Skip if we have a fresh status (< 60s old) and not forcing
 	if (!force && deviceState.isStatusFresh(deviceId)) return;
 
-	// Silent mode: don't flash 'loading' state — used by background polling
-	// to avoid UI disruption (devices moving between online/offline sections)
+	// Only show 'loading' when device status is genuinely unknown.
+	// Never regress from 'online' to 'loading' — a re-check of an already-online
+	// device shouldn't flash "Connecting..." in the UI.
 	if (!silent) {
-		deviceState.onlineStatuses[deviceId] = 'loading';
+		const current = deviceState.onlineStatuses[deviceId];
+		if (current !== 'online') {
+			deviceState.onlineStatuses[deviceId] = 'loading';
+		}
 	}
 
 	try {
@@ -333,8 +337,14 @@ export async function checkDeviceStatus(
 			};
 		} else if (forceOffroad !== null) {
 			deviceState.offroadStatuses[deviceId] = {
-				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? false,
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
 				forceOffroad
+			};
+		} else if (!deviceState.offroadStatuses[deviceId]) {
+			// Device online but getMessage unavailable — default to offroad (safe/common state)
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: true,
+				forceOffroad: false
 			};
 		}
 
@@ -365,8 +375,17 @@ export async function checkDeviceStatus(
 		}
 
 		// Store schema from compressed metadata (primary path for new devices)
+		// Only update if schema structure actually changed to avoid re-triggering derived state.
 		if (compressedSettings !== null) {
-			schemaState.schemas[deviceId] = compressedSettings;
+			const existing = schemaState.schemas[deviceId];
+			if (
+				!existing ||
+				JSON.stringify(existing.panels) !== JSON.stringify(compressedSettings.panels) ||
+				JSON.stringify(existing.vehicle_settings) !==
+					JSON.stringify(compressedSettings.vehicle_settings)
+			) {
+				schemaState.schemas[deviceId] = compressedSettings;
+			}
 			deviceState.markStatusChecked(deviceId);
 			return;
 		}

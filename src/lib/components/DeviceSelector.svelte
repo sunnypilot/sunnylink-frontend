@@ -17,6 +17,24 @@
 	import { portal } from '$lib/utils/portal';
 	import { ChevronRight } from 'lucide-svelte';
 
+	// Lock body scroll when modal is open
+	$effect(() => {
+		if (deviceSelectorState.isOpen) {
+			const scrollY = window.scrollY;
+			document.body.style.overflow = 'hidden';
+			document.body.style.position = 'fixed';
+			document.body.style.top = `-${scrollY}px`;
+			document.body.style.width = '100%';
+			return () => {
+				document.body.style.overflow = '';
+				document.body.style.position = '';
+				document.body.style.top = '';
+				document.body.style.width = '';
+				window.scrollTo(0, scrollY);
+			};
+		}
+	});
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let { devices, triggerHidden = false } = $props<{ devices: any[]; triggerHidden?: boolean }>();
 

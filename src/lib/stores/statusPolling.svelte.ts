@@ -136,5 +136,18 @@ export const statusPolling = {
 	/** Mark that an initial check has been done (from layout load). */
 	markChecked() {
 		lastCheckedAt = Date.now();
+	},
+
+	/**
+	 * Signal that a device was confirmed reachable by a settings fetch.
+	 * Updates online status + resets poll timer to avoid immediate overwrite.
+	 */
+	confirmReachable(deviceId: string) {
+		if (deviceState.onlineStatuses[deviceId] !== 'online') {
+			deviceState.onlineStatuses[deviceId] = 'online';
+		}
+		lastCheckedAt = Date.now();
+		consecutiveFailures = 0;
+		reschedule(); // Reset the 60s timer so it doesn't poll immediately after
 	}
 };

@@ -95,10 +95,15 @@ class SchemaStore {
 			if (parsed) {
 				const fetchedVersion = currentGitCommit || '';
 
-				// SWR: only update store + cache if schema actually changed
+				// SWR: only update store + cache if schema structure actually changed.
+				// Compare panels + vehicle_settings (not generated_at, which changes every boot).
+				// This prevents a full UI re-render when the schema content is identical.
 				const existingSchema = this.schemas[deviceId];
 				const schemaChanged =
-					!existingSchema || existingSchema.generated_at !== parsed.generated_at;
+					!existingSchema ||
+					JSON.stringify(existingSchema.panels) !== JSON.stringify(parsed.panels) ||
+					JSON.stringify(existingSchema.vehicle_settings) !==
+						JSON.stringify(parsed.vehicle_settings);
 
 				if (schemaChanged) {
 					this.schemas[deviceId] = parsed;

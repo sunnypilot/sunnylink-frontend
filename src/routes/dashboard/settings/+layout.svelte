@@ -5,6 +5,8 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { loadCachedValues, saveCachedValues, getLastKnownCommit, setLastKnownCommit, updateCachedValue } from '$lib/stores/valuesCache';
+	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { fetchSettingsAsync, setDeviceParams } from '$lib/api/device';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
@@ -15,6 +17,7 @@
 	import { toastState } from '$lib/stores/toast.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { versionPoller } from '$lib/stores/versionPoller.svelte';
+	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { onDestroy } from 'svelte';
 
 	let { children, data } = $props();
@@ -201,9 +204,20 @@
 	// settings page loads instantly from cache on subsequent visits or F5 refresh.
 	let prefetchDone = $state<Record<string, boolean>>({});
 
+	// Re-trigger global prefetch when valuesStale is set (manual refresh, version change)
+	$effect(() => {
+		if (deviceId && deviceState.valuesStale[deviceId]) {
+			prefetchDone[deviceId] = false;
+		}
+	});
+
 	$effect(() => {
 		if (!deviceId || !isOnline || !logtoClient) return;
 		if (prefetchDone[deviceId]) return;
+		// Only run global prefetch when explicitly triggered (manual refresh or version change).
+		// The stale watcher sets prefetchDone=false AND valuesStale=true.
+		// Initial page load is handled by the category page's own fetch.
+		if (!deviceState.valuesStale[deviceId]) return;
 		const schema = schemaState.schemas[deviceId];
 		if (!schema?.panels) return;
 
@@ -236,15 +250,14 @@
 		// Also prefetch vehicle detection params (used by VehicleSelector)
 		allKeys.push('CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent');
 
-		// Filter to keys we don't have yet
 		const existing = deviceState.deviceValues[deviceId] ?? {};
-		const missing = allKeys.filter((k) => existing[k] === undefined);
-		if (missing.length === 0) {
-			prefetchDone[deviceId] = true;
-			return;
-		}
+		const uniqueKeys = [...new Set(allKeys)];
 
-		// Background fetch — silent, non-blocking
+		// Snapshot current in-memory values SYNCHRONOUSLY before any async fetch updates them.
+		// This captures what the user is currently seeing (from localStorage hydration or previous fetch).
+		const prefetchCachedSnapshot: Record<string, unknown> = { ...existing };
+
+		// Background fetch — always fetch all keys for global drift detection
 		(async () => {
 			try {
 				const token = await logtoClient!.getIdToken();
@@ -252,10 +265,11 @@
 
 				// Chunk into batches of 10 (matching existing pattern)
 				const chunks: string[][] = [];
-				for (let i = 0; i < missing.length; i += 10) {
-					chunks.push(missing.slice(i, i + 10));
+				for (let i = 0; i < uniqueKeys.length; i += 10) {
+					chunks.push(uniqueKeys.slice(i, i + 10));
 				}
 
+				const freshValues: Record<string, unknown> = {};
 				await Promise.all(
 					chunks.map(async (chunk) => {
 						try {
@@ -264,11 +278,13 @@
 								const vals = deviceState.deviceValues[deviceId!] ??= {};
 								for (const item of response.items) {
 									if (item.key && item.value !== undefined) {
-										vals[item.key] = decodeParamValue({
+										const decoded = decodeParamValue({
 											key: item.key,
 											value: item.value,
 											type: item.type ?? 'String'
 										});
+										vals[item.key] = decoded;
+										freshValues[item.key] = decoded;
 									}
 								}
 							}
@@ -290,7 +306,51 @@
 					}
 				}
 
+				// Global drift detection: only for keys in settings_ui.json (user-facing settings)
+				// Build key → panel lookup first, then filter freshValues to schema keys only
+				if (Object.keys(prefetchCachedSnapshot).length > 0 && Object.keys(freshValues).length > 0) {
+					const keyToPanel: Record<string, { id: string; label: string }> = {};
+					for (const panel of schema.panels) {
+						const tag = { id: panel.id, label: panel.label };
+						for (const item of panel.items ?? []) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; }
+						for (const sp of panel.sub_panels ?? []) { for (const item of sp.items) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; } }
+						for (const section of panel.sections ?? []) {
+							for (const item of section.items) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; }
+							for (const sp of section.sub_panels ?? []) { for (const item of sp.items) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; } }
+						}
+					}
+					if (brand) {
+						const vehicleTag = { id: 'vehicle', label: 'Vehicle' };
+						for (const item of vehicleItems) { keyToPanel[item.key] = vehicleTag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = vehicleTag; }
+					}
+
+					// Only detect drift for schema keys — exclude internal params like CarFingerprint, GitCommit
+					const schemaFreshValues: Record<string, unknown> = {};
+					for (const key of Object.keys(freshValues)) {
+						if (key in keyToPanel) schemaFreshValues[key] = freshValues[key];
+					}
+
+					const allDrifts = detectDrift(prefetchCachedSnapshot, schemaFreshValues);
+					const pending = pendingChanges.getAll(deviceId!);
+					const meaningful = filterMeaningfulDrift(allDrifts, pending);
+
+					for (const d of meaningful) {
+						const panel = keyToPanel[d.key];
+						if (panel) { d.panelId = panel.id; d.panelLabel = panel.label; }
+					}
+					driftStore.mergeDrifts(deviceId!, meaningful);
+
+					// Resolve keys that were fetched but are no longer drifted
+					const driftedKeys = new Set(meaningful.map((d) => d.key));
+					const resolvedKeys = Object.keys(freshValues).filter((k) => !driftedKeys.has(k));
+					if (resolvedKeys.length > 0) driftStore.resolveKeys(deviceId!, resolvedKeys);
+				}
+
 				prefetchDone[deviceId!] = true;
+				deviceState.valuesStale[deviceId!] = false;
+				// Settings fetch succeeded — device is reachable.
+				// Use confirmReachable to update status + reset poll timer atomically.
+				statusPolling.confirmReachable(deviceId!);
 			} catch {}
 		})();
 	});

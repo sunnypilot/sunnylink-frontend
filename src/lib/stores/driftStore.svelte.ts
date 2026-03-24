@@ -3,7 +3,8 @@
  *
  * Drift = a setting changed on the device since the web UI last fetched it.
  * Populated when fresh values arrive (in category page fetch) by comparing
- * against the cached values. Cleared on page navigation or manual dismiss.
+ * against the cached values. Persists across panel navigation so drifts
+ * from all panels are visible in the global banner.
  */
 
 import type { DriftEntry } from '$lib/utils/drift';
@@ -12,9 +13,28 @@ class DriftStore {
 	/** deviceId → DriftEntry[] */
 	private _drifts: Record<string, DriftEntry[]> = $state({});
 
-	/** Set detected drifts for a device (replaces previous) */
-	setDrifts(deviceId: string, drifts: DriftEntry[]): void {
-		this._drifts[deviceId] = [...drifts];
+	/**
+	 * Merge detected drifts for a device.
+	 * Updates existing entries for the same keys, adds new ones,
+	 * and preserves drifts from other panels.
+	 */
+	mergeDrifts(deviceId: string, drifts: DriftEntry[]): void {
+		const existing = this._drifts[deviceId] ?? [];
+		const incomingKeys = new Set(drifts.map((d) => d.key));
+		// Keep drifts from other keys (other panels), replace matching keys with fresh data
+		const kept = existing.filter((d) => !incomingKeys.has(d.key));
+		this._drifts[deviceId] = [...kept, ...drifts];
+	}
+
+	/**
+	 * Remove drifts for keys that are no longer drifted (resolved on a panel fetch).
+	 * Called with the keys that were fetched + had no drift, to clear stale entries.
+	 */
+	resolveKeys(deviceId: string, resolvedKeys: string[]): void {
+		const existing = this._drifts[deviceId];
+		if (!existing || existing.length === 0) return;
+		const resolved = new Set(resolvedKeys);
+		this._drifts[deviceId] = existing.filter((d) => !resolved.has(d.key));
 	}
 
 	/** Get all drifts for a device */

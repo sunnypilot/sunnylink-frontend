@@ -6,6 +6,13 @@
 	import type { SchemaItem } from '$lib/types/schema';
 	import { AlertTriangle, RefreshCw, X, ChevronDown, ChevronUp } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
+	import { formatRelativeTime } from '$lib/utils/time';
+	import { onDestroy } from 'svelte';
+
+	// Tick counter to keep relative timestamps live (updates every 15s)
+	let timeTick = $state(0);
+	const tickInterval = setInterval(() => { timeTick++; }, 15_000);
+	onDestroy(() => clearInterval(tickInterval));
 
 	interface Props {
 		deviceId: string;
@@ -28,6 +35,22 @@
 	let driftCount = $derived(driftStore.count(deviceId));
 	let driftEntries = $derived(driftStore.getAll(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
+
+	// Group drifts by panel for the expanded list
+	let driftsByPanel = $derived.by(() => {
+		const groups: { panelId: string; panelLabel: string; entries: typeof driftEntries }[] = [];
+		const map = new Map<string, typeof driftEntries>();
+		for (const entry of driftEntries) {
+			const id = entry.panelId;
+			if (!id) continue; // Skip entries without a panel (non-schema params)
+			if (!map.has(id)) {
+				map.set(id, []);
+				groups.push({ panelId: id, panelLabel: entry.panelLabel ?? id, entries: map.get(id)! });
+			}
+			map.get(id)!.push(entry);
+		}
+		return groups;
+	});
 
 	let driftExpanded = $state(false);
 
@@ -189,20 +212,33 @@
 			{/if}
 		</div>
 
-		<!-- Expanded drift list -->
+		<!-- Expanded drift list, grouped by panel -->
 		{#if driftExpanded && driftEntries.length > 0}
 			<div class="mt-2 border-t border-[var(--sl-border-muted)] pt-2" transition:slide={{ duration: 150 }}>
-				{#each driftEntries as entry (entry.key)}
-					<div class="flex items-center justify-between py-1.5 text-[0.8125rem]">
-						<span class="min-w-0 flex-1 truncate text-[var(--sl-text-2)]">
-							{keyToItem[entry.key]?.title || entry.key}
-						</span>
-						<span class="ml-3 shrink-0 text-xs tabular-nums text-[var(--sl-text-3)]">
-							<span class="text-cyan-700 dark:text-cyan-400">{formatDriftValue(entry.cachedValue, entry.key)}</span>
-							<span class="mx-1">&rarr;</span>
-							<span class="text-[var(--sl-text-1)] font-medium">{formatDriftValue(entry.freshValue, entry.key)}</span>
-						</span>
-					</div>
+				{#each driftsByPanel as group (group.panelId)}
+					{#if driftsByPanel.length > 1}
+						<div class="mt-1.5 first:mt-0 mb-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--sl-text-3)]">
+							{group.panelLabel}
+						</div>
+					{/if}
+					{#each group.entries as entry (entry.key)}
+						<div class="flex items-center justify-between py-1.5 text-[0.8125rem]">
+							<div class="min-w-0 flex-1">
+								<span class="truncate text-[var(--sl-text-2)]">{keyToItem[entry.key]?.title || entry.key}</span>
+								{#if driftsByPanel.length <= 1 && entry.panelLabel}
+									<span class="ml-1.5 text-[0.6875rem] text-[var(--sl-text-3)]">{entry.panelLabel}</span>
+								{/if}
+								{#if entry.detectedAt}
+									<span class="ml-1 text-[0.6875rem] text-[var(--sl-text-3)]">{void timeTick, formatRelativeTime(entry.detectedAt)}</span>
+								{/if}
+							</div>
+							<span class="ml-3 shrink-0 text-xs tabular-nums text-[var(--sl-text-3)]">
+								<span class="text-cyan-700 dark:text-cyan-400">{formatDriftValue(entry.cachedValue, entry.key)}</span>
+								<span class="mx-1">&rarr;</span>
+								<span class="text-[var(--sl-text-1)] font-medium">{formatDriftValue(entry.freshValue, entry.key)}</span>
+							</span>
+						</div>
+					{/each}
 				{/each}
 			</div>
 		{/if}

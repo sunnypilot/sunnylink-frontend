@@ -16,10 +16,8 @@
 	import { decodeParamValue } from '$lib/utils/device';
 	import { getAllSettings } from '$lib/utils/settings';
 	import { searchSettings } from '$lib/utils/search';
-	import { loadCachedValues } from '$lib/stores/valuesCache';
-	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
-	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 
 	import { untrack } from 'svelte';
@@ -207,22 +205,18 @@
 		deviceId ? (isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId]) : false
 	);
 
-	// Schema revalidation status from the store
-	let schemaRevalStatus = $derived(
-		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
-	);
-
-	// True when any background work is in-flight OR device hasn't been verified yet
-	// Offline/error devices are never "revalidating" — nothing to revalidate
+	// True when values are actively being fetched or a global refresh is in-flight.
+	// valuesStale = layout's global prefetch running (manual refresh / version change).
+	// revalidatingValues = this page's own fetch running.
+	// !deviceVerified = first visit, no values yet.
+	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
 	let isRevalidating = $derived(
-		!isDeviceOfflineOrError && (revalidatingValues || schemaRevalStatus === 'revalidating' || !deviceVerified)
+		!isDeviceOfflineOrError && (revalidatingValues || !deviceVerified || isStale)
 	);
 
-	// Overall revalidation succeeded only if device is online AND verified
-	// Offline/error devices never show "Up to date" — that would be misleading
+	// Overall revalidation succeeded: device is online, verified, no active fetch, not stale.
 	let revalidationSucceeded = $derived(
-		!isDeviceOfflineOrError && deviceVerified && !revalidatingValues && !valuesFetchFailed &&
-		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
+		!isDeviceOfflineOrError && deviceVerified && !revalidatingValues && !valuesFetchFailed && !isStale
 	);
 
 	// ── Sync status (includes batch push activity) ──
@@ -245,9 +239,12 @@
 	let pushModalOpen = $state(false);
 
 	// Fetch values for schema-driven rendering (cancels on nav away)
-	// Skip for offline/error devices — no point trying to reach an unreachable device
+	// Tracks: deviceId, category, logtoClient, useSchema, schemaPanel (re-runs when schema loads)
+	// Untracked: isDeviceOfflineOrError (prevents cascade from onlineStatuses writes)
 	$effect(() => {
-		if (deviceId && logtoClient && useSchema && schemaPanel && !isDeviceOfflineOrError) {
+		if (deviceId && logtoClient && useSchema && schemaPanel) {
+			const offline = untrack(() => isDeviceOfflineOrError);
+			if (offline) return;
 			const controller = new AbortController();
 			fetchSchemaValues(controller.signal);
 			return () => controller.abort();
@@ -256,7 +253,9 @@
 
 	// Fetch values for legacy rendering (cancels on nav away)
 	$effect(() => {
-		if (deviceId && logtoClient && !useSchema && categorySettings.length > 0 && !isDeviceOfflineOrError) {
+		if (deviceId && logtoClient && !useSchema && categorySettings.length > 0) {
+			const offline = untrack(() => isDeviceOfflineOrError);
+			if (offline) return;
 			const controller = new AbortController();
 			fetchCurrentValues(controller.signal);
 			return () => controller.abort();
@@ -305,11 +304,12 @@
 
 	async function fetchSchemaValues(signal?: AbortSignal) {
 		if (!deviceId || !logtoClient || !schemaPanel) return;
-		const did = deviceId; // capture for async closures
+		const did = deviceId;
 		valuesFetchFailed = false;
 
-		// Always fetch all keys for the current page on every navigation.
-		// Cached values stay visible (stale-while-revalidate) while fresh values load in background.
+		// Fetch all keys for the current panel.
+		// Cached values stay visible (stale-while-revalidate) while fresh values load.
+		// Drift detection is handled globally by the layout's prefetch — not here.
 		const allKeys = collectPanelKeys(schemaPanel);
 		const existing = deviceState.deviceValues[did] ?? {};
 		const keysToFetch = allKeys;
@@ -318,15 +318,10 @@
 			return;
 		}
 
-		// Snapshot cached values before fetch for drift detection
-		const gitCommit = (existing['GitCommit'] as string) || '';
-		const cachedSnapshot = gitCommit ? loadCachedValues(did, gitCommit) : null;
-
-		// Show full spinner only on cold start (no cached values at all)
-		// Show subtle revalidation indicator for delta-fetches and stale re-fetches
 		const hasAnyValues = allKeys.some((k) => existing[k] !== undefined);
 		if (!hasAnyValues) loadingValues = true;
-		else revalidatingValues = true;  // Stale or delta: cached values stay visible, header shows "Refreshing..."
+		else revalidatingValues = true;
+
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token || signal?.aborted) return;
@@ -335,9 +330,7 @@
 				deviceState.deviceValues[did] = {};
 			}
 
-			// Parallel chunk fetching — all chunks fire simultaneously
 			const chunks = chunkArray(keysToFetch, 10);
-			const freshValues: Record<string, unknown> = {};
 			await Promise.all(
 				chunks.map(async (chunk) => {
 					if (signal?.aborted) return;
@@ -348,13 +341,11 @@
 							const vals = deviceState.deviceValues[did] ??= {};
 							for (const item of response.items) {
 								if (item.key && item.value !== undefined) {
-									const decoded = decodeParamValue({
+									vals[item.key] = decodeParamValue({
 										key: item.key,
 										value: item.value,
 										type: item.type ?? 'String'
 									});
-									vals[item.key] = decoded;
-									freshValues[item.key] = decoded;
 								}
 							}
 						}
@@ -367,12 +358,9 @@
 
 			if (signal?.aborted) return;
 
-			// Fill defaults for keys the device didn't return a value for.
-			// This prevents toggles from staying in a "loading" shimmer state
-			// when the param simply doesn't exist on the device yet.
+			// Fill defaults for keys the device didn't return
 			if (schemaPanel) {
 				const vals = deviceState.deviceValues[did] ??= {};
-				// Collect all items from flat items, sub_panels, and sections
 				const allItems = [
 					...(schemaPanel.items ?? []),
 					...(schemaPanel.sub_panels ?? []).flatMap(sp => sp.items),
@@ -383,21 +371,10 @@
 				];
 				for (const item of allItems) {
 					if (vals[item.key] === undefined) {
-						// Use widget-appropriate defaults
 						if (item.widget === 'toggle') vals[item.key] = false;
 						else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
 						else vals[item.key] = '';
 					}
-				}
-			}
-
-			// Drift detection: compare cached snapshot → fresh values
-			if (cachedSnapshot && Object.keys(freshValues).length > 0) {
-				const allDrifts = detectDrift(cachedSnapshot, freshValues);
-				const pending = pendingChanges.getAll(did);
-				const meaningful = filterMeaningfulDrift(allDrifts, pending);
-				if (meaningful.length > 0) {
-					driftStore.setDrifts(did, meaningful);
 				}
 			}
 		} catch (e) {
@@ -409,7 +386,7 @@
 				loadingValues = false;
 				revalidatingValues = false;
 				deviceState.valuesVerifiedThisSession[did] = true;
-				deviceState.valuesStale[did] = false;
+				statusPolling.confirmReachable(did);
 			}
 		}
 	}
@@ -483,10 +460,9 @@
 
 	function handleManualRefresh() {
 		if (!deviceId) return;
+		// Set stale to trigger layout's global prefetch (single fetch for all keys + drift detection).
+		// isRevalidating watches isStale → shows "Refreshing..." until layout prefetch completes.
 		deviceState.valuesStale[deviceId] = true;
-		deviceState.valuesVerifiedThisSession[deviceId] = false;
-		if (useSchema) fetchSchemaValues();
-		else fetchCurrentValues();
 	}
 
 	function syntaxHighlightJson(json: string): string {
