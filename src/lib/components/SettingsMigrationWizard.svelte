@@ -631,7 +631,7 @@
 													</div>
 												</div>
 											</div>
-											<span class="flex items-center gap-1 text-xs text-emerald-400">
+											<span class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-600 dark:text-emerald-400">
 												<Wifi size={12} /> Online
 											</span>
 										</button>
@@ -695,7 +695,7 @@
 							</label>
 
 							{#if ms.error}
-								<div class="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
+								<div class="rounded-lg bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
 									{ms.error}
 								</div>
 							{/if}
@@ -718,9 +718,9 @@
 								<h4 class="text-lg font-medium text-[var(--sl-text-1)]">Settings Fetched</h4>
 								{#if ms.error}
 									<div
-										class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-200"
+										class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-700 dark:text-yellow-200"
 									>
-										<Info class="mt-0.5 shrink-0 text-yellow-400" size={16} />
+										<Info class="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400" size={16} />
 										<span>{ms.error}</span>
 									</div>
 								{:else}
@@ -765,7 +765,7 @@
 														</div>
 													</div>
 												</div>
-												<span class="flex items-center gap-1 text-xs text-emerald-400">
+												<span class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-600 dark:text-emerald-400">
 													<Wifi size={12} /> Online
 												</span>
 											</button>
@@ -832,7 +832,7 @@
 													<div class="text-xs text-[var(--sl-text-2)]">{device.device_id}</div>
 												</div>
 											</div>
-											<span class="flex items-center gap-1 text-xs text-emerald-400">
+											<span class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-600 dark:text-emerald-400">
 												<Wifi size={12} /> Online
 											</span>
 										</button>
@@ -930,7 +930,7 @@
 							<!-- For now, assuming if we are here, comparison is done or empty. -->
 							<!-- But prepareComparison is async. We should have a loading state. -->
 							<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center">
-								<Check size={32} class="mx-auto mb-4 text-emerald-400" />
+								<Check size={32} class="mx-auto mb-4 text-emerald-600 dark:text-emerald-400" />
 								<h5 class="text-lg font-medium text-[var(--sl-text-1)]">No Differences Found</h5>
 								<p class="mt-2 text-[var(--sl-text-2)]">
 									The target device already has all the settings from the backup.
@@ -983,7 +983,7 @@
 								</div>
 							</div>
 
-							<div class="rounded-lg bg-blue-500/10 p-4 text-sm text-blue-400">
+							<div class="rounded-lg bg-blue-50 dark:bg-blue-500/10 p-4 text-sm text-blue-700 dark:text-blue-400">
 								<p class="flex items-start gap-2">
 									<FileJson size={16} class="mt-0.5 shrink-0" />
 									<span>

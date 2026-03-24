@@ -376,21 +376,21 @@
 {#if deviceId && isDeviceUnavailable && !isLoading}
 	<div class="mx-auto mb-4 w-full max-w-2xl xl:max-w-3xl">
 		<div class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
-			{isError ? 'border-orange-500/20 bg-orange-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}">
+			{isError ? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5' : 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}">
 			{#if isError}
-				<AlertTriangle size={16} class="shrink-0 text-orange-400" />
+				<AlertTriangle size={16} class="shrink-0 text-orange-600 dark:text-orange-400" />
 				<div class="flex-1">
-					<p class="text-sm text-orange-200/80">
+					<p class="text-sm text-orange-800 dark:text-orange-200/80">
 						<span class="font-medium">Connection error</span> — Unable to reach device. Settings may be outdated.
 					</p>
 					{#if lastRetryAt}
-						<p class="mt-0.5 text-[0.6875rem] text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+						<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
 					{/if}
 				</div>
 			{:else}
-				<WifiOff size={16} class="shrink-0 text-yellow-500" />
+				<WifiOff size={16} class="shrink-0 text-amber-600 dark:text-yellow-500" />
 				<div class="flex-1">
-					<p class="text-sm text-yellow-200/80">
+					<p class="text-sm text-amber-800 dark:text-yellow-200/80">
 						{#if retryFailed}
 							<span class="font-medium">Still offline</span> — Device not reachable. Showing cached settings.
 						{:else}
@@ -398,12 +398,12 @@
 						{/if}
 					</p>
 					{#if lastRetryAt}
-						<p class="mt-0.5 text-[0.6875rem] text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+						<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
 					{/if}
 				</div>
 			{/if}
 			<button
-				class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-400' : 'text-yellow-400'}"
+				class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-700 dark:text-orange-400' : 'text-yellow-700 dark:text-yellow-400'}"
 				disabled={retrying}
 				onclick={handleRetry}
 			>

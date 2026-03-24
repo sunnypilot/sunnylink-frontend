@@ -13,8 +13,8 @@
 
 	let staleClass = $derived.by(() => {
 		const s = statusPolling.staleness;
-		if (s === 'critical') return 'text-amber-500/80';
-		if (s === 'warn') return 'text-amber-500/60';
+		if (s === 'critical') return 'text-amber-700 dark:text-amber-400';
+		if (s === 'warn') return 'text-amber-600/80 dark:text-amber-400/60';
 		return 'text-[var(--sl-text-3)]';
 	});
 

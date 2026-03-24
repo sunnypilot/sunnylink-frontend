@@ -105,7 +105,7 @@
 
 			<div class="max-h-[60vh] overflow-y-auto p-6">
 				{#if error}
-					<div class="mb-6 flex items-start gap-3 rounded-lg bg-red-500/10 p-4 text-red-400">
+					<div class="mb-6 flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-500/10 p-4 text-red-600 dark:text-red-400">
 						<AlertCircle class="mt-0.5 shrink-0" size={18} />
 						<div class="text-sm">{error}</div>
 					</div>

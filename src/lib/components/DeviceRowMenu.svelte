@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { EllipsisVertical, Pencil, Copy, Check, Download, Loader2, Trash2 } from 'lucide-svelte';
+	import { EllipsisVertical, Pencil, Copy, Check, Download, Loader2, Trash2, Calendar } from 'lucide-svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
 	interface Props {
 		deviceId: string;
 		dongleId?: string;
+		pairedAt?: number | string;
 		isDownloading?: boolean;
 		onRename?: () => void;
 		onDownloadBackup?: () => void;
@@ -15,11 +16,19 @@
 	let {
 		deviceId,
 		dongleId,
+		pairedAt,
 		isDownloading = false,
 		onRename,
 		onDownloadBackup,
 		onDeregister
 	}: Props = $props();
+
+	function formatPairedDate(timestamp: number | string): string {
+		// created_at is a Unix timestamp in seconds
+		const ms = typeof timestamp === 'number' ? timestamp * 1000 : Number(timestamp) * 1000;
+		const d = new Date(ms);
+		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+	}
 
 	let open = $state(false);
 	let copiedField = $state<string | null>(null);
@@ -86,14 +95,14 @@
 				<span class="relative flex h-[14px] w-[14px] items-center justify-center">
 					{#if copiedField === 'sunnylink'}
 						<span in:fly={{ y: 4, duration: 200 }} out:fade={{ duration: 100 }}>
-							<Check size={14} class="text-emerald-500" />
+							<Check size={14} class="text-emerald-600 dark:text-emerald-400" />
 						</span>
 					{:else}
 						<Copy size={14} />
 					{/if}
 				</span>
 				{#if copiedField === 'sunnylink'}
-					<span class="text-emerald-500">Copied!</span>
+					<span class="text-emerald-600 dark:text-emerald-400">Copied!</span>
 				{:else}
 					Copy sunnylink Device ID
 				{/if}
@@ -107,14 +116,14 @@
 					<span class="relative flex h-[14px] w-[14px] items-center justify-center">
 						{#if copiedField === 'dongle'}
 							<span in:fly={{ y: 4, duration: 200 }} out:fade={{ duration: 100 }}>
-								<Check size={14} class="text-emerald-500" />
+								<Check size={14} class="text-emerald-600 dark:text-emerald-400" />
 							</span>
 						{:else}
 							<Copy size={14} />
 						{/if}
 					</span>
 					{#if copiedField === 'dongle'}
-						<span class="text-emerald-500">Copied!</span>
+						<span class="text-emerald-600 dark:text-emerald-400">Copied!</span>
 					{:else}
 						Copy comma Dongle ID
 					{/if}
@@ -136,10 +145,18 @@
 				</button>
 			{/if}
 
+			{#if pairedAt}
+				<div class="mx-2 my-1 border-t border-[var(--sl-border-emphasis)]"></div>
+				<div class="flex items-center gap-2.5 px-3 py-2 text-[0.75rem] text-[var(--sl-text-3)]">
+					<Calendar size={13} />
+					Paired {formatPairedDate(pairedAt)}
+				</div>
+			{/if}
+
 			{#if onDeregister}
-				<div class="mx-2 my-1 border-t border-[var(--sl-border-muted)]"></div>
+				<div class="mx-2 my-1 border-t border-[var(--sl-border-emphasis)]"></div>
 				<button
-					class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-red-400 transition-colors hover:bg-red-500/5"
+					class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/5"
 					onclick={(e) => handleAction(e, onDeregister)}
 				>
 					<Trash2 size={14} />

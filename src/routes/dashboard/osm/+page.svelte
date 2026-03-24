@@ -11,6 +11,9 @@
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
+	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 
 	const OSM_CACHE_PREFIX = 'sunnylink_osm_';
 	const OSM_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -59,6 +62,13 @@
 	let localDownloadingOverride = $state(false);
 	let loadingOsmParams = $state(false);
 	let error = $state<string | null>(null);
+
+	// Sync status indicator (consistent with Vehicle/Models pages)
+	let batchActive = $derived(deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false);
+	const sync = createSyncStatus(
+		() => !isOffline && (loadingOsmParams || batchActive),
+		() => !isOffline && !loadingOsmParams && !error && !batchActive
+	);
 
 	let { data } = $props();
 
@@ -395,9 +405,16 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-	<div>
-		<h1 class="text-2xl font-medium text-[var(--sl-text-1)]">Maps</h1>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage offline OpenStreetMap data on your device</p>
+	<div class="px-4">
+		<h1 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+			<span>Maps</span>
+			{#if loadingOsmParams}
+				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+			{:else}
+				<SyncStatusIndicator status={sync.status} />
+			{/if}
+		</h1>
+		<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage offline OpenStreetMap data on your device</p>
 	</div>
 
 	{#if authState.loading}

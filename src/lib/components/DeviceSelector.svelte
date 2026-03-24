@@ -106,30 +106,30 @@
 			<div class="flex items-center gap-1">
 				{#if deviceState.onlineStatuses[selectedDevice.device_id] === 'online'}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-emerald-400"></div>
-					<span class="truncate text-xs text-emerald-400">Online</span>
+					<span class="truncate text-xs text-emerald-600 dark:text-emerald-400">Online</span>
 					{#if deviceState.offroadStatuses[selectedDevice.device_id]}
 						{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
 						<span class="text-xs text-[var(--sl-text-3)]">•</span>
 						{#if status?.forceOffroad}
-							<span class="truncate text-xs font-bold text-amber-500">Forced</span>
+							<span class="truncate text-xs font-bold text-amber-700 dark:text-amber-400">Forced</span>
 						{:else if status?.isOffroad}
-							<span class="truncate text-xs text-blue-400">Offroad</span>
+							<span class="truncate text-xs text-blue-600 dark:text-blue-400">Offroad</span>
 						{:else}
-							<span class="truncate text-xs text-amber-400">Onroad</span>
+							<span class="truncate text-xs text-amber-700 dark:text-amber-400">Onroad</span>
 						{/if}
 					{/if}
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-red-400"></div>
-					<span class="text-xs text-red-400">Offline</span>
+					<span class="text-xs text-red-600 dark:text-red-400">Offline</span>
 				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'error'}
-					<TriangleAlert size={14} class="text-amber-500" />
+					<TriangleAlert size={14} class="text-amber-700 dark:text-amber-400" />
 					<span
-						class="truncate text-xs text-amber-500"
+						class="truncate text-xs text-amber-700 dark:text-amber-400"
 						title={deviceState.lastErrorMessages[selectedDevice.device_id]}>Error</span
 					>
 				{:else}
 					<div class="h-1.5 w-1.5 min-w-[0.375rem] animate-pulse rounded-full bg-amber-400"></div>
-					<span class="text-xs text-amber-400">Checking...</span>
+					<span class="text-xs text-amber-700 dark:text-amber-400">Checking...</span>
 				{/if}
 			</div>
 		</div>
@@ -230,30 +230,30 @@
 							<span class="flex items-center gap-1.5">
 								{#if status === 'online'}
 									<div class="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
-									<span class="text-xs text-emerald-400">Online</span>
+									<span class="text-xs text-emerald-600 dark:text-emerald-400">Online</span>
 									{#if deviceState.offroadStatuses[device.device_id]}
 										{@const offroadStatus = deviceState.offroadStatuses[device.device_id]}
 										<span class="text-xs text-[var(--sl-text-3)]">•</span>
 										{#if offroadStatus?.forceOffroad}
-											<span class="text-xs font-bold text-amber-500">Forced</span>
+											<span class="text-xs font-bold text-amber-700 dark:text-amber-400">Forced</span>
 										{:else if offroadStatus?.isOffroad}
-											<span class="text-xs text-blue-400">Offroad</span>
+											<span class="text-xs text-blue-600 dark:text-blue-400">Offroad</span>
 										{:else}
-											<span class="text-xs text-amber-400">Onroad</span>
+											<span class="text-xs text-amber-700 dark:text-amber-400">Onroad</span>
 										{/if}
 									{/if}
 								{:else if status === 'offline'}
 									<div class="h-1.5 w-1.5 rounded-full bg-red-400"></div>
-									<span class="text-xs text-red-400">Offline</span>
+									<span class="text-xs text-red-600 dark:text-red-400">Offline</span>
 								{:else if status === 'error'}
-									<TriangleAlert size={12} class="text-amber-500" />
+									<TriangleAlert size={12} class="text-amber-700 dark:text-amber-400" />
 									<span
-										class="text-xs text-amber-500"
+										class="text-xs text-amber-700 dark:text-amber-400"
 										title={deviceState.lastErrorMessages[device.device_id]}>Error</span
 									>
 								{:else}
 									<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
-									<span class="text-xs text-amber-400">Checking...</span>
+									<span class="text-xs text-amber-700 dark:text-amber-400">Checking...</span>
 								{/if}
 								<span class="text-xs text-[var(--sl-text-3)]">• {device.device_id}</span>
 							</span>
@@ -304,7 +304,7 @@
 											</span>
 											<span class="flex items-center gap-1.5">
 												<span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>
-												<span class="text-xs text-red-400">Offline</span>
+												<span class="text-xs text-red-600 dark:text-red-400">Offline</span>
 												<span class="text-xs text-[var(--sl-text-3)]">• {device.device_id}</span>
 											</span>
 										</span>

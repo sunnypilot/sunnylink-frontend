@@ -11,6 +11,9 @@ export const deviceState = $state({
 	deviceValues: {} as Record<string, Record<string, unknown>>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
 	lastStatusCheck: {} as Record<string, number>,
+	/** Timestamp of the last time the device was confirmed online. Persists across polls —
+	 *  only updated when onlineStatuses transitions to 'online'. Used for "last seen" display on offline devices. */
+	lastSeenOnline: {} as Record<string, number>,
 	lastErrorMessages: {} as Record<string, string>,
 	offroadStatuses: {} as Record<string, { isOffroad: boolean; forceOffroad: boolean }>,
 	deviceTelemetry: {} as Record<
@@ -25,6 +28,8 @@ export const deviceState = $state({
 			deviceType: string;
 		}
 	>,
+	/** Cached list of paired devices from the API. Persists across page navigations for instant Dashboard rendering. */
+	pairedDevices: [] as any[],
 	aliases: {} as Record<string, string>,
 	aliasOverrides: {} as Record<string, string>,
 	stagedChanges: {} as Record<string, Record<string, unknown>>,

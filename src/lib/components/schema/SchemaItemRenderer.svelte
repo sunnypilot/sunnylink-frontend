@@ -234,12 +234,12 @@
 						{item.title || 'Force Offroad Mode'}
 					</span>
 					{#if isOn}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-amber-400">Vehicle engagement is disabled</p>
+						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-amber-700 dark:text-amber-400">Vehicle engagement is disabled</p>
 					{:else if item.description}
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
 					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 					{/if}
 				</div>
 				<div class="flex shrink-0 items-center">
@@ -249,7 +249,7 @@
 						<Loader2 size={16} class="animate-spin text-[var(--sl-text-2)]" />
 					{:else if isOn}
 						<button
-							class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-400 transition-colors hover:bg-amber-500/25"
+							class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 dark:text-amber-400 transition-colors hover:bg-amber-500/25"
 							disabled={!enabled}
 							onclick={() => handleChange(false)}
 						>
@@ -257,7 +257,7 @@
 						</button>
 					{:else}
 						<button
-							class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-400 transition-colors hover:bg-red-500/25"
+							class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/25"
 							disabled={!enabled}
 							onclick={() => (offroadConfirmOpen = true)}
 						>
@@ -295,23 +295,23 @@
 							}}
 						>{item.title || item.key}</button>
 						{#if isQueued || pushState === 'pending'}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
 							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-								class="text-emerald-500 transition-opacity"><path d="M20 6 9 17l-5-5" /></svg>
+								class="text-emerald-600 dark:text-emerald-400 transition-opacity"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
 								Offroad
 							</span>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">
 								Restart
 							</span>
 						{/if}
@@ -320,7 +320,7 @@
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
 					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 					{/if}
 				</div>
 				<div class="flex shrink-0 items-center">
@@ -363,7 +363,7 @@
 					<div class="flex items-center gap-2">
 						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 						{#if isQueued || pushState === 'pending'}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
@@ -371,15 +371,15 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
 								Offroad
 							</span>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">
 								Restart
 							</span>
 						{/if}
@@ -388,7 +388,7 @@
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
 					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 					{/if}
 				</div>
 				<div class="shrink-0">
@@ -414,7 +414,7 @@
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isQueued || pushState === 'pending'}
-						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 					{:else if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
@@ -422,10 +422,10 @@
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 					{:else if hasDrift}
-						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
 							Offroad
 						</span>
 					{/if}
@@ -439,7 +439,7 @@
 					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				{#if pushState === 'error'}
-					<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+					<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 				{/if}
 
 				<div class="mt-2.5">
@@ -512,7 +512,7 @@
 					<div class="flex items-center gap-2">
 						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 						{#if isQueued || pushState === 'pending'}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
@@ -520,15 +520,15 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
 								Offroad
 							</span>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">
 								Restart
 							</span>
 						{/if}
@@ -537,7 +537,7 @@
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
 					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 					{/if}
 				</div>
 				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">
@@ -555,7 +555,7 @@
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isQueued || pushState === 'pending'}
-						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 					{:else if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
@@ -563,10 +563,10 @@
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 					{:else if hasDrift}
-						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">Changed on device</span>
+						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-500 uppercase">
+						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
 							Offroad
 						</span>
 					{/if}
@@ -580,7 +580,7 @@
 					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 				{/if}
 				{#if pushState === 'error'}
-					<p class="mt-0.5 text-xs text-red-500">{pushError}</p>
+					<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 				{/if}
 
 				<div class="mt-2.5">
@@ -633,7 +633,7 @@
 				<div class="mr-4 min-w-0 flex-1">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if item.description}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+						<span class="ml-1.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</span>
 					{/if}
 				</div>
 				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">

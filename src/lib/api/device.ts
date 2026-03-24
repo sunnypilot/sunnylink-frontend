@@ -311,6 +311,7 @@ export async function checkDeviceStatus(
 
 		// Device is online
 		deviceState.onlineStatuses[deviceId] = 'online';
+		deviceState.lastSeenOnline[deviceId] = Date.now();
 		delete deviceState.lastErrorMessages[deviceId];
 
 		// Store offroad from getMessage (started is always present in cereal deviceState)
@@ -335,6 +336,32 @@ export async function checkDeviceStatus(
 				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? false,
 				forceOffroad
 			};
+		}
+
+		// Fetch basic device info params (GitBranch, GitCommit) for Dashboard/popover display.
+		// Fire-and-forget — don't block status check completion.
+		const infoKeys = ['GitBranch', 'GitCommit', 'Version'];
+		const existingValues = deviceState.deviceValues[deviceId] ?? {};
+		const missingInfoKeys = infoKeys.filter((k) => existingValues[k] === undefined);
+		if (missingInfoKeys.length > 0) {
+			fetchSettingsAsync(deviceId, missingInfoKeys, token)
+				.then((result) => {
+					if (result.items) {
+						const vals = (deviceState.deviceValues[deviceId] ??= {});
+						for (const item of result.items) {
+							if (item.key && item.value !== undefined) {
+								vals[item.key] = decodeParamValue({
+									key: item.key,
+									value: item.value,
+									type: item.type ?? 'String'
+								});
+							}
+						}
+					}
+				})
+				.catch(() => {
+					/* non-critical — silent fail */
+				});
 		}
 
 		// Store schema from compressed metadata (primary path for new devices)

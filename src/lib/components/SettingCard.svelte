@@ -103,7 +103,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 dark:text-purple-400 uppercase"
 				>
 					Advanced
 				</div>
@@ -115,7 +115,7 @@
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-500 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase"
 						>
 							RO
 						</span>
@@ -185,7 +185,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 dark:text-purple-400 uppercase"
 				>
 					Advanced
 				</div>
@@ -197,7 +197,7 @@
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-500 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase"
 						>
 							RO
 						</span>

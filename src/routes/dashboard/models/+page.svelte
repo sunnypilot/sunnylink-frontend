@@ -661,8 +661,17 @@
 	}
 
 	async function resetToDefaultModel() {
-		await pushModelToDevice(DEFAULT_MODEL);
+		// Optimistic UI: immediately show default model, close modal
+		const previousModel = currentModelShortName;
+		currentModelShortName = undefined;
 		resetModalOpen = false;
+
+		try {
+			await pushModelToDevice(DEFAULT_MODEL);
+		} catch {
+			// Rollback on failure
+			currentModelShortName = previousModel;
+		}
 	}
 
 	async function clearModelsCache() {
@@ -806,21 +815,21 @@
 		<!-- Inline offline/error banner — identical to settings/+layout.svelte -->
 		{#if isOffline || isError}
 			<div class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
-				{isError ? 'border-orange-500/20 bg-orange-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}">
+				{isError ? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5' : 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}">
 				{#if isError}
-					<AlertTriangle size={16} class="shrink-0 text-orange-400" />
+					<AlertTriangle size={16} class="shrink-0 text-orange-600 dark:text-orange-400" />
 					<div class="flex-1">
-						<p class="text-sm text-orange-200/80">
+						<p class="text-sm text-orange-800 dark:text-orange-200/80">
 							<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] || 'Unable to reach device.'} Showing cached models.
 						</p>
 						{#if lastRetryAt}
-							<p class="mt-0.5 text-[0.6875rem] text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+							<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
 						{/if}
 					</div>
 				{:else}
-					<WifiOff size={16} class="shrink-0 text-yellow-500" />
+					<WifiOff size={16} class="shrink-0 text-amber-600 dark:text-yellow-500" />
 					<div class="flex-1">
-						<p class="text-sm text-yellow-200/80">
+						<p class="text-sm text-amber-800 dark:text-yellow-200/80">
 							{#if retryFailed}
 								<span class="font-medium">Still offline</span> — Device not reachable. Showing cached models.
 							{:else}
@@ -828,12 +837,12 @@
 							{/if}
 						</p>
 						{#if lastRetryAt}
-							<p class="mt-0.5 text-[0.6875rem] text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+							<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
 						{/if}
 					</div>
 				{/if}
 				<button
-					class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-400' : 'text-yellow-400'}"
+					class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-700 dark:text-orange-400' : 'text-yellow-700 dark:text-yellow-400'}"
 					disabled={retrying}
 					onclick={handleRetry}
 				>
@@ -849,7 +858,8 @@
 		{/if}
 		<div class="space-y-6">
 			{#if currentModel}
-				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel ? 'opacity-60' : ''}  transition-opacity duration-200">
+				<!-- Header: model name + status badge -->
 				<div class="flex items-center justify-between px-4 py-4">
 					<div class="flex items-center gap-3 min-w-0">
 						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]">
@@ -860,14 +870,14 @@
 								<span class="text-sm font-medium text-[var(--sl-text-1)] truncate">{currentModel.display_name}</span>
 								<code class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{currentModel.short_name}</code>
 							</div>
-							{#if currentModel.environment !== 'N/A' || currentModel.generation}
-								<p class="mt-0.5 text-xs text-[var(--sl-text-3)]">
-									{[currentModel.environment, currentModel.generation, currentModel.runner].filter(v => v && v !== 'N/A').join(' \u00B7 ') || 'Default model'}
-								</p>
-							{/if}
 						</div>
 					</div>
-					{#if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
+					{#if sendingModel}
+						<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
+							<span class="loading loading-xs loading-spinner"></span>
+							Sending...
+						</div>
+					{:else if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
 						<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
 							<span class="loading loading-xs loading-spinner"></span>
 							Downloading
@@ -879,6 +889,29 @@
 						</div>
 					{/if}
 				</div>
+				<!-- Metadata: label-value pairs -->
+				{#if currentModel.environment !== 'N/A' || currentModel.generation || currentModel.runner}
+					<div class="flex max-w-xs flex-col gap-1.5 border-t border-[var(--sl-border-muted)] px-4 py-3 pl-[60px] text-xs">
+						{#if currentModel.environment && currentModel.environment !== 'N/A'}
+							<div class="flex items-baseline justify-between">
+								<span class="text-[var(--sl-text-3)]">Environment</span>
+								<span class="text-[var(--sl-text-2)]">{currentModel.environment}</span>
+							</div>
+						{/if}
+						{#if currentModel.runner && currentModel.runner !== 'N/A'}
+							<div class="flex items-baseline justify-between">
+								<span class="text-[var(--sl-text-3)]">Runner</span>
+								<span class="text-[var(--sl-text-2)]">{currentModel.runner}</span>
+							</div>
+						{/if}
+						{#if currentModel.generation}
+							<div class="flex items-baseline justify-between">
+								<span class="text-[var(--sl-text-3)]">Generation</span>
+								<span class="text-[var(--sl-text-2)]">{currentModel.generation}</span>
+							</div>
+						{/if}
+					</div>
+				{/if}
 				{#if currentModelShortName !== undefined || true}
 					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
 						{#if currentModelShortName !== undefined}
@@ -892,7 +925,7 @@
 							<span class="text-[var(--sl-border)]">|</span>
 						{/if}
 						<button
-							class="text-xs text-[var(--sl-text-2)] transition-colors hover:text-red-400 disabled:opacity-40"
+							class="text-xs text-[var(--sl-text-2)] transition-colors hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40"
 							onclick={() => (clearCacheModalOpen = true)}
 							disabled={clearingCache || !isOffroad}
 						>
@@ -961,7 +994,7 @@
 												: ''}"
 										/>
 										{#if group.name === 'Favorites'}
-											<Star size={16} class="fill-amber-400 text-amber-400" />
+											<Star size={16} class="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
 										{:else}
 											<Folder size={16} class="text-primary" />
 										{/if}
@@ -1000,23 +1033,23 @@
 															{model.display_name}
 														</span>
 														{#if favKeyState === 'pending'}
-															<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-400">Pending</span>
+															<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 														{:else if isFavSyncing}
 															<span class="loading loading-spinner loading-xs text-primary"></span>
 														{:else if favKeyState === 'confirmed'}
 															<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
 																stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-																class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+																class="text-emerald-600 dark:text-emerald-400"><path d="M20 6 9 17l-5-5" /></svg>
 														{/if}
 													</div>
 													<div class="flex items-center gap-2">
 														<button
-															class="p-1.5 text-[var(--sl-text-3)] transition-all duration-150 hover:text-amber-400 active:scale-90"
+															class="p-1.5 text-[var(--sl-text-3)] transition-all duration-150 hover:text-amber-600 dark:hover:text-amber-400 active:scale-90"
 															class:pointer-events-none={isFavSyncing}
 															onclick={(e) => { e.stopPropagation(); toggleFavorite(model, e); }}
 															title={favorites.has(model.ref) ? 'Remove from Favorites' : 'Add to Favorites'}
 														>
-															<Star size={14} class="transition-all duration-150 {favorites.has(model.ref) ? 'fill-amber-400 text-amber-400 scale-110' : 'scale-100'}" />
+															<Star size={14} class="transition-all duration-150 {favorites.has(model.ref) ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 scale-110' : 'scale-100'}" />
 														</button>
 														<ChevronRight size={14} class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName === model.short_name ? 'rotate-90' : ''}" />
 													</div>
@@ -1025,34 +1058,34 @@
 												{#if selectedModelShortName === model.short_name}
 													<div transition:slide={{ duration: 150 }} class="border-t border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)]/60 px-4 py-4 pl-11">
 														<div class="flex items-start justify-between gap-4">
-															<div>
+															<div class="min-w-0 flex-1">
 																<code class="rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{model.short_name}</code>
-																<div class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-																	<div>
+																<div class="mt-3 flex max-w-xs flex-col gap-1.5 text-xs">
+																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Environment</span>
-																		<p class="text-[var(--sl-text-2)]">{model.environment}</p>
+																		<span class="text-[var(--sl-text-2)]">{model.environment}</span>
 																	</div>
-																	<div>
-																		<span class="text-[var(--sl-text-3)]">Build</span>
-																		<p class="text-[var(--sl-text-2)]">{model.build_time ? new Date(model.build_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown'}</p>
-																	</div>
-																	<div>
+																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Runner</span>
-																		<p class="text-[var(--sl-text-2)]">{model.runner ?? 'Unknown'}</p>
+																		<span class="text-[var(--sl-text-2)]">{model.runner ?? 'Unknown'}</span>
 																	</div>
-																	<div>
+																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Generation</span>
-																		<p class="text-[var(--sl-text-2)]">{model.generation ?? 'Unknown'}</p>
+																		<span class="text-[var(--sl-text-2)]">{model.generation ?? 'Unknown'}</span>
+																	</div>
+																	<div class="flex items-baseline justify-between">
+																		<span class="text-[var(--sl-text-3)]">Build</span>
+																		<span class="text-[var(--sl-text-2)]">{model.build_time ? new Date(model.build_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown'}</span>
 																	</div>
 																</div>
 															</div>
 														</div>
 														{#if !isOffroad}
-															<p class="mt-3 text-xs text-amber-500">Device is onroad. Models cannot be changed while driving.</p>
+															<p class="mt-3 text-xs text-amber-700 dark:text-amber-400">Device is onroad. Models cannot be changed while driving.</p>
 														{/if}
 														<div class="mt-4 flex items-center gap-3">
 															{#if currentModel?.short_name === model.short_name}
-																<div class="flex items-center gap-1.5 text-xs text-emerald-500">
+																<div class="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
 																	<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
 																		stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
 																	Active

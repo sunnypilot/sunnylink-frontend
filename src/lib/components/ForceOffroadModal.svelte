@@ -141,7 +141,7 @@
 				</div>
 
 				{#if error}
-					<div class="mb-6 flex items-center gap-3 rounded-lg bg-red-500/10 p-4 text-red-400">
+					<div class="mb-6 flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-500/10 p-4 text-red-600 dark:text-red-400">
 						<AlertTriangle size={20} />
 						<p>{error}</p>
 					</div>

@@ -149,9 +149,9 @@
 						<div
 							class="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3"
 						>
-							<AlertTriangle size={20} class="mt-0.5 shrink-0 text-amber-500" />
+							<AlertTriangle size={20} class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
 							<div class="text-sm text-[var(--sl-text-2)]">
-								<p class="font-medium text-amber-400">
+								<p class="font-medium text-amber-700 dark:text-amber-400">
 									{deviceState.backupState.failedKeys.length} settings could not be fetched
 								</p>
 								<p class="mt-1">You can retry the failed settings or download a partial backup.</p>
@@ -162,7 +162,7 @@
 							<div
 								class="flex items-start gap-2 rounded-lg border border-blue-500/10 bg-blue-500/5 p-2.5"
 							>
-								<Info size={16} class="mt-0.5 shrink-0 text-blue-400" />
+								<Info size={16} class="mt-0.5 shrink-0 text-blue-700 dark:text-blue-400" />
 								<p class="text-xs text-[var(--sl-text-2)]">
 									Keys marked "No Value" typically mean the device is using default values and no
 									custom setting has been saved. These are safe to skip.

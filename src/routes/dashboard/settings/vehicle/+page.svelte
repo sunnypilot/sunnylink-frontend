@@ -12,6 +12,7 @@
 	import type { SchemaItem } from '$lib/types/schema';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
+	let isDeviceOffline = $derived(deviceId ? (deviceState.onlineStatuses[deviceId] === 'offline' || deviceState.onlineStatuses[deviceId] === 'error') : false);
 
 	// Load schema if not already loaded
 	$effect(() => {
@@ -125,8 +126,8 @@
 
 	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
 	const sync = createSyncStatus(
-		() => loadingBrandValues || vehicleApiInFlight || batchActive || schemaRevalStatus === 'revalidating',
-		() => !loadingBrandValues && !vehicleApiInFlight && !batchActive && !brandValuesFetchFailed && !vehicleApiFailed &&
+		() => !isDeviceOffline && (loadingBrandValues || vehicleApiInFlight || batchActive || schemaRevalStatus === 'revalidating'),
+		() => !isDeviceOffline && !loadingBrandValues && !vehicleApiInFlight && !batchActive && !brandValuesFetchFailed && !vehicleApiFailed &&
 			schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 </script>

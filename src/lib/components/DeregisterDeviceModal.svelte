@@ -138,7 +138,7 @@
 			<!-- Header -->
 			<div class="border-b border-red-500/10 bg-red-500/5 p-6">
 				<div class="flex items-start justify-between">
-					<div class="flex items-center gap-3 text-red-500">
+					<div class="flex items-center gap-3 text-red-600 dark:text-red-400">
 						<div class="rounded-full bg-red-500/10 p-2">
 							<AlertTriangle size={24} />
 						</div>
@@ -159,7 +159,7 @@
 				{#if step === 1}
 					<div class="space-y-6">
 						<div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-							<p class="font-bold text-red-400">WARNING: IRREVERSIBLE ACTION</p>
+							<p class="font-bold text-red-600 dark:text-red-400">WARNING: IRREVERSIBLE ACTION</p>
 							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
 								You are about to permanently deregister this device.
 								<span class="font-bold text-[var(--sl-text-1)]"
@@ -176,11 +176,11 @@
 						<!-- Backup Recommendation -->
 						<div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
 							<div class="flex items-start gap-3">
-								<div class="rounded-full bg-blue-500/10 p-2 text-blue-400">
+								<div class="rounded-full bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
 									<Download size={20} />
 								</div>
 								<div>
-									<h4 class="font-bold text-blue-400">Recommended: Backup Settings</h4>
+									<h4 class="font-bold text-blue-700 dark:text-blue-400">Recommended: Backup Settings</h4>
 									<p class="mt-1 text-sm text-[var(--sl-text-2)]">
 										Before deregistering, download a backup of your settings so you can restore them
 										to a new device later.
@@ -302,7 +302,7 @@
 								<div class="flex items-center justify-between">
 									<span class="text-[var(--sl-text-2)]">Status</span>
 									{#if isOnline}
-										<span class="flex items-center gap-1.5 font-medium text-emerald-400">
+										<span class="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
 											<Wifi size={14} /> Online
 										</span>
 									{:else}
@@ -316,7 +316,7 @@
 
 						{#if error}
 							<div
-								class="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-400"
+								class="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-600 dark:text-red-400"
 							>
 								{error}
 							</div>

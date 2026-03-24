@@ -27,6 +27,7 @@
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
+	import DeviceStatusPill from '$lib/components/DeviceStatusPill.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
@@ -56,7 +57,7 @@
 	const getPageTitle = (path: string) => {
 		const titles: Record<string, string> = {
 			'/': 'Home',
-			'/dashboard': 'Overview',
+			'/dashboard': 'Dashboard',
 			'/dashboard/models': 'Models',
 			'/dashboard/settings/device': 'Device Settings',
 			'/dashboard/settings/toggles': 'Toggles',
@@ -85,26 +86,26 @@
 
 	// ── Navigation sections ─────────────────────────────────────────────────
 
+	// Dashboard is a standalone top-level item (not a setting)
+	let dashboardItem: NavItem | null = $derived(
+		authState.isAuthenticated ? { icon: House, label: 'Dashboard', href: '/dashboard' } : null
+	);
+
 	let navSections = $derived<NavSection[]>(
-		authState.isAuthenticated
+		authState.isAuthenticated && deviceState.selectedDeviceId
 			? [
 					{
 						label: 'Device Settings',
 						items: [
-							{ icon: House, label: 'Overview', href: '/dashboard' },
-							...(deviceState.selectedDeviceId
-								? [
-										{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
-										{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
-										{ icon: Bot, label: 'Models', href: '/dashboard/models' },
-										{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
-										{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
-										{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-										{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
-										{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
-										{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
-									]
-								: [])
+							{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
+							{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+							{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+							{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
+							{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
+							{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+							{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
+							{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
+							{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
 						]
 					}
 				]
@@ -201,6 +202,13 @@
 
 			if (result.devices.length > 0) {
 				devices = result.devices;
+				deviceState.pairedDevices = result.devices;
+				// Hydrate aliases from API so all components (DeviceStatusPill, etc.) can resolve names
+				for (const d of result.devices) {
+					if (d.device_id && d.alias && !deviceState.aliases[d.device_id]) {
+						deviceState.aliases = { ...deviceState.aliases, [d.device_id]: d.alias };
+					}
+				}
 				checkAllDevicesStatus(result.devices).then(() => {
 					statusPolling.markChecked();
 					statusPolling.start();
@@ -293,31 +301,37 @@
 							{/if}
 						</div>
 
-						{#await data.streamed.deviceResult then result}
-							{#if result.error === 'auth_expired'}
-								<button
-									class="btn btn-ghost btn-sm self-end text-warning lg:self-auto"
-									onclick={async () => {
-										await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
-									}}
-								>
-									Session expired — Sign in
-								</button>
-							{:else if result.error === 'api_error'}
-								<button
-									class="btn btn-ghost btn-sm self-end text-error lg:self-auto"
-									onclick={() => invalidate('app:devices')}
-								>
-									Failed to load — Retry
-								</button>
-							{/if}
-						{/await}
+						<div class="hidden items-center gap-3 lg:flex">
+							<DeviceStatusPill />
+							{#await data.streamed.deviceResult then result}
+								{#if result.error === 'auth_expired'}
+									<button
+										class="btn btn-ghost btn-sm text-warning"
+										onclick={async () => {
+											await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+										}}
+									>
+										Session expired — Sign in
+									</button>
+								{:else if result.error === 'api_error'}
+									<button
+										class="btn btn-ghost btn-sm text-error"
+										onclick={() => invalidate('app:devices')}
+									>
+										Failed to load — Retry
+									</button>
+								{/if}
+							{/await}
+						</div>
 					</div>
 				</div>
 
 				{#if deviceState.selectedDeviceId}
-					<div class="mt-2 lg:hidden">
-						<SettingsSearch />
+					<div class="mt-2 flex items-center gap-3 lg:hidden">
+						<div class="flex-1">
+							<SettingsSearch />
+						</div>
+						<DeviceStatusPill />
 					</div>
 				{/if}
 			</header>
@@ -373,7 +387,7 @@
 									{sidebarDeviceAlias}
 								</span>
 								{#if sidebarPendingCount > 0}
-									<span class="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/20 px-1 text-[0.625rem] font-bold text-amber-400">
+									<span class="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/20 px-1 text-[0.625rem] font-bold text-amber-700 dark:text-amber-400">
 										{sidebarPendingCount}
 									</span>
 								{/if}
@@ -390,6 +404,13 @@
 
 				<!-- Navigation -->
 				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
+					<!-- Dashboard (standalone, above settings sections) -->
+					{#if dashboardItem}
+						<ul class="mb-2 flex flex-col gap-0.5">
+							{@render navItemSnippet(dashboardItem)}
+						</ul>
+					{/if}
+
 					{#each navSections as section, si}
 						{#if si > 0}
 							<div class="my-2 mx-2 border-b border-[var(--sl-border-muted)]"></div>

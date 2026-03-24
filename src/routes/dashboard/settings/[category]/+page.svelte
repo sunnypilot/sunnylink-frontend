@@ -200,8 +200,11 @@
 
 	// Device-level verification: shared across all settings pages.
 	// Once any page successfully fetches values, all pages are instantly "Up to Date".
+	// Offline/error devices are considered verified immediately (nothing to fetch).
+	let deviceOnlineStatus = $derived(deviceId ? deviceState.onlineStatuses[deviceId] : undefined);
+	let isDeviceOfflineOrError = $derived(deviceOnlineStatus === 'offline' || deviceOnlineStatus === 'error');
 	let deviceVerified = $derived(
-		deviceId ? !!deviceState.valuesVerifiedThisSession[deviceId] : false
+		deviceId ? (isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId]) : false
 	);
 
 	// Schema revalidation status from the store
@@ -210,13 +213,15 @@
 	);
 
 	// True when any background work is in-flight OR device hasn't been verified yet
+	// Offline/error devices are never "revalidating" — nothing to revalidate
 	let isRevalidating = $derived(
-		revalidatingValues || schemaRevalStatus === 'revalidating' || !deviceVerified
+		!isDeviceOfflineOrError && (revalidatingValues || schemaRevalStatus === 'revalidating' || !deviceVerified)
 	);
 
-	// Overall revalidation succeeded only if nothing failed AND device is verified
+	// Overall revalidation succeeded only if device is online AND verified
+	// Offline/error devices never show "Up to date" — that would be misleading
 	let revalidationSucceeded = $derived(
-		deviceVerified && !revalidatingValues && !valuesFetchFailed &&
+		!isDeviceOfflineOrError && deviceVerified && !revalidatingValues && !valuesFetchFailed &&
 		schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
 	);
 
@@ -240,8 +245,9 @@
 	let pushModalOpen = $state(false);
 
 	// Fetch values for schema-driven rendering (cancels on nav away)
+	// Skip for offline/error devices — no point trying to reach an unreachable device
 	$effect(() => {
-		if (deviceId && logtoClient && useSchema && schemaPanel) {
+		if (deviceId && logtoClient && useSchema && schemaPanel && !isDeviceOfflineOrError) {
 			const controller = new AbortController();
 			fetchSchemaValues(controller.signal);
 			return () => controller.abort();
@@ -250,7 +256,7 @@
 
 	// Fetch values for legacy rendering (cancels on nav away)
 	$effect(() => {
-		if (deviceId && logtoClient && !useSchema && categorySettings.length > 0) {
+		if (deviceId && logtoClient && !useSchema && categorySettings.length > 0 && !isDeviceOfflineOrError) {
 			const controller = new AbortController();
 			fetchCurrentValues(controller.signal);
 			return () => controller.abort();
@@ -484,17 +490,17 @@
 		return json.replace(
 			/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
 			function (match) {
-				let cls = 'text-orange-400';
+				let cls = 'text-orange-700 dark:text-orange-400';
 				if (/^"/.test(match)) {
 					if (/:$/.test(match)) {
-						cls = 'text-blue-400';
+						cls = 'text-blue-700 dark:text-blue-400';
 					} else {
-						cls = 'text-green-400';
+						cls = 'text-green-700 dark:text-green-400';
 					}
 				} else if (/true|false/.test(match)) {
-					cls = 'text-purple-400';
+					cls = 'text-purple-700 dark:text-purple-400';
 				} else if (/null/.test(match)) {
-					cls = 'text-gray-400';
+					cls = 'text-gray-500 dark:text-gray-400';
 				}
 				return '<span class="' + cls + '">' + match + '</span>';
 			}
@@ -613,8 +619,9 @@
 				</div>
 			</div>
 		{/await}
-	{:else if !useSchema && (schemaLoading || (!settings && !categorySettings.length))}
+	{:else if !useSchema && !isDeviceOfflineOrError && (schemaLoading || (!settings && !categorySettings.length))}
 		<!-- Show spinner while schema loads — prevents legacy layout flash -->
+		<!-- Skip for offline/error devices: show content immediately with offline banner -->
 		<div class="flex justify-center p-12">
 			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>

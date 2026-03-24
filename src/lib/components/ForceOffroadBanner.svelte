@@ -53,7 +53,7 @@
 		<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 sm:px-6 lg:px-8">
 			<div class="flex items-center gap-3">
 				<div
-					class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-500"
+					class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400"
 				>
 					<AlertTriangle size={20} />
 				</div>

@@ -3,6 +3,9 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
+/* Override Tailwind's dark: variant to use data-theme instead of prefers-color-scheme */
+@custom-variant dark (&:where([data-theme="sunny-dark"], [data-theme="sunny-dark"] *));
+
 /* ── sunnypilot Light Theme (Neutral) ──────────────────────────────────── */
 @plugin "daisyui/theme" {
 	name: "sunny-light";

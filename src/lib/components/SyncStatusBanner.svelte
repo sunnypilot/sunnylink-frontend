@@ -85,7 +85,7 @@
 
 			<!-- Failed -->
 			{#if failedCount > 0}
-				<span class="flex items-center gap-1.5 text-sm text-red-400">
+				<span class="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
 					<AlertTriangle size={14} />
 					{failedCount} failed
 				</span>
@@ -108,7 +108,7 @@
 
 			<!-- Drift -->
 			{#if driftCount > 0}
-				<span class="flex items-center gap-1.5 text-sm text-cyan-400">
+				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
 					<RefreshCw size={14} />
 					{driftCount} drifted
 				</span>
