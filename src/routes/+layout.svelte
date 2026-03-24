@@ -203,6 +203,8 @@
 			if (result.devices.length > 0) {
 				devices = result.devices;
 				deviceState.pairedDevices = result.devices;
+				deviceState.pairedDevicesLoaded = true;
+				try { localStorage.setItem('sunnylink_paired_devices', JSON.stringify(result.devices)); } catch { /* quota */ }
 				// Hydrate aliases from API so all components (DeviceStatusPill, etc.) can resolve names
 				for (const d of result.devices) {
 					if (d.device_id && d.alias && !deviceState.aliases[d.device_id]) {

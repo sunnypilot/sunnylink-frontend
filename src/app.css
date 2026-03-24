@@ -79,7 +79,7 @@
 	--sl-text-1b: #313231;
 	--sl-text-2: #666666;
 	--sl-text-3: #6b6b6b;
-	--sl-green: #1a8f35;
+	--sl-green: #167d2e;
 	--sl-accent-muted: rgba(89, 74, 226, 0.08);
 	--sl-toggle-off: #d4d4d4;
 	--sl-toggle-off-disabled: #e5e5e5;
@@ -107,6 +107,13 @@
 /* ── Global Styles ──────────────────────────────────────────────────────── */
 @theme {
 	--font-audiowide: 'Audiowide', cursive;
+}
+
+/* Modern cursor: default arrow everywhere. Hover states indicate interactivity,
+   pointer finger is redundant (Linear, Vercel, Radix convention). */
+a, button, [role="button"], label, summary, select, input[type="checkbox"],
+input[type="radio"], input[type="range"], .cursor-pointer {
+	cursor: default !important;
 }
 
 html,

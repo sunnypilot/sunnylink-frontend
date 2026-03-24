@@ -28,8 +28,18 @@ export const deviceState = $state({
 			deviceType: string;
 		}
 	>,
-	/** Cached list of paired devices from the API. Persists across page navigations for instant Dashboard rendering. */
-	pairedDevices: [] as any[],
+	/** Cached list of paired devices from the API. Persisted to localStorage for instant Dashboard rendering on refresh. */
+	pairedDevices: (typeof localStorage !== 'undefined'
+		? (() => {
+				try {
+					return JSON.parse(localStorage.getItem('sunnylink_paired_devices') || '[]');
+				} catch {
+					return [];
+				}
+			})()
+		: []) as any[],
+	/** Whether the device list has been fetched from the API this session */
+	pairedDevicesLoaded: false,
 	aliases: {} as Record<string, string>,
 	aliasOverrides: {} as Record<string, string>,
 	stagedChanges: {} as Record<string, Record<string, unknown>>,

@@ -308,6 +308,8 @@
 		if (!deviceId || !logtoClient) return;
 		retrying = true;
 		retryFailed = false;
+		// Reset verification so the sync indicator shows "Refreshing..." during retry
+		deviceState.valuesVerifiedThisSession[deviceId] = false;
 		try {
 			const token = await logtoClient.getIdToken();
 			if (token) await checkDeviceStatus(deviceId, token, true);

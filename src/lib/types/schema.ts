@@ -94,7 +94,7 @@ export interface SchemaItem {
 	min?: number;
 	max?: number;
 	step?: number;
-	unit?: string;
+	unit?: string | { metric: string; imperial: string };
 	value_map?: Record<string, number>;
 	visibility?: Rule[];
 	enablement?: Rule[];

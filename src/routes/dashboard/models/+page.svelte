@@ -222,9 +222,11 @@
 	async function handleRetry() {
 		if (!deviceState.selectedDeviceId || !logtoClient) return;
 		retrying = true;
+		// Reset verification so sync indicator shows "Refreshing..." during retry
+		deviceState.valuesVerifiedThisSession[deviceState.selectedDeviceId] = false;
 		try {
 			const token = await logtoClient.getIdToken();
-			if (token) await checkDeviceStatus(deviceState.selectedDeviceId, token);
+			if (token) await checkDeviceStatus(deviceState.selectedDeviceId, token, true);
 			lastRetryAt = new Date();
 			// If still offline/error after retry
 			const status = deviceState.onlineStatuses[deviceState.selectedDeviceId];
@@ -889,50 +891,52 @@
 						</div>
 					{/if}
 				</div>
-				<!-- Metadata: label-value pairs -->
+				<!-- Metadata: label-value rows (consistent with Dashboard card pattern) -->
 				{#if currentModel.environment !== 'N/A' || currentModel.generation || currentModel.runner}
-					<div class="flex max-w-xs flex-col gap-1.5 border-t border-[var(--sl-border-muted)] px-4 py-3 pl-[60px] text-xs">
-						{#if currentModel.environment && currentModel.environment !== 'N/A'}
-							<div class="flex items-baseline justify-between">
-								<span class="text-[var(--sl-text-3)]">Environment</span>
-								<span class="text-[var(--sl-text-2)]">{currentModel.environment}</span>
-							</div>
-						{/if}
-						{#if currentModel.runner && currentModel.runner !== 'N/A'}
-							<div class="flex items-baseline justify-between">
-								<span class="text-[var(--sl-text-3)]">Runner</span>
-								<span class="text-[var(--sl-text-2)]">{currentModel.runner}</span>
-							</div>
-						{/if}
-						{#if currentModel.generation}
-							<div class="flex items-baseline justify-between">
-								<span class="text-[var(--sl-text-3)]">Generation</span>
-								<span class="text-[var(--sl-text-2)]">{currentModel.generation}</span>
-							</div>
-						{/if}
+					<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
+						<div class="max-w-[280px] space-y-1.5">
+							{#if currentModel.environment && currentModel.environment !== 'N/A'}
+								<div class="flex items-center gap-3">
+									<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Environment</span>
+									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.environment}</span>
+								</div>
+							{/if}
+							{#if currentModel.runner && currentModel.runner !== 'N/A'}
+								<div class="flex items-center gap-3">
+									<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Runner</span>
+									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.runner}</span>
+								</div>
+							{/if}
+							{#if currentModel.generation}
+								<div class="flex items-center gap-3">
+									<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Generation</span>
+									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.generation}</span>
+								</div>
+							{/if}
+						</div>
 					</div>
 				{/if}
-				{#if currentModelShortName !== undefined || true}
-					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
-						{#if currentModelShortName !== undefined}
-							<button
-								class="text-xs text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] disabled:opacity-40"
-								onclick={() => (resetModalOpen = true)}
-								disabled={sendingModel || !isOffroad}
-							>
-								Reset to Default
-							</button>
-							<span class="text-[var(--sl-border)]">|</span>
-						{/if}
+				<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
+					{#if currentModelShortName !== undefined}
 						<button
-							class="text-xs text-[var(--sl-text-2)] transition-colors hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40"
-							onclick={() => (clearCacheModalOpen = true)}
-							disabled={clearingCache || !isOffroad}
+							class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] disabled:opacity-40"
+							onclick={() => (resetModalOpen = true)}
+							disabled={sendingModel}
+							title={!isOffroad ? 'Device must be offroad' : undefined}
 						>
-							Clear Cache
+							Reset to Default
 						</button>
-					</div>
-				{/if}
+						<span class="text-[var(--sl-border)]">|</span>
+					{/if}
+					<button
+						class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40"
+						onclick={() => (clearCacheModalOpen = true)}
+						disabled={clearingCache}
+						title={!isOffroad ? 'Device must be offroad' : undefined}
+					>
+						Clear Cache
+					</button>
+				</div>
 			</div>
 
 			{/if}

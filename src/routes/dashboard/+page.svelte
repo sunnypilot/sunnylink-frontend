@@ -328,13 +328,13 @@
 	let pendingChanges = $derived(getPendingChanges(devices));
 </script>
 
-{#if authState.loading && devices.length === 0}
+{#if devices.length === 0 && !deviceState.pairedDevicesLoaded}
+	<!-- Cold start: no cached devices, API hasn't returned yet — show skeleton -->
 	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
-{/if}
-
-<div class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl" class:hidden={devices.length === 0 && authState.loading}>
-			{#if !devices || devices.length === 0}
-				<!-- Empty state -->
+{:else}
+<div class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl">
+			{#if devices.length === 0}
+				<!-- API returned but no devices — true empty state -->
 				<div class="flex flex-col items-center justify-center py-16 text-center">
 					<p class="text-sm text-[var(--sl-text-2)]">No devices connected</p>
 					<p class="mt-1 text-xs text-[var(--sl-text-3)]">Pair a sunnypilot device to get started.</p>
@@ -380,7 +380,6 @@
 							role="listitem"
 							tabindex="0"
 							aria-label="{getAlias(device)} - {getStatusText(device)}"
-							style="cursor: pointer;"
 						>
 							<div class="flex items-start gap-3 px-4 py-4">
 								<!-- Name + telemetry -->
@@ -507,8 +506,7 @@
 										role="listitem"
 										tabindex="0"
 										aria-label="{getAlias(device)} - Offline"
-										style="cursor: pointer;"
-									>
+												>
 										<div class="flex items-start gap-3 px-4 py-4">
 											<div class="min-w-0 flex-1">
 												<!-- Row 1: Name -->
@@ -648,6 +646,7 @@
 				/>
 			{/if}
 </div>
+{/if}
 
 <BackupProgressModal
 	onRetry={handleRetryFailedBackup}

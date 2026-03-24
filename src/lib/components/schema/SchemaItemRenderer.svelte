@@ -12,6 +12,7 @@
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import { Loader2 } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 
 	interface Props {
 		deviceId: string;
@@ -71,6 +72,13 @@
 	let isLoading = $derived(loadingValues && currentValue === undefined);
 	let isFloat = $derived(item.step !== undefined && item.step < 1);
 	let isOn = $derived(displayValue === true || displayValue === 1 || displayValue === '1');
+
+	let resolvedUnit = $derived.by(() => {
+		if (!item.unit) return undefined;
+		if (typeof item.unit === 'string') return item.unit;
+		const isMetric = ruleContext.paramValues?.['IsMetric'];
+		return (isMetric === true || isMetric === 1 || isMetric === '1') ? item.unit.metric : item.unit.imperial;
+	});
 
 	// Live slider preview: shows value during drag, resets on release
 	let sliderPreview = $state<number | null>(null);
@@ -295,7 +303,9 @@
 							}}
 						>{item.title || item.key}</button>
 						{#if isQueued || pushState === 'pending'}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							<Tooltip text="Change queued — will sync to device when pushed">
+								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							</Tooltip>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
@@ -303,17 +313,19 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-600 dark:text-emerald-400 transition-opacity"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							</Tooltip>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
-								Offroad
-							</span>
+							<Tooltip text="Only available when vehicle is not driving">
+								<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							</Tooltip>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">
-								Restart
-							</span>
+							<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+							</Tooltip>
 						{/if}
 					</div>
 					{#if item.description}
@@ -363,7 +375,9 @@
 					<div class="flex items-center gap-2">
 						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 						{#if isQueued || pushState === 'pending'}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							<Tooltip text="Change queued — will sync to device when pushed">
+								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							</Tooltip>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
@@ -371,17 +385,19 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							</Tooltip>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
-								Offroad
-							</span>
+							<Tooltip text="Only available when vehicle is not driving">
+								<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							</Tooltip>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">
-								Restart
-							</span>
+							<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+							</Tooltip>
 						{/if}
 					</div>
 					{#if item.description}
@@ -414,7 +430,9 @@
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isQueued || pushState === 'pending'}
-						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+						<Tooltip text="Change queued — will sync to device when pushed">
+								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							</Tooltip>
 					{:else if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
@@ -422,17 +440,19 @@
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 					{:else if hasDrift}
-						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+						<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
-							Offroad
-						</span>
+						<Tooltip text="Only available when vehicle is not driving">
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						</Tooltip>
 					{/if}
 					{#if item.needs_onroad_cycle}
-						<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
-							Restart
-						</span>
+						<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						</Tooltip>
 					{/if}
 				</div>
 				{#if item.description}
@@ -451,7 +471,7 @@
 								<span>{isFloat ? Number(item.min).toFixed(2) : item.min}</span>
 								<span class="text-sm font-semibold tabular-nums transition-colors" class:text-primary={sliderPreview === null} class:text-[var(--sl-text-1)]={sliderPreview !== null}>
 									{formatDisplay(sliderPreview ?? (displayValue !== undefined ? displayValue : item.min))}
-									{#if item.unit}<span class="ml-0.5 text-xs font-normal text-[var(--sl-text-3)]">{item.unit}</span>{/if}
+									{#if resolvedUnit}<span class="ml-0.5 text-xs font-normal text-[var(--sl-text-3)]">{resolvedUnit}</span>{/if}
 								</span>
 								<span>{isFloat ? Number(item.max).toFixed(2) : item.max}</span>
 							</div>
@@ -512,7 +532,9 @@
 					<div class="flex items-center gap-2">
 						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 						{#if isQueued || pushState === 'pending'}
-							<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							<Tooltip text="Change queued — will sync to device when pushed">
+								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							</Tooltip>
 						{:else if isPushing}
 							<span class="loading loading-spinner loading-xs text-primary"></span>
 						{:else if pushState === 'success'}
@@ -520,17 +542,19 @@
 								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 						{:else if hasDrift}
-							<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							</Tooltip>
 						{/if}
 						{#if needsOffroad && !ruleContext.isOffroad}
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
-								Offroad
-							</span>
+							<Tooltip text="Only available when vehicle is not driving">
+								<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							</Tooltip>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">
-								Restart
-							</span>
+							<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+							</Tooltip>
 						{/if}
 					</div>
 					{#if item.description}
@@ -544,7 +568,7 @@
 					{#if isLoading}
 						<div class="h-4 w-12 skeleton-shimmer rounded"></div>
 					{:else}
-						{formatDisplay(displayValue)}{#if item.unit}<span class="ml-0.5 text-[var(--sl-text-3)]">{item.unit}</span>{/if}
+						{formatDisplay(displayValue)}{#if resolvedUnit}<span class="ml-0.5 text-[var(--sl-text-3)]">{resolvedUnit}</span>{/if}
 					{/if}
 				</span>
 			</div>
@@ -555,7 +579,9 @@
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isQueued || pushState === 'pending'}
-						<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+						<Tooltip text="Change queued — will sync to device when pushed">
+								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+							</Tooltip>
 					{:else if isPushing}
 						<span class="loading loading-spinner loading-xs text-primary"></span>
 					{:else if pushState === 'success'}
@@ -563,17 +589,19 @@
 							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
 							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
 					{:else if hasDrift}
-						<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+						<Tooltip text="Value was changed directly on the device and differs from what was last synced">
+								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
+							</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
-							Offroad
-						</span>
+						<Tooltip text="Only available when vehicle is not driving">
+							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						</Tooltip>
 					{/if}
 					{#if item.needs_onroad_cycle}
-						<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-500 uppercase">
-							Restart
-						</span>
+						<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						</Tooltip>
 					{/if}
 				</div>
 				{#if item.description}
