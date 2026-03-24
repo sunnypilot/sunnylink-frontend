@@ -13,25 +13,58 @@
 	let y = $state(0);
 	let triggerEl: HTMLElement | undefined = $state();
 
-	function show() {
+	function updatePosition() {
 		if (!triggerEl) return;
 		const rect = triggerEl.getBoundingClientRect();
 		x = rect.left + rect.width / 2;
 		y = rect.bottom + 6;
+	}
+
+	// PC: hover to show, leave to hide, click to dismiss
+	function onMouseEnter() {
+		updatePosition();
 		visible = true;
 	}
 
-	function hide() {
+	function onMouseLeave() {
+		visible = false;
+	}
+
+	function onClick() {
+		visible = false;
+	}
+
+	// Mobile: press-and-hold to show, release to hide
+	function onTouchStart(e: TouchEvent) {
+		e.preventDefault();
+		updatePosition();
+		visible = true;
+	}
+
+	function onTouchEnd() {
+		visible = false;
+	}
+
+	// Keyboard: focus to show, blur to hide
+	function onFocus() {
+		updatePosition();
+		visible = true;
+	}
+
+	function onBlur() {
 		visible = false;
 	}
 </script>
 
 <span
 	bind:this={triggerEl}
-	onmouseenter={show}
-	onmouseleave={hide}
-	onfocus={show}
-	onblur={hide}
+	onmouseenter={onMouseEnter}
+	onmouseleave={onMouseLeave}
+	onclick={onClick}
+	ontouchstart={onTouchStart}
+	ontouchend={onTouchEnd}
+	onfocus={onFocus}
+	onblur={onBlur}
 	class="inline-flex"
 	tabindex="0"
 	role="note"
@@ -42,7 +75,7 @@
 {#if visible}
 	<div
 		use:portal
-		class="fixed z-[9999] max-w-[280px] rounded-md bg-[#1c1c1c] px-3 py-2 text-[0.8125rem] font-normal leading-relaxed text-[#e0e0e0] shadow-xl"
+		class="fixed z-[9999] w-max max-w-[400px] rounded-lg border border-[var(--sl-border-emphasis)] bg-[var(--sl-bg-elevated)] px-3 py-2 text-[0.8125rem] font-normal leading-relaxed text-[var(--sl-text-2)] shadow-lg"
 		style="left: {x}px; top: {y}px; transform: translateX(-50%);"
 		role="tooltip"
 	>

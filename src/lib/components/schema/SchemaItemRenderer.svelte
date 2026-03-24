@@ -323,7 +323,7 @@
 							</Tooltip>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+							<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
 								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 							</Tooltip>
 						{/if}
@@ -395,7 +395,7 @@
 							</Tooltip>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+							<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
 								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 							</Tooltip>
 						{/if}
@@ -450,7 +450,7 @@
 						</Tooltip>
 					{/if}
 					{#if item.needs_onroad_cycle}
-						<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+						<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
 							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 						</Tooltip>
 					{/if}
@@ -552,7 +552,7 @@
 							</Tooltip>
 						{/if}
 						{#if item.needs_onroad_cycle}
-							<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+							<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
 								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 							</Tooltip>
 						{/if}
@@ -599,7 +599,7 @@
 						</Tooltip>
 					{/if}
 					{#if item.needs_onroad_cycle}
-						<Tooltip text="Requires a driving cycle (start and stop) to take effect">
+						<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
 							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 						</Tooltip>
 					{/if}
