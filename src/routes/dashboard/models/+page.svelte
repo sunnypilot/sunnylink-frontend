@@ -731,11 +731,14 @@
 		favorites = newFavorites;
 		toggledFavRefs = new Set([...toggledFavRefs, bundle.ref]);
 
-		const favString = Array.from(newFavorites).join(';');
+		const favString = Array.from(newFavorites).sort().join(';');
 
-		// Update deviceValues so it's tracked, then batch push
+		// Update deviceValues so it's tracked, then batch push.
+		// Normalize previousValue to sorted form so net-change detection works
+		// (device may return favorites in a different order than Set iteration).
 		if (!deviceState.deviceValues[did]) deviceState.deviceValues[did] = {};
-		const previousValue = deviceState.deviceValues[did]['ModelManager_Favs'];
+		const rawPrev = (deviceState.deviceValues[did]['ModelManager_Favs'] as string) ?? '';
+		const previousValue = rawPrev.split(';').filter(Boolean).sort().join(';');
 		deviceState.deviceValues[did]['ModelManager_Favs'] = favString;
 		batchPush.enqueue(did, 'ModelManager_Favs', favString, previousValue, 'String');
 	}

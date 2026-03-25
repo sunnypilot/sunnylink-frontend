@@ -79,19 +79,18 @@
 		if (isDeviceOnly) return ['This setting can only be changed on the device.'];
 		const reasons: string[] = [];
 		if (!visible) {
-			// Generate reasons from visibility rules
 			const visReasons = getDisabledReasons(item.visibility, ruleContext, paramTitleLookup, capabilityLabels);
 			if (visReasons.length > 0) {
 				reasons.push(...visReasons);
 			} else if (isAdvanced) {
-				// Fallback: if no specific reason found but it's advanced, hint at ShowAdvancedControls
 				reasons.push('Enable "Show Advanced Controls" to use this setting.');
 			}
 		}
 		if (!enabledByRules) {
 			reasons.push(...getDisabledReasons(item.enablement, ruleContext, paramTitleLookup, capabilityLabels));
 		}
-		return reasons;
+		// Deduplicate — visibility and enablement rules can produce overlapping reasons
+		return [...new Set(reasons)];
 	});
 
 	// Collect param keys this item's enablement depends on

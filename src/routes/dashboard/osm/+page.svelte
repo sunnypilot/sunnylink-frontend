@@ -64,11 +64,12 @@
 	let loadingOsmParams = $state(false);
 	let error = $state<string | null>(null);
 
-	// Sync status indicator (consistent with Vehicle/Models pages)
+	// Sync status indicator (consistent with settings pages)
 	let batchActive = $derived(deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false);
+	let isStale = $derived(!!(deviceState.selectedDeviceId && deviceState.valuesStale[deviceState.selectedDeviceId]));
 	const sync = createSyncStatus(
-		() => !isOffline && (loadingOsmParams || batchActive),
-		() => !isOffline && !loadingOsmParams && !error && !batchActive
+		() => !isOffline && (loadingOsmParams || batchActive || isStale),
+		() => !isOffline && !loadingOsmParams && !error && !batchActive && !isStale
 	);
 
 	let { data } = $props();
@@ -209,6 +210,14 @@
 	}
 
 	let osmFetchDone = $state<Record<string, boolean>>({});
+
+	// Reset fetch guard when valuesStale is set (manual refresh or version change)
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did && deviceState.valuesStale[did]) {
+			osmFetchDone[did] = false;
+		}
+	});
 
 	$effect(() => {
 		const deviceId = deviceState.selectedDeviceId;
@@ -412,7 +421,15 @@
 	loading={loadingOsmParams}
 	onRefresh={() => {
 		const did = deviceState.selectedDeviceId;
-		if (did && logtoClient) logtoClient.getIdToken().then((token) => { if (token) fetchOsmParams(did, token, true); });
+		if (!did || !logtoClient) return;
+		// Set stale immediately for instant "Refreshing..." feedback (matches settings pages)
+		deviceState.valuesStale[did] = true;
+		logtoClient.getIdToken().then((token) => {
+			if (token && did) {
+				checkDeviceStatus(did, token, true, false);
+				fetchOsmParams(did, token, false);
+			}
+		});
 	}}
 >
 
