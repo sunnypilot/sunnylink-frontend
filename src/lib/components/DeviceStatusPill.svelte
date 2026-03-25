@@ -94,15 +94,24 @@
 	let copiedField = $state<string | null>(null);
 	let marqueeEl = $state<HTMLElement | undefined>();
 
+	let marqueeOverflows = $state(false);
+
 	$effect(() => {
 		if (!marqueeEl || !popoverOpen) return;
-		const container = marqueeEl.parentElement;
-		if (!container) return;
-		const overflow = marqueeEl.scrollWidth - container.clientWidth;
-		if (overflow > 0) {
-			container.style.setProperty('--marquee-offset', `-${overflow}px`);
+		// The first <span> child of .marquee-track is the original text
+		const track = marqueeEl.querySelector('.marquee-track');
+		const firstSpan = track?.children[0] as HTMLElement | undefined;
+		if (!firstSpan || !marqueeEl) return;
+		const textWidth = firstSpan.offsetWidth;
+		const containerWidth = marqueeEl.clientWidth;
+		if (textWidth > containerWidth) {
+			// scroll distance = one full copy + gap
+			const gap = containerWidth * 0.33;
+			marqueeEl.style.setProperty('--marquee-scroll', `-${textWidth + gap}px`);
+			marqueeEl.style.setProperty('--marquee-duration', `${Math.max(4, (textWidth + gap) / 30)}s`);
+			marqueeOverflows = true;
 		} else {
-			container.style.removeProperty('--marquee-offset');
+			marqueeOverflows = false;
 		}
 	});
 
@@ -345,16 +354,20 @@
 					{/if}
 					{#if branchName}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => copyField('branch', branchName)}
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
 							{#if copiedField === 'branch'}
 								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
 							{:else}
-								<span class="marquee-container max-w-[140px] overflow-hidden text-right">
-									<span bind:this={marqueeEl} class="marquee-text inline-block whitespace-nowrap font-mono text-[0.75rem] text-[var(--sl-text-2)]">
-										{branchName}
+								<span bind:this={marqueeEl} class="marquee-container max-w-[140px] overflow-hidden" class:overflows={marqueeOverflows}>
+									<span class="marquee-track whitespace-nowrap font-mono text-[0.75rem] text-[var(--sl-text-2)]">
+										<span>{branchName}</span>
+										{#if marqueeOverflows}
+											<span class="marquee-gap"></span>
+											<span>{branchName}</span>
+										{/if}
 									</span>
 								</span>
 							{/if}
@@ -362,7 +375,7 @@
 					{/if}
 					{#if softwareVersion}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => copyField('version', softwareVersion)}
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
@@ -375,7 +388,7 @@
 					{/if}
 					{#if commitHash}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => copyField('commit', commitHash)}
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
@@ -462,17 +475,25 @@
 <style>
 	.marquee-container {
 		display: inline-block;
-		-webkit-mask-image: linear-gradient(to right, transparent, black 4px, black calc(100% - 12px), transparent);
-		mask-image: linear-gradient(to right, transparent, black 4px, black calc(100% - 12px), transparent);
 	}
-	.marquee-text {
-		animation: marquee-slide var(--marquee-duration, 6s) linear infinite;
+	.marquee-container.overflows {
+		-webkit-mask-image: linear-gradient(to right, black, black calc(100% - 14px), transparent);
+		mask-image: linear-gradient(to right, black, black calc(100% - 14px), transparent);
 	}
-	@keyframes marquee-slide {
-		0%, 10% { transform: translateX(0); opacity: 1; }
-		70% { transform: translateX(var(--marquee-offset, 0px)); opacity: 1; }
-		80% { transform: translateX(var(--marquee-offset, 0px)); opacity: 0; }
-		81% { transform: translateX(0); opacity: 0; }
-		90%, 100% { transform: translateX(0); opacity: 1; }
+	.marquee-track {
+		display: inline-flex;
+		align-items: center;
+	}
+	.marquee-gap {
+		display: inline-block;
+		width: 46px;
+		flex-shrink: 0;
+	}
+	.marquee-container.overflows .marquee-track {
+		animation: marquee-scroll var(--marquee-duration, 6s) linear 2s infinite;
+	}
+	@keyframes marquee-scroll {
+		0% { transform: translateX(0); }
+		100% { transform: translateX(var(--marquee-scroll, 0px)); }
 	}
 </style>
