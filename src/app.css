@@ -6,55 +6,55 @@
 /* Override Tailwind's dark: variant to use data-theme instead of prefers-color-scheme */
 @custom-variant dark (&:where([data-theme="sunny-dark"], [data-theme="sunny-dark"] *));
 
-@plugin "daisyui/theme" {
-	name: "sunny-light";
+@plugin 'daisyui/theme' {
+	name: 'sunny-light';
 	default: true;
-	--color-primary: #594AE2;
-	--color-primary-content: #FFFFFF;
-	--color-secondary: #7C6FEB;
-	--color-secondary-content: #FFFFFF;
-	--color-accent: #A78BFA;
-	--color-accent-content: #FFFFFF;
+	--color-primary: #594ae2;
+	--color-primary-content: #ffffff;
+	--color-secondary: #7c6feb;
+	--color-secondary-content: #ffffff;
+	--color-accent: #a78bfa;
+	--color-accent-content: #ffffff;
 	--color-neutral: #1a1a1a;
-	--color-neutral-content: #FFFFFF;
-	--color-base-100: #FFFFFF;
+	--color-neutral-content: #ffffff;
+	--color-base-100: #ffffff;
 	--color-base-200: #f5f5f5;
 	--color-base-300: #ebebeb;
 	--color-base-content: #1a1a1a;
-	--color-info: #3B82F6;
-	--color-info-content: #FFFFFF;
-	--color-success: #22C55E;
-	--color-success-content: #FFFFFF;
-	--color-warning: #EAB308;
+	--color-info: #3b82f6;
+	--color-info-content: #ffffff;
+	--color-success: #22c55e;
+	--color-success-content: #ffffff;
+	--color-warning: #eab308;
 	--color-warning-content: #1a1a1a;
-	--color-error: #EF4444;
-	--color-error-content: #FFFFFF;
+	--color-error: #ef4444;
+	--color-error-content: #ffffff;
 	--rounded-box: 0.75rem;
 	--rounded-btn: 0.5rem;
 }
 
-@plugin "daisyui/theme" {
-	name: "sunny-dark";
+@plugin 'daisyui/theme' {
+	name: 'sunny-dark';
 	prefersdark: true;
-	--color-primary: #7C6FEB;
-	--color-primary-content: #FFFFFF;
-	--color-secondary: #594AE2;
-	--color-secondary-content: #FFFFFF;
-	--color-accent: #A78BFA;
-	--color-accent-content: #FFFFFF;
+	--color-primary: #7c6feb;
+	--color-primary-content: #ffffff;
+	--color-secondary: #594ae2;
+	--color-secondary-content: #ffffff;
+	--color-accent: #a78bfa;
+	--color-accent-content: #ffffff;
 	--color-neutral: #1a1a1a;
 	--color-neutral-content: #ececec;
 	--color-base-100: #101010;
 	--color-base-200: #181818;
 	--color-base-300: #222222;
 	--color-base-content: #ececec;
-	--color-info: #60A5FA;
+	--color-info: #60a5fa;
 	--color-info-content: #101010;
-	--color-success: #4ADE80;
+	--color-success: #4ade80;
 	--color-success-content: #101010;
-	--color-warning: #FACC15;
+	--color-warning: #facc15;
 	--color-warning-content: #101010;
-	--color-error: #F87171;
+	--color-error: #f87171;
 	--color-error-content: #101010;
 	--rounded-box: 0.75rem;
 	--rounded-btn: 0.5rem;
@@ -107,14 +107,34 @@
 
 /* Modern cursor: default arrow everywhere. Hover states indicate interactivity,
    pointer finger is redundant (Linear, Vercel, Radix convention). */
-a, button, [role="button"], label, summary, select, input[type="checkbox"],
-input[type="radio"], input[type="range"], .cursor-pointer {
+a,
+button,
+[role='button'],
+label,
+summary,
+select,
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'],
+.cursor-pointer {
 	cursor: default !important;
 }
 
 html,
 body {
-	font-family: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-family:
+		'Inter Variable',
+		'Inter',
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		Oxygen,
+		Ubuntu,
+		Cantarell,
+		'Open Sans',
+		'Helvetica Neue',
+		sans-serif;
 	background-color: var(--sl-bg-page);
 	color: var(--sl-text-1);
 	min-height: 100vh;
@@ -204,15 +224,23 @@ code,
 }
 
 @keyframes shimmer {
-	0% { background-position: 200% 0; }
-	100% { background-position: -200% 0; }
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 /* NOTE: Do NOT use transform here — it creates a containing block for fixed-positioned
    descendants (modals, dialogs), breaking their viewport-relative positioning. */
 @keyframes page-enter {
-	from { opacity: 0; }
-	to { opacity: 1; }
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }
 
 .animate-page-enter {
@@ -235,13 +263,27 @@ code,
 	animation: card-enter var(--dur-moderate) var(--ease-out) forwards;
 }
 
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(n+7) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(1) {
+	animation-delay: 0ms;
+}
+.stagger-children > *:nth-child(2) {
+	animation-delay: 60ms;
+}
+.stagger-children > *:nth-child(3) {
+	animation-delay: 120ms;
+}
+.stagger-children > *:nth-child(4) {
+	animation-delay: 180ms;
+}
+.stagger-children > *:nth-child(5) {
+	animation-delay: 240ms;
+}
+.stagger-children > *:nth-child(6) {
+	animation-delay: 300ms;
+}
+.stagger-children > *:nth-child(n + 7) {
+	animation-delay: 350ms;
+}
 
 @keyframes float {
 	0%,
