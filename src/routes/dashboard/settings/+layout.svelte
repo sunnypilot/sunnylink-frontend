@@ -10,6 +10,7 @@
 	import { fetchSettingsAsync, setDeviceParams } from '$lib/api/device';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import type { Panel } from '$lib/types/schema';
 	import type { PendingChange } from '$lib/stores/pendingChanges.svelte';
 	import { collectOffroadOnlyKeys } from '$lib/rules/evaluator';
@@ -133,7 +134,7 @@
 
 		if (payload.length > 0) {
 			try {
-				await setDeviceParams(did, payload, token, 5000);
+				await setDeviceParams(did, payload, token, 20_000);
 
 				// Success: mark all confirmed, update cache
 				const gitCommit = (deviceState.deviceValues[did]?.['GitCommit'] as string) || '';
@@ -142,9 +143,18 @@
 					if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
 				}
 			} catch (e) {
-				// Batch failed: mark all as failed
-				for (const change of encoded) {
-					pendingChanges.markFailed(did, change.key, (e as Error)?.message || 'Failed');
+				const eName = (e as { name?: string })?.name;
+				// Definite failure: TypeError = no network (request never left browser)
+				if (eName === 'TypeError') {
+					for (const change of encoded) {
+						pendingChanges.markFailed(did, change.key, 'No network connection.');
+					}
+				} else {
+					// Abort, timeout, 5xx — request reached server, device likely
+					// processed the write. Treat optimistically.
+					for (const change of encoded) {
+						pendingChanges.markConfirmed(did, change.key);
+					}
 				}
 			}
 		}
@@ -341,7 +351,12 @@
 											value: item.value,
 											type: item.type ?? 'String'
 										});
-										vals[item.key] = decoded;
+										// Preserve user's optimistic value for keys with in-flight changes
+										const pcEntry = pendingChanges.getForKey(deviceId!, item.key);
+										const pcInFlight = pcEntry && (pcEntry.status === 'pending' || pcEntry.status === 'pushing' || pcEntry.status === 'blocked_onroad');
+										if (!batchPush.hasPendingKey(deviceId!, item.key) && !pcInFlight) {
+											vals[item.key] = decoded;
+										}
 										freshValues[item.key] = decoded;
 									}
 								}

@@ -11,6 +11,7 @@
 const STORAGE_PREFIX = 'sunnylink_pending_';
 const MAX_PENDING_PER_DEVICE = 50;
 const CONFIRMED_PURGE_DELAY_MS = 5_000; // auto-remove confirmed entries after 5s
+const FAILED_PURGE_DELAY_MS = 10_000; // auto-remove failed entries after 10s
 
 export type ChangeStatus = 'pending' | 'pushing' | 'confirmed' | 'failed' | 'blocked_onroad';
 
@@ -225,7 +226,7 @@ class PendingChangesStore {
 		}
 	}
 
-	/** Mark a change as failed with error message */
+	/** Mark a change as failed with error message. Auto-purges after delay. */
 	markFailed(deviceId: string, key: string, error: string): void {
 		const changes = this._changes[deviceId] ?? [];
 		const entry = changes.find((c) => c.key === key);
@@ -235,6 +236,9 @@ class PendingChangesStore {
 		entry.lastError = error;
 		this._changes[deviceId] = [...changes];
 		saveToStorage(deviceId, changes);
+
+		// Auto-purge after delay so failed state doesn't persist forever
+		setTimeout(() => this.remove(deviceId, key), FAILED_PURGE_DELAY_MS);
 	}
 
 	/** Revert a pending change: restore deviceValues to previousValue and remove from queue.

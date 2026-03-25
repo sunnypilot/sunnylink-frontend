@@ -244,7 +244,7 @@
 			if (offline) return;
 			const controller = new AbortController();
 			fetchSchemaValues(controller.signal);
-			return () => controller.abort();
+			return () => controller.abort('effect cleanup');
 		}
 	});
 
@@ -255,7 +255,7 @@
 			if (offline) return;
 			const controller = new AbortController();
 			fetchCurrentValues(controller.signal);
-			return () => controller.abort();
+			return () => controller.abort('effect cleanup');
 		}
 	});
 
@@ -338,6 +338,10 @@
 							const vals = deviceState.deviceValues[did] ??= {};
 							for (const item of response.items) {
 								if (item.key && item.value !== undefined) {
+									// Preserve user's optimistic value for keys with in-flight changes
+									const pc = pendingChanges.getForKey(did, item.key);
+									const pcActive = pc && (pc.status === 'pending' || pc.status === 'pushing' || pc.status === 'blocked_onroad');
+									if (batchPush.hasPendingKey(did, item.key) || pcActive) continue;
 									vals[item.key] = decodeParamValue({
 										key: item.key,
 										value: item.value,
@@ -417,6 +421,9 @@
 							const vals = deviceState.deviceValues[did] ??= {};
 							for (const item of response.items) {
 								if (item.key && item.value !== undefined) {
+									const pc = pendingChanges.getForKey(did, item.key);
+									const pcActive = pc && (pc.status === 'pending' || pc.status === 'pushing' || pc.status === 'blocked_onroad');
+									if (batchPush.hasPendingKey(did, item.key) || pcActive) continue;
 									const def = categorySettings.find((s) => s.key === item.key);
 									const type = def?.value?.type ?? 'String';
 									vals[item.key] = decodeParamValue({

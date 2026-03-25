@@ -11,18 +11,44 @@ import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
  * NOTE: getIdToken() only returns cached tokens — it does NOT auto-refresh.
  * We must call authState.refreshSession() first to get a fresh token.
  */
-const API_TIMEOUT_MS = 10_000; // 10s max for any single API call
+const API_TIMEOUT_MS = 30_000; // 30s max for any single API call
 
 export const customFetch: typeof fetch = async (input, init) => {
-	// Wrap every request in an AbortController timeout so stale/slow calls
+	// Skip the global timeout if the caller already provides an AbortSignal
+	// (e.g., setDeviceParams with its own 20s timeout). Avoids double-abort conflicts.
+	if (init?.signal) {
+		const response = await fetch(input, init);
+
+		if (response.status === 401 || response.status === 403) {
+			if (browser && logtoClient) {
+				try {
+					const refreshed = await authState.refreshSession();
+					if (refreshed) {
+						const newToken = await getIdToken();
+						if (newToken) {
+							const newHeaders = new Headers(init?.headers);
+							newHeaders.set('Authorization', `Bearer ${newToken}`);
+							return fetch(input, { ...init, headers: newHeaders });
+						}
+					}
+				} catch (e) {
+					console.error('Session refresh failed during 401/403 interception:', e);
+				}
+			}
+		}
+
+		return response;
+	}
+
+	// No caller signal — apply global timeout so stale/slow calls
 	// never block SvelteKit navigation indefinitely.
 	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+	const timeoutId = setTimeout(() => controller.abort('API timeout'), API_TIMEOUT_MS);
 
 	try {
 		const response = await fetch(input, {
 			...init,
-			signal: init?.signal ?? controller.signal
+			signal: controller.signal
 		});
 
 		if (response.status === 401 || response.status === 403) {

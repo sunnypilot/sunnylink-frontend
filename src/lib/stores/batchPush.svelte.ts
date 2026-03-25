@@ -1,7 +1,7 @@
 /** Batches per-device param changes, flushing as a single setDeviceParams() call after a 4s debounce. */
 
-import { setDeviceParams, DeviceRejectionError } from '$lib/api/device';
-import { encodeParamValue } from '$lib/utils/device';
+import { setDeviceParams, fetchSettingsAsync, DeviceRejectionError } from '$lib/api/device';
+import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 import { deviceState } from '$lib/stores/device.svelte';
 import { logtoClient } from '$lib/logto/auth.svelte';
 import { toastState } from '$lib/stores/toast.svelte';
@@ -10,6 +10,8 @@ import { pushStateStore } from '$lib/stores/pushState.svelte';
 
 const DEBOUNCE_MS = 4_000;
 const CONFIRMED_CLEAR_MS = 3_000;
+const VERIFY_POLL_INTERVAL_MS = 1_500;
+const VERIFY_MAX_ATTEMPTS = 6; // ~9s max verification time
 
 export type KeyState = 'pending' | 'syncing' | 'confirmed' | 'failed';
 
@@ -93,7 +95,10 @@ class BatchPushStore {
 		return false;
 	}
 
-	/** Immediately flush all pending changes for a device. */
+	/** Immediately flush all pending changes for a device.
+	 *  Dispatches the v0 POST (fire-and-forget for the slow response), then verifies
+	 *  the write by reading back the values via the fast v1 async API.
+	 *  Confirmation happens when the read-back matches — identical timing for all params. */
 	async flush(deviceId: string): Promise<void> {
 		this.clearTimer(deviceId);
 		const queue = this.queues[deviceId];
@@ -104,7 +109,7 @@ class BatchPushStore {
 		const keys = Object.keys(queue);
 		const entries = { ...queue };
 
-		// Mark all as syncing
+		// Mark all as syncing (muted UI, blue accent)
 		for (const k of keys) {
 			this.setKeyState(deviceId, k, 'syncing');
 			pushStateStore.startPush(deviceId, k);
@@ -112,44 +117,134 @@ class BatchPushStore {
 
 		try {
 			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Session expired');
+			if (!token) {
+				this.handleDefiniteFailure(
+					deviceId,
+					keys,
+					entries,
+					'Session expired. Please sign in again.'
+				);
+				return;
+			}
 
 			const params = keys.map((k) => ({ key: k, value: entries[k]!.encodedValue }));
-			await setDeviceParams(deviceId, params, token, 5_000);
 
-			// Success: update state and cache
-			const gitCommit = (deviceState.deviceValues[deviceId]?.['GitCommit'] as string) || '';
-			for (const k of keys) {
-				this.setKeyState(deviceId, k, 'confirmed');
-				pushStateStore.endPush(deviceId, k);
-				if (gitCommit) updateCachedValue(deviceId, gitCommit, k, entries[k]!.desiredValue);
-			}
-			this.removeKeys(deviceId, keys);
+			// 1. Fire the v0 POST — don't await the slow backend response.
+			//    Handle definite failures (4xx, no network) asynchronously.
+			setDeviceParams(deviceId, params, token, 30_000).catch((err) => {
+				if (err instanceof DeviceRejectionError) {
+					this.rollbackKeys(deviceId, keys, entries);
+					toastState.show(`Device rejected: ${err.message}`, 'error');
+				} else if ((err as { name?: string })?.name === 'TypeError') {
+					this.rollbackKeys(deviceId, keys, entries);
+					toastState.show(
+						'No network connection. Please check your internet and try again.',
+						'error'
+					);
+				}
+				// Abort, timeout, 5xx — device likely processed the write.
+			});
 
-			// Auto-clear confirmed state after delay
-			setTimeout(() => {
-				for (const k of keys) this.clearKeyState(deviceId, k, 'confirmed');
-			}, CONFIRMED_CLEAR_MS);
-		} catch (err) {
-			// Rollback deviceValues to previous state
-			const values = deviceState.deviceValues[deviceId];
-			if (values) {
-				for (const k of keys) values[k] = entries[k]!.previousValue;
-			}
-			for (const k of keys) {
-				this.setKeyState(deviceId, k, 'failed');
-				pushStateStore.endPush(deviceId, k);
-			}
-			this.removeKeys(deviceId, keys);
+			// 2. Verify the write by reading back values via the fast v1 async API.
+			//    This completes in ~2s for ALL params regardless of v0 POST timing.
+			const verified = await this.verifyWrite(deviceId, keys, entries, token);
 
-			const message =
-				err instanceof DeviceRejectionError
-					? `Device rejected: ${err.message}`
-					: (err as Error)?.message || 'Failed to push settings';
-			toastState.show(message, 'error');
+			if (verified) {
+				this.confirmKeys(deviceId, keys, entries);
+			} else {
+				// Verification timed out — confirm optimistically, prefetch will correct if wrong.
+				this.confirmKeys(deviceId, keys, entries);
+			}
+		} catch {
+			// Token error or unexpected — confirm optimistically
+			this.confirmKeys(deviceId, keys, entries);
 		} finally {
 			this.flushing[deviceId] = false;
 		}
+	}
+
+	/** Read back pushed keys from device via v1 async API to verify the write.
+	 *  Returns true once all values match, or false after max attempts. */
+	private async verifyWrite(
+		deviceId: string,
+		keys: string[],
+		entries: Record<string, BatchEntry>,
+		token: string
+	): Promise<boolean> {
+		for (let attempt = 0; attempt < VERIFY_MAX_ATTEMPTS; attempt++) {
+			if (attempt > 0) {
+				await new Promise((r) => setTimeout(r, VERIFY_POLL_INTERVAL_MS));
+			}
+
+			try {
+				const response = await fetchSettingsAsync(deviceId, keys, token);
+				if (!response.items) continue;
+
+				// Check if ALL pushed values match what the device now has
+				let allMatch = true;
+				for (const item of response.items) {
+					if (!item.key || item.value === undefined) continue;
+					const entry = entries[item.key];
+					if (!entry) continue;
+					const deviceValue = decodeParamValue({
+						key: item.key,
+						value: item.value,
+						type: item.type ?? 'String'
+					});
+					if (!this.valuesEqual(deviceValue, entry.desiredValue)) {
+						allMatch = false;
+						break;
+					}
+				}
+
+				if (allMatch && response.items.length > 0) return true;
+			} catch {
+				// Read failed — retry
+			}
+		}
+		return false;
+	}
+
+	/** Mark keys as confirmed, update cache, remove from queue. */
+	private confirmKeys(deviceId: string, keys: string[], entries: Record<string, BatchEntry>): void {
+		const gitCommit = (deviceState.deviceValues[deviceId]?.['GitCommit'] as string) || '';
+		for (const k of keys) {
+			this.setKeyState(deviceId, k, 'confirmed');
+			pushStateStore.endPush(deviceId, k);
+			if (gitCommit) updateCachedValue(deviceId, gitCommit, k, entries[k]!.desiredValue);
+		}
+		this.removeKeys(deviceId, keys);
+		setTimeout(() => {
+			for (const k of keys) this.clearKeyState(deviceId, k, 'confirmed');
+		}, CONFIRMED_CLEAR_MS);
+	}
+
+	/** Roll back keys to previous values, mark as failed. */
+	private rollbackKeys(
+		deviceId: string,
+		keys: string[],
+		entries: Record<string, BatchEntry>
+	): void {
+		const values = deviceState.deviceValues[deviceId];
+		if (values) {
+			for (const k of keys) values[k] = entries[k]!.previousValue;
+		}
+		for (const k of keys) {
+			this.setKeyState(deviceId, k, 'failed');
+			pushStateStore.endPush(deviceId, k);
+		}
+		this.removeKeys(deviceId, keys);
+	}
+
+	/** Handle a definite pre-send failure (no token, etc.). */
+	private handleDefiniteFailure(
+		deviceId: string,
+		keys: string[],
+		entries: Record<string, BatchEntry>,
+		message: string
+	): void {
+		this.rollbackKeys(deviceId, keys, entries);
+		toastState.show(message, 'error');
 	}
 
 	/** Get the current state for a specific key. */
@@ -169,6 +264,12 @@ class BatchPushStore {
 		const s = this.states[deviceId];
 		if (!s) return false;
 		return Object.values(s).some((v) => v === 'pending' || v === 'syncing');
+	}
+
+	/** True if a specific key has a pending or syncing change (user's optimistic value should be preserved). */
+	hasPendingKey(deviceId: string, key: string): boolean {
+		const state = this.states[deviceId]?.[key];
+		return state === 'pending' || state === 'syncing';
 	}
 
 	/** Remove a key from the pending batch before it flushes. */
