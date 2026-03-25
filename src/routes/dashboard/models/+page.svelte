@@ -770,7 +770,7 @@
 	title="Models"
 	description="Manage and switch driving models & related settings for your device."
 	syncStatus={modelList ? sync.status : undefined}
-	loading={(loadingModels || isCheckingStatus) && !modelList}
+	loading={!!(loadingModels || isCheckingStatus) && !modelList}
 	onRefresh={() => fetchModelsForDevice(true)}
 >
 

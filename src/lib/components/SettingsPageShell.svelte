@@ -1,11 +1,11 @@
 <script lang="ts">
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
-	import type { SyncState } from '$lib/utils/syncStatus.svelte';
+	import type { SyncStatus } from '$lib/utils/syncStatus.svelte';
 
 	interface Props {
 		title: string;
 		description?: string;
-		syncStatus?: SyncState;
+		syncStatus?: SyncStatus;
 		onRefresh?: () => void;
 		loading?: boolean;
 		children: import('svelte').Snippet;

@@ -207,8 +207,9 @@
 	// revalidatingValues = this page's own fetch running.
 	// !deviceVerified = first visit, no values yet.
 	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
+	let isDeviceLoading = $derived(deviceOnlineStatus === 'loading');
 	let isRevalidating = $derived(
-		!isDeviceOfflineOrError && (revalidatingValues || !deviceVerified || isStale)
+		isDeviceLoading || (!isDeviceOfflineOrError && (revalidatingValues || !deviceVerified || isStale))
 	);
 
 	// Overall revalidation succeeded: device is online, verified, no active fetch, not stale.
@@ -458,11 +459,10 @@
 		if (!deviceId || !logtoClient) return;
 		// Set stale immediately for instant "Refreshing..." feedback.
 		deviceState.valuesStale[deviceId] = true;
-		// Fire-and-forget: re-fetch schema (settings_ui.json) from device in parallel.
-		// checkDeviceStatus calls fetchParamsMetadata which picks up schema changes
-		// (new items, renamed labels, etc.) without requiring a full browser refresh.
+		// Force a device status check — this re-fetches schema (settings_ui.json),
+		// capabilities, and reconnects if offline.
 		logtoClient.getIdToken().then((token) => {
-			if (token && deviceId) checkDeviceStatus(deviceId, token, true, true);
+			if (token && deviceId) checkDeviceStatus(deviceId, token, true, false);
 		});
 	}
 
