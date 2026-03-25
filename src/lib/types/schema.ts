@@ -70,6 +70,7 @@ export interface Capabilities {
 	tesla_has_vehicle_bus: boolean;
 	has_stop_and_go: boolean;
 	stock_longitudinal: boolean;
+	device_type: string;
 }
 
 export type WidgetType = 'toggle' | 'option' | 'multiple_button' | 'button' | 'info';

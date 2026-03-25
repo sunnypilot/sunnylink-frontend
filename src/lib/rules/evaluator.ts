@@ -157,7 +157,8 @@ const CAPABILITY_LABELS_FALLBACK: Record<string, string> = {
 	pcm_cruise: 'PCM cruise',
 	enable_bsm: 'BSM available',
 	stock_longitudinal: 'Stock longitudinal',
-	tesla_has_vehicle_bus: 'Tesla vehicle bus'
+	tesla_has_vehicle_bus: 'Tesla vehicle bus',
+	device_type: 'Device type'
 };
 
 /**

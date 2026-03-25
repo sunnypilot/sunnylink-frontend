@@ -78,10 +78,13 @@
 		return groups;
 	});
 
-	// Sort sections by order field (if present), preserving array order as fallback
+	// Sort sections by order field (if present), preserving array order as fallback.
+	// Sections with failing visibility rules are hidden entirely (Approach A).
 	let orderedSections = $derived.by(() => {
 		if (!panel.sections) return [];
-		return [...panel.sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+		return [...panel.sections]
+			.filter((s) => isSectionVisible(s))
+			.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 	});
 
 	let hasContent = $derived(
@@ -102,6 +105,11 @@
 		return evaluateRule(sp.trigger_condition, ruleContext);
 	}
 
+	/** Check if a section is visible (visibility rules). Hidden sections are removed entirely. */
+	function isSectionVisible(section: PanelSection): boolean {
+		return isVisible(section.visibility, ruleContext);
+	}
+
 	/** Check if a section's enablement rules are satisfied */
 	function isSectionEnabled(section: PanelSection): boolean {
 		return evaluateRules(section.enablement, ruleContext);
@@ -112,6 +120,12 @@
 		const schema = schemaState.schemas[deviceId];
 		const capLabels = schema?.capability_labels;
 		return getDisabledReasons(section.enablement, ruleContext, undefined, capLabels);
+	}
+
+	/** Get items within a section that pass visibility rules.
+	 *  Items with failing visibility are hidden entirely (Approach A: Apple/Tesla model). */
+	function getVisibleItems(section: PanelSection): SchemaItem[] {
+		return section.items.filter((item) => isVisible(item.visibility, ruleContext));
 	}
 
 	function getSectionSubPanelByTrigger(section: PanelSection): Record<string, SubPanel> {
@@ -130,6 +144,10 @@
 			{#each orderedSections as section, si (section.id)}
 				{@const sectionEnabled = isSectionEnabled(section)}
 				{@const sectionReasons = sectionEnabled ? [] : getSectionDisabledReasons(section)}
+				{@const visibleItems = getVisibleItems(section)}
+				{@const sectionHasContent = visibleItems.length > 0 || getAllSectionSubPanels(section).length > 0}
+				<!-- Skip sections where all items are hidden by visibility rules -->
+				{#if sectionHasContent}
 				<!-- 48px between sections (Linear: card bottom → next section title), 0 for first -->
 				<div class:mt-12={si > 0}>
 				<!-- Section title + description -->
@@ -150,18 +168,18 @@
 					</div>
 				{/if}
 
-				{#if section.items.length > 0 || getAllSectionSubPanels(section).length > 0}
+				{#if visibleItems.length > 0 || getAllSectionSubPanels(section).length > 0}
 					{@const spMap = getSectionSubPanelByTrigger(section)}
-					{@const orphans = getAllSectionSubPanels(section).filter(sp => !section.items.some(i => i.key === sp.trigger_key))}
+					{@const orphans = getAllSectionSubPanels(section).filter(sp => !visibleItems.some(i => i.key === sp.trigger_key))}
 					<!-- 12px title→card (Linear: ~13px) -->
 					<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-						{#each section.items as item, i (item.key)}
+						{#each visibleItems as item, i (item.key)}
 							<SchemaItemRenderer
 								{deviceId}
 								{item}
 								{loadingValues}
 								{readonly}
-								isLast={i === section.items.length - 1 && !spMap[item.key] && orphans.length === 0}
+								isLast={i === visibleItems.length - 1 && !spMap[item.key] && orphans.length === 0}
 							/>
 							{#if spMap[item.key] !== undefined}
 								{@const spEnabled = isSubPanelEnabled(spMap[item.key]!, section)}
@@ -175,7 +193,7 @@
 									<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{spMap[item.key]?.label}</span>
 									<ChevronRight size={16} class="text-[var(--sl-text-3)]" />
 								</button>
-								{#if i < section.items.length - 1 || orphans.length > 0}
+								{#if i < visibleItems.length - 1 || orphans.length > 0}
 									<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 								{/if}
 							{/if}
@@ -199,6 +217,7 @@
 					</div>
 				{/if}
 				</div>
+				{/if}
 			{/each}
 		{:else}
 			<!-- ═══ V1: Legacy flat items rendering ═══ -->
