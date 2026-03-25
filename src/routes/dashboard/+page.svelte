@@ -14,6 +14,8 @@
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
 	import { v1Client } from '$lib/api/client';
+	import { preferences } from '$lib/stores/preferences.svelte';
+	import { Mouse } from 'lucide-svelte';
 
 	let { data } = $props();
 
@@ -320,9 +322,15 @@
 	}
 
 	function handleDeviceClick(device: any) {
+		sessionDismissedNudge = true;
 		deviceState.setSelectedDevice(device.device_id);
 		goto('/dashboard/settings/device');
 	}
+
+	// Nudge: show hint for first-time users when no device is selected
+	let showNudge = $derived(!deviceState.selectedDeviceId && preferences.showDashboardNudge);
+	let sessionDismissedNudge = $state(false);
+	let nudgeVisible = $derived(showNudge && !sessionDismissedNudge);
 
 	// Use cached devices from deviceState for instant rendering; update when API returns
 	let devices = $derived(deviceState.pairedDevices);
@@ -379,6 +387,35 @@
 				</p>
 			</div>
 
+			{#if nudgeVisible}
+				<div class="mb-4 px-4" transition:slide={{ duration: 150 }}>
+					<div
+						class="flex items-center gap-3 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3"
+					>
+						<Mouse size={16} class="shrink-0 text-[var(--sl-text-3)]" />
+						<p class="flex-1 text-[0.8125rem] text-[var(--sl-text-2)]">
+							Click a device card to view and manage its settings
+						</p>
+						<button
+							class="btn text-[var(--sl-text-3)] btn-ghost btn-xs"
+							onclick={() => {
+								sessionDismissedNudge = true;
+							}}>Dismiss</button
+						>
+						<label class="flex items-center gap-1.5">
+							<input
+								type="checkbox"
+								class="checkbox border-slate-500 checkbox-xs checkbox-primary"
+								onchange={() => {
+									preferences.showDashboardNudge = false;
+								}}
+							/>
+							<span class="text-xs text-[var(--sl-text-3)]">Don't show again</span>
+						</label>
+					</div>
+				</div>
+			{/if}
+
 			<div class="mb-3 flex items-center justify-between px-4">
 				<h2 class="text-xs font-semibold tracking-[0.2em] text-[var(--sl-text-3)] uppercase">
 					Devices
@@ -397,7 +434,7 @@
 					{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
 					<div
-						class="group rounded-xl border border-y border-r border-l-[3px] transition-colors duration-150 hover:bg-[var(--sl-bg-elevated)]/30 {getStripColor(
+						class="group rounded-xl border border-y border-r border-l-[3px] transition-all duration-150 hover:border-y-[var(--sl-text-3)]/30 hover:border-r-[var(--sl-text-3)]/30 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {getStripColor(
 							device
 						)} {isSelected
 							? 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-primary/[0.04] dark:bg-primary/[0.08]'
@@ -567,7 +604,7 @@
 								{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
 								<div
-									class="group rounded-xl border border-y border-r border-l-[3px] border-l-[var(--sl-text-3)]/20 transition-colors duration-150 hover:bg-[var(--sl-bg-elevated)]/30 {isSelected
+									class="group rounded-xl border border-y border-r border-l-[3px] border-l-[var(--sl-text-3)]/20 transition-all duration-150 hover:border-y-[var(--sl-text-3)]/30 hover:border-r-[var(--sl-text-3)]/30 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 										? 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-primary/[0.04] dark:bg-primary/[0.08]'
 										: 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-[var(--sl-bg-surface)]'}"
 									onclick={() => handleDeviceClick(device)}
