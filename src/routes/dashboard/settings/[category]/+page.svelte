@@ -479,10 +479,13 @@
 		if (!deviceId || !logtoClient) return;
 		// Set stale immediately for instant "Refreshing..." feedback.
 		deviceState.valuesStale[deviceId] = true;
-		// Force a device status check — this re-fetches schema (settings_ui.json),
-		// capabilities, and reconnects if offline.
 		logtoClient.getIdToken().then((token) => {
-			if (token && deviceId) checkDeviceStatus(deviceId, token, true, false);
+			if (!token || !deviceId) return;
+			// Refresh capabilities immediately (fast, single RPC) — updates
+			// enablement/visibility rules without waiting for full status check.
+			schemaState.refreshCapabilities(deviceId, token);
+			// Full status check in parallel — re-fetches schema, offroad status, etc.
+			checkDeviceStatus(deviceId, token, true, false);
 		});
 	}
 

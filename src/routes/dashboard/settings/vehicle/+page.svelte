@@ -172,7 +172,14 @@
 	title="Vehicle"
 	description="Fingerprint and platform selection"
 	syncStatus={sync.status}
-	onRefresh={() => fetchBrandValues(true)}
+	onRefresh={() => {
+		fetchBrandValues(true);
+		if (deviceId && logtoClient) {
+			logtoClient.getIdToken().then((token) => {
+				if (token && deviceId) schemaState.refreshCapabilities(deviceId, token);
+			});
+		}
+	}}
 >
 	{#if deviceId}
 		<!-- Vehicle section: selector card -->

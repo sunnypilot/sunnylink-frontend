@@ -398,13 +398,22 @@ export async function checkDeviceStatus(
 		// Only update if schema structure actually changed to avoid re-triggering derived state.
 		if (compressedSettings !== null) {
 			const existing = schemaState.schemas[deviceId];
-			if (
+			const schemaChanged =
 				!existing ||
 				JSON.stringify(existing.panels) !== JSON.stringify(compressedSettings.panels) ||
 				JSON.stringify(existing.vehicle_settings) !==
-					JSON.stringify(compressedSettings.vehicle_settings)
-			) {
+					JSON.stringify(compressedSettings.vehicle_settings);
+
+			if (schemaChanged) {
 				schemaState.schemas[deviceId] = compressedSettings;
+			} else if (compressedSettings.capabilities) {
+				// Schema structure unchanged but capabilities may have changed
+				// (e.g., vehicle fingerprint, CarParamsPersistent update)
+				schemaState.schemas[deviceId] = {
+					...existing,
+					capabilities: compressedSettings.capabilities,
+					capability_labels: compressedSettings.capability_labels
+				};
 			}
 			deviceState.markStatusChecked(deviceId);
 			return;
