@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { getCarList, setDeviceParams, fetchSettingsAsync } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -42,6 +43,7 @@
 	let hasAttemptedAutoFetch = $state(carList ? true : false);
 	let modalOpen = $state(false);
 	let detailsOpen = $state(false);
+	let rawOpen = $state(false);
 
 	// Confirmation Modal State
 	let confirmOpen = $state(false);
@@ -402,7 +404,7 @@
 			</button>
 
 			{#if detailsOpen}
-				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3 text-[0.8125rem]">
+				<div transition:slide={{ duration: 200 }} class="border-t border-[var(--sl-border-muted)] px-4 py-3 text-[0.8125rem]">
 					{#if carPlatformBundle}
 						<div class="space-y-2">
 							<div class="flex justify-between">
@@ -451,12 +453,18 @@
 						</div>
 					{/if}
 
-					<details class="mt-3">
-						<summary class="cursor-pointer font-mono text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]">
+					<div class="mt-3">
+						<button
+							class="flex items-center gap-1.5 cursor-pointer font-mono text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)] transition-colors"
+							onclick={() => rawOpen = !rawOpen}
+						>
+							<ChevronDown size={12} class="transition-transform {rawOpen ? '' : '-rotate-90'}" />
 							Raw configuration
-						</summary>
-						<pre class="mt-2 overflow-x-auto rounded-lg bg-[var(--sl-bg-input)] p-3 text-xs text-[var(--sl-text-2)]">{JSON.stringify(carPlatformBundle || matchingCars, null, 2)}</pre>
-					</details>
+						</button>
+						{#if rawOpen}
+							<pre transition:slide={{ duration: 200 }} class="mt-2 overflow-x-auto rounded-lg bg-[var(--sl-bg-input)] p-3 text-xs text-[var(--sl-text-2)]">{JSON.stringify(carPlatformBundle || matchingCars, null, 2)}</pre>
+						{/if}
+					</div>
 				</div>
 			{/if}
 		</div>

@@ -136,7 +136,7 @@ const CAPABILITY_LABELS_FALLBACK: Record<string, string> = {
 	has_longitudinal_control: 'Longitudinal control',
 	has_icbm: 'ICBM enabled',
 	icbm_available: 'ICBM available',
-	torque_allowed: 'Torque lateral control',
+	torque_allowed: 'torque steering (not available for angle steering vehicles)',
 	alpha_long_available: 'Alpha longitudinal available',
 	has_stop_and_go: 'Stop and Go',
 	pcm_cruise: 'PCM cruise',

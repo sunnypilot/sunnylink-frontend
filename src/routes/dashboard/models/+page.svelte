@@ -41,6 +41,7 @@
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 
 	const DEFAULT_MODEL: ModelBundle = {
@@ -765,20 +766,13 @@
 	}
 </script>
 
-<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-	<div class="px-4">
-		<div class="flex items-baseline gap-3">
-			<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">Models</h2>
-			{#if (loadingModels || isCheckingStatus) && !modelList}
-				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
-			{:else if modelList}
-				<SyncStatusIndicator status={sync.status} onRefresh={() => fetchModelsForDevice(true)} />
-			{/if}
-		</div>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
-			Manage and switch driving models & related settings for your device.
-		</p>
-	</div>
+<SettingsPageShell
+	title="Models"
+	description="Manage and switch driving models & related settings for your device."
+	syncStatus={modelList ? sync.status : undefined}
+	loading={(loadingModels || isCheckingStatus) && !modelList}
+	onRefresh={() => fetchModelsForDevice(true)}
+>
 
 	{#if authState.loading}
 		<DashboardSkeleton />
@@ -859,7 +853,7 @@
 				</button>
 			</div>
 		{/if}
-		<div class="space-y-6">
+		<div>
 			{#if currentModel}
 				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel ? 'opacity-60' : ''}  transition-opacity duration-200">
 				<div class="flex items-center justify-between px-4 py-4">
@@ -941,11 +935,11 @@
 
 			{/if}
 
-			<div class="px-4">
+			<div class="mt-12 px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Available Models</p>
 			</div>
 
-			<div class="relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
+			<div class="mt-3 relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
 				<div class="border-b border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)] px-4 py-2.5">
 					<div class="relative">
 						<input
@@ -1121,11 +1115,13 @@
 			{#if deviceState.selectedDeviceId}
 				{@const modelsPanel = schemaState.schemas[deviceState.selectedDeviceId]?.panels?.find(p => p.id === 'models')}
 				{#if modelsPanel}
+					<div class="mt-12">
 					<SchemaPanel
 						deviceId={deviceState.selectedDeviceId}
 						panel={modelsPanel}
 						loadingValues={loadingModels}
 					/>
+					</div>
 				{:else if currentModel}
 					{@const modelSettingItems = [
 						cameraOffsetParam && currentModel !== DEFAULT_MODEL ? cameraOffsetParam : null,
@@ -1136,10 +1132,10 @@
 						nnlcParam && isLegacyActive ? nnlcParam : null
 					].filter((p): p is NonNullable<typeof p> => p !== null)}
 					{#if modelSettingItems.length > 0}
-						<div class="px-4">
+						<div class="mt-12 px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
 						</div>
-						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+						<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 							{#each modelSettingItems as param, i (param.key)}
 								<SchemaItemRenderer
 									deviceId={deviceState.selectedDeviceId}
@@ -1156,7 +1152,7 @@
 
 		<!-- Modal removed — model selection is now inline within the folder list -->
 	{/if}
-</div>
+</SettingsPageShell>
 
 <ForceOffroadModal
 	bind:open={forceOffroadModalOpen}

@@ -124,14 +124,15 @@
 </script>
 
 {#if hasContent}
-	<div class="space-y-8">
+	<div>
 		{#if useSections}
 			<!-- ═══ V2: Sections-based rendering ═══ -->
 			{#each orderedSections as section, si (section.id)}
 				{@const sectionEnabled = isSectionEnabled(section)}
 				{@const sectionReasons = sectionEnabled ? [] : getSectionDisabledReasons(section)}
-				<div class="space-y-3" class:mt-2={si > 0 && section.title}>
-				<!-- Section title + description (outside card, indented to match page title) -->
+				<!-- 48px between sections (Linear: card bottom → next section title), 0 for first -->
+				<div class:mt-12={si > 0}>
+				<!-- Section title + description -->
 				{#if section.title}
 					<div class="px-4 transition-opacity duration-150" class:setting-dimmed={!sectionEnabled}>
 						<div class="flex items-center gap-2">
@@ -143,7 +144,8 @@
 							{/if}
 						</div>
 						{#if section.description}
-							<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{section.description}</p>
+							<!-- 7px title→desc (Linear), mt-2 = 8px closest match -->
+							<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{section.description}</p>
 						{/if}
 					</div>
 				{/if}
@@ -151,7 +153,8 @@
 				{#if section.items.length > 0 || getAllSectionSubPanels(section).length > 0}
 					{@const spMap = getSectionSubPanelByTrigger(section)}
 					{@const orphans = getAllSectionSubPanels(section).filter(sp => !section.items.some(i => i.key === sp.trigger_key))}
-					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+					<!-- 12px title→card (Linear: ~13px) -->
+					<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 						{#each section.items as item, i (item.key)}
 							<SchemaItemRenderer
 								{deviceId}
@@ -200,13 +203,14 @@
 		{:else}
 			<!-- ═══ V1: Legacy flat items rendering ═══ -->
 			{#each itemGroups as group, gi (gi)}
+				<div class:mt-12={gi > 0 && group.label} class:mt-3={gi > 0 && !group.label}>
 				{#if group.label}
-					<div class="px-4 {gi > 0 ? 'mt-2' : ''}">
+					<div class="px-4">
 						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
 					</div>
 				{/if}
 
-				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 					{#each group.items as item, i (item.key)}
 						{@const isLastItem = i === group.items.length - 1 && !subPanelByTrigger[item.key]}
 						<SchemaItemRenderer
@@ -249,6 +253,7 @@
 							<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 						{/if}
 					{/each}
+				</div>
 				</div>
 			{/each}
 		{/if}

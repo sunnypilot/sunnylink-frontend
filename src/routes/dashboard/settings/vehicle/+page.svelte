@@ -8,7 +8,7 @@
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import VehicleSelector from '$lib/components/vehicle/VehicleSelector.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
-	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
@@ -33,11 +33,14 @@
 		}
 	}
 
-	// Determine current brand from capabilities
+	// Determine current brand — mirrors device-side VehicleLayout.get_brand()
 	let currentBrand = $derived.by(() => {
 		if (!deviceId) return '';
-		const caps = schemaState.capabilities[deviceId];
-		return caps?.brand ?? '';
+		// Primary: CarPlatformBundle.brand (available immediately after vehicle selection)
+		const bundle = deviceState.deviceValues[deviceId]?.CarPlatformBundle as { brand?: string } | null;
+		if (bundle?.brand) return bundle.brand;
+		// Fallback: capabilities.brand (from CarParamsPersistent, available after fingerprint)
+		return schemaState.capabilities[deviceId]?.brand ?? '';
 	});
 
 	// Get brand-specific settings from schema
@@ -60,12 +63,12 @@
 		}
 	});
 
-	async function fetchBrandValues() {
+	async function fetchBrandValues(force = false) {
 		if (!deviceId || !logtoClient || brandSettings.length === 0) return;
 
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		const keys = brandSettings.map((item) => item.key);
-		const missing = keys.filter((k) => existing[k] === undefined);
+		const missing = force ? keys : keys.filter((k) => existing[k] === undefined);
 		if (missing.length === 0) return;
 
 		loadingBrandValues = true;
@@ -118,9 +121,16 @@
 		vehicleApiFailed = false;
 	}
 
-	function handleVehicleApiEnd(success: boolean) {
+	async function handleVehicleApiEnd(success: boolean) {
 		vehicleApiInFlight = false;
 		vehicleApiFailed = !success;
+		// After a successful vehicle change, refresh capabilities to get the new brand
+		if (success && deviceId && logtoClient) {
+			try {
+				const token = await logtoClient.getIdToken();
+				if (token) await schemaState.refreshCapabilities(deviceId, token);
+			} catch { /* capabilities refresh is best-effort */ }
+		}
 	}
 
 	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
@@ -131,33 +141,36 @@
 	);
 </script>
 
-<div class="mx-auto max-w-2xl xl:max-w-3xl space-y-6">
-	<div class="px-4">
-		<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
-			<span>Vehicle</span>
-			<SyncStatusIndicator status={sync.status} onRefresh={() => fetchBrandValues()} />
-		</h2>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Fingerprint and platform selection</p>
-	</div>
-
+<SettingsPageShell
+	title="Vehicle"
+	description="Fingerprint and platform selection"
+	syncStatus={sync.status}
+	onRefresh={() => fetchBrandValues(true)}
+>
 	{#if deviceId}
+		<!-- Vehicle section: selector card -->
 		<div class="px-4">
 			<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Vehicle</p>
 		</div>
-		<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
+		<div class="mt-3">
+			<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
+		</div>
 
 		{#if brandSettings.length > 0}
-			<div class="px-4">
-				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{brandData?.title ?? currentBrand}</p>
-				{#if brandData?.description}
-					<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{brandData.description}</p>
-				{/if}
-			</div>
-			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-				{#each brandSettings as item, i (item.key)}
-					<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />
-				{/each}
+			<!-- Brand settings section: 48px from previous card -->
+			<div class="mt-12">
+				<div class="px-4">
+					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{brandData?.title ?? currentBrand}</p>
+					{#if brandData?.description}
+						<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{brandData.description}</p>
+					{/if}
+				</div>
+				<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+					{#each brandSettings as item, i (item.key)}
+						<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />
+					{/each}
+				</div>
 			</div>
 		{/if}
 	{/if}
-</div>
+</SettingsPageShell>

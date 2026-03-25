@@ -514,7 +514,7 @@
 	}
 </script>
 
-<div class="space-y-4" class:pb-16={hasChanges && !useSchema}>
+<div class="space-y-9" class:pb-16={hasChanges && !useSchema}>
 	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
 		{#key activeSubPanel?.id ?? '__root__'}
 			<div
@@ -561,7 +561,7 @@
 							{/if}
 						</h2>
 						{#if schemaPanel?.description}
-							<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{schemaPanel.description}</p>
+							<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{schemaPanel.description}</p>
 						{/if}
 					</div>
 				{/if}

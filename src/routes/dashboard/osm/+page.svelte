@@ -12,6 +12,7 @@
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 
@@ -404,21 +405,16 @@
 	}
 </script>
 
-<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-	<div class="px-4">
-		<h1 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
-			<span>Maps</span>
-			{#if loadingOsmParams}
-				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
-			{:else}
-				<SyncStatusIndicator status={sync.status} onRefresh={() => {
-					const did = deviceState.selectedDeviceId;
-					if (did && logtoClient) logtoClient.getIdToken().then((token) => { if (token) fetchOsmParams(did, token, true); });
-				}} />
-			{/if}
-		</h1>
-		<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage offline OpenStreetMap data on your device</p>
-	</div>
+<SettingsPageShell
+	title="Maps"
+	description="Manage offline OpenStreetMap data on your device"
+	syncStatus={!loadingOsmParams ? sync.status : undefined}
+	loading={loadingOsmParams}
+	onRefresh={() => {
+		const did = deviceState.selectedDeviceId;
+		if (did && logtoClient) logtoClient.getIdToken().then((token) => { if (token) fetchOsmParams(did, token, true); });
+	}}
+>
 
 	{#if authState.loading}
 		<DashboardSkeleton />
@@ -456,14 +452,14 @@
 			</div>
 		{/await}
 	{:else}
-		<div class="space-y-6">
+		<div>
 			<!-- ── Current Map Section ──────────────────────────────── -->
-			<div>
+			<div class="px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Current Map</p>
-				<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Offline map data downloaded on device</p>
+				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Offline map data downloaded on device</p>
 			</div>
 
-			<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+			<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 				{#if loadingOsmParams && !isDownloading && !hasMap}
 					<div class="flex items-center gap-2.5 px-4 py-3.5">
 						<span class="loading loading-spinner loading-xs text-[var(--sl-text-3)]"></span>
@@ -519,13 +515,13 @@
 				{/if}
 			</div>
 
-			<!-- ── Download Section ─────────────────────────────────── -->
-			<div>
+			<!-- ── Download Section: 48px from previous card ──────── -->
+			<div class="mt-12 px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Download Map</p>
-				<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Select a region to download for offline use</p>
+				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Select a region to download for offline use</p>
 			</div>
 
-			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+			<div class="mt-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
 				<div class="space-y-4 px-4 py-4">
 					<ComboBox
 						label="Country"
@@ -577,4 +573,4 @@
 			</div>
 		</div>
 	{/if}
-</div>
+</SettingsPageShell>
