@@ -16,6 +16,8 @@
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
+	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
+	import { schemaState } from '$lib/stores/schema.svelte';
 	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
@@ -1116,29 +1118,38 @@
 				</div>
 			</div>
 
-			{#if currentModel}
-				{@const modelSettingItems = [
-					cameraOffsetParam && currentModel !== DEFAULT_MODEL ? cameraOffsetParam : null,
-					lagdToggleParam,
-					lagdToggleDelayParam && lagdToggleValue === false ? lagdToggleDelayParam : null,
-					laneTurnDesireParam,
-					laneTurnValueParam && laneTurnDesireParamValue === true ? laneTurnValueParam : null,
-					nnlcParam && isLegacyActive ? nnlcParam : null
-				].filter((p): p is NonNullable<typeof p> => p !== null)}
-				{#if modelSettingItems.length > 0}
-					<div class="px-4">
-						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
-					</div>
-					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
-						{#each modelSettingItems as param, i (param.key)}
-							<SchemaItemRenderer
-								deviceId={deviceState.selectedDeviceId!}
-								item={settingToSchemaItem(param)}
-								loadingValues={loadingModels}
-								isLast={i === modelSettingItems.length - 1}
-							/>
-						{/each}
-					</div>
+			{#if deviceState.selectedDeviceId}
+				{@const modelsPanel = schemaState.schemas[deviceState.selectedDeviceId]?.panels?.find(p => p.id === 'models')}
+				{#if modelsPanel}
+					<SchemaPanel
+						deviceId={deviceState.selectedDeviceId}
+						panel={modelsPanel}
+						loadingValues={loadingModels}
+					/>
+				{:else if currentModel}
+					{@const modelSettingItems = [
+						cameraOffsetParam && currentModel !== DEFAULT_MODEL ? cameraOffsetParam : null,
+						lagdToggleParam,
+						lagdToggleDelayParam && lagdToggleValue === false ? lagdToggleDelayParam : null,
+						laneTurnDesireParam,
+						laneTurnValueParam && laneTurnDesireParamValue === true ? laneTurnValueParam : null,
+						nnlcParam && isLegacyActive ? nnlcParam : null
+					].filter((p): p is NonNullable<typeof p> => p !== null)}
+					{#if modelSettingItems.length > 0}
+						<div class="px-4">
+							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
+						</div>
+						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+							{#each modelSettingItems as param, i (param.key)}
+								<SchemaItemRenderer
+									deviceId={deviceState.selectedDeviceId}
+									item={settingToSchemaItem(param)}
+									loadingValues={loadingModels}
+									isLast={i === modelSettingItems.length - 1}
+								/>
+							{/each}
+						</div>
+					{/if}
 				{/if}
 			{/if}
 		</div>

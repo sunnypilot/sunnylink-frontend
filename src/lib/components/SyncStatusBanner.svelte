@@ -4,7 +4,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
-	import { AlertTriangle, RefreshCw, X, ChevronDown, ChevronUp } from 'lucide-svelte';
+	import { AlertTriangle, RefreshCw, X, ChevronDown, ChevronUp, Shield } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { onDestroy } from 'svelte';
@@ -31,6 +31,7 @@
 		pendingChanges.getByStatus(deviceId, 'confirmed').length
 	);
 	let failedCount = $derived(pendingChanges.failedCount(deviceId));
+	let blockedCount = $derived(pendingChanges.blockedCount(deviceId));
 	let isFlushing = $derived(pendingChanges.isFlushing(deviceId));
 	let driftCount = $derived(driftStore.count(deviceId));
 	let driftEntries = $derived(driftStore.getAll(deviceId));
@@ -84,7 +85,7 @@
 	});
 
 	// Only show for actionable states: failed (retry), drift (review), or actively syncing.
-	let showBanner = $derived(failedCount > 0 || isFlushing || driftCount > 0);
+	let showBanner = $derived(failedCount > 0 || blockedCount > 0 || isFlushing || driftCount > 0);
 
 	function handleDismissFailed() {
 		const failed = pendingChanges.getByStatus(deviceId, 'failed');
@@ -132,6 +133,7 @@
 
 	let borderColor = $derived(
 		failedCount > 0 ? 'border-red-500/30' :
+		blockedCount > 0 ? 'border-orange-500/30' :
 		isFlushing ? 'border-primary/30' :
 		confirmedCount > 0 ? 'border-emerald-500/30' :
 		driftCount > 0 ? 'border-cyan-500/30' :
@@ -140,6 +142,7 @@
 
 	let dotColor = $derived(
 		failedCount > 0 ? 'bg-red-500' :
+		blockedCount > 0 ? 'bg-orange-500' :
 		isFlushing ? 'bg-primary animate-pulse' :
 		confirmedCount > 0 ? 'bg-emerald-500' :
 		driftCount > 0 ? 'bg-cyan-500' :
@@ -177,6 +180,12 @@
 					</button>
 				{/if}
 			{/if}
+			{#if blockedCount > 0}
+				<span class="flex items-center gap-1.5 text-sm text-orange-600 dark:text-orange-400">
+					<Shield size={14} />
+					{blockedCount} blocked — vehicle is driving
+				</span>
+			{/if}
 
 			{#if driftCount > 0}
 				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
@@ -212,23 +221,17 @@
 		{#if driftExpanded && driftEntries.length > 0}
 			<div class="mt-2 border-t border-[var(--sl-border-muted)] pt-2" transition:slide={{ duration: 150 }}>
 				{#each driftsByPanel as group (group.panelId)}
-					{#if driftsByPanel.length > 1}
-						<div class="mt-1.5 first:mt-0 mb-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--sl-text-3)]">
-							{group.panelLabel}
-						</div>
-					{/if}
 					{#each group.entries as entry (entry.key)}
-						<div class="flex items-center justify-between py-1.5 text-[0.8125rem]">
-							<div class="min-w-0 flex-1">
-								<span class="truncate text-[var(--sl-text-2)]">{keyToItem[entry.key]?.title || entry.key}</span>
-								{#if driftsByPanel.length <= 1 && entry.panelLabel}
-									<span class="ml-1.5 text-[0.6875rem] text-[var(--sl-text-3)]">{entry.panelLabel}</span>
-								{/if}
+						{@const itemName = entry.itemTitle || keyToItem[entry.key]?.title || entry.key}
+						{@const pathParts = [entry.panelLabel, entry.sectionLabel, entry.subPanelLabel, itemName].filter(Boolean)}
+						<div class="flex items-center justify-between gap-3 py-1.5">
+							<div class="min-w-0 flex-1 truncate text-[0.8125rem] text-[var(--sl-text-2)]">
+								{pathParts.join(' \u2192 ')}
 								{#if entry.detectedAt}
-									<span class="ml-1 text-[0.6875rem] text-[var(--sl-text-3)]">{void timeTick, formatRelativeTime(entry.detectedAt)}</span>
+									<span class="text-[0.6875rem] text-[var(--sl-text-3)]">&middot; {void timeTick, formatRelativeTime(entry.detectedAt)}</span>
 								{/if}
 							</div>
-							<span class="ml-3 shrink-0 text-xs tabular-nums text-[var(--sl-text-3)]">
+							<span class="shrink-0 text-xs tabular-nums text-[var(--sl-text-3)]">
 								<span class="text-cyan-700 dark:text-cyan-400">{formatDriftValue(entry.cachedValue, entry.key)}</span>
 								<span class="mx-1">&rarr;</span>
 								<span class="text-[var(--sl-text-1)] font-medium">{formatDriftValue(entry.freshValue, entry.key)}</span>

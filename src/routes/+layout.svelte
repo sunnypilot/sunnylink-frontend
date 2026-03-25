@@ -37,6 +37,7 @@
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
 	import PendingChangesPill from '$lib/components/PendingChangesPill.svelte';
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
+	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
@@ -344,6 +345,11 @@
 		<main
 			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-8'}"
 		>
+			{#if !isLandingPage && deviceState.selectedDeviceId}
+				<div class="mx-auto mb-4 w-full max-w-2xl xl:max-w-3xl">
+					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
+				</div>
+			{/if}
 			{#key pathname}
 				<div
 					class="animate-page-enter"

@@ -2,9 +2,10 @@
 	import SchemaItemRenderer from './SchemaItemRenderer.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { isVisible, evaluateRule, type RuleContext } from '$lib/rules/evaluator';
+	import { isVisible, isEnabled, evaluateRule, evaluateRules, getDisabledReasons, type RuleContext } from '$lib/rules/evaluator';
 	import type { Panel, PanelSection, SubPanel, SchemaItem } from '$lib/types/schema';
 	import { ChevronRight } from 'lucide-svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 
 	interface Props {
 		deviceId: string;
@@ -94,9 +95,23 @@
 	}
 
 	/** Check if a sub-panel's trigger condition is met (enabled) */
-	function isSubPanelEnabled(sp: SubPanel): boolean {
+	function isSubPanelEnabled(sp: SubPanel, section?: PanelSection): boolean {
+		// If the parent section is disabled, sub-panel is also disabled
+		if (section && !isSectionEnabled(section)) return false;
 		if (!sp.trigger_condition) return true;
 		return evaluateRule(sp.trigger_condition, ruleContext);
+	}
+
+	/** Check if a section's enablement rules are satisfied */
+	function isSectionEnabled(section: PanelSection): boolean {
+		return evaluateRules(section.enablement, ruleContext);
+	}
+
+	/** Get human-readable reasons why a section is disabled */
+	function getSectionDisabledReasons(section: PanelSection): string[] {
+		const schema = schemaState.schemas[deviceId];
+		const capLabels = schema?.capability_labels;
+		return getDisabledReasons(section.enablement, ruleContext, undefined, capLabels);
 	}
 
 	function getSectionSubPanelByTrigger(section: PanelSection): Record<string, SubPanel> {
@@ -113,10 +128,19 @@
 		{#if useSections}
 			<!-- ═══ V2: Sections-based rendering ═══ -->
 			{#each orderedSections as section (section.id)}
+				{@const sectionEnabled = isSectionEnabled(section)}
+				{@const sectionReasons = sectionEnabled ? [] : getSectionDisabledReasons(section)}
 				<!-- Section title + description (outside card, indented to match page title) -->
 				{#if section.title}
-					<div class="px-4">
-						<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{section.title}</p>
+					<div class="px-4 transition-opacity duration-150" class:setting-dimmed={!sectionEnabled}>
+						<div class="flex items-center gap-2">
+							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{section.title}</p>
+							{#if !sectionEnabled && sectionReasons.length > 0}
+								<Tooltip text={sectionReasons.join('. ')}>
+									<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+								</Tooltip>
+							{/if}
+						</div>
 						{#if section.description}
 							<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{section.description}</p>
 						{/if}
@@ -136,12 +160,11 @@
 								isLast={i === section.items.length - 1 && !spMap[item.key] && orphans.length === 0}
 							/>
 							{#if spMap[item.key] !== undefined}
-								{@const spEnabled = isSubPanelEnabled(spMap[item.key]!)}
+								{@const spEnabled = isSubPanelEnabled(spMap[item.key]!, section)}
 								<button
 									class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
 									class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
-									class:opacity-50={!spEnabled}
-									class:pointer-events-none={!spEnabled}
+									class:opacity-[0.4]={!spEnabled}
 									disabled={!spEnabled}
 									onclick={() => { const s = spMap[item.key]; if (s) onSubPanelOpen?.(s); }}
 								>
@@ -154,12 +177,11 @@
 							{/if}
 						{/each}
 						{#each orphans as subPanel, i (subPanel.id)}
-							{@const spEnabled = isSubPanelEnabled(subPanel)}
+							{@const spEnabled = isSubPanelEnabled(subPanel, section)}
 							<button
 								class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
 								class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
-								class:opacity-50={!spEnabled}
-								class:pointer-events-none={!spEnabled}
+								class:opacity-[0.4]={!spEnabled}
 								disabled={!spEnabled}
 								onclick={() => onSubPanelOpen?.(subPanel)}
 							>
@@ -197,9 +219,8 @@
 							<button
 								class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
 								class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
-								class:opacity-50={!spEnabled}
-								class:pointer-events-none={!spEnabled}
-								disabled={!spEnabled}
+								class:opacity-[0.4]={!spEnabled}
+																disabled={!spEnabled}
 								onclick={() => { const s = subPanelByTrigger[item.key]; if (s) onSubPanelOpen?.(s); }}
 							>
 								<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{subPanelByTrigger[item.key]?.label}</span>
@@ -215,9 +236,8 @@
 						<button
 							class="row-press flex w-full items-center justify-between px-4 py-3.5 text-left transition-opacity duration-150"
 							class:hover:bg-[var(--sl-bg-subtle)]={spEnabled}
-							class:opacity-50={!spEnabled}
-							class:pointer-events-none={!spEnabled}
-							disabled={!spEnabled}
+							class:opacity-[0.4]={!spEnabled}
+														disabled={!spEnabled}
 							onclick={() => onSubPanelOpen?.(subPanel)}
 						>
 							<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{subPanel.label}</span>

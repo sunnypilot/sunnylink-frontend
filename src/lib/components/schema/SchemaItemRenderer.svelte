@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
-	import { isVisible, isEnabled, evaluateRules, requiresOffroad, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
+	import { isVisible, isEnabled, evaluateRules, requiresOffroad, isAdvancedSetting, getDisabledReasons, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
@@ -52,9 +52,40 @@
 	});
 
 	let visible = $derived(isVisible(item.visibility, ruleContext));
-	let enabledByRules = $derived(isEnabled(item.enablement, ruleContext));
+	let isDeviceOnly = $derived(!!item.blocked);
+	let enabledByRules = $derived(isDeviceOnly ? false : isEnabled(item.enablement, ruleContext));
 	let needsOffroad = $derived(requiresOffroad(item.enablement));
+	let isAdvanced = $derived(isAdvancedSetting(item.visibility));
 	let isPushing = $derived(pushState === 'pushing');
+
+	// Human-readable reasons why this item is disabled (for WCAG badges)
+	function paramTitleLookup(key: string): string | undefined {
+		const schema = schemaState.schemas[deviceId];
+		if (!schema) return undefined;
+		for (const panel of schema.panels ?? []) {
+			for (const it of panel.items ?? []) { if (it.key === key) return it.title; }
+			for (const sp of panel.sub_panels ?? []) { for (const it of sp.items) { if (it.key === key) return it.title; } }
+			for (const sec of panel.sections ?? []) {
+				for (const it of sec.items) { if (it.key === key) return it.title; }
+				for (const sp of sec.sub_panels ?? []) { for (const it of sp.items) { if (it.key === key) return it.title; } }
+			}
+		}
+		return undefined;
+	}
+
+	let capabilityLabels = $derived(schemaState.schemas[deviceId]?.capability_labels);
+
+	let disabledReasons = $derived.by(() => {
+		if (isDeviceOnly) return ['This setting can only be changed on the device.'];
+		const reasons: string[] = [];
+		if (!visible && isAdvanced) {
+			reasons.push('Enable "Show Advanced Controls" to use this setting.');
+		}
+		if (!enabledByRules) {
+			reasons.push(...getDisabledReasons(item.enablement, ruleContext, paramTitleLookup, capabilityLabels));
+		}
+		return reasons;
+	});
 
 	// Collect param keys this item's enablement depends on
 	let enablementDeps = $derived(collectParamDependencies(item.enablement));
@@ -114,7 +145,12 @@
 	// Pending change state for this specific item
 	let pendingChange = $derived(pendingChanges.getForKey(deviceId, item.key));
 	let isQueued = $derived(pendingChange?.status === 'pending');
+	let isBlocked = $derived(pendingChange?.status === 'blocked_onroad');
 	let isDeviceOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
+
+	function handleRevert() {
+		pendingChanges.revert(deviceId, item.key, deviceState.deviceValues[deviceId]);
+	}
 
 	// Drift state for this specific item
 	let driftEntry = $derived(driftStore.getForKey(deviceId, item.key));
@@ -148,9 +184,9 @@
 			const stillPending = !!pendingChanges.getForKey(deviceId, item.key);
 
 			if (!stillPending && hadPending) {
-				toastState.show('Reverted to original. Pending change removed.', 'info');
+				toastState.show('Reverted to original. Pending changes removed.', 'info');
 			} else if (stillPending) {
-				toastState.show('Change pending. Will sync when device reconnects.', 'info');
+				toastState.show('Changes pending. Will sync when device reconnects.', 'info');
 			}
 			return;
 		}
@@ -252,8 +288,7 @@
 
 	<div
 		class="transition-all duration-150 {accentClass}"
-		class:opacity-50={!visible || !enabled}
-		class:pointer-events-none={!visible || !enabled}
+		class:setting-dimmed={!visible || !enabled}
 		id={item.key}
 	>
 		{#if isOffroadMode}
@@ -324,8 +359,16 @@
 								if (enabled && !isPushing) handleChange(!isOn);
 							}}
 						>{item.title || item.key}</button>
-						{#if isQueued || pushState === 'pending'}
-							<Tooltip text="Change queued — will sync to device when pushed">
+						{#if isBlocked}
+							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
+								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
+							</Tooltip>
+							<button
+								class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								onclick={handleRevert}
+							>Revert</button>
+						{:else if isQueued || pushState === 'pending'}
+							<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 							</Tooltip>
 						{:else if isPushing}
@@ -339,14 +382,28 @@
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 						{/if}
-						{#if needsOffroad && !ruleContext.isOffroad}
-							<Tooltip text="Only available when vehicle is not driving">
-								<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						{#if isAdvanced}
+							<Tooltip text="This is an advanced setting.">
+								<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
 							</Tooltip>
 						{/if}
-						{#if item.needs_onroad_cycle}
-							<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
-								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						{#if needsOffroad && !ruleContext.isOffroad}
+							<Tooltip text="Only available when the car is powered off.">
+								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							</Tooltip>
+						{/if}
+						{#if isDeviceOnly}
+							<Tooltip text="This setting can only be changed on the device.">
+								<span class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 dark:text-blue-400 uppercase">Device only</span>
+							</Tooltip>
+						{:else if disabledReasons.length > 0}
+							<Tooltip text={disabledReasons.join('. ')}>
+								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+							</Tooltip>
+						{/if}
+						{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+							<Tooltip text="Changing this setting will restart sunnypilot if the car is powered on.">
+								<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 							</Tooltip>
 						{/if}
 					</div>
@@ -396,8 +453,16 @@
 				<div class="min-w-0 flex-1">
 					<div class="flex items-center gap-2">
 						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
-						{#if isQueued || pushState === 'pending'}
-							<Tooltip text="Change queued — will sync to device when pushed">
+						{#if isBlocked}
+							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
+								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
+							</Tooltip>
+							<button
+								class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								onclick={handleRevert}
+							>Revert</button>
+						{:else if isQueued || pushState === 'pending'}
+							<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 							</Tooltip>
 						{:else if isPushing}
@@ -411,14 +476,28 @@
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 						{/if}
-						{#if needsOffroad && !ruleContext.isOffroad}
-							<Tooltip text="Only available when vehicle is not driving">
-								<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						{#if isAdvanced}
+							<Tooltip text="This is an advanced setting.">
+								<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
 							</Tooltip>
 						{/if}
-						{#if item.needs_onroad_cycle}
-							<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
-								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						{#if needsOffroad && !ruleContext.isOffroad}
+							<Tooltip text="Only available when the car is powered off.">
+								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							</Tooltip>
+						{/if}
+						{#if isDeviceOnly}
+							<Tooltip text="This setting can only be changed on the device.">
+								<span class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 dark:text-blue-400 uppercase">Device only</span>
+							</Tooltip>
+						{:else if disabledReasons.length > 0}
+							<Tooltip text={disabledReasons.join('. ')}>
+								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+							</Tooltip>
+						{/if}
+						{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+							<Tooltip text="Changing this setting will restart sunnypilot if the car is powered on.">
+								<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 							</Tooltip>
 						{/if}
 					</div>
@@ -453,7 +532,7 @@
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isQueued || pushState === 'pending'}
-						<Tooltip text="Change queued — will sync to device when pushed">
+						<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 							</Tooltip>
 					{:else if isPushing}
@@ -467,14 +546,24 @@
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 					{/if}
-					{#if needsOffroad && !ruleContext.isOffroad}
-						<Tooltip text="Only available when vehicle is not driving">
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+					{#if isAdvanced}
+						<Tooltip text="This is an advanced setting.">
+							<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
 						</Tooltip>
 					{/if}
-					{#if item.needs_onroad_cycle}
-						<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+					{#if needsOffroad && !ruleContext.isOffroad}
+						<Tooltip text="Only available when the car is powered off.">
+							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						</Tooltip>
+					{/if}
+					{#if disabledReasons.length > 0}
+						<Tooltip text={disabledReasons.join('. ')}>
+							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+						</Tooltip>
+					{/if}
+					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+						<Tooltip text="Changing this setting will restart sunnypilot if the car is powered on.">
+							<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 						</Tooltip>
 					{/if}
 				</div>
@@ -554,8 +643,16 @@
 				<div class="mr-4 min-w-0 flex-1">
 					<div class="flex items-center gap-2">
 						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
-						{#if isQueued || pushState === 'pending'}
-							<Tooltip text="Change queued — will sync to device when pushed">
+						{#if isBlocked}
+							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
+								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
+							</Tooltip>
+							<button
+								class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								onclick={handleRevert}
+							>Revert</button>
+						{:else if isQueued || pushState === 'pending'}
+							<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 							</Tooltip>
 						{:else if isPushing}
@@ -569,14 +666,28 @@
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 						{/if}
-						{#if needsOffroad && !ruleContext.isOffroad}
-							<Tooltip text="Only available when vehicle is not driving">
-								<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						{#if isAdvanced}
+							<Tooltip text="This is an advanced setting.">
+								<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
 							</Tooltip>
 						{/if}
-						{#if item.needs_onroad_cycle}
-							<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
-								<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						{#if needsOffroad && !ruleContext.isOffroad}
+							<Tooltip text="Only available when the car is powered off.">
+								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							</Tooltip>
+						{/if}
+						{#if isDeviceOnly}
+							<Tooltip text="This setting can only be changed on the device.">
+								<span class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 dark:text-blue-400 uppercase">Device only</span>
+							</Tooltip>
+						{:else if disabledReasons.length > 0}
+							<Tooltip text={disabledReasons.join('. ')}>
+								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+							</Tooltip>
+						{/if}
+						{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+							<Tooltip text="Changing this setting will restart sunnypilot if the car is powered on.">
+								<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 							</Tooltip>
 						{/if}
 					</div>
@@ -602,7 +713,7 @@
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
 					{#if isQueued || pushState === 'pending'}
-						<Tooltip text="Change queued — will sync to device when pushed">
+						<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
 							</Tooltip>
 					{:else if isPushing}
@@ -616,14 +727,24 @@
 								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
 							</Tooltip>
 					{/if}
-					{#if needsOffroad && !ruleContext.isOffroad}
-						<Tooltip text="Only available when vehicle is not driving">
-							<span class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+					{#if isAdvanced}
+						<Tooltip text="This is an advanced setting.">
+							<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
 						</Tooltip>
 					{/if}
-					{#if item.needs_onroad_cycle}
-						<Tooltip text="Requires a driving cycle (start and stop) to take effect.">
-							<span class="rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+					{#if needsOffroad && !ruleContext.isOffroad}
+						<Tooltip text="Only available when the car is powered off.">
+							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+						</Tooltip>
+					{/if}
+					{#if disabledReasons.length > 0}
+						<Tooltip text={disabledReasons.join('. ')}>
+							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+						</Tooltip>
+					{/if}
+					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+						<Tooltip text="Changing this setting will restart sunnypilot if the car is powered on.">
+							<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
 						</Tooltip>
 					{/if}
 				</div>
@@ -698,7 +819,7 @@
 		{/if}
 
 		{#if showDivider}
-			<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
+			<div class="setting-divider mx-4 border-b border-[var(--sl-border-muted)]"></div>
 		{/if}
 	</div>
 
@@ -707,3 +828,22 @@
 			<svelte:self deviceId={deviceId} item={subItem} {loadingValues} {readonly} isLast={i === item.sub_items.length - 1 && isLast} />
 		{/each}
 	{/if}
+
+<style>
+	/* Dim everything inside .setting-dimmed except .bright-badge elements.
+	   At each level, dim children that don't contain a badge; drill into
+	   children that DO contain a badge and repeat. This avoids compounding
+	   because only leaf-level (badge-free) elements get opacity applied. */
+	:global(.setting-dimmed) > :global(*:not(:has(.bright-badge)):not(.setting-divider)) {
+		opacity: 0.4;
+	}
+	:global(.setting-dimmed) > :global(*:has(.bright-badge)) > :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
+		opacity: 0.4;
+	}
+	:global(.setting-dimmed) > :global(*:has(.bright-badge)) > :global(*:has(.bright-badge)) > :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
+		opacity: 0.4;
+	}
+	:global(.setting-dimmed) > :global(*:has(.bright-badge)) > :global(*:has(.bright-badge)) > :global(*:has(.bright-badge)) > :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
+		opacity: 0.4;
+	}
+</style>

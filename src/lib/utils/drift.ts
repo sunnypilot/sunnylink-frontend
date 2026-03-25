@@ -15,6 +15,9 @@ export interface DriftEntry {
 	detectedAt: number;
 	panelId?: string;
 	panelLabel?: string;
+	sectionLabel?: string;
+	subPanelLabel?: string;
+	itemTitle?: string;
 }
 
 /**

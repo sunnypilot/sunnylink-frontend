@@ -13,6 +13,26 @@ class DriftStore {
 	/** deviceId → DriftEntry[] */
 	private _drifts: Record<string, DriftEntry[]> = $state({});
 
+	/** Drift baseline: snapshot of values at first load, for comparison against fresh fetch.
+	 *  Persists across layout mount/unmount cycles (e.g. navigating to Models and back). */
+	private _baselines: Record<string, Record<string, unknown>> = {};
+
+	/** Capture a baseline snapshot for a device (only captures once per session). */
+	captureBaseline(deviceId: string, values: Record<string, unknown>): void {
+		if (this._baselines[deviceId]) return;
+		this._baselines[deviceId] = { ...values };
+	}
+
+	/** Get the baseline for drift comparison. Returns empty if not captured. */
+	getBaseline(deviceId: string): Record<string, unknown> {
+		return this._baselines[deviceId] ?? {};
+	}
+
+	/** Update baseline to current values (e.g. after version change or manual refresh). */
+	updateBaseline(deviceId: string, values: Record<string, unknown>): void {
+		this._baselines[deviceId] = { ...values };
+	}
+
 	/**
 	 * Merge detected drifts for a device.
 	 * Updates existing entries for the same keys, adds new ones,

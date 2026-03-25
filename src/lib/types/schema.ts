@@ -96,6 +96,7 @@ export interface SchemaItem {
 	sub_items?: SchemaItem[];
 	action?: string;
 	needs_onroad_cycle?: boolean;
+	blocked?: boolean;
 }
 
 export interface SubPanel {
@@ -113,6 +114,8 @@ export interface PanelSection {
 	order?: number;
 	items: SchemaItem[];
 	sub_panels?: SubPanel[];
+	enablement?: Rule[];
+	visibility?: Rule[];
 }
 
 export interface Panel {
@@ -139,5 +142,6 @@ export interface SettingsSchema {
 	panels: Panel[];
 	vehicle_settings: Record<string, VehicleBrandSettings>;
 	capability_fields?: string[];
+	capability_labels?: Record<string, string>;
 	capabilities?: Capabilities;
 }

@@ -12,8 +12,8 @@
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import type { Panel } from '$lib/types/schema';
 	import type { PendingChange } from '$lib/stores/pendingChanges.svelte';
+	import { collectOffroadOnlyKeys } from '$lib/rules/evaluator';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
-	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { versionPoller } from '$lib/stores/versionPoller.svelte';
@@ -55,7 +55,24 @@
 		}
 	});
 
-	/** Flush all pending changes to the device via the settings API */
+	// Auto-flush blocked changes when device transitions to offroad
+	let wasOnroad = false;
+	$effect(() => {
+		const isOffroad = deviceState.offroadStatuses[deviceId ?? '']?.isOffroad ?? true;
+		if (!isOffroad) {
+			wasOnroad = true;
+		} else if (wasOnroad && isOffroad && deviceId && isOnline) {
+			wasOnroad = false;
+			// Device went offroad — unblock and re-flush
+			pendingChanges.unblockAll(deviceId);
+			if (pendingChanges.hasPending(deviceId)) {
+				flushPendingChanges(deviceId);
+			}
+		}
+	});
+
+	/** Flush all pending changes to the device via the settings API.
+	 *  Offroad-only items are blocked (not pushed) when the device is onroad. */
 	async function flushPendingChanges(did: string) {
 		if (!logtoClient || pendingChanges.isFlushing(did)) return;
 
@@ -65,15 +82,43 @@
 		const pending = pendingChanges.getByStatus(did, 'pending');
 		if (pending.length === 0) return;
 
+		// Check offroad state and collect offroad-only keys
+		const isOnroad = !(deviceState.offroadStatuses[did]?.isOffroad ?? true);
+		const schema = schemaState.schemas[did];
+		const offroadKeys = schema ? collectOffroadOnlyKeys(schema) : new Set<string>();
+
+		// Block offroad-only items when device is onroad
+		let blockedCount = 0;
+		const pushable: PendingChange[] = [];
+		for (const change of pending) {
+			if (isOnroad && offroadKeys.has(change.key)) {
+				pendingChanges.markBlocked(did, change.key);
+				blockedCount++;
+			} else {
+				pushable.push(change);
+			}
+		}
+
+		if (blockedCount > 0) {
+			toastState.show(
+				`${blockedCount} change${blockedCount === 1 ? '' : 's'} blocked — vehicle is driving. Will sync when parked.`,
+				'warning'
+			);
+		}
+
+		if (pushable.length === 0) {
+			return;
+		}
+
 		pendingChanges.setFlushing(did, true);
 
-		// Mark all as pushing
-		for (const change of pending) pendingChanges.markPushing(did, change.key);
+		// Mark pushable as pushing
+		for (const change of pushable) pendingChanges.markPushing(did, change.key);
 
 		// Encode all changes and batch into a single API call
 		const payload: { key: string; value: string }[] = [];
 		const encoded: PendingChange[] = [];
-		for (const change of pending) {
+		for (const change of pushable) {
 			const deviceParams = deviceState.deviceSettings[did];
 			const paramInfo = deviceParams?.find((p: any) => p.key === change.key);
 			const type = paramInfo?.type || 'String';
@@ -160,9 +205,26 @@
 		hydrateCacheSync(deviceState.selectedDeviceId);
 	}
 
+	// Capture drift baseline into the persistent driftStore (survives layout unmount).
+	function captureDriftBaseline(did: string) {
+		if (Object.keys(driftStore.getBaseline(did)).length > 0) return;
+		const commit = getLastKnownCommit(did) || '';
+		if (!commit) return;
+		const cached = loadCachedValues(did, commit);
+		if (cached && Object.keys(cached).length > 0) {
+			driftStore.captureBaseline(did, cached);
+		}
+	}
+	if (deviceState.selectedDeviceId) {
+		captureDriftBaseline(deviceState.selectedDeviceId);
+	}
+
 	// Also re-hydrate reactively when device changes (for device switching)
 	$effect(() => {
-		if (deviceId) hydrateCacheSync(deviceId);
+		if (deviceId) {
+			captureDriftBaseline(deviceId);
+			hydrateCacheSync(deviceId);
+		}
 	});
 
 	// Save values to cache whenever they change and device is online.
@@ -183,12 +245,14 @@
 			versionPoller.start({
 				deviceId,
 				onVersionChange: () => {
-					// Version changed — invalidate prefetch and mark values stale
-					// so next page visit re-fetches all keys (stale-while-revalidate)
 					if (deviceId) {
 						prefetchDone[deviceId] = false;
 						deviceState.valuesStale[deviceId] = true;
 						deviceState.valuesVerifiedThisSession[deviceId] = false;
+						// Update drift baseline to current values so the next
+						// prefetch detects drift relative to what was just showing
+						const vals = deviceState.deviceValues[deviceId];
+						if (vals) driftStore.updateBaseline(deviceId, vals);
 					}
 				}
 			});
@@ -213,10 +277,6 @@
 	$effect(() => {
 		if (!deviceId || !isOnline || !logtoClient) return;
 		if (prefetchDone[deviceId]) return;
-		// Only run global prefetch when explicitly triggered (manual refresh or version change).
-		// The stale watcher sets prefetchDone=false AND valuesStale=true.
-		// Initial page load is handled by the category page's own fetch.
-		if (!deviceState.valuesStale[deviceId]) return;
 		const schema = schemaState.schemas[deviceId];
 		if (!schema?.panels) return;
 
@@ -252,9 +312,8 @@
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		const uniqueKeys = [...new Set(allKeys)];
 
-		// Snapshot current in-memory values SYNCHRONOUSLY before any async fetch updates them.
-		// This captures what the user is currently seeing (from localStorage hydration or previous fetch).
-		const prefetchCachedSnapshot: Record<string, unknown> = { ...existing };
+		// Use the persistent drift baseline (survives layout unmount).
+		const prefetchCachedSnapshot = driftStore.getBaseline(deviceId);
 
 		// Background fetch — always fetch all keys for global drift detection
 		(async () => {
@@ -306,27 +365,38 @@
 				}
 
 				// Global drift detection: only for keys in settings_ui.json (user-facing settings)
-				// Build key → panel lookup first, then filter freshValues to schema keys only
+				// Build key → metadata lookup for drift enrichment
 				if (Object.keys(prefetchCachedSnapshot).length > 0 && Object.keys(freshValues).length > 0) {
-					const keyToPanel: Record<string, { id: string; label: string }> = {};
+					interface KeyMeta { panelId: string; panelLabel: string; sectionLabel?: string; subPanelLabel?: string; itemTitle?: string }
+					const keyMeta: Record<string, KeyMeta> = {};
+					function tagItem(item: any, base: Omit<KeyMeta, 'itemTitle'>) {
+						keyMeta[item.key] = { ...base, itemTitle: item.title || item.key };
+						for (const sub of item.sub_items ?? []) {
+							keyMeta[sub.key] = { ...base, itemTitle: sub.title || sub.key };
+						}
+					}
 					for (const panel of schema.panels) {
-						const tag = { id: panel.id, label: panel.label };
-						for (const item of panel.items ?? []) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; }
-						for (const sp of panel.sub_panels ?? []) { for (const item of sp.items) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; } }
+						const base = { panelId: panel.id, panelLabel: panel.label };
+						for (const item of panel.items ?? []) tagItem(item, base);
+						for (const sp of panel.sub_panels ?? []) {
+							for (const item of sp.items) tagItem(item, { ...base, subPanelLabel: sp.label });
+						}
 						for (const section of panel.sections ?? []) {
-							for (const item of section.items) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; }
-							for (const sp of section.sub_panels ?? []) { for (const item of sp.items) { keyToPanel[item.key] = tag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = tag; } }
+							const sBase = { ...base, sectionLabel: section.title || undefined };
+							for (const item of section.items) tagItem(item, sBase);
+							for (const sp of section.sub_panels ?? []) {
+								for (const item of sp.items) tagItem(item, { ...sBase, subPanelLabel: sp.label });
+							}
 						}
 					}
 					if (brand) {
-						const vehicleTag = { id: 'vehicle', label: 'Vehicle' };
-						for (const item of vehicleItems) { keyToPanel[item.key] = vehicleTag; for (const sub of item.sub_items ?? []) keyToPanel[sub.key] = vehicleTag; }
+						const vBase = { panelId: 'vehicle', panelLabel: 'Vehicle' };
+						for (const item of vehicleItems) tagItem(item, vBase);
 					}
 
-					// Only detect drift for schema keys — exclude internal params like CarFingerprint, GitCommit
 					const schemaFreshValues: Record<string, unknown> = {};
 					for (const key of Object.keys(freshValues)) {
-						if (key in keyToPanel) schemaFreshValues[key] = freshValues[key];
+						if (key in keyMeta) schemaFreshValues[key] = freshValues[key];
 					}
 
 					const allDrifts = detectDrift(prefetchCachedSnapshot, schemaFreshValues);
@@ -334,12 +404,17 @@
 					const meaningful = filterMeaningfulDrift(allDrifts, pending);
 
 					for (const d of meaningful) {
-						const panel = keyToPanel[d.key];
-						if (panel) { d.panelId = panel.id; d.panelLabel = panel.label; }
+						const meta = keyMeta[d.key];
+						if (meta) {
+							d.panelId = meta.panelId;
+							d.panelLabel = meta.panelLabel;
+							d.sectionLabel = meta.sectionLabel;
+							d.subPanelLabel = meta.subPanelLabel;
+							d.itemTitle = meta.itemTitle;
+						}
 					}
 					driftStore.mergeDrifts(deviceId!, meaningful);
 
-					// Resolve keys that were fetched but are no longer drifted
 					const driftedKeys = new Set(meaningful.map((d) => d.key));
 					const resolvedKeys = Object.keys(freshValues).filter((k) => !driftedKeys.has(k));
 					if (resolvedKeys.length > 0) driftStore.resolveKeys(deviceId!, resolvedKeys);
@@ -347,6 +422,7 @@
 
 				prefetchDone[deviceId!] = true;
 				deviceState.valuesStale[deviceId!] = false;
+				deviceState.valuesVerifiedThisSession[deviceId!] = true;
 				// Settings fetch succeeded — device is reachable.
 				// Use confirmReachable to update status + reset poll timer atomically.
 				statusPolling.confirmReachable(deviceId!);
@@ -372,12 +448,11 @@
 		if (!deviceId || !logtoClient) return;
 		retrying = true;
 		retryFailed = false;
-		// Reset verification so the sync indicator shows "Refreshing..." during retry
 		deviceState.valuesVerifiedThisSession[deviceId] = false;
+		prefetchDone[deviceId] = false;
 		try {
 			const token = await logtoClient.getIdToken();
 			if (token) await checkDeviceStatus(deviceId, token, true);
-			// Check if still offline after retry
 			const statusAfter = deviceState.onlineStatuses[deviceId];
 			if (statusAfter !== 'online') {
 				retryFailed = true;
@@ -486,11 +561,6 @@
 {/if}
 
 <!-- Sync status banner — pending/failed/drift indicators -->
-{#if deviceId}
-	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-		<SyncStatusBanner {deviceId} onRetryFailed={retryFailedChanges} />
-	</div>
-{/if}
 
 <!-- Always render children — never gate on device status.
      SchemaItemRenderer's pushValue() has its own offline guard.

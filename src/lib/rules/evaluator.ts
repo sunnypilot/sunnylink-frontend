@@ -116,6 +116,167 @@ export function requiresOffroad(enablement: Rule[] | undefined): boolean {
 	});
 }
 
+/**
+ * Check if visibility rules depend on ShowAdvancedControls.
+ * Used to show an "Advanced" badge on the frontend.
+ */
+export function isAdvancedSetting(visibility: Rule[] | undefined): boolean {
+	if (!visibility) return false;
+	function check(rule: Rule): boolean {
+		if (rule.type === 'param' && rule.key === 'ShowAdvancedControls') return true;
+		if (rule.type === 'all' || rule.type === 'any') return rule.conditions.some(check);
+		if (rule.type === 'not') return check(rule.condition);
+		return false;
+	}
+	return visibility.some(check);
+}
+
+/** Fallback labels for capability fields (used when schema doesn't provide capability_labels) */
+const CAPABILITY_LABELS_FALLBACK: Record<string, string> = {
+	has_longitudinal_control: 'Longitudinal control',
+	has_icbm: 'ICBM enabled',
+	icbm_available: 'ICBM available',
+	torque_allowed: 'Torque lateral control',
+	alpha_long_available: 'Alpha longitudinal available',
+	has_stop_and_go: 'Stop and Go',
+	pcm_cruise: 'PCM cruise',
+	enable_bsm: 'BSM available',
+	stock_longitudinal: 'Stock longitudinal',
+	tesla_has_vehicle_bus: 'Tesla vehicle bus'
+};
+
+/**
+ * Get human-readable reasons why an item is disabled.
+ * Returns an array of short reason strings for each failed enablement rule.
+ * Skips offroad_only (handled separately by the Offroad badge).
+ */
+export function getDisabledReasons(
+	enablement: Rule[] | undefined,
+	ctx: RuleContext,
+	paramTitleLookup?: (key: string) => string | undefined,
+	capabilityLabels?: Record<string, string>
+): string[] {
+	if (!enablement || enablement.length === 0) return [];
+	const capLabels = capabilityLabels ?? CAPABILITY_LABELS_FALLBACK;
+	const reasons: string[] = [];
+
+	for (const rule of enablement) {
+		if (evaluateRule(rule, ctx)) continue;
+		const reason = _describeFailedRule(rule, ctx, paramTitleLookup, capLabels);
+		if (reason) reasons.push(reason);
+	}
+	return reasons;
+}
+
+function _describeFailedRule(
+	rule: Rule,
+	ctx: RuleContext,
+	paramTitleLookup?: (key: string) => string | undefined,
+	capLabels?: Record<string, string>
+): string | null {
+	switch (rule.type) {
+		case 'offroad_only':
+			return null;
+
+		case 'capability': {
+			const label = capLabels?.[rule.field] ?? CAPABILITY_LABELS_FALLBACK[rule.field] ?? rule.field;
+			if (rule.equals === true) return `Requires ${label}`;
+			if (rule.equals === false) return `Not available with ${label}`;
+			return `Requires ${label} = ${rule.equals}`;
+		}
+
+		case 'param': {
+			const title = paramTitleLookup?.(rule.key) ?? rule.key;
+			if (rule.equals === true) return `Enable "${title}" first`;
+			if (rule.equals === false) return `Disable "${title}" first`;
+			return `Requires "${title}" = ${rule.equals}`;
+		}
+
+		case 'param_compare': {
+			const title = paramTitleLookup?.(rule.key) ?? rule.key;
+			const opLabels: Record<string, string> = {
+				'>': 'above',
+				'<': 'below',
+				'>=': 'at least',
+				'<=': 'at most'
+			};
+			return `Requires "${title}" ${opLabels[rule.op] ?? rule.op} ${rule.value}`;
+		}
+
+		case 'not': {
+			if (evaluateRule(rule.condition, ctx)) return null;
+			return _describeFailedRule(rule.condition, ctx, paramTitleLookup, capLabels);
+		}
+
+		case 'any': {
+			// All conditions failed (OR not satisfied) — join descriptions with "or"
+			const descs: string[] = [];
+			for (const sub of rule.conditions) {
+				const desc = _describeFailedRule(sub, ctx, paramTitleLookup, capLabels);
+				if (desc) descs.push(desc);
+			}
+			if (descs.length === 0) return null;
+			if (descs.length === 1) return descs[0]!;
+			// Strip common "Requires " prefix for joined message
+			const prefix = 'Requires ';
+			const allHavePrefix = descs.every((d) => d.startsWith(prefix));
+			if (allHavePrefix) {
+				const items = descs.map((d) => d.slice(prefix.length));
+				return `${prefix}${items.join(' or ')}`;
+			}
+			return descs.join(' or ');
+		}
+
+		case 'all': {
+			for (const sub of rule.conditions) {
+				if (!evaluateRule(sub, ctx)) {
+					const desc = _describeFailedRule(sub, ctx, paramTitleLookup, capLabels);
+					if (desc) return desc;
+				}
+			}
+			return null;
+		}
+
+		default:
+			return null;
+	}
+}
+
+/** Collect all param keys that require offroad from a schema */
+export function collectOffroadOnlyKeys(
+	schema: import('$lib/types/schema').SettingsSchema
+): Set<string> {
+	const keys = new Set<string>();
+	function checkItem(item: {
+		key: string;
+		enablement?: Rule[];
+		sub_items?: Array<{ key: string; enablement?: Rule[] }>;
+	}) {
+		if (requiresOffroad(item.enablement)) keys.add(item.key);
+		for (const sub of item.sub_items ?? []) {
+			if (requiresOffroad(sub.enablement)) keys.add(sub.key);
+		}
+	}
+	for (const panel of schema.panels ?? []) {
+		for (const item of panel.items ?? []) checkItem(item);
+		for (const sp of panel.sub_panels ?? []) {
+			for (const item of sp.items ?? []) checkItem(item);
+		}
+		for (const section of panel.sections ?? []) {
+			for (const item of section.items ?? []) checkItem(item);
+			for (const sp of section.sub_panels ?? []) {
+				for (const item of sp.items ?? []) checkItem(item);
+			}
+		}
+	}
+	for (const brandSettings of Object.values(schema.vehicle_settings ?? {})) {
+		for (const item of brandSettings.items ?? []) {
+			if (requiresOffroad(item.enablement)) keys.add(item.key);
+		}
+	}
+	return keys;
+}
+
 /** Collect all param keys referenced in a set of rules (for dependency tracking) */
 export function collectParamDependencies(rules: Rule[] | undefined): string[] {
 	if (!rules) return [];
@@ -132,7 +293,6 @@ export function collectParamDependencies(rules: Rule[] | undefined): string[] {
 	rules.forEach(walk);
 	return keys;
 }
-
 
 /**
  * Compare a param value against an expected value with type coercion.

@@ -12,7 +12,7 @@ const STORAGE_PREFIX = 'sunnylink_pending_';
 const MAX_PENDING_PER_DEVICE = 50;
 const CONFIRMED_PURGE_DELAY_MS = 5_000; // auto-remove confirmed entries after 5s
 
-export type ChangeStatus = 'pending' | 'pushing' | 'confirmed' | 'failed';
+export type ChangeStatus = 'pending' | 'pushing' | 'confirmed' | 'failed' | 'blocked_onroad';
 
 export interface PendingChange {
 	key: string;
@@ -90,15 +90,23 @@ class PendingChangesStore {
 		return this.getAll(deviceId).filter((c) => c.status === status);
 	}
 
-	/** Check if any changes are pending or pushing */
+	/** Check if any changes are pending, pushing, or blocked */
 	hasPending(deviceId: string): boolean {
-		return this.getAll(deviceId).some((c) => c.status === 'pending' || c.status === 'pushing');
+		return this.getAll(deviceId).some(
+			(c) => c.status === 'pending' || c.status === 'pushing' || c.status === 'blocked_onroad'
+		);
 	}
 
-	/** Count of pending + pushing changes */
+	/** Count of pending + pushing + blocked changes */
 	pendingCount(deviceId: string): number {
-		return this.getAll(deviceId).filter((c) => c.status === 'pending' || c.status === 'pushing')
-			.length;
+		return this.getAll(deviceId).filter(
+			(c) => c.status === 'pending' || c.status === 'pushing' || c.status === 'blocked_onroad'
+		).length;
+	}
+
+	/** Count of blocked-onroad changes */
+	blockedCount(deviceId: string): number {
+		return this.getAll(deviceId).filter((c) => c.status === 'blocked_onroad').length;
 	}
 
 	/** Count of failed changes */
@@ -190,6 +198,33 @@ class PendingChangesStore {
 		setTimeout(() => this.remove(deviceId, key), CONFIRMED_PURGE_DELAY_MS);
 	}
 
+	/** Mark a change as blocked (offroad-only item while device is onroad) */
+	markBlocked(deviceId: string, key: string): void {
+		const changes = this._changes[deviceId] ?? [];
+		const entry = changes.find((c) => c.key === key);
+		if (!entry) return;
+
+		entry.status = 'blocked_onroad';
+		this._changes[deviceId] = [...changes];
+		saveToStorage(deviceId, changes);
+	}
+
+	/** Unblock all blocked_onroad entries (e.g., device went offroad). Resets them to pending. */
+	unblockAll(deviceId: string): void {
+		const changes = this._changes[deviceId] ?? [];
+		let changed = false;
+		for (const entry of changes) {
+			if (entry.status === 'blocked_onroad') {
+				entry.status = 'pending';
+				changed = true;
+			}
+		}
+		if (changed) {
+			this._changes[deviceId] = [...changes];
+			saveToStorage(deviceId, changes);
+		}
+	}
+
 	/** Mark a change as failed with error message */
 	markFailed(deviceId: string, key: string, error: string): void {
 		const changes = this._changes[deviceId] ?? [];
@@ -200,6 +235,17 @@ class PendingChangesStore {
 		entry.lastError = error;
 		this._changes[deviceId] = [...changes];
 		saveToStorage(deviceId, changes);
+	}
+
+	/** Revert a pending change: restore deviceValues to previousValue and remove from queue.
+	 *  Requires a reference to the deviceState store's values map. */
+	revert(deviceId: string, key: string, deviceValues: Record<string, unknown> | undefined): void {
+		const change = this.getForKey(deviceId, key);
+		if (!change) return;
+		if (deviceValues && change.previousValue !== undefined) {
+			deviceValues[key] = change.previousValue;
+		}
+		this.remove(deviceId, key);
 	}
 
 	/** Remove a specific change */
@@ -241,8 +287,13 @@ class PendingChangesStore {
 
 	/** Flush all pending changes to the device.
 	 *  Requires a pushFn callback that handles the actual API call per entry.
+	 *  When isOnroad is true, offroad-only keys are blocked (not pushed).
 	 *  Returns the count of successfully flushed changes. */
-	async flush(deviceId: string, pushFn: (change: PendingChange) => Promise<void>): Promise<number> {
+	async flush(
+		deviceId: string,
+		pushFn: (change: PendingChange) => Promise<void>,
+		options?: { isOnroad?: boolean; offroadOnlyKeys?: Set<string> }
+	): Promise<number> {
 		if (this._flushing[deviceId]) return 0;
 		const pending = this.getByStatus(deviceId, 'pending');
 		if (pending.length === 0) return 0;
@@ -252,6 +303,12 @@ class PendingChangesStore {
 
 		try {
 			for (const change of pending) {
+				// Block offroad-only items when device is onroad
+				if (options?.isOnroad && options.offroadOnlyKeys?.has(change.key)) {
+					this.markBlocked(deviceId, change.key);
+					continue;
+				}
+
 				this.markPushing(deviceId, change.key);
 				try {
 					await pushFn(change);
