@@ -191,8 +191,17 @@
 	let isDeviceOfflineOrError = $derived(
 		deviceOnlineStatus === 'offline' || deviceOnlineStatus === 'error'
 	);
+	// Legacy devices (schemaUnavailable) are considered verified once deviceSettings arrives,
+	// since the layout prefetch requires schema panels and won't run for legacy devices.
+	let legacyVerified = $derived(
+		deviceId ? !!schemaState.schemaUnavailable[deviceId] && !!settings : false
+	);
 	let deviceVerified = $derived(
-		deviceId ? isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId] : false
+		deviceId
+			? isDeviceOfflineOrError ||
+					!!deviceState.valuesVerifiedThisSession[deviceId] ||
+					legacyVerified
+			: false
 	);
 
 	// True when values are actively being fetched or a global refresh is in-flight.
