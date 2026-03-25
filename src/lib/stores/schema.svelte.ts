@@ -47,11 +47,14 @@ class SchemaStore {
 	 * Capabilities per device — derived from schema.capabilities.
 	 * Components read this; it stays in sync because schemas[] is the source of truth.
 	 */
-	get capabilities(): Record<string, Capabilities> {
-		const result: Record<string, Capabilities> = {};
+	get capabilities(): Record<string, Capabilities | null> {
+		const result: Record<string, Capabilities | null> = {};
 		for (const [deviceId, schema] of Object.entries(this.schemas)) {
 			if (schema.capabilities) {
-				result[deviceId] = schema.capabilities;
+				// When no car is fingerprinted (brand empty), car-derived capabilities
+				// are all defaults (false). Return null to trigger permissive evaluation
+				// so settings aren't incorrectly gated before a car is connected.
+				result[deviceId] = schema.capabilities.brand ? schema.capabilities : null;
 			}
 		}
 		return result;
@@ -112,6 +115,14 @@ class SchemaStore {
 					if (browser && fetchedVersion) {
 						_saveToCache(deviceId, fetchedVersion, parsed);
 					}
+				} else if (parsed.capabilities) {
+					// Schema structure unchanged but capabilities may have changed
+					// (e.g., vehicle change, param clear, different CarParamsPersistent)
+					this.schemas[deviceId] = {
+						...existingSchema,
+						capabilities: parsed.capabilities,
+						capability_labels: parsed.capability_labels
+					};
 				}
 
 				if (hadCache) this.revalidationStatus[deviceId] = 'succeeded';
@@ -173,7 +184,6 @@ class SchemaStore {
 		}
 	}
 }
-
 
 function _cacheKey(deviceId: string, version: string): string {
 	return `${SCHEMA_CACHE_PREFIX}${deviceId}_${version}`;

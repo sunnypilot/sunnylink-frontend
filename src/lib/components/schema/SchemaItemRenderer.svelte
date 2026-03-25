@@ -78,8 +78,15 @@
 	let disabledReasons = $derived.by(() => {
 		if (isDeviceOnly) return ['This setting can only be changed on the device.'];
 		const reasons: string[] = [];
-		if (!visible && isAdvanced) {
-			reasons.push('Enable "Show Advanced Controls" to use this setting.');
+		if (!visible) {
+			// Generate reasons from visibility rules
+			const visReasons = getDisabledReasons(item.visibility, ruleContext, paramTitleLookup, capabilityLabels);
+			if (visReasons.length > 0) {
+				reasons.push(...visReasons);
+			} else if (isAdvanced) {
+				// Fallback: if no specific reason found but it's advanced, hint at ShowAdvancedControls
+				reasons.push('Enable "Show Advanced Controls" to use this setting.');
+			}
 		}
 		if (!enabledByRules) {
 			reasons.push(...getDisabledReasons(item.enablement, ruleContext, paramTitleLookup, capabilityLabels));
@@ -92,6 +99,17 @@
 	// Disabled if a dependency is currently being pushed by another item
 	let blockedByPush = $derived(pushStateStore.isAnyPushing(deviceId, enablementDeps));
 	let enabled = $derived(visible && enabledByRules && !blockedByPush && !readonly);
+
+	// Dynamic title suffix based on a param value
+	let displayTitle = $derived.by(() => {
+		const base = item.title || item.key;
+		const suffix = item.title_param_suffix;
+		if (!suffix) return base;
+		const paramVal = deviceState.deviceValues[deviceId]?.[suffix.param];
+		const boolKey = paramVal ? 'true' : 'false';
+		const suffixText = suffix.values[String(paramVal)] ?? suffix.values[boolKey] ?? '';
+		return suffixText ? `${base} ${suffixText}` : base;
+	});
 
 	let currentValue = $derived(deviceState.deviceValues[deviceId]?.[item.key]);
 	let displayValue: unknown = $derived(
@@ -359,7 +377,7 @@
 							onclick={() => {
 								if (enabled && !isPushing) handleChange(!isOn);
 							}}
-						>{item.title || item.key}</button>
+						>{displayTitle}</button>
 						{#if isBlocked}
 							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
 								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
@@ -433,7 +451,7 @@
 							disabled={!enabled || isPushing}
 							role="switch"
 							aria-checked={isOn}
-							aria-label={item.title || item.key}
+							aria-label={displayTitle}
 							onclick={() => {
 								if (enabled && !isPushing) handleChange(!isOn);
 							}}
@@ -453,7 +471,7 @@
 			<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 				<div class="min-w-0 flex-1">
 					<div class="flex items-center gap-2">
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 						{#if isBlocked}
 							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
 								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
@@ -531,7 +549,7 @@
 			<!-- ── Slider Row (range input below label) ────────────────────── -->
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 					{#if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
@@ -643,7 +661,7 @@
 			<div class="flex w-full items-center justify-between px-4 py-4">
 				<div class="mr-4 min-w-0 flex-1">
 					<div class="flex items-center gap-2">
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 						{#if isBlocked}
 							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
 								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
@@ -712,7 +730,7 @@
 			<!-- ── Segmented Button Row ────────────────────────────────────── -->
 			<div class="px-4 py-4">
 				<div class="flex items-center gap-2">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 					{#if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
@@ -808,7 +826,7 @@
 			<!-- ── Info Row (inline right-aligned value) ───────────────────── -->
 			<div class="flex w-full items-center justify-between px-4 py-4">
 				<div class="mr-4 min-w-0 flex-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{item.title || item.key}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 					{#if item.description}
 						<span class="ml-1.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</span>
 					{/if}

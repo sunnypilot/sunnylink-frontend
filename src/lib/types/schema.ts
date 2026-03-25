@@ -97,6 +97,10 @@ export interface SchemaItem {
 	action?: string;
 	needs_onroad_cycle?: boolean;
 	blocked?: boolean;
+	title_param_suffix?: {
+		param: string;
+		values: Record<string, string>;
+	};
 }
 
 export interface SubPanel {

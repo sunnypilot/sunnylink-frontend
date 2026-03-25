@@ -32,14 +32,29 @@ export interface RuleContext {
 /**
  * Evaluate a single rule against the given context.
  */
+/**
+ * Check if a rule tree references any capability fields.
+ */
+function _referencesCapability(rule: Rule): boolean {
+	if (rule.type === 'capability') return true;
+	if (rule.type === 'not') return _referencesCapability(rule.condition);
+	if (rule.type === 'any' || rule.type === 'all')
+		return rule.conditions.some(_referencesCapability);
+	return false;
+}
+
 export function evaluateRule(rule: Rule, ctx: RuleContext): boolean {
+	// When capabilities are unknown (null), any rule involving capabilities
+	// is permissive (return true). This prevents not/any/all wrappers from
+	// inverting the permissive intent.
+	if (!ctx.capabilities && _referencesCapability(rule)) return true;
+
 	switch (rule.type) {
 		case 'offroad_only':
 			return ctx.isOffroad;
 
 		case 'capability': {
-			if (!ctx.capabilities) return true; // Permissive when unknown
-			const value = ctx.capabilities[rule.field as keyof Capabilities];
+			const value = ctx.capabilities![rule.field as keyof Capabilities];
 			return value === rule.equals;
 		}
 
@@ -204,8 +219,27 @@ function _describeFailedRule(
 		}
 
 		case 'not': {
-			if (evaluateRule(rule.condition, ctx)) return null;
-			return _describeFailedRule(rule.condition, ctx, paramTitleLookup, capLabels);
+			// The not rule failed = inner condition is true, but we need it false
+			if (rule.condition.type === 'param') {
+				const title = paramTitleLookup?.(rule.condition.key) ?? rule.condition.key;
+				if (rule.condition.equals === true) return `Disable "${title}" first`;
+				if (rule.condition.equals === false) return `Enable "${title}" first`;
+				return `Requires "${title}" ≠ ${rule.condition.equals}`;
+			}
+			if (rule.condition.type === 'capability') {
+				const label =
+					capLabels?.[rule.condition.field] ??
+					CAPABILITY_LABELS_FALLBACK[rule.condition.field] ??
+					rule.condition.field;
+				if (rule.condition.equals === true) return `Not available with ${label}`;
+				if (rule.condition.equals === false) return `Requires ${label}`;
+				return `Not available when ${label} = ${rule.condition.equals}`;
+			}
+			// Fallback: try inner description (for nested rules)
+			if (!evaluateRule(rule.condition, ctx)) {
+				return _describeFailedRule(rule.condition, ctx, paramTitleLookup, capLabels);
+			}
+			return null;
 		}
 
 		case 'any': {

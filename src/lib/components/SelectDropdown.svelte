@@ -215,6 +215,9 @@
 		<div
 			class="fixed inset-0 z-[9998]"
 			onmousedown={(e) => { e.preventDefault(); e.stopPropagation(); close(); }}
+			ontouchstart={(e) => { e.preventDefault(); e.stopPropagation(); close(); }}
+			onwheel={(e) => { e.preventDefault(); }}
+			ontouchmove={(e) => { e.preventDefault(); }}
 		></div>
 		<div
 			bind:this={menuEl}
