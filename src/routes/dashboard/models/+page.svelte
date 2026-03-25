@@ -91,6 +91,27 @@
 	}
 
 	let { data } = $props();
+
+	// Load schema when device is selected (same pattern as settings pages)
+	let deviceId = $derived(deviceState.selectedDeviceId);
+	$effect(() => {
+		if (deviceId && logtoClient && !schemaState.schemas[deviceId] && !schemaState.loading[deviceId]) {
+			loadSchema();
+		}
+	});
+
+	async function loadSchema() {
+		if (!deviceId || !logtoClient) return;
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+			const gitCommit = deviceState.deviceValues[deviceId]?.['GitCommit'] as string | undefined;
+			await schemaState.loadSchema(deviceId, token, gitCommit);
+		} catch (e) {
+			console.error('Failed to load schema:', e);
+		}
+	}
+
 	let modelList = $state<ModelBundle[] | undefined>();
 	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
@@ -271,9 +292,10 @@
 	let isRevalidating = $derived(isFetchingModels && modelList !== null);
 
 	let batchActive = $derived(deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false);
+	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
 	const sync = createSyncStatus(
-		() => isRevalidating || batchActive,
-		() => !isOffline && !isError && !batchActive
+		() => isRevalidating || batchActive || isStale,
+		() => !isOffline && !isError && !batchActive && !isStale
 	);
 
 	// Reset on device change (skip initial mount)
@@ -774,7 +796,17 @@
 	description="Manage and switch driving models & related settings for your device."
 	syncStatus={modelList ? sync.status : undefined}
 	loading={!!(loadingModels || isCheckingStatus) && !modelList}
-	onRefresh={() => fetchModelsForDevice(true)}
+	onRefresh={() => {
+		if (!deviceId || !logtoClient) return;
+		// Set stale immediately for instant "Refreshing..." feedback (matches settings pages)
+		deviceState.valuesStale[deviceId] = true;
+		logtoClient.getIdToken().then((token) => {
+			if (token && deviceId) {
+				checkDeviceStatus(deviceId, token, true, false);
+				fetchModelsForDevice(true);
+			}
+		});
+	}}
 >
 
 	{#if authState.loading}
