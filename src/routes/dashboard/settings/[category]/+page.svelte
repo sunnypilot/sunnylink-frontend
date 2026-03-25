@@ -34,16 +34,6 @@
 
 	let { data } = $props();
 
-	let devices = $state<any[]>([]);
-
-	$effect(() => {
-		if (data.streamed.deviceResult) {
-			data.streamed.deviceResult.then((result: any) => {
-				devices = result.devices || [];
-			});
-		}
-	});
-
 	let category = $derived(page.params.category as SettingCategory);
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
@@ -52,8 +42,9 @@
 
 
 	let useSchema = $derived(deviceId ? schemaState.hasSchema(deviceId) : false);
-	// True while schema is being fetched — show skeleton instead of legacy flash
-	let schemaLoading = $derived(deviceId ? !!schemaState.loading[deviceId] : false);
+	let schemaLoading = $derived(
+		deviceId ? (!!schemaState.loading[deviceId] && !schemaState.schemaUnavailable[deviceId]) : false
+	);
 
 	// Find the matching schema panel for this category
 	let schemaPanel: Panel | undefined = $derived.by(() => {
@@ -137,11 +128,9 @@
 	}
 
 
-	let currentDeviceAlias = $derived.by(() => {
-		if (!deviceId) return undefined;
-		const device = devices.find((d) => d.device_id === deviceId);
-		return deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
-	});
+	let currentDeviceAlias = $derived(
+		deviceId ? (deviceState.aliases[deviceId] ?? deviceId) : undefined
+	);
 
 	let categorySettings = $derived.by(() => {
 		const all = getAllSettings(settings).filter((s) => s.category === category);
@@ -576,11 +565,14 @@
 				</div>
 			</div>
 		{/await}
-	{:else if !useSchema && !isDeviceOfflineOrError && (schemaLoading || (!settings && !categorySettings.length))}
-		<!-- Show spinner while schema loads — prevents legacy layout flash -->
-		<!-- Skip for offline/error devices: show content immediately with offline banner -->
-		<div class="flex justify-center p-12">
-			<span class="loading loading-lg loading-spinner text-primary"></span>
+	{:else if !useSchema && !isDeviceOfflineOrError && !settings && !categorySettings.length}
+		<!-- Waiting for device connection + schema/legacy settings to load.
+		     Show a non-blocking connecting state instead of an infinite spinner. -->
+		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+			<div class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
+				<span class="loading loading-spinner loading-md text-primary"></span>
+				<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">Connecting to device...</p>
+			</div>
 		</div>
 	{:else if useSchema && schemaPanel}
 		<!-- ═══ Schema-driven rendering (centered narrow column, grouped cards) ═══ -->

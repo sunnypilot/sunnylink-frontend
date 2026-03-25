@@ -161,27 +161,42 @@ export async function fetchParamsMetadata(
 	deviceId: string,
 	token: string
 ): Promise<SettingsSchema | null> {
-	const response = await customFetch(
-		`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
-		{
-			headers: { Authorization: `Bearer ${token}` }
-		}
-	);
-
-	if (!response.ok) {
-		return null;
-	}
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort('paramsMetadata timeout'), 15_000);
 
 	try {
+		const response = await customFetch(
+			`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
+			{
+				headers: { Authorization: `Bearer ${token}` },
+				signal: controller.signal
+			}
+		);
+
+		if (!response.ok) {
+			return null;
+		}
+
 		const json = await response.json();
 		if (typeof json?.params_metadata !== 'string') {
 			console.error(`getParamsMetadata: missing or invalid params_metadata field`);
 			return null;
 		}
-		return await decodeCompressedJson<SettingsSchema>(json.params_metadata);
+		const schema = await decodeCompressedJson<SettingsSchema>(json.params_metadata);
+
+		if (!schema?.panels?.length) {
+			console.warn(
+				`getParamsMetadata: schema has no panels for ${deviceId}, treating as unavailable`
+			);
+			return null;
+		}
+		return schema;
 	} catch (e) {
+		if ((e as { name?: string })?.name === 'AbortError') return null;
 		console.error(`getParamsMetadata: data parsing failed for ${deviceId}:`, e);
 		return null;
+	} finally {
+		clearTimeout(timeoutId);
 	}
 }
 
@@ -196,24 +211,30 @@ export async function fetchDeviceMessage(
 	deviceId: string,
 	token: string
 ): Promise<Record<string, unknown> | null> {
-	const response = await customFetch(
-		`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
-		{
-			headers: { Authorization: `Bearer ${token}` }
-		}
-	);
-
-	if (!response.ok) {
-		// Device unreachable via getMessage — not necessarily offline
-		return null;
-	}
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort('getMessage timeout'), 15_000);
 
 	try {
+		const response = await customFetch(
+			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
+			{
+				headers: { Authorization: `Bearer ${token}` },
+				signal: controller.signal
+			}
+		);
+
+		if (!response.ok) {
+			return null;
+		}
+
 		const data = await response.json();
 		return data?.deviceState ?? null;
 	} catch (e) {
-		console.error(`fetchDeviceMessage: invalid JSON response for ${deviceId}:`, e);
+		if ((e as { name?: string })?.name === 'AbortError') return null;
+		console.error(`fetchDeviceMessage: failed for ${deviceId}:`, e);
 		return null;
+	} finally {
+		clearTimeout(timeoutId);
 	}
 }
 

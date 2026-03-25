@@ -28,7 +28,8 @@ function ctx(overrides: Partial<RuleContext> = {}): RuleContext {
 			is_development: true,
 			tesla_has_vehicle_bus: false,
 			has_stop_and_go: false,
-			stock_longitudinal: false
+			stock_longitudinal: false,
+			device_type: 'tici'
 		},
 		paramValues: {},
 		isOffroad: true,
@@ -399,9 +400,7 @@ describe('real-world rule combinations', () => {
 	});
 
 	it('ChevronInfo disabled without longitudinal control', () => {
-		const rules: Rule[] = [
-			{ type: 'capability', field: 'has_longitudinal_control', equals: true }
-		];
+		const rules: Rule[] = [{ type: 'capability', field: 'has_longitudinal_control', equals: true }];
 		expect(isEnabled(rules, ctx())).toBe(true);
 
 		const noLong = ctx();
@@ -428,12 +427,10 @@ describe('real-world rule combinations', () => {
 			{ type: 'capability', field: 'torque_allowed', equals: true },
 			{ type: 'param', key: 'NeuralNetworkLateralControl', equals: false }
 		];
-		expect(
-			isEnabled(rules, ctx({ paramValues: { NeuralNetworkLateralControl: '0' } }))
-		).toBe(true);
-		expect(
-			isEnabled(rules, ctx({ paramValues: { NeuralNetworkLateralControl: '1' } }))
-		).toBe(false);
+		expect(isEnabled(rules, ctx({ paramValues: { NeuralNetworkLateralControl: '0' } }))).toBe(true);
+		expect(isEnabled(rules, ctx({ paramValues: { NeuralNetworkLateralControl: '1' } }))).toBe(
+			false
+		);
 	});
 
 	it('Custom ACC: (has_long OR has_icbm) AND offroad', () => {
@@ -477,17 +474,11 @@ describe('real-world rule combinations', () => {
 			}
 		];
 		// Auto (0) → disabled
-		expect(isEnabled(rules, ctx({ paramValues: { OnroadScreenOffBrightness: 0 } }))).toBe(
-			false
-		);
+		expect(isEnabled(rules, ctx({ paramValues: { OnroadScreenOffBrightness: 0 } }))).toBe(false);
 		// Auto Dark (1) → disabled
-		expect(isEnabled(rules, ctx({ paramValues: { OnroadScreenOffBrightness: 1 } }))).toBe(
-			false
-		);
+		expect(isEnabled(rules, ctx({ paramValues: { OnroadScreenOffBrightness: 1 } }))).toBe(false);
 		// Manual 5% (3) → enabled
-		expect(isEnabled(rules, ctx({ paramValues: { OnroadScreenOffBrightness: 3 } }))).toBe(
-			true
-		);
+		expect(isEnabled(rules, ctx({ paramValues: { OnroadScreenOffBrightness: 3 } }))).toBe(true);
 	});
 
 	it('Toyota StopAndGo: offroad AND has_long AND NOT enforce_stock', () => {
