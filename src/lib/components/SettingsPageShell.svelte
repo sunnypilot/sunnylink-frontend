@@ -11,23 +11,19 @@
 		children: import('svelte').Snippet;
 	}
 
-	let {
-		title,
-		description,
-		syncStatus,
-		onRefresh,
-		loading = false,
-		children
-	}: Props = $props();
+	let { title, description, syncStatus, onRefresh, loading = false, children }: Props = $props();
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 	<!-- Page title block -->
 	<div class="px-4">
-		<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+		<h2
+			class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
+		>
 			<span>{title}</span>
 			{#if loading}
-				<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+				<span class="loading loading-xs loading-spinner text-primary" style="align-self: center;"
+				></span>
 			{:else if syncStatus}
 				<SyncStatusIndicator status={syncStatus} {onRefresh} />
 			{/if}

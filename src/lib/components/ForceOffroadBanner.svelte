@@ -49,7 +49,9 @@
 </script>
 
 {#if isForceOffroad}
-	<div class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[var(--sl-bg-elevated)]">
+	<div
+		class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[var(--sl-bg-elevated)]"
+	>
 		<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 sm:px-6 lg:px-8">
 			<div class="flex items-center gap-3">
 				<div

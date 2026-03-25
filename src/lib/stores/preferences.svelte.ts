@@ -48,11 +48,16 @@ class PreferencesStore {
 			try {
 				const parsed = JSON.parse(stored) as Partial<PreferencesData>;
 				if (parsed.debugMode !== undefined) this.debugMode = parsed.debugMode;
-				if (parsed.showDeviceOnlineHelp !== undefined) this.showDeviceOnlineHelp = parsed.showDeviceOnlineHelp;
-				if (parsed.defaultLandingPage !== undefined) this.defaultLandingPage = parsed.defaultLandingPage;
-				if (parsed.notifyDeviceOffline !== undefined) this.notifyDeviceOffline = parsed.notifyDeviceOffline;
-				if (parsed.notifySyncFailure !== undefined) this.notifySyncFailure = parsed.notifySyncFailure;
-				if (parsed.notifySettingsDrift !== undefined) this.notifySettingsDrift = parsed.notifySettingsDrift;
+				if (parsed.showDeviceOnlineHelp !== undefined)
+					this.showDeviceOnlineHelp = parsed.showDeviceOnlineHelp;
+				if (parsed.defaultLandingPage !== undefined)
+					this.defaultLandingPage = parsed.defaultLandingPage;
+				if (parsed.notifyDeviceOffline !== undefined)
+					this.notifyDeviceOffline = parsed.notifyDeviceOffline;
+				if (parsed.notifySyncFailure !== undefined)
+					this.notifySyncFailure = parsed.notifySyncFailure;
+				if (parsed.notifySettingsDrift !== undefined)
+					this.notifySettingsDrift = parsed.notifySettingsDrift;
 				return;
 			} catch {
 				// Fall through to legacy keys
@@ -75,7 +80,8 @@ class PreferencesStore {
 		}
 
 		// Clean up old individual keys after migration
-		const hadLegacy = localStorage.getItem('sunnylink_debug_mode') !== null ||
+		const hadLegacy =
+			localStorage.getItem('sunnylink_debug_mode') !== null ||
 			localStorage.getItem('sunnylink_show_device_online_help') !== null;
 		if (hadLegacy) {
 			localStorage.removeItem('sunnylink_debug_mode');

@@ -21,7 +21,7 @@
 	let isDeviceUnavailable = $derived(
 		deviceId
 			? deviceState.onlineStatuses[deviceId] === 'offline' ||
-			  deviceState.onlineStatuses[deviceId] === 'error'
+					deviceState.onlineStatuses[deviceId] === 'error'
 			: false
 	);
 
@@ -33,14 +33,14 @@
 		class="fixed bottom-6 left-1/2 z-[9998] -translate-x-1/2"
 		transition:fly={{ y: 40, duration: 300 }}
 	>
-		<div class="flex items-center gap-2 rounded-full border border-amber-600/30 dark:border-amber-500/30 bg-[var(--sl-bg-surface)] px-4 py-2 shadow-lg">
+		<div
+			class="flex items-center gap-2 rounded-full border border-amber-600/30 bg-[var(--sl-bg-surface)] px-4 py-2 shadow-lg dark:border-amber-500/30"
+		>
 			<Clock size={14} class="text-amber-700 dark:text-amber-400" />
 			<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{totalPending} change{totalPending === 1 ? '' : 's'} pending
 			</span>
-			<span class="text-[0.75rem] text-[var(--sl-text-3)]">
-				Waiting for device to reconnect
-			</span>
+			<span class="text-[0.75rem] text-[var(--sl-text-3)]"> Waiting for device to reconnect </span>
 		</div>
 	</div>
 {/if}

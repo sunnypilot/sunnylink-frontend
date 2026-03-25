@@ -106,66 +106,74 @@
 </script>
 
 {#if !triggerHidden}
-<button
-	class="group flex max-w-full items-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
-	onclick={toggleModal}
->
-	{#if selectedDevice}
-		<div
-			class="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-primary/10 text-primary"
-		>
-			<Smartphone size={16} />
-		</div>
-		<div class="min-w-0 flex-1 flex-col overflow-hidden">
-			<span class="block truncate text-xs font-bold text-[var(--sl-text-1)]">
-				{getAlias(selectedDevice)}
-			</span>
-			<div class="flex items-center gap-1">
-				{#if deviceState.onlineStatuses[selectedDevice.device_id] === 'online'}
-					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-emerald-400"></div>
-					<span class="truncate text-xs text-emerald-600 dark:text-emerald-400">Online</span>
-					{#if deviceState.offroadStatuses[selectedDevice.device_id]}
-						{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
-						<span class="text-xs text-[var(--sl-text-3)]">•</span>
-						{#if status?.forceOffroad}
-							<span class="truncate text-xs font-bold text-amber-700 dark:text-amber-400">Forced</span>
-						{:else if status?.isOffroad}
-							<span class="truncate text-xs text-blue-600 dark:text-blue-400">Offroad</span>
-						{:else}
-							<span class="truncate text-xs text-amber-700 dark:text-amber-400">Onroad</span>
-						{/if}
-					{/if}
-				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
-					<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-red-400"></div>
-					<span class="text-xs text-red-600 dark:text-red-400">Offline</span>
-				{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'error'}
-					<TriangleAlert size={14} class="text-amber-700 dark:text-amber-400" />
-					<span
-						class="truncate text-xs text-amber-700 dark:text-amber-400"
-						title={deviceState.lastErrorMessages[selectedDevice.device_id]}>Error</span
-					>
-				{:else}
-					<div class="h-1.5 w-1.5 min-w-[0.375rem] animate-pulse rounded-full bg-amber-400"></div>
-					<span class="text-xs text-amber-700 dark:text-amber-400">Checking...</span>
-				{/if}
+	<button
+		class="group flex max-w-full items-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 pr-3 text-left transition-all hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] focus:ring-2 focus:ring-primary/50 focus:outline-none md:w-64"
+		onclick={toggleModal}
+	>
+		{#if selectedDevice}
+			<div
+				class="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-primary/10 text-primary"
+			>
+				<Smartphone size={16} />
 			</div>
-		</div>
-	{:else}
-		<div
-			class="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
-		>
-			<LayoutDashboard size={16} />
-		</div>
-		<div class="flex flex-col">
-			<span class="text-xs font-bold text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]">Overview</span>
-			<span class="text-xs text-[var(--sl-text-3)] group-hover:text-[var(--sl-text-2)]">Select Device</span>
-		</div>
-	{/if}
-	<ChevronDown
-		size={14}
-		class="ml-auto text-[var(--sl-text-3)] transition-transform duration-200 {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
-	/>
-</button>
+			<div class="min-w-0 flex-1 flex-col overflow-hidden">
+				<span class="block truncate text-xs font-bold text-[var(--sl-text-1)]">
+					{getAlias(selectedDevice)}
+				</span>
+				<div class="flex items-center gap-1">
+					{#if deviceState.onlineStatuses[selectedDevice.device_id] === 'online'}
+						<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-emerald-400"></div>
+						<span class="truncate text-xs text-emerald-600 dark:text-emerald-400">Online</span>
+						{#if deviceState.offroadStatuses[selectedDevice.device_id]}
+							{@const status = deviceState.offroadStatuses[selectedDevice.device_id]}
+							<span class="text-xs text-[var(--sl-text-3)]">•</span>
+							{#if status?.forceOffroad}
+								<span class="truncate text-xs font-bold text-amber-700 dark:text-amber-400"
+									>Forced</span
+								>
+							{:else if status?.isOffroad}
+								<span class="truncate text-xs text-blue-600 dark:text-blue-400">Offroad</span>
+							{:else}
+								<span class="truncate text-xs text-amber-700 dark:text-amber-400">Onroad</span>
+							{/if}
+						{/if}
+					{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'}
+						<div class="h-1.5 w-1.5 min-w-[0.375rem] rounded-full bg-red-400"></div>
+						<span class="text-xs text-red-600 dark:text-red-400">Offline</span>
+					{:else if deviceState.onlineStatuses[selectedDevice.device_id] === 'error'}
+						<TriangleAlert size={14} class="text-amber-700 dark:text-amber-400" />
+						<span
+							class="truncate text-xs text-amber-700 dark:text-amber-400"
+							title={deviceState.lastErrorMessages[selectedDevice.device_id]}>Error</span
+						>
+					{:else}
+						<div class="h-1.5 w-1.5 min-w-[0.375rem] animate-pulse rounded-full bg-amber-400"></div>
+						<span class="text-xs text-amber-700 dark:text-amber-400">Checking...</span>
+					{/if}
+				</div>
+			</div>
+		{:else}
+			<div
+				class="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+			>
+				<LayoutDashboard size={16} />
+			</div>
+			<div class="flex flex-col">
+				<span class="text-xs font-bold text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+					>Overview</span
+				>
+				<span class="text-xs text-[var(--sl-text-3)] group-hover:text-[var(--sl-text-2)]"
+					>Select Device</span
+				>
+			</div>
+		{/if}
+		<ChevronDown
+			size={14}
+			class="ml-auto text-[var(--sl-text-3)] transition-transform duration-200 {deviceSelectorState.isOpen
+				? 'rotate-180'
+				: ''}"
+		/>
+	</button>
 {/if}
 
 {#if deviceSelectorState.isOpen}
@@ -249,7 +257,9 @@
 										{@const offroadStatus = deviceState.offroadStatuses[device.device_id]}
 										<span class="text-xs text-[var(--sl-text-3)]">•</span>
 										{#if offroadStatus?.forceOffroad}
-											<span class="text-xs font-bold text-amber-700 dark:text-amber-400">Forced</span>
+											<span class="text-xs font-bold text-amber-700 dark:text-amber-400"
+												>Forced</span
+											>
 										{:else if offroadStatus?.isOffroad}
 											<span class="text-xs text-blue-600 dark:text-blue-400">Offroad</span>
 										{:else}

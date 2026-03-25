@@ -109,7 +109,10 @@
 			<!-- Search Input -->
 			<div class="border-b border-[var(--sl-border)] p-2">
 				<div class="relative">
-					<Search size={16} class="absolute top-1/2 left-3 -translate-y-1/2 text-[var(--sl-text-2)]" />
+					<Search
+						size={16}
+						class="absolute top-1/2 left-3 -translate-y-1/2 text-[var(--sl-text-2)]"
+					/>
 					<input
 						bind:this={inputElement}
 						bind:value={searchQuery}

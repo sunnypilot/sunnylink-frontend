@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { EllipsisVertical, Pencil, Copy, Check, Download, Loader2, Trash2, Calendar } from 'lucide-svelte';
+	import {
+		EllipsisVertical,
+		Pencil,
+		Copy,
+		Check,
+		Download,
+		Loader2,
+		Trash2,
+		Calendar
+	} from 'lucide-svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
@@ -73,7 +82,7 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
-			class="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5 shadow-lg"
+			class="absolute top-full right-0 z-50 mt-1 w-56 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5 shadow-lg"
 			onclick={(e) => e.stopPropagation()}
 			in:fly={{ y: -8, duration: 150, easing: cubicOut }}
 			out:fade={{ duration: 100 }}
@@ -147,7 +156,9 @@
 
 			{#if pairedAt}
 				<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
-				<div class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.75rem] text-[var(--sl-text-3)]">
+				<div
+					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.75rem] text-[var(--sl-text-3)]"
+				>
 					<Calendar size={13} />
 					Paired {formatPairedDate(pairedAt)}
 				</div>
@@ -156,7 +167,7 @@
 			{#if onDeregister}
 				<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
 				<button
-					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/5"
+					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-red-600 transition-colors hover:bg-red-500/5 dark:text-red-400"
 					onclick={(e) => handleAction(e, onDeregister)}
 				>
 					<Trash2 size={14} />

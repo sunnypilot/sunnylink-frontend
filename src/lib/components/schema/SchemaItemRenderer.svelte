@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
-	import { isVisible, isEnabled, evaluateRules, requiresOffroad, isAdvancedSetting, getDisabledReasons, collectParamDependencies, type RuleContext } from '$lib/rules/evaluator';
+	import {
+		isVisible,
+		isEnabled,
+		evaluateRules,
+		requiresOffroad,
+		isAdvancedSetting,
+		getDisabledReasons,
+		collectParamDependencies,
+		type RuleContext
+	} from '$lib/rules/evaluator';
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import { toastState } from '$lib/stores/toast.svelte';
@@ -24,7 +33,6 @@
 
 	let { deviceId, item, loadingValues = false, isLast = false, readonly = false }: Props = $props();
 
-
 	// Unified push state — merges online (batchPush) and offline (pendingChanges) stores.
 	// Online debounce ('pending') is invisible — no badge, toggle stays interactive.
 	// Only 'syncing'/'pushing' disables the toggle.
@@ -42,8 +50,6 @@
 		if (pcStatus === 'failed') return 'error';
 		return 'idle';
 	});
-
-
 
 	let ruleContext: RuleContext = $derived({
 		capabilities: schemaState.capabilities[deviceId] ?? null,
@@ -63,11 +69,23 @@
 		const schema = schemaState.schemas[deviceId];
 		if (!schema) return undefined;
 		for (const panel of schema.panels ?? []) {
-			for (const it of panel.items ?? []) { if (it.key === key) return it.title; }
-			for (const sp of panel.sub_panels ?? []) { for (const it of sp.items) { if (it.key === key) return it.title; } }
+			for (const it of panel.items ?? []) {
+				if (it.key === key) return it.title;
+			}
+			for (const sp of panel.sub_panels ?? []) {
+				for (const it of sp.items) {
+					if (it.key === key) return it.title;
+				}
+			}
 			for (const sec of panel.sections ?? []) {
-				for (const it of sec.items) { if (it.key === key) return it.title; }
-				for (const sp of sec.sub_panels ?? []) { for (const it of sp.items) { if (it.key === key) return it.title; } }
+				for (const it of sec.items) {
+					if (it.key === key) return it.title;
+				}
+				for (const sp of sec.sub_panels ?? []) {
+					for (const it of sp.items) {
+						if (it.key === key) return it.title;
+					}
+				}
 			}
 		}
 		return undefined;
@@ -79,7 +97,12 @@
 		if (isDeviceOnly) return ['This setting can only be changed on the device.'];
 		const reasons: string[] = [];
 		if (!visible) {
-			const visReasons = getDisabledReasons(item.visibility, ruleContext, paramTitleLookup, capabilityLabels);
+			const visReasons = getDisabledReasons(
+				item.visibility,
+				ruleContext,
+				paramTitleLookup,
+				capabilityLabels
+			);
 			if (visReasons.length > 0) {
 				reasons.push(...visReasons);
 			} else if (isAdvanced) {
@@ -87,7 +110,9 @@
 			}
 		}
 		if (!enabledByRules) {
-			reasons.push(...getDisabledReasons(item.enablement, ruleContext, paramTitleLookup, capabilityLabels));
+			reasons.push(
+				...getDisabledReasons(item.enablement, ruleContext, paramTitleLookup, capabilityLabels)
+			);
 		}
 		// Deduplicate — visibility and enablement rules can produce overlapping reasons
 		return [...new Set(reasons)];
@@ -147,7 +172,9 @@
 		if (!item.unit) return undefined;
 		if (typeof item.unit === 'string') return item.unit;
 		const isMetric = ruleContext.paramValues?.['IsMetric'];
-		return (isMetric === true || isMetric === 1 || isMetric === '1') ? item.unit.metric : item.unit.imperial;
+		return isMetric === true || isMetric === 1 || isMetric === '1'
+			? item.unit.metric
+			: item.unit.imperial;
 	});
 
 	// Live slider preview: shows value during drag, resets on release
@@ -170,7 +197,6 @@
 	// Drift state for this specific item
 	let driftEntry = $derived(driftStore.getForKey(deviceId, item.key));
 	let hasDrift = $derived(!!driftEntry);
-
 
 	function inferParamType(): string {
 		const deviceParams = deviceState.deviceSettings[deviceId];
@@ -225,7 +251,7 @@
 				? 'border-l-2 border-l-red-500'
 				: pushState === 'pushing'
 					? 'border-l-2 border-l-blue-500'
-					: (pushState === 'pending' || isQueued)
+					: pushState === 'pending' || isQueued
 						? 'border-l-2 border-l-amber-500'
 						: hasDrift
 							? 'border-l-2 border-l-cyan-500'
@@ -259,7 +285,9 @@
 		const mql = window.matchMedia('(max-width: 767px)');
 		isMobile = mql.matches;
 		$effect(() => {
-			const handler = (e: MediaQueryListEvent) => { isMobile = e.matches; };
+			const handler = (e: MediaQueryListEvent) => {
+				isMobile = e.matches;
+			};
 			mql.addEventListener('change', handler);
 			return () => mql.removeEventListener('change', handler);
 		});
@@ -273,7 +301,12 @@
 		return measureCtx.measureText(label).width;
 	}
 
-	function wouldTruncate(options: { label: string }[], containerPx: number, fontSpec: string, padPx: number): boolean {
+	function wouldTruncate(
+		options: { label: string }[],
+		containerPx: number,
+		fontSpec: string,
+		padPx: number
+	): boolean {
 		const segmentWidth = containerPx / options.length;
 		// 6px buffer for sub-pixel rounding, letter-spacing, and font rendering differences
 		return options.some((opt) => measureLabel(opt.label, fontSpec) + padPx + 6 > segmentWidth);
@@ -282,10 +315,27 @@
 	type SegmentMode = 'normal' | 'compact' | 'dropdown';
 
 	let segmentMode: SegmentMode = $derived.by(() => {
-		if (item.widget !== 'multiple_button' || !item.options || item.options.length === 0) return 'normal';
+		if (item.widget !== 'multiple_button' || !item.options || item.options.length === 0)
+			return 'normal';
 		const containerPx = isMobile ? MOBILE_CONTAINER_PX : DESKTOP_CONTAINER_PX;
-		if (!wouldTruncate(item.options, containerPx, '500 14px system-ui, -apple-system, sans-serif', NORMAL_PAD_PX)) return 'normal';
-		if (!wouldTruncate(item.options, containerPx, '500 13px system-ui, -apple-system, sans-serif', COMPACT_PAD_PX)) return 'compact';
+		if (
+			!wouldTruncate(
+				item.options,
+				containerPx,
+				'500 14px system-ui, -apple-system, sans-serif',
+				NORMAL_PAD_PX
+			)
+		)
+			return 'normal';
+		if (
+			!wouldTruncate(
+				item.options,
+				containerPx,
+				'500 13px system-ui, -apple-system, sans-serif',
+				COMPACT_PAD_PX
+			)
+		)
+			return 'compact';
 		return 'dropdown';
 	});
 
@@ -303,530 +353,769 @@
 	}
 </script>
 
-	<div
-		class="transition-all duration-150 {accentClass}"
-		class:setting-dimmed={!visible || !enabled}
-		id={item.key}
-	>
-		{#if isOffroadMode}
-			<!-- ── Force Offroad Mode: Button pattern (matches device UI) ── -->
-			<div class="flex w-full items-center justify-between px-4 py-4">
-				<div class="mr-4 min-w-0 flex-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-						{item.title || 'Force Offroad Mode'}
-					</span>
-					{#if isOn}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-amber-700 dark:text-amber-400">Vehicle engagement is disabled</p>
-					{:else if item.description}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-					{/if}
-					</div>
-				<div class="flex shrink-0 items-center">
-					{#if isLoading}
-						<div class="h-8 w-24 skeleton-shimmer rounded-full"></div>
-					{:else if isPushing}
-						<Loader2 size={16} class="animate-spin text-[var(--sl-text-2)]" />
-					{:else if isOn}
-						<button
-							class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 dark:text-amber-400 transition-colors hover:bg-amber-500/25"
-							disabled={!enabled}
-							onclick={() => handleChange(false)}
-						>
-							Exit Offroad
-						</button>
-					{:else}
-						<button
-							class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/25"
-							disabled={!enabled}
-							onclick={() => (offroadConfirmOpen = true)}
-						>
-							Enable
-						</button>
-					{/if}
-				</div>
+<div
+	class="transition-all duration-150 {accentClass}"
+	class:setting-dimmed={!visible || !enabled}
+	id={item.key}
+>
+	{#if isOffroadMode}
+		<!-- ── Force Offroad Mode: Button pattern (matches device UI) ── -->
+		<div class="flex w-full items-center justify-between px-4 py-4">
+			<div class="mr-4 min-w-0 flex-1">
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+					{item.title || 'Force Offroad Mode'}
+				</span>
+				{#if isOn}
+					<p
+						class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-amber-700 dark:text-amber-400"
+					>
+						Vehicle engagement is disabled
+					</p>
+				{:else if item.description}
+					<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+						{@html sanitizeDescription(item.description)}
+					</p>
+				{/if}
 			</div>
+			<div class="flex shrink-0 items-center">
+				{#if isLoading}
+					<div class="skeleton-shimmer h-8 w-24 rounded-full"></div>
+				{:else if isPushing}
+					<Loader2 size={16} class="animate-spin text-[var(--sl-text-2)]" />
+				{:else if isOn}
+					<button
+						class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-400"
+						disabled={!enabled}
+						onclick={() => handleChange(false)}
+					>
+						Exit Offroad
+					</button>
+				{:else}
+					<button
+						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 dark:text-red-400"
+						disabled={!enabled}
+						onclick={() => (offroadConfirmOpen = true)}
+					>
+						Enable
+					</button>
+				{/if}
+			</div>
+		</div>
 
-			<ConfirmationModal
-				bind:open={offroadConfirmOpen}
-				title="Enable Force Offroad Mode?"
-				message="This will immediately prevent the vehicle from engaging. Only use this when the vehicle is parked and you need to force maintenance mode."
-				confirmText="Enable Offroad"
-				variant="danger"
-				isProcessing={isPushing}
-				onConfirm={() => {
-					offroadConfirmOpen = false;
-					handleChange(true);
-				}}
-			/>
-		{:else if item.widget === 'toggle'}
-			<!-- ── Toggle Row ──────────────────────────────────────────────── -->
-			<div
-				class="flex w-full items-center justify-between px-4 py-4"
-			>
-				<div class="mr-4 min-w-0 flex-1">
-					<div class="flex items-center gap-2">
-						<button
-							class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left"
-							class:cursor-not-allowed={!enabled}
-							disabled={!enabled || isPushing}
-							onclick={() => {
-								if (enabled && !isPushing) handleChange(!isOn);
-							}}
-						>{displayTitle}</button>
-						{#if isBlocked}
-							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
-								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
-							</Tooltip>
-							<button
-								class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
-								onclick={handleRevert}
-							>Revert</button>
-						{:else if isQueued || pushState === 'pending'}
-							<Tooltip text="Changes queued — will sync to device when pushed.">
-								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
-							</Tooltip>
-						{:else if isPushing}
-							<span class="loading loading-spinner loading-xs text-primary"></span>
-						{:else if pushState === 'success'}
-							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-								class="text-emerald-600 dark:text-emerald-400 transition-opacity"><path d="M20 6 9 17l-5-5" /></svg>
-						{:else if hasDrift}
-							<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
-								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
-							</Tooltip>
-						{/if}
-						{#if isAdvanced}
-							<Tooltip text="This is an advanced setting.">
-								<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
-							</Tooltip>
-						{/if}
-						{#if needsOffroad && !ruleContext.isOffroad}
-							<Tooltip text="Only available when the car is powered off.">
-								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
-							</Tooltip>
-						{/if}
-						{#if isDeviceOnly}
-							<Tooltip text="This setting can only be changed on the device.">
-								<span class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 dark:text-blue-400 uppercase">Device only</span>
-							</Tooltip>
-						{:else if disabledReasons.length > 0}
-							<Tooltip text={disabledReasons.join('. ')}>
-								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
-							</Tooltip>
-						{/if}
-						{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
-							<Tooltip text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on.">
-								<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
-							</Tooltip>
-						{/if}
-					</div>
-					{#if item.description}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-					{/if}
-					</div>
-				<div class="flex shrink-0 items-center">
-					{#if isLoading}
-						<div class="h-[26px] w-[44px] skeleton-shimmer rounded-full"></div>
-					{:else}
-						{@const toggleTrackClass =
-							isOn ? 'bg-primary'
-							: !enabled ? 'bg-[var(--sl-toggle-off-disabled)]'
-							: 'bg-[var(--sl-toggle-off)]'
-						}
-						<button
-							class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass} transition-opacity duration-200"
-							style="transition: background-color var(--dur-instant) var(--ease-out);"
-							class:opacity-50={isPushing}
-							class:cursor-not-allowed={!enabled || isPushing}
-							class:pointer-events-none={isPushing}
-							disabled={!enabled || isPushing}
-							role="switch"
-							aria-checked={isOn}
-							aria-label={displayTitle}
-							onclick={() => {
-								if (enabled && !isPushing) handleChange(!isOn);
-							}}
+		<ConfirmationModal
+			bind:open={offroadConfirmOpen}
+			title="Enable Force Offroad Mode?"
+			message="This will immediately prevent the vehicle from engaging. Only use this when the vehicle is parked and you need to force maintenance mode."
+			confirmText="Enable Offroad"
+			variant="danger"
+			isProcessing={isPushing}
+			onConfirm={() => {
+				offroadConfirmOpen = false;
+				handleChange(true);
+			}}
+		/>
+	{:else if item.widget === 'toggle'}
+		<!-- ── Toggle Row ──────────────────────────────────────────────── -->
+		<div class="flex w-full items-center justify-between px-4 py-4">
+			<div class="mr-4 min-w-0 flex-1">
+				<div class="flex items-center gap-2">
+					<button
+						class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+						class:cursor-not-allowed={!enabled}
+						disabled={!enabled || isPushing}
+						onclick={() => {
+							if (enabled && !isPushing) handleChange(!isOn);
+						}}>{displayTitle}</button
+					>
+					{#if isBlocked}
+						<Tooltip
+							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
 						>
 							<span
-								class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
-								class:translate-x-[18px]={isOn}
-								style="transition: transform var(--dur-instant) var(--ease-spring);"
-							></span>
-						</button>
-					{/if}
-				</div>
-			</div>
-
-		{:else if item.widget === 'option' && item.options && !(item.min !== undefined && item.max !== undefined)}
-			<!-- ── Dropdown Row (Linear-style inline select) ────────────────── -->
-			<div class="flex items-center justify-between gap-4 px-4 py-3.5">
-				<div class="min-w-0 flex-1">
-					<div class="flex items-center gap-2">
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
-						{#if isBlocked}
-							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
-								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
-							</Tooltip>
-							<button
-								class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
-								onclick={handleRevert}
-							>Revert</button>
-						{:else if isQueued || pushState === 'pending'}
-							<Tooltip text="Changes queued — will sync to device when pushed.">
-								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
-							</Tooltip>
-						{:else if isPushing}
-							<span class="loading loading-spinner loading-xs text-primary"></span>
-						{:else if pushState === 'success'}
-							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
-						{:else if hasDrift}
-							<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
-								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
-							</Tooltip>
-						{/if}
-						{#if isAdvanced}
-							<Tooltip text="This is an advanced setting.">
-								<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
-							</Tooltip>
-						{/if}
-						{#if needsOffroad && !ruleContext.isOffroad}
-							<Tooltip text="Only available when the car is powered off.">
-								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
-							</Tooltip>
-						{/if}
-						{#if isDeviceOnly}
-							<Tooltip text="This setting can only be changed on the device.">
-								<span class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 dark:text-blue-400 uppercase">Device only</span>
-							</Tooltip>
-						{:else if disabledReasons.length > 0}
-							<Tooltip text={disabledReasons.join('. ')}>
-								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
-							</Tooltip>
-						{/if}
-						{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
-							<Tooltip text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on.">
-								<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
-							</Tooltip>
-						{/if}
-					</div>
-					{#if item.description}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-					{/if}
-					</div>
-				<div class="shrink-0">
-					{#if isLoading}
-						<div class="h-8 w-20 skeleton-shimmer rounded-lg"></div>
-					{:else}
-						<SelectDropdown
-							options={item.options}
-							value={displayValue}
-							disabled={!enabled || isPushing}
-							disabledValues={disabledOptionValues}
-							onchange={(val) => {
-								const numVal = Number(val);
-								handleChange(isNaN(numVal) ? val : numVal);
-							}}
-						/>
-					{/if}
-				</div>
-			</div>
-
-		{:else if item.widget === 'option' && item.min !== undefined && item.max !== undefined}
-			<!-- ── Slider Row (range input below label) ────────────────────── -->
-			<div class="px-4 py-4">
-				<div class="flex items-center gap-2">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
-					{#if isQueued || pushState === 'pending'}
+								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400"
+								>Blocked</span
+							>
+						</Tooltip>
+						<button
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							onclick={handleRevert}>Revert</button
+						>
+					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
-								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
-							</Tooltip>
+							<span
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+								>Pending</span
+							>
+						</Tooltip>
 					{:else if isPushing}
-						<span class="loading loading-spinner loading-xs text-primary"></span>
+						<span class="loading loading-xs loading-spinner text-primary"></span>
 					{:else if pushState === 'success'}
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="text-emerald-600 transition-opacity dark:text-emerald-400"
+							><path d="M20 6 9 17l-5-5" /></svg
+						>
 					{:else if hasDrift}
-						<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
-								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
-							</Tooltip>
+						<Tooltip
+							text="Value was changed directly on the device and differs from what was last synced."
+						>
+							<span
+								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								>Changed on device</span
+							>
+						</Tooltip>
 					{/if}
 					{#if isAdvanced}
 						<Tooltip text="This is an advanced setting.">
-							<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
+							<span
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								>Advanced</span
+							>
 						</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
 						<Tooltip text="Only available when the car is powered off.">
-							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Offroad</span
+							>
 						</Tooltip>
 					{/if}
-					{#if disabledReasons.length > 0}
+					{#if isDeviceOnly}
+						<Tooltip text="This setting can only be changed on the device.">
+							<span
+								class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 uppercase dark:text-blue-400"
+								>Device only</span
+							>
+						</Tooltip>
+					{:else if disabledReasons.length > 0}
 						<Tooltip text={disabledReasons.join('. ')}>
-							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Unavailable</span
+							>
 						</Tooltip>
 					{/if}
 					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
-						<Tooltip text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on.">
-							<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						<Tooltip
+							text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+						>
+							<span
+								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
+								>Restart</span
+							>
 						</Tooltip>
 					{/if}
 				</div>
 				{#if item.description}
-					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+						{@html sanitizeDescription(item.description)}
+					</p>
 				{/if}
-
-				<div class="mt-2.5">
-					{#if isLoading}
-						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
-					{:else}
-						<div class="flex w-full flex-col gap-2">
-							<div class="flex items-center justify-between text-xs text-[var(--sl-text-3)]">
-								<span>{isFloat ? Number(item.min).toFixed(2) : item.min}</span>
-								<span class="text-sm font-semibold tabular-nums transition-colors" class:text-primary={sliderPreview === null} class:text-[var(--sl-text-1)]={sliderPreview !== null}>
-									{formatDisplay(sliderPreview ?? (displayValue !== undefined ? displayValue : item.min))}
-									{#if resolvedUnit}<span class="ml-0.5 text-xs font-normal text-[var(--sl-text-3)]">{resolvedUnit}</span>{/if}
-								</span>
-								<span>{isFloat ? Number(item.max).toFixed(2) : item.max}</span>
-							</div>
-							<div class="flex items-center gap-2 transition-opacity duration-200" class:opacity-50={isPushing} class:pointer-events-none={isPushing}>
-								<button
-									class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
-									disabled={!enabled || isPushing}
-									onclick={() => {
-										const current = displayValue !== undefined ? Number(displayValue) : Number(item.min);
-										const nv = Math.max(item.min!, current - (item.step || 1));
-										handleChange(isFloat ? parseFloat(nv.toFixed(2)) : nv);
-									}}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-										stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /></svg>
-								</button>
-								<input
-									type="range"
-									min={item.min}
-									max={item.max}
-									step={item.step || 1}
-									value={displayValue !== undefined ? Number(displayValue) : item.min}
-									class="range flex-1 range-primary range-xs"
-									disabled={!enabled || isPushing}
-									oninput={(e) => {
-										const val = (e.currentTarget as HTMLInputElement).value;
-										sliderPreview = isFloat ? parseFloat(val) : parseInt(val, 10);
-									}}
-									onchange={(e) => {
-										const val = (e.currentTarget as HTMLInputElement).value;
-										const numVal = isFloat ? parseFloat(val) : parseInt(val, 10);
-										sliderPreview = null;
-										handleChange(numVal);
-									}}
-								/>
-								<button
-									class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
-									disabled={!enabled || isPushing}
-									onclick={() => {
-										const current = displayValue !== undefined ? Number(displayValue) : Number(item.min);
-										const nv = Math.min(item.max!, current + (item.step || 1));
-										handleChange(isFloat ? parseFloat(nv.toFixed(2)) : nv);
-									}}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-										stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-								</button>
-							</div>
-						</div>
-					{/if}
-				</div>
 			</div>
-
-		{:else if item.widget === 'option'}
-			<!-- ── Option Display-Only Row (inline right-aligned value) ────── -->
-			<div class="flex w-full items-center justify-between px-4 py-4">
-				<div class="mr-4 min-w-0 flex-1">
-					<div class="flex items-center gap-2">
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
-						{#if isBlocked}
-							<Tooltip text="Blocked — this setting requires offroad. Will sync when the car is powered off.">
-								<span class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400">Blocked</span>
-							</Tooltip>
-							<button
-								class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
-								onclick={handleRevert}
-							>Revert</button>
-						{:else if isQueued || pushState === 'pending'}
-							<Tooltip text="Changes queued — will sync to device when pushed.">
-								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
-							</Tooltip>
-						{:else if isPushing}
-							<span class="loading loading-spinner loading-xs text-primary"></span>
-						{:else if pushState === 'success'}
-							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-								stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-								class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
-						{:else if hasDrift}
-							<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
-								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
-							</Tooltip>
-						{/if}
-						{#if isAdvanced}
-							<Tooltip text="This is an advanced setting.">
-								<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
-							</Tooltip>
-						{/if}
-						{#if needsOffroad && !ruleContext.isOffroad}
-							<Tooltip text="Only available when the car is powered off.">
-								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
-							</Tooltip>
-						{/if}
-						{#if isDeviceOnly}
-							<Tooltip text="This setting can only be changed on the device.">
-								<span class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 dark:text-blue-400 uppercase">Device only</span>
-							</Tooltip>
-						{:else if disabledReasons.length > 0}
-							<Tooltip text={disabledReasons.join('. ')}>
-								<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
-							</Tooltip>
-						{/if}
-						{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
-							<Tooltip text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on.">
-								<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
-							</Tooltip>
-						{/if}
-					</div>
-					{#if item.description}
-						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-					{/if}
-					</div>
-				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">
-					{#if isLoading}
-						<div class="h-4 w-12 skeleton-shimmer rounded"></div>
-					{:else}
-						{formatDisplay(displayValue)}{#if resolvedUnit}<span class="ml-0.5 text-[var(--sl-text-3)]">{resolvedUnit}</span>{/if}
-					{/if}
-				</span>
+			<div class="flex shrink-0 items-center">
+				{#if isLoading}
+					<div class="skeleton-shimmer h-[26px] w-[44px] rounded-full"></div>
+				{:else}
+					{@const toggleTrackClass = isOn
+						? 'bg-primary'
+						: !enabled
+							? 'bg-[var(--sl-toggle-off-disabled)]'
+							: 'bg-[var(--sl-toggle-off)]'}
+					<button
+						class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass} transition-opacity duration-200"
+						style="transition: background-color var(--dur-instant) var(--ease-out);"
+						class:opacity-50={isPushing}
+						class:cursor-not-allowed={!enabled || isPushing}
+						class:pointer-events-none={isPushing}
+						disabled={!enabled || isPushing}
+						role="switch"
+						aria-checked={isOn}
+						aria-label={displayTitle}
+						onclick={() => {
+							if (enabled && !isPushing) handleChange(!isOn);
+						}}
+					>
+						<span
+							class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
+							class:translate-x-[18px]={isOn}
+							style="transition: transform var(--dur-instant) var(--ease-spring);"
+						></span>
+					</button>
+				{/if}
 			</div>
-
-		{:else if item.widget === 'multiple_button'}
-			<!-- ── Segmented Button Row ────────────────────────────────────── -->
-			<div class="px-4 py-4">
+		</div>
+	{:else if item.widget === 'option' && item.options && !(item.min !== undefined && item.max !== undefined)}
+		<!-- ── Dropdown Row (Linear-style inline select) ────────────────── -->
+		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
+			<div class="min-w-0 flex-1">
 				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
-					{#if isQueued || pushState === 'pending'}
+					{#if isBlocked}
+						<Tooltip
+							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
+						>
+							<span
+								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400"
+								>Blocked</span
+							>
+						</Tooltip>
+						<button
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							onclick={handleRevert}>Revert</button
+						>
+					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
-								<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
-							</Tooltip>
+							<span
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+								>Pending</span
+							>
+						</Tooltip>
 					{:else if isPushing}
-						<span class="loading loading-spinner loading-xs text-primary"></span>
+						<span class="loading loading-xs loading-spinner text-primary"></span>
 					{:else if pushState === 'success'}
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-							stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg
+						>
 					{:else if hasDrift}
-						<Tooltip text="Value was changed directly on the device and differs from what was last synced.">
-								<span class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400">Changed on device</span>
-							</Tooltip>
+						<Tooltip
+							text="Value was changed directly on the device and differs from what was last synced."
+						>
+							<span
+								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								>Changed on device</span
+							>
+						</Tooltip>
 					{/if}
 					{#if isAdvanced}
 						<Tooltip text="This is an advanced setting.">
-							<span class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase">Advanced</span>
+							<span
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								>Advanced</span
+							>
 						</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
 						<Tooltip text="Only available when the car is powered off.">
-							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Offroad</span>
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Offroad</span
+							>
 						</Tooltip>
 					{/if}
-					{#if disabledReasons.length > 0}
+					{#if isDeviceOnly}
+						<Tooltip text="This setting can only be changed on the device.">
+							<span
+								class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 uppercase dark:text-blue-400"
+								>Device only</span
+							>
+						</Tooltip>
+					{:else if disabledReasons.length > 0}
 						<Tooltip text={disabledReasons.join('. ')}>
-							<span class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 dark:text-amber-400 uppercase">Unavailable</span>
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Unavailable</span
+							>
 						</Tooltip>
 					{/if}
 					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
-						<Tooltip text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on.">
-							<span class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 dark:text-orange-400 uppercase">Restart</span>
+						<Tooltip
+							text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+						>
+							<span
+								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
+								>Restart</span
+							>
 						</Tooltip>
 					{/if}
 				</div>
 				{#if item.description}
-					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
+					<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+						{@html sanitizeDescription(item.description)}
+					</p>
 				{/if}
+			</div>
+			<div class="shrink-0">
+				{#if isLoading}
+					<div class="skeleton-shimmer h-8 w-20 rounded-lg"></div>
+				{:else}
+					<SelectDropdown
+						options={item.options}
+						value={displayValue}
+						disabled={!enabled || isPushing}
+						disabledValues={disabledOptionValues}
+						onchange={(val) => {
+							const numVal = Number(val);
+							handleChange(isNaN(numVal) ? val : numVal);
+						}}
+					/>
+				{/if}
+			</div>
+		</div>
+	{:else if item.widget === 'option' && item.min !== undefined && item.max !== undefined}
+		<!-- ── Slider Row (range input below label) ────────────────────── -->
+		<div class="px-4 py-4">
+			<div class="flex items-center gap-2">
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+				{#if isQueued || pushState === 'pending'}
+					<Tooltip text="Changes queued — will sync to device when pushed.">
+						<span
+							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+							>Pending</span
+						>
+					</Tooltip>
+				{:else if isPushing}
+					<span class="loading loading-xs loading-spinner text-primary"></span>
+				{:else if pushState === 'success'}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="12"
+						height="12"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg
+					>
+				{:else if hasDrift}
+					<Tooltip
+						text="Value was changed directly on the device and differs from what was last synced."
+					>
+						<span
+							class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+							>Changed on device</span
+						>
+					</Tooltip>
+				{/if}
+				{#if isAdvanced}
+					<Tooltip text="This is an advanced setting.">
+						<span
+							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+							>Advanced</span
+						>
+					</Tooltip>
+				{/if}
+				{#if needsOffroad && !ruleContext.isOffroad}
+					<Tooltip text="Only available when the car is powered off.">
+						<span
+							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+							>Offroad</span
+						>
+					</Tooltip>
+				{/if}
+				{#if disabledReasons.length > 0}
+					<Tooltip text={disabledReasons.join('. ')}>
+						<span
+							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+							>Unavailable</span
+						>
+					</Tooltip>
+				{/if}
+				{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+					<Tooltip
+						text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+					>
+						<span
+							class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
+							>Restart</span
+						>
+					</Tooltip>
+				{/if}
+			</div>
+			{#if item.description}
+				<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+					{@html sanitizeDescription(item.description)}
+				</p>
+			{/if}
 
-				<div class="mt-2.5">
-					{#if isLoading}
-						<div class="h-8 w-full skeleton-shimmer rounded-lg"></div>
-					{:else if item.options && useDropdownForSegments}
-						<!-- Dropdown fallback for many options on narrow screens -->
-						<SelectDropdown
-							options={item.options}
-							value={displayValue}
-							disabled={!enabled || isPushing}
-							disabledValues={disabledOptionValues}
-							onchange={(val) => {
-								const numVal = Number(val);
-								handleChange(isNaN(numVal) ? val : numVal);
-							}}
-						/>
-					{:else if item.options}
-						{@const selectedIdx = item.options.findIndex((o) => String(displayValue) === String(o.value))}
-						{@const optCount = item.options.length}
-						<div class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200" class:opacity-50={isPushing} class:pointer-events-none={isPushing}>
-							{#if selectedIdx >= 0}
-								<div
-									class="absolute top-1 bottom-1 rounded-md bg-primary shadow-sm transition-transform duration-350 ease-out"
-									style="width: calc((100% - 0.5rem) / {optCount}); transform: translateX(calc({selectedIdx} * 100%));"
-								></div>
-							{/if}
-							{#each item.options as option, oi}
-								{@const isSelected = oi === selectedIdx}
-								{@const optEnabled = isOptionEnabled(option)}
-								<button
-									class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments ? 'px-1.5 text-[0.8125rem] tracking-tight' : 'px-2.5 text-sm'}"
-									class:text-white={isSelected && optEnabled}
-									class:text-[var(--sl-text-2)]={!isSelected && optEnabled}
-									class:hover:text-[var(--sl-text-1)]={!isSelected && optEnabled && !isPushing}
-									class:opacity-30={!optEnabled}
-									class:cursor-not-allowed={!optEnabled}
-									class:pointer-events-none={isPushing}
-									disabled={!enabled || isPushing || !optEnabled}
-									aria-disabled={!optEnabled}
-									onclick={() => handleChange(option.value)}
-								>
-									{option.label}
-								</button>
-							{/each}
+			<div class="mt-2.5">
+				{#if isLoading}
+					<div class="skeleton-shimmer h-8 w-full rounded-lg"></div>
+				{:else}
+					<div class="flex w-full flex-col gap-2">
+						<div class="flex items-center justify-between text-xs text-[var(--sl-text-3)]">
+							<span>{isFloat ? Number(item.min).toFixed(2) : item.min}</span>
+							<span
+								class="text-sm font-semibold tabular-nums transition-colors"
+								class:text-primary={sliderPreview === null}
+								class:text-[var(--sl-text-1)]={sliderPreview !== null}
+							>
+								{formatDisplay(
+									sliderPreview ?? (displayValue !== undefined ? displayValue : item.min)
+								)}
+								{#if resolvedUnit}<span class="ml-0.5 text-xs font-normal text-[var(--sl-text-3)]"
+										>{resolvedUnit}</span
+									>{/if}
+							</span>
+							<span>{isFloat ? Number(item.max).toFixed(2) : item.max}</span>
 						</div>
-					{/if}
-				</div>
+						<div
+							class="flex items-center gap-2 transition-opacity duration-200"
+							class:opacity-50={isPushing}
+							class:pointer-events-none={isPushing}
+						>
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								disabled={!enabled || isPushing}
+								onclick={() => {
+									const current =
+										displayValue !== undefined ? Number(displayValue) : Number(item.min);
+									const nv = Math.max(item.min!, current - (item.step || 1));
+									handleChange(isFloat ? parseFloat(nv.toFixed(2)) : nv);
+								}}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"><path d="M5 12h14" /></svg
+								>
+							</button>
+							<input
+								type="range"
+								min={item.min}
+								max={item.max}
+								step={item.step || 1}
+								value={displayValue !== undefined ? Number(displayValue) : item.min}
+								class="range flex-1 range-primary range-xs"
+								disabled={!enabled || isPushing}
+								oninput={(e) => {
+									const val = (e.currentTarget as HTMLInputElement).value;
+									sliderPreview = isFloat ? parseFloat(val) : parseInt(val, 10);
+								}}
+								onchange={(e) => {
+									const val = (e.currentTarget as HTMLInputElement).value;
+									const numVal = isFloat ? parseFloat(val) : parseInt(val, 10);
+									sliderPreview = null;
+									handleChange(numVal);
+								}}
+							/>
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								disabled={!enabled || isPushing}
+								onclick={() => {
+									const current =
+										displayValue !== undefined ? Number(displayValue) : Number(item.min);
+									const nv = Math.min(item.max!, current + (item.step || 1));
+									handleChange(isFloat ? parseFloat(nv.toFixed(2)) : nv);
+								}}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg
+								>
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
-
-		{:else if item.widget === 'info'}
-			<!-- ── Info Row (inline right-aligned value) ───────────────────── -->
-			<div class="flex w-full items-center justify-between px-4 py-4">
-				<div class="mr-4 min-w-0 flex-1">
+		</div>
+	{:else if item.widget === 'option'}
+		<!-- ── Option Display-Only Row (inline right-aligned value) ────── -->
+		<div class="flex w-full items-center justify-between px-4 py-4">
+			<div class="mr-4 min-w-0 flex-1">
+				<div class="flex items-center gap-2">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
-					{#if item.description}
-						<span class="ml-1.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</span>
+					{#if isBlocked}
+						<Tooltip
+							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
+						>
+							<span
+								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400"
+								>Blocked</span
+							>
+						</Tooltip>
+						<button
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							onclick={handleRevert}>Revert</button
+						>
+					{:else if isQueued || pushState === 'pending'}
+						<Tooltip text="Changes queued — will sync to device when pushed.">
+							<span
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+								>Pending</span
+							>
+						</Tooltip>
+					{:else if isPushing}
+						<span class="loading loading-xs loading-spinner text-primary"></span>
+					{:else if pushState === 'success'}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg
+						>
+					{:else if hasDrift}
+						<Tooltip
+							text="Value was changed directly on the device and differs from what was last synced."
+						>
+							<span
+								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								>Changed on device</span
+							>
+						</Tooltip>
+					{/if}
+					{#if isAdvanced}
+						<Tooltip text="This is an advanced setting.">
+							<span
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								>Advanced</span
+							>
+						</Tooltip>
+					{/if}
+					{#if needsOffroad && !ruleContext.isOffroad}
+						<Tooltip text="Only available when the car is powered off.">
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Offroad</span
+							>
+						</Tooltip>
+					{/if}
+					{#if isDeviceOnly}
+						<Tooltip text="This setting can only be changed on the device.">
+							<span
+								class="bright-badge rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-blue-700 uppercase dark:text-blue-400"
+								>Device only</span
+							>
+						</Tooltip>
+					{:else if disabledReasons.length > 0}
+						<Tooltip text={disabledReasons.join('. ')}>
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Unavailable</span
+							>
+						</Tooltip>
+					{/if}
+					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+						<Tooltip
+							text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+						>
+							<span
+								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
+								>Restart</span
+							>
+						</Tooltip>
 					{/if}
 				</div>
-				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">
-					{formatDisplay(displayValue)}
-				</span>
+				{#if item.description}
+					<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+						{@html sanitizeDescription(item.description)}
+					</p>
+				{/if}
 			</div>
-		{/if}
+			<span class="shrink-0 text-[0.8125rem] font-medium text-[var(--sl-text-2)] tabular-nums">
+				{#if isLoading}
+					<div class="skeleton-shimmer h-4 w-12 rounded"></div>
+				{:else}
+					{formatDisplay(displayValue)}{#if resolvedUnit}<span
+							class="ml-0.5 text-[var(--sl-text-3)]">{resolvedUnit}</span
+						>{/if}
+				{/if}
+			</span>
+		</div>
+	{:else if item.widget === 'multiple_button'}
+		<!-- ── Segmented Button Row ────────────────────────────────────── -->
+		<div class="px-4 py-4">
+			<div class="flex items-center gap-2">
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+				{#if isQueued || pushState === 'pending'}
+					<Tooltip text="Changes queued — will sync to device when pushed.">
+						<span
+							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+							>Pending</span
+						>
+					</Tooltip>
+				{:else if isPushing}
+					<span class="loading loading-xs loading-spinner text-primary"></span>
+				{:else if pushState === 'success'}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="12"
+						height="12"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg
+					>
+				{:else if hasDrift}
+					<Tooltip
+						text="Value was changed directly on the device and differs from what was last synced."
+					>
+						<span
+							class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+							>Changed on device</span
+						>
+					</Tooltip>
+				{/if}
+				{#if isAdvanced}
+					<Tooltip text="This is an advanced setting.">
+						<span
+							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+							>Advanced</span
+						>
+					</Tooltip>
+				{/if}
+				{#if needsOffroad && !ruleContext.isOffroad}
+					<Tooltip text="Only available when the car is powered off.">
+						<span
+							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+							>Offroad</span
+						>
+					</Tooltip>
+				{/if}
+				{#if disabledReasons.length > 0}
+					<Tooltip text={disabledReasons.join('. ')}>
+						<span
+							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+							>Unavailable</span
+						>
+					</Tooltip>
+				{/if}
+				{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+					<Tooltip
+						text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+					>
+						<span
+							class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
+							>Restart</span
+						>
+					</Tooltip>
+				{/if}
+			</div>
+			{#if item.description}
+				<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+					{@html sanitizeDescription(item.description)}
+				</p>
+			{/if}
 
-		{#if showDivider}
-			<div class="setting-divider mx-4 border-b border-[var(--sl-border-muted)]"></div>
-		{/if}
-	</div>
-
-	{#if item.sub_items}
-		{#each item.sub_items as subItem, i (subItem.key)}
-			<svelte:self deviceId={deviceId} item={subItem} {loadingValues} {readonly} isLast={i === item.sub_items.length - 1 && isLast} />
-		{/each}
+			<div class="mt-2.5">
+				{#if isLoading}
+					<div class="skeleton-shimmer h-8 w-full rounded-lg"></div>
+				{:else if item.options && useDropdownForSegments}
+					<!-- Dropdown fallback for many options on narrow screens -->
+					<SelectDropdown
+						options={item.options}
+						value={displayValue}
+						disabled={!enabled || isPushing}
+						disabledValues={disabledOptionValues}
+						onchange={(val) => {
+							const numVal = Number(val);
+							handleChange(isNaN(numVal) ? val : numVal);
+						}}
+					/>
+				{:else if item.options}
+					{@const selectedIdx = item.options.findIndex(
+						(o) => String(displayValue) === String(o.value)
+					)}
+					{@const optCount = item.options.length}
+					<div
+						class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200"
+						class:opacity-50={isPushing}
+						class:pointer-events-none={isPushing}
+					>
+						{#if selectedIdx >= 0}
+							<div
+								class="absolute top-1 bottom-1 rounded-md bg-primary shadow-sm transition-transform duration-350 ease-out"
+								style="width: calc((100% - 0.5rem) / {optCount}); transform: translateX(calc({selectedIdx} * 100%));"
+							></div>
+						{/if}
+						{#each item.options as option, oi}
+							{@const isSelected = oi === selectedIdx}
+							{@const optEnabled = isOptionEnabled(option)}
+							<button
+								class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments
+									? 'px-1.5 text-[0.8125rem] tracking-tight'
+									: 'px-2.5 text-sm'}"
+								class:text-white={isSelected && optEnabled}
+								class:text-[var(--sl-text-2)]={!isSelected && optEnabled}
+								class:hover:text-[var(--sl-text-1)]={!isSelected && optEnabled && !isPushing}
+								class:opacity-30={!optEnabled}
+								class:cursor-not-allowed={!optEnabled}
+								class:pointer-events-none={isPushing}
+								disabled={!enabled || isPushing || !optEnabled}
+								aria-disabled={!optEnabled}
+								onclick={() => handleChange(option.value)}
+							>
+								{option.label}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>
+	{:else if item.widget === 'info'}
+		<!-- ── Info Row (inline right-aligned value) ───────────────────── -->
+		<div class="flex w-full items-center justify-between px-4 py-4">
+			<div class="mr-4 min-w-0 flex-1">
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+				{#if item.description}
+					<span class="ml-1.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]"
+						>{@html sanitizeDescription(item.description)}</span
+					>
+				{/if}
+			</div>
+			<span class="shrink-0 text-[0.8125rem] font-medium text-[var(--sl-text-2)] tabular-nums">
+				{formatDisplay(displayValue)}
+			</span>
+		</div>
 	{/if}
+
+	{#if showDivider}
+		<div class="setting-divider mx-4 border-b border-[var(--sl-border-muted)]"></div>
+	{/if}
+</div>
+
+{#if item.sub_items}
+	{#each item.sub_items as subItem, i (subItem.key)}
+		<svelte:self
+			{deviceId}
+			item={subItem}
+			{loadingValues}
+			{readonly}
+			isLast={i === item.sub_items.length - 1 && isLast}
+		/>
+	{/each}
+{/if}
 
 <style>
 	/* Dim everything inside .setting-dimmed except .bright-badge elements.
@@ -836,13 +1125,22 @@
 	:global(.setting-dimmed) > :global(*:not(:has(.bright-badge)):not(.setting-divider)) {
 		opacity: 0.4;
 	}
-	:global(.setting-dimmed) > :global(*:has(.bright-badge)) > :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
+	:global(.setting-dimmed)
+		> :global(*:has(.bright-badge))
+		> :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
 		opacity: 0.4;
 	}
-	:global(.setting-dimmed) > :global(*:has(.bright-badge)) > :global(*:has(.bright-badge)) > :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
+	:global(.setting-dimmed)
+		> :global(*:has(.bright-badge))
+		> :global(*:has(.bright-badge))
+		> :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
 		opacity: 0.4;
 	}
-	:global(.setting-dimmed) > :global(*:has(.bright-badge)) > :global(*:has(.bright-badge)) > :global(*:has(.bright-badge)) > :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
+	:global(.setting-dimmed)
+		> :global(*:has(.bright-badge))
+		> :global(*:has(.bright-badge))
+		> :global(*:has(.bright-badge))
+		> :global(*:not(:has(.bright-badge)):not(.bright-badge)) {
 		opacity: 0.4;
 	}
 </style>

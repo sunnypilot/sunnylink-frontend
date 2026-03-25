@@ -19,7 +19,8 @@
 	}>();
 
 	// Module-level CarList cache (survives component re-mounts during SPA navigation)
-	const carListCache: Record<string, Record<string, any>> = (globalThis as any).__carListCache ??= {};
+	const carListCache: Record<string, Record<string, any>> = ((globalThis as any).__carListCache ??=
+		{});
 
 	// localStorage cache for carList (survives full page refreshes)
 	const CARLIST_STORAGE_KEY = `sunnylink_carlist_${deviceId}`;
@@ -31,14 +32,20 @@
 			const parsed = JSON.parse(raw);
 			carListCache[deviceId] = parsed;
 			return parsed;
-		} catch { return null; }
+		} catch {
+			return null;
+		}
 	}
 
 	function saveCarListToStorage(list: Record<string, any>) {
-		try { localStorage.setItem(CARLIST_STORAGE_KEY, JSON.stringify(list)); } catch {}
+		try {
+			localStorage.setItem(CARLIST_STORAGE_KEY, JSON.stringify(list));
+		} catch {}
 	}
 
-	let carList = $state<Record<string, any> | null>(carListCache[deviceId] ?? loadCarListFromStorage());
+	let carList = $state<Record<string, any> | null>(
+		carListCache[deviceId] ?? loadCarListFromStorage()
+	);
 	let isFetchingCarList = $state(false);
 	let hasAttemptedAutoFetch = $state(carList ? true : false);
 	let modalOpen = $state(false);
@@ -84,9 +91,10 @@
 	{
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		const vehicleKeys = ['CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent'];
-		const missingVehicleKeys = vehicleKeys.some(k => existing[k] === undefined);
+		const missingVehicleKeys = vehicleKeys.some((k) => existing[k] === undefined);
 		if (missingVehicleKeys) {
-			const commit = (existing['GitCommit'] as string) ||
+			const commit =
+				(existing['GitCommit'] as string) ||
 				schemaState.schemas[deviceId]?.schema_version ||
 				getLastKnownCommit(deviceId);
 			if (commit) {
@@ -111,8 +119,8 @@
 	// Whether we have any cached vehicle data (for showing content vs skeleton)
 	let hasCachedValues = $derived(
 		deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
-		deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
-		deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined
+			deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
+			deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined
 	);
 
 	let isLoadingValues = $state(!hasCachedValues);
@@ -144,7 +152,7 @@
 			}
 			if (res.items) {
 				if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-				const returnedKeys = new Set(res.items.map(i => i.key));
+				const returnedKeys = new Set(res.items.map((i) => i.key));
 
 				for (const item of res.items) {
 					if (item.key === 'CarPlatformBundle') {
@@ -192,7 +200,13 @@
 
 	// Reactive auto-fetch CarList
 	$effect(() => {
-		if (carFingerprint && !carPlatformBundle && !carList && !isFetchingCarList && !hasAttemptedAutoFetch) {
+		if (
+			carFingerprint &&
+			!carPlatformBundle &&
+			!carList &&
+			!isFetchingCarList &&
+			!hasAttemptedAutoFetch
+		) {
 			hasAttemptedAutoFetch = true;
 			(async () => {
 				isFetchingCarList = true;
@@ -200,7 +214,11 @@
 					const token = await logtoClient?.getIdToken();
 					if (token) {
 						const list = await getCarList(deviceId, token);
-						if (list) { carList = list; carListCache[deviceId] = list; saveCarListToStorage(list); }
+						if (list) {
+							carList = list;
+							carListCache[deviceId] = list;
+							saveCarListToStorage(list);
+						}
 					}
 				} catch (e) {
 					console.error('Effect fetch failed', e);
@@ -211,7 +229,9 @@
 		}
 	});
 
-	onMount(() => { fetchValues(); });
+	onMount(() => {
+		fetchValues();
+	});
 
 	async function handleOpen() {
 		modalOpen = true;
@@ -233,7 +253,9 @@
 		}
 	}
 
-	function requestClear() { confirmOpen = true; }
+	function requestClear() {
+		confirmOpen = true;
+	}
 
 	async function handleClearConfirm() {
 		if (!deviceId) return;
@@ -250,12 +272,22 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-			const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: '{}', type: 'Json' });
-			const res = await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }], token, 5000);
+			const encodedValue = encodeParamValue({
+				key: 'CarPlatformBundle',
+				value: '{}',
+				type: 'Json'
+			});
+			const res = await setDeviceParams(
+				deviceId,
+				[{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }],
+				token,
+				5000
+			);
 			if (res.error) {
-				const errorMsg = typeof res.error === 'object' && res.error !== null
-					? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
-					: 'Unknown API error';
+				const errorMsg =
+					typeof res.error === 'object' && res.error !== null
+						? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
+						: 'Unknown API error';
 				throw new Error(errorMsg);
 			}
 			onApiEnd?.(true);
@@ -290,12 +322,22 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-			const encodedValue = encodeParamValue({ key: 'CarPlatformBundle', value: JSON.stringify(bundle), type: 'Json' });
-			const res = await setDeviceParams(deviceId, [{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }], token, 5000);
+			const encodedValue = encodeParamValue({
+				key: 'CarPlatformBundle',
+				value: JSON.stringify(bundle),
+				type: 'Json'
+			});
+			const res = await setDeviceParams(
+				deviceId,
+				[{ key: 'CarPlatformBundle', value: String(encodedValue), is_compressed: false }],
+				token,
+				5000
+			);
 			if (res.error) {
-				const errorMsg = typeof res.error === 'object' && res.error !== null
-					? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
-					: 'Unknown API error';
+				const errorMsg =
+					typeof res.error === 'object' && res.error !== null
+						? (res.error as any).detail || (res.error as any).message || 'Unknown API error'
+						: 'Unknown API error';
 				throw new Error(errorMsg);
 			}
 			onApiEnd?.(true);
@@ -377,7 +419,10 @@
 				{#if mode === 'manual'}
 					<button
 						class="rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-red-400 transition-colors hover:bg-red-500/10"
-						onclick={(e) => { e.stopPropagation(); requestClear(); }}
+						onclick={(e) => {
+							e.stopPropagation();
+							requestClear();
+						}}
 					>
 						Remove
 					</button>
@@ -397,14 +442,17 @@
 		<div class="border-t border-[var(--sl-border-muted)]">
 			<button
 				class="flex w-full items-center gap-2 px-4 py-2.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
-				onclick={() => detailsOpen = !detailsOpen}
+				onclick={() => (detailsOpen = !detailsOpen)}
 			>
 				<ChevronDown size={14} class="transition-transform {detailsOpen ? '' : '-rotate-90'}" />
 				View details
 			</button>
 
 			{#if detailsOpen}
-				<div transition:slide={{ duration: 200 }} class="border-t border-[var(--sl-border-muted)] px-4 py-3 text-[0.8125rem]">
+				<div
+					transition:slide={{ duration: 200 }}
+					class="border-t border-[var(--sl-border-muted)] px-4 py-3 text-[0.8125rem]"
+				>
 					{#if carPlatformBundle}
 						<div class="space-y-2">
 							<div class="flex justify-between">
@@ -427,7 +475,9 @@
 								<div class="flex justify-between">
 									<span class="text-[var(--sl-text-3)]">Year</span>
 									<span class="text-[var(--sl-text-1)]">
-										{Array.isArray(carPlatformBundle.year) ? carPlatformBundle.year.join(', ') : carPlatformBundle.year}
+										{Array.isArray(carPlatformBundle.year)
+											? carPlatformBundle.year.join(', ')
+											: carPlatformBundle.year}
 									</span>
 								</div>
 							{/if}
@@ -447,7 +497,9 @@
 							{#if matchingCars.length > 0}
 								<div class="flex justify-between">
 									<span class="text-[var(--sl-text-3)]">Match</span>
-									<span class="text-[var(--sl-text-1)]">{matchingCars.map(c => c.name).join(', ')}</span>
+									<span class="text-[var(--sl-text-1)]"
+										>{matchingCars.map((c) => c.name).join(', ')}</span
+									>
 								</div>
 							{/if}
 						</div>
@@ -455,14 +507,20 @@
 
 					<div class="mt-3">
 						<button
-							class="flex items-center gap-1.5 cursor-pointer font-mono text-xs text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)] transition-colors"
-							onclick={() => rawOpen = !rawOpen}
+							class="flex cursor-pointer items-center gap-1.5 font-mono text-xs text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+							onclick={() => (rawOpen = !rawOpen)}
 						>
 							<ChevronDown size={12} class="transition-transform {rawOpen ? '' : '-rotate-90'}" />
 							Raw configuration
 						</button>
 						{#if rawOpen}
-							<pre transition:slide={{ duration: 200 }} class="mt-2 overflow-x-auto rounded-lg bg-[var(--sl-bg-input)] p-3 text-xs text-[var(--sl-text-2)]">{JSON.stringify(carPlatformBundle || matchingCars, null, 2)}</pre>
+							<pre
+								transition:slide={{ duration: 200 }}
+								class="mt-2 overflow-x-auto rounded-lg bg-[var(--sl-bg-input)] p-3 text-xs text-[var(--sl-text-2)]">{JSON.stringify(
+									carPlatformBundle || matchingCars,
+									null,
+									2
+								)}</pre>
 						{/if}
 					</div>
 				</div>

@@ -10,8 +10,14 @@
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import {
-		RefreshCw, Loader2, AlertTriangle,
-		Copy, Check, ChevronRight, Monitor, GitBranch
+		RefreshCw,
+		Loader2,
+		AlertTriangle,
+		Copy,
+		Check,
+		ChevronRight,
+		Monitor,
+		GitBranch
 	} from 'lucide-svelte';
 
 	/**
@@ -34,7 +40,7 @@
 		tizi: 'comma 3X',
 		mici: 'comma four',
 		tici: 'comma three',
-		pc: 'PC',
+		pc: 'PC'
 	};
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
@@ -225,11 +231,13 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) return;
-			const payload = [{
-				key: 'OffroadMode',
-				value: encodeParamValue({ key: 'OffroadMode', value: false, type: 'Bool' }),
-				is_compressed: false
-			}];
+			const payload = [
+				{
+					key: 'OffroadMode',
+					value: encodeParamValue({ key: 'OffroadMode', value: false, type: 'Bool' }),
+					is_compressed: false
+				}
+			];
 			await v0Client.POST('/settings/{deviceId}', {
 				params: { path: { deviceId } },
 				body: payload,
@@ -257,7 +265,9 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (token) await checkDeviceStatus(deviceId, token, true);
-		} catch { /* ignore */ }
+		} catch {
+			/* ignore */
+		}
 	}
 
 	async function copyDeviceId() {
@@ -265,8 +275,12 @@
 		try {
 			await navigator.clipboard.writeText(deviceId);
 			copiedId = true;
-			setTimeout(() => { copiedId = false; }, 2000);
-		} catch { /* ignore */ }
+			setTimeout(() => {
+				copiedId = false;
+			}, 2000);
+		} catch {
+			/* ignore */
+		}
 	}
 
 	async function copyField(field: string, value: string | undefined) {
@@ -274,14 +288,21 @@
 		try {
 			await navigator.clipboard.writeText(value);
 			copiedField = field;
-			setTimeout(() => { copiedField = null; }, 2000);
-		} catch { /* ignore */ }
+			setTimeout(() => {
+				copiedField = null;
+			}, 2000);
+		} catch {
+			/* ignore */
+		}
 	}
 
 	function formatNetworkType(type: string | undefined): string {
 		if (!type || type === 'unknown') return '--';
 		const map: Record<string, string> = {
-			wifi: 'WiFi', cellular: 'Cellular', ethernet: 'Ethernet', none: 'None'
+			wifi: 'WiFi',
+			cellular: 'Cellular',
+			ethernet: 'Ethernet',
+			none: 'None'
 		};
 		return map[type.toLowerCase()] ?? type;
 	}
@@ -301,7 +322,7 @@
 				class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
 				class:animate-pulse={pillState.pulse}
 			></span>
-			<span class="text-[0.75rem] font-medium leading-none {pillState.textClass}">
+			<span class="text-[0.75rem] leading-none font-medium {pillState.textClass}">
 				{pillState.label}
 			</span>
 		</button>
@@ -309,11 +330,11 @@
 		{#if popoverOpen}
 			<div
 				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
-				class="absolute right-0 top-full z-[100] mt-2 w-72 origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+				class="absolute top-full right-0 z-[100] mt-2 w-72 origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
 				role="dialog"
 				aria-label="Device status details"
 			>
-				<div class="px-2.5 pb-2 pt-2">
+				<div class="px-2.5 pt-2 pb-2">
 					<div class="flex items-center justify-between">
 						<span class="text-[0.875rem] font-semibold text-[var(--sl-text-1)]">
 							{deviceName}
@@ -328,7 +349,10 @@
 						</button>
 					</div>
 					<div class="mt-1 flex items-center gap-1.5 text-[0.75rem] text-[var(--sl-text-2)]">
-						<span class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}" class:animate-pulse={pillState.pulse}></span>
+						<span
+							class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
+							class:animate-pulse={pillState.pulse}
+						></span>
 						<span>{pillState.label}</span>
 						{#if deviceTypeName}
 							<span class="text-[var(--sl-text-3)]">&middot;</span>
@@ -361,8 +385,14 @@
 							{#if copiedField === 'branch'}
 								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
 							{:else}
-								<span bind:this={marqueeEl} class="marquee-container max-w-[140px] overflow-hidden" class:overflows={marqueeOverflows}>
-									<span class="marquee-track whitespace-nowrap font-mono text-[0.75rem] text-[var(--sl-text-2)]">
+								<span
+									bind:this={marqueeEl}
+									class="marquee-container max-w-[140px] overflow-hidden"
+									class:overflows={marqueeOverflows}
+								>
+									<span
+										class="marquee-track font-mono text-[0.75rem] whitespace-nowrap text-[var(--sl-text-2)]"
+									>
 										<span>{branchName}</span>
 										{#if marqueeOverflows}
 											<span class="marquee-gap"></span>
@@ -458,7 +488,10 @@
 						{/if}
 					</button>
 					<button
-						onclick={() => { closePopover(); goto('/dashboard'); }}
+						onclick={() => {
+							closePopover();
+							goto('/dashboard');
+						}}
 						class="flex items-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:bg-[var(--sl-bg-subtle)]"
 					>
 						<span>Overview</span>
@@ -493,7 +526,11 @@
 		animation: marquee-scroll var(--marquee-duration, 6s) linear 2s infinite;
 	}
 	@keyframes marquee-scroll {
-		0% { transform: translateX(0); }
-		100% { transform: translateX(var(--marquee-scroll, 0px)); }
+		0% {
+			transform: translateX(0);
+		}
+		100% {
+			transform: translateX(var(--marquee-scroll, 0px));
+		}
 	}
 </style>

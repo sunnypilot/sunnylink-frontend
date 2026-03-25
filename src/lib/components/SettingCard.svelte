@@ -103,7 +103,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 dark:text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 uppercase dark:text-purple-400"
 				>
 					Advanced
 				</div>
@@ -115,7 +115,7 @@
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 						>
 							RO
 						</span>
@@ -185,7 +185,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 dark:text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 uppercase dark:text-purple-400"
 				>
 					Advanced
 				</div>
@@ -197,7 +197,7 @@
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 						>
 							RO
 						</span>
@@ -245,8 +245,10 @@
 					value={displayValue}
 					onchange={(val) => {
 						let newValue: string | number = val;
-						if (setting.value?.type === 'Int') newValue = typeof val === 'string' ? parseInt(val, 10) : val;
-						if (setting.value?.type === 'Float') newValue = typeof val === 'string' ? parseFloat(val) : val;
+						if (setting.value?.type === 'Int')
+							newValue = typeof val === 'string' ? parseInt(val, 10) : val;
+						if (setting.value?.type === 'Float')
+							newValue = typeof val === 'string' ? parseFloat(val) : val;
 						handleChange(newValue);
 					}}
 				/>
@@ -368,7 +370,9 @@
 					{displayValue}
 				</div>
 			{:else}
-				<div class="w-full rounded bg-[var(--sl-bg-input)] p-2 text-center text-sm font-medium text-[var(--sl-text-1)]">
+				<div
+					class="w-full rounded bg-[var(--sl-bg-input)] p-2 text-center text-sm font-medium text-[var(--sl-text-1)]"
+				>
 					{displayValue !== undefined ? String(displayValue) : '-'}
 				</div>
 			{/if}

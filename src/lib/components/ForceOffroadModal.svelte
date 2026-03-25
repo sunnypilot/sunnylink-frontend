@@ -110,7 +110,9 @@
 		<button
 			class="absolute inset-0 bg-black/40"
 			transition:fade={{ duration: 200 }}
-			onclick={() => { if (!pushing) open = false; }}
+			onclick={() => {
+				if (!pushing) open = false;
+			}}
 			aria-label="Close modal"
 			disabled={pushing}
 		></button>
@@ -141,7 +143,9 @@
 				</div>
 
 				{#if error}
-					<div class="mb-6 flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-500/10 p-4 text-red-600 dark:text-red-400">
+					<div
+						class="mb-6 flex items-center gap-3 rounded-lg bg-red-50 p-4 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+					>
 						<AlertTriangle size={20} />
 						<p>{error}</p>
 					</div>
@@ -149,13 +153,21 @@
 
 				<div class="form-control">
 					<label class="label cursor-pointer justify-start gap-3">
-						<input type="checkbox" bind:checked={confirmed} class="checkbox h-6 w-6 checkbox-error" />
-						<span class="label-text text-[var(--sl-text-1)]">I understand the risks and want to proceed</span>
+						<input
+							type="checkbox"
+							bind:checked={confirmed}
+							class="checkbox h-6 w-6 checkbox-error"
+						/>
+						<span class="label-text text-[var(--sl-text-1)]"
+							>I understand the risks and want to proceed</span
+						>
 					</label>
 				</div>
 			</div>
 
-			<div class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
+			<div
+				class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6"
+			>
 				<button
 					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 					onclick={() => (open = false)}

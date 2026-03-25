@@ -86,7 +86,9 @@
 		<button
 			class="absolute inset-0 bg-black/40"
 			transition:fade={{ duration: 200 }}
-			onclick={() => { if (!saving) open = false; }}
+			onclick={() => {
+				if (!saving) open = false;
+			}}
 			aria-label="Close modal"
 			disabled={saving}
 		></button>
@@ -105,7 +107,9 @@
 
 			<div class="max-h-[60vh] overflow-y-auto p-6">
 				{#if error}
-					<div class="mb-6 flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-500/10 p-4 text-red-600 dark:text-red-400">
+					<div
+						class="mb-6 flex items-start gap-3 rounded-lg bg-red-50 p-4 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+					>
 						<AlertCircle class="mt-0.5 shrink-0" size={18} />
 						<div class="text-sm">{error}</div>
 					</div>
@@ -133,7 +137,9 @@
 				</div>
 			</div>
 
-			<div class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
+			<div
+				class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6"
+			>
 				<button
 					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
 					onclick={() => (open = false)}

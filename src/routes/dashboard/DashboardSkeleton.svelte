@@ -8,7 +8,9 @@
 		<div class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 	</div>
 
-	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<div
+		class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+	>
 		{#each [1, 2] as _, i}
 			<div class="flex items-center gap-3 px-4 py-3.5">
 				<div class="h-[6px] w-[6px] animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"></div>

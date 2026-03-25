@@ -85,7 +85,6 @@
 		}
 	});
 
-
 	// Dashboard is a standalone top-level item (not a setting)
 	let dashboardItem: NavItem | null = $derived(
 		authState.isAuthenticated ? { icon: House, label: 'Dashboard', href: '/dashboard' } : null
@@ -126,7 +125,6 @@
 		}
 	];
 
-
 	const isActive = (href?: string) => href === pathname;
 
 	const navItemClasses = (active: boolean) =>
@@ -139,10 +137,8 @@
 				: 'text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]'
 		].join(' ');
 
-
 	let devices = $state<any[]>([]);
 	let deviceFetchError = $state<import('./+layout').DeviceFetchError>(null);
-
 
 	let selectedDeviceForBrand = $derived(
 		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)
@@ -202,7 +198,11 @@
 				devices = result.devices;
 				deviceState.pairedDevices = result.devices;
 				deviceState.pairedDevicesLoaded = true;
-				try { localStorage.setItem('sunnylink_paired_devices', JSON.stringify(result.devices)); } catch { /* quota */ }
+				try {
+					localStorage.setItem('sunnylink_paired_devices', JSON.stringify(result.devices));
+				} catch {
+					/* quota */
+				}
 				// Hydrate aliases from API so all components (DeviceStatusPill, etc.) can resolve names
 				for (const d of result.devices) {
 					if (d.device_id && d.alias && !deviceState.aliases[d.device_id]) {
@@ -286,7 +286,7 @@
 						<label
 							for="main-drawer"
 							aria-label="open sidebar"
-							class="btn btn-square btn-ghost btn-sm text-[var(--sl-text-1)]"
+							class="btn btn-square text-[var(--sl-text-1)] btn-ghost btn-sm"
 						>
 							<Menu size={20} />
 						</label>
@@ -311,7 +311,7 @@
 							{#await data.streamed.deviceResult then result}
 								{#if result.error === 'auth_expired'}
 									<button
-										class="btn btn-ghost btn-sm text-warning"
+										class="btn text-warning btn-ghost btn-sm"
 										onclick={async () => {
 											await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
 										}}
@@ -320,7 +320,7 @@
 									</button>
 								{:else if result.error === 'api_error'}
 									<button
-										class="btn btn-ghost btn-sm text-error"
+										class="btn text-error btn-ghost btn-sm"
 										onclick={() => invalidate('app:devices')}
 									>
 										Failed to load — Retry
@@ -351,9 +351,7 @@
 				</div>
 			{/if}
 			{#key pathname}
-				<div
-					class="animate-page-enter"
-				>
+				<div class="animate-page-enter">
 					{@render children()}
 				</div>
 			{/key}
@@ -378,7 +376,9 @@
 					onclick={() => deviceSelectorState.toggle()}
 				>
 					<div class={['min-w-0 flex-1 space-y-0.5', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-						<p class="font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-3)] uppercase">
+						<p
+							class="font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-3)] uppercase"
+						>
 							sunnylink
 						</p>
 						{#if sidebarDeviceAlias}
@@ -396,7 +396,9 @@
 									{sidebarDeviceAlias}
 								</span>
 								{#if sidebarPendingCount > 0}
-									<span class="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/20 px-1 text-[0.625rem] font-bold text-amber-700 dark:text-amber-400">
+									<span
+										class="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/20 px-1 text-[0.625rem] font-bold text-amber-700 dark:text-amber-400"
+									>
 										{sidebarPendingCount}
 									</span>
 								{/if}
@@ -407,7 +409,9 @@
 					</div>
 					<ChevronDown
 						size={14}
-						class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-200 {drawerOpen ? 'block' : 'hidden'} lg:block {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
+						class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-200 {drawerOpen
+							? 'block'
+							: 'hidden'} lg:block {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
 					/>
 				</button>
 
@@ -421,18 +425,20 @@
 
 					{#each navSections as section, si}
 						{#if si > 0}
-							<div class="my-2 mx-2 border-b border-[var(--sl-border-muted)]"></div>
+							<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
 						{/if}
 
 						{#if section.collapsible}
 							<button
 								class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
-								onclick={() => settingsOpen = !settingsOpen}
+								onclick={() => (settingsOpen = !settingsOpen)}
 							>
 								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
 								<ChevronDown
 									size={12}
-									class="transition-transform duration-150 {settingsOpen ? '' : '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
+									class="transition-transform duration-150 {settingsOpen
+										? ''
+										: '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
 								/>
 							</button>
 							<div
@@ -447,7 +453,13 @@
 							</div>
 						{:else}
 							<div class="mb-1 px-3 py-1.5">
-								<span class={['text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								<span
+									class={[
+										'text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase',
+										drawerOpen ? 'block' : 'hidden',
+										'lg:block'
+									]}
+								>
 									{section.label}
 								</span>
 							</div>
@@ -461,7 +473,7 @@
 
 					<!-- Utility items (device-level, e.g. Migration Wizard) -->
 					{#if utilityItems.length > 0}
-						<div class="my-2 mx-2 border-b border-[var(--sl-border-muted)]"></div>
+						<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
 						<ul class="flex flex-col gap-0.5">
 							{#each utilityItems as item}
 								{@render navItemSnippet(item)}
@@ -482,7 +494,9 @@
 								aria-current={active ? 'page' : undefined}
 							>
 								{#if active}
-									<span class="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"></span>
+									<span
+										class="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
+									></span>
 								{/if}
 								<Icon class="size-5 shrink-0" />
 								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
@@ -525,7 +539,10 @@
 								'lg:justify-start'
 							]}
 						>
-							<LogIn size={18} class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]" />
+							<LogIn
+								size={18}
+								class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+							/>
 							<span
 								class={[
 									'text-[0.8125rem] font-medium text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]',

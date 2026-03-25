@@ -11,7 +11,9 @@
 
 	// Tick counter to keep relative timestamps live (updates every 15s)
 	let timeTick = $state(0);
-	const tickInterval = setInterval(() => { timeTick++; }, 15_000);
+	const tickInterval = setInterval(() => {
+		timeTick++;
+	}, 15_000);
 	onDestroy(() => clearInterval(tickInterval));
 
 	interface Props {
@@ -21,15 +23,9 @@
 
 	let { deviceId, onRetryFailed }: Props = $props();
 
-	let queuedCount = $derived(
-		pendingChanges.getByStatus(deviceId, 'pending').length
-	);
-	let pushingCount = $derived(
-		pendingChanges.getByStatus(deviceId, 'pushing').length
-	);
-	let confirmedCount = $derived(
-		pendingChanges.getByStatus(deviceId, 'confirmed').length
-	);
+	let queuedCount = $derived(pendingChanges.getByStatus(deviceId, 'pending').length);
+	let pushingCount = $derived(pendingChanges.getByStatus(deviceId, 'pushing').length);
+	let confirmedCount = $derived(pendingChanges.getByStatus(deviceId, 'confirmed').length);
 	let failedCount = $derived(pendingChanges.failedCount(deviceId));
 	let blockedCount = $derived(pendingChanges.blockedCount(deviceId));
 	let isFlushing = $derived(pendingChanges.isFlushing(deviceId));
@@ -110,7 +106,7 @@
 		// Resolve from schema options if available (e.g., "Default", "v1.0", "Aggressive")
 		if (item?.options) {
 			const normalized = normalizeForCompare(value);
-			const match = item.options.find(o => normalizeForCompare(o.value) === normalized);
+			const match = item.options.find((o) => normalizeForCompare(o.value) === normalized);
 			if (match) return match.label;
 		}
 		// Boolean display
@@ -125,28 +121,40 @@
 	}
 
 	let statusText = $derived.by(() => {
-		if (isFlushing) return `Syncing ${queuedCount + pushingCount} change${(queuedCount + pushingCount) === 1 ? '' : 's'}...`;
+		if (isFlushing)
+			return `Syncing ${queuedCount + pushingCount} change${queuedCount + pushingCount === 1 ? '' : 's'}...`;
 		if (queuedCount > 0) return `${queuedCount} change${queuedCount === 1 ? '' : 's'} pending`;
-		if (confirmedCount > 0 && failedCount === 0) return `${confirmedCount} change${confirmedCount === 1 ? '' : 's'} synced`;
+		if (confirmedCount > 0 && failedCount === 0)
+			return `${confirmedCount} change${confirmedCount === 1 ? '' : 's'} synced`;
 		return '';
 	});
 
 	let borderColor = $derived(
-		failedCount > 0 ? 'border-red-500/30' :
-		blockedCount > 0 ? 'border-orange-500/30' :
-		isFlushing ? 'border-primary/30' :
-		confirmedCount > 0 ? 'border-emerald-500/30' :
-		driftCount > 0 ? 'border-cyan-500/30' :
-		'border-amber-500/30'
+		failedCount > 0
+			? 'border-red-500/30'
+			: blockedCount > 0
+				? 'border-orange-500/30'
+				: isFlushing
+					? 'border-primary/30'
+					: confirmedCount > 0
+						? 'border-emerald-500/30'
+						: driftCount > 0
+							? 'border-cyan-500/30'
+							: 'border-amber-500/30'
 	);
 
 	let dotColor = $derived(
-		failedCount > 0 ? 'bg-red-500' :
-		blockedCount > 0 ? 'bg-orange-500' :
-		isFlushing ? 'bg-primary animate-pulse' :
-		confirmedCount > 0 ? 'bg-emerald-500' :
-		driftCount > 0 ? 'bg-cyan-500' :
-		'bg-amber-500'
+		failedCount > 0
+			? 'bg-red-500'
+			: blockedCount > 0
+				? 'bg-orange-500'
+				: isFlushing
+					? 'bg-primary animate-pulse'
+					: confirmedCount > 0
+						? 'bg-emerald-500'
+						: driftCount > 0
+							? 'bg-cyan-500'
+							: 'bg-amber-500'
 	);
 </script>
 
@@ -210,7 +218,10 @@
 				<span class="ml-auto"></span>
 				<button
 					class="text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
-					onclick={() => { if (failedCount > 0) handleDismissFailed(); if (driftCount > 0) handleDismissDrift(); }}
+					onclick={() => {
+						if (failedCount > 0) handleDismissFailed();
+						if (driftCount > 0) handleDismissDrift();
+					}}
 					aria-label="Dismiss"
 				>
 					<X size={14} />
@@ -219,22 +230,36 @@
 		</div>
 
 		{#if driftExpanded && driftEntries.length > 0}
-			<div class="mt-2 border-t border-[var(--sl-border-muted)] pt-2" transition:slide={{ duration: 150 }}>
+			<div
+				class="mt-2 border-t border-[var(--sl-border-muted)] pt-2"
+				transition:slide={{ duration: 150 }}
+			>
 				{#each driftsByPanel as group (group.panelId)}
 					{#each group.entries as entry (entry.key)}
 						{@const itemName = entry.itemTitle || keyToItem[entry.key]?.title || entry.key}
-						{@const pathParts = [entry.panelLabel, entry.sectionLabel, entry.subPanelLabel, itemName].filter(Boolean)}
+						{@const pathParts = [
+							entry.panelLabel,
+							entry.sectionLabel,
+							entry.subPanelLabel,
+							itemName
+						].filter(Boolean)}
 						<div class="flex items-center justify-between gap-3 py-1.5">
 							<div class="min-w-0 flex-1 truncate text-[0.8125rem] text-[var(--sl-text-2)]">
 								{pathParts.join(' \u2192 ')}
 								{#if entry.detectedAt}
-									<span class="text-[0.6875rem] text-[var(--sl-text-3)]">&middot; {void timeTick, formatRelativeTime(entry.detectedAt)}</span>
+									<span class="text-[0.6875rem] text-[var(--sl-text-3)]"
+										>&middot; {(void timeTick, formatRelativeTime(entry.detectedAt))}</span
+									>
 								{/if}
 							</div>
-							<span class="shrink-0 text-xs tabular-nums text-[var(--sl-text-3)]">
-								<span class="text-cyan-700 dark:text-cyan-400">{formatDriftValue(entry.cachedValue, entry.key)}</span>
+							<span class="shrink-0 text-xs text-[var(--sl-text-3)] tabular-nums">
+								<span class="text-cyan-700 dark:text-cyan-400"
+									>{formatDriftValue(entry.cachedValue, entry.key)}</span
+								>
 								<span class="mx-1">&rarr;</span>
-								<span class="text-[var(--sl-text-1)] font-medium">{formatDriftValue(entry.freshValue, entry.key)}</span>
+								<span class="font-medium text-[var(--sl-text-1)]"
+									>{formatDriftValue(entry.freshValue, entry.key)}</span
+								>
 							</span>
 						</div>
 					{/each}

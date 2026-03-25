@@ -4,9 +4,11 @@
 	import { Check, AlertTriangle, Info, WifiOff } from 'lucide-svelte';
 
 	const typeClasses = {
-		success: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
+		success:
+			'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
 		error: 'bg-red-50 dark:bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400',
-		warning: 'bg-amber-50 dark:bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400',
+		warning:
+			'bg-amber-50 dark:bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400',
 		info: 'bg-blue-50 dark:bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-400'
 	};
 

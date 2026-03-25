@@ -77,7 +77,7 @@ class VersionPoller {
 			});
 			if (res.error || !res.items) return;
 
-			const item = res.items.find(i => i.key === 'ParamsVersion');
+			const item = res.items.find((i) => i.key === 'ParamsVersion');
 			if (!item) return;
 
 			const version = Number(decodeParamValue(item)) || 0;

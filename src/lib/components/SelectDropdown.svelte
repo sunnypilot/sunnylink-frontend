@@ -31,13 +31,14 @@
 	let canScrollUp = $state(false);
 	let canScrollDown = $state(false);
 
-	let selectedLabel = $derived(
-		options.find((o) => String(o.value) === String(value))?.label ?? ''
-	);
+	let selectedLabel = $derived(options.find((o) => String(o.value) === String(value))?.label ?? '');
 
 	async function toggle() {
 		if (disabled) return;
-		if (open) { close(); return; }
+		if (open) {
+			close();
+			return;
+		}
 		menuStyle = 'position:fixed;visibility:hidden;';
 		open = true;
 		await tick();
@@ -62,7 +63,10 @@
 		const margin = 8;
 
 		const optionEls = scrollEl.querySelectorAll('[role="option"]');
-		const selIdx = Math.max(0, options.findIndex((o) => String(o.value) === String(value)));
+		const selIdx = Math.max(
+			0,
+			options.findIndex((o) => String(o.value) === String(value))
+		);
 		const selectedEl = optionEls[selIdx] as HTMLElement | undefined;
 		if (!selectedEl) return;
 
@@ -164,7 +168,10 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (!open) return;
-		if (e.key === 'Escape') { close(); e.preventDefault(); }
+		if (e.key === 'Escape') {
+			close();
+			e.preventDefault();
+		}
 		if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
 			e.preventDefault();
 			const idx = options.findIndex((o) => String(o.value) === String(value));
@@ -178,7 +185,10 @@
 				if (opt && !disabledValues?.has(opt.value)) onchange(opt.value);
 			}
 		}
-		if (e.key === 'Enter') { close(); e.preventDefault(); }
+		if (e.key === 'Enter') {
+			close();
+			e.preventDefault();
+		}
 	}
 
 	$effect(() => {
@@ -204,7 +214,10 @@
 	aria-haspopup="listbox"
 >
 	<span class="truncate">{selectedLabel}</span>
-	<span class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-150" class:rotate-180={open}>
+	<span
+		class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-150"
+		class:rotate-180={open}
+	>
 		<ChevronDown size={14} />
 	</span>
 </button>
@@ -214,10 +227,22 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="fixed inset-0 z-[9998]"
-			onmousedown={(e) => { e.preventDefault(); e.stopPropagation(); close(); }}
-			ontouchstart={(e) => { e.preventDefault(); e.stopPropagation(); close(); }}
-			onwheel={(e) => { e.preventDefault(); }}
-			ontouchmove={(e) => { e.preventDefault(); }}
+			onmousedown={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				close();
+			}}
+			ontouchstart={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				close();
+			}}
+			onwheel={(e) => {
+				e.preventDefault();
+			}}
+			ontouchmove={(e) => {
+				e.preventDefault();
+			}}
 		></div>
 		<div
 			bind:this={menuEl}
@@ -292,7 +317,19 @@
 		-webkit-mask-image: linear-gradient(to top, transparent 0%, black 20px);
 	}
 	.scroll-fade-top.scroll-fade-bottom {
-		mask-image: linear-gradient(to bottom, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
-		-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+		mask-image: linear-gradient(
+			to bottom,
+			transparent 0%,
+			black 20px,
+			black calc(100% - 20px),
+			transparent 100%
+		);
+		-webkit-mask-image: linear-gradient(
+			to bottom,
+			transparent 0%,
+			black 20px,
+			black calc(100% - 20px),
+			transparent 100%
+		);
 	}
 </style>

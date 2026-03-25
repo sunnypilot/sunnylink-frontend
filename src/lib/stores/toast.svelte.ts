@@ -5,7 +5,11 @@ export const toastState = $state({
 	type: 'success' as 'success' | 'error' | 'info' | 'warning',
 	visible: false,
 	action: undefined as ToastAction | undefined,
-	show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', action?: ToastAction) {
+	show(
+		message: string,
+		type: 'success' | 'error' | 'info' | 'warning' = 'success',
+		action?: ToastAction
+	) {
 		this.message = message;
 		this.type = type;
 		this.action = action;

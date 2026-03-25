@@ -187,7 +187,9 @@
 								{#each deviceState.backupState.failedKeys as failed}
 									<div class="flex items-center justify-between py-0.5">
 										<span class="font-mono">{failed.key}</span>
-										<span class="ml-2 shrink-0 text-[var(--sl-text-3)]">{formatReason(failed.reason)}</span>
+										<span class="ml-2 shrink-0 text-[var(--sl-text-3)]"
+											>{formatReason(failed.reason)}</span
+										>
 									</div>
 								{/each}
 							</div>

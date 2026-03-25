@@ -35,10 +35,15 @@
 				return null;
 			}
 			return entry;
-		} catch { return null; }
+		} catch {
+			return null;
+		}
 	}
 
-	function saveOsmCache(deviceId: string, params: Array<{ key?: string; value?: string; type?: string }>): void {
+	function saveOsmCache(
+		deviceId: string,
+		params: Array<{ key?: string; value?: string; type?: string }>
+	): void {
 		if (typeof localStorage === 'undefined') return;
 		try {
 			const entry: OsmCacheEntry = { params, timestamp: Date.now() };
@@ -65,8 +70,12 @@
 	let error = $state<string | null>(null);
 
 	// Sync status indicator (consistent with settings pages)
-	let batchActive = $derived(deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false);
-	let isStale = $derived(!!(deviceState.selectedDeviceId && deviceState.valuesStale[deviceState.selectedDeviceId]));
+	let batchActive = $derived(
+		deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false
+	);
+	let isStale = $derived(
+		!!(deviceState.selectedDeviceId && deviceState.valuesStale[deviceState.selectedDeviceId])
+	);
 	const sync = createSyncStatus(
 		() => !isOffline && (loadingOsmParams || batchActive || isStale),
 		() => !isOffline && !loadingOsmParams && !error && !batchActive && !isStale
@@ -223,7 +232,13 @@
 		const deviceId = deviceState.selectedDeviceId;
 		const isOnline = deviceId ? deviceState.onlineStatuses[deviceId] === 'online' : false;
 		const downloading = isDownloading;
-		if (deviceId && logtoClient && isOnline && !downloading && !untrack(() => osmFetchDone[deviceId])) {
+		if (
+			deviceId &&
+			logtoClient &&
+			isOnline &&
+			!downloading &&
+			!untrack(() => osmFetchDone[deviceId])
+		) {
 			// Use silent fetch when we already have cached data to avoid spinner flash
 			const hasCachedData = untrack(() =>
 				deviceState.deviceSettings[deviceId]?.some((p: any) => p.key === 'OsmLocationName')
@@ -432,12 +447,15 @@
 		});
 	}}
 >
-
 	{#if authState.loading}
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
-		<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
-			<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">Select a device to manage maps</p>
+		<div
+			class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
+		>
+			<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">
+				Select a device to manage maps
+			</p>
 		</div>
 	{:else if isOffline}
 		{#await data.streamed.deviceResult then result}
@@ -445,11 +463,15 @@
 			{@const selectedDevice = devices?.find(
 				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
-			<div class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
+			<div
+				class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
+			>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 					Device Offline{selectedDevice?.alias ? `: ${selectedDevice.alias}` : ''}
 				</p>
-				<p class="mt-1 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">Your device needs to be online to manage maps.</p>
+				<p class="mt-1 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+					Your device needs to be online to manage maps.
+				</p>
 				<div class="mt-4 flex flex-col items-center gap-3">
 					<button
 						class="btn btn-sm btn-primary"
@@ -473,26 +495,36 @@
 			<!-- ── Current Map Section ──────────────────────────────── -->
 			<div class="px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Current Map</p>
-				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Offline map data downloaded on device</p>
+				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+					Offline map data downloaded on device
+				</p>
 			</div>
 
-			<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+			<div
+				class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+			>
 				{#if loadingOsmParams && !isDownloading && !hasMap}
 					<div class="flex items-center gap-2.5 px-4 py-3.5">
-						<span class="loading loading-spinner loading-xs text-[var(--sl-text-3)]"></span>
-						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Loading map details...</span>
+						<span class="loading loading-xs loading-spinner text-[var(--sl-text-3)]"></span>
+						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]"
+							>Loading map details...</span
+						>
 					</div>
 				{:else if isCheckingStatus && !hasMap}
 					<div class="flex items-center gap-2.5 px-4 py-3.5">
-						<span class="loading loading-spinner loading-xs text-[var(--sl-text-3)]"></span>
-						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Checking device status...</span>
+						<span class="loading loading-xs loading-spinner text-[var(--sl-text-3)]"></span>
+						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]"
+							>Checking device status...</span
+						>
 					</div>
 				{:else if hasMap || isDownloading}
 					<div class="px-4 py-3.5">
 						<div class="flex items-center justify-between">
 							<div>
 								{#if isDownloading && !currentCountryTitle}
-									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Downloading map...</p>
+									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+										Downloading map...
+									</p>
 								{:else}
 									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 										{currentCountryTitle || currentCountryName || 'Unknown'}
@@ -516,7 +548,7 @@
 									<Loader2 size={14} class="animate-spin text-[var(--sl-text-3)]" />
 								{:else}
 									<button
-										class="text-[0.75rem] font-[450] text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)] transition-colors"
+										class="text-[0.75rem] font-[450] text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)]"
 										onclick={handleCheckForUpdates}
 									>
 										Check for Updates
@@ -527,7 +559,9 @@
 					</div>
 				{:else}
 					<div class="px-4 py-8 text-center">
-						<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">No offline map downloaded on this device</p>
+						<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">
+							No offline map downloaded on this device
+						</p>
 					</div>
 				{/if}
 			</div>
@@ -535,7 +569,9 @@
 			<!-- ── Download Section: 48px from previous card ──────── -->
 			<div class="mt-12 px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Download Map</p>
-				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Select a region to download for offline use</p>
+				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+					Select a region to download for offline use
+				</p>
 			</div>
 
 			<div class="mt-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">

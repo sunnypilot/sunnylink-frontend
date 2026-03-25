@@ -31,8 +31,12 @@
 
 		<div class="p-4">
 			<div class="mb-2 flex items-center justify-between text-xs">
-				<span class="max-w-[180px] truncate text-[var(--sl-text-2)]">{deviceState.backupState.status}</span>
-				<span class="font-medium text-[var(--sl-text-1)]">{Math.round(deviceState.backupState.progress)}%</span>
+				<span class="max-w-[180px] truncate text-[var(--sl-text-2)]"
+					>{deviceState.backupState.status}</span
+				>
+				<span class="font-medium text-[var(--sl-text-1)]"
+					>{Math.round(deviceState.backupState.progress)}%</span
+				>
 			</div>
 
 			<div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--sl-bg-input)]">

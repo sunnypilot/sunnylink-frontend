@@ -4,7 +4,13 @@
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import { loadCachedValues, saveCachedValues, getLastKnownCommit, setLastKnownCommit, updateCachedValue } from '$lib/stores/valuesCache';
+	import {
+		loadCachedValues,
+		saveCachedValues,
+		getLastKnownCommit,
+		setLastKnownCommit,
+		updateCachedValue
+	} from '$lib/stores/valuesCache';
 	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { fetchSettingsAsync, setDeviceParams } from '$lib/api/device';
@@ -164,7 +170,10 @@
 		// Failed changes get a toast
 		const failedCount = pendingChanges.failedCount(did);
 		if (failedCount > 0) {
-			toastState.show(`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`, 'error');
+			toastState.show(
+				`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`,
+				'error'
+			);
 		}
 	}
 
@@ -343,7 +352,7 @@
 						try {
 							const response = await fetchSettingsAsync(deviceId!, chunk, token);
 							if (response.items) {
-								const vals = deviceState.deviceValues[deviceId!] ??= {};
+								const vals = (deviceState.deviceValues[deviceId!] ??= {});
 								for (const item of response.items) {
 									if (item.key && item.value !== undefined) {
 										const decoded = decodeParamValue({
@@ -353,7 +362,11 @@
 										});
 										// Preserve user's optimistic value for keys with in-flight changes
 										const pcEntry = pendingChanges.getForKey(deviceId!, item.key);
-										const pcInFlight = pcEntry && (pcEntry.status === 'pending' || pcEntry.status === 'pushing' || pcEntry.status === 'blocked_onroad');
+										const pcInFlight =
+											pcEntry &&
+											(pcEntry.status === 'pending' ||
+												pcEntry.status === 'pushing' ||
+												pcEntry.status === 'blocked_onroad');
 										if (!batchPush.hasPendingKey(deviceId!, item.key) && !pcInFlight) {
 											vals[item.key] = decoded;
 										}
@@ -366,15 +379,23 @@
 				);
 
 				// Fill defaults for keys the device didn't return
-				const vals = deviceState.deviceValues[deviceId!] ??= {};
+				const vals = (deviceState.deviceValues[deviceId!] ??= {});
 				const allSchemaItems = [
-					...schema.panels.flatMap((p: Panel) => [...(p.items ?? []), ...(p.sub_panels ?? []).flatMap((sp: any) => sp.items), ...(p.sections ?? []).flatMap((s: any) => [...(s.items ?? []), ...(s.sub_panels ?? []).flatMap((sp: any) => sp.items)])]),
+					...schema.panels.flatMap((p: Panel) => [
+						...(p.items ?? []),
+						...(p.sub_panels ?? []).flatMap((sp: any) => sp.items),
+						...(p.sections ?? []).flatMap((s: any) => [
+							...(s.items ?? []),
+							...(s.sub_panels ?? []).flatMap((sp: any) => sp.items)
+						])
+					]),
 					...vehicleItems
 				];
 				for (const item of allSchemaItems) {
 					if (vals[item.key] === undefined) {
 						if (item.widget === 'toggle') vals[item.key] = false;
-						else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+						else if (item.widget === 'option' || item.widget === 'multiple_button')
+							vals[item.key] = item.options?.[0]?.value ?? '';
 						else vals[item.key] = '';
 					}
 				}
@@ -382,7 +403,13 @@
 				// Global drift detection: only for keys in settings_ui.json (user-facing settings)
 				// Build key → metadata lookup for drift enrichment
 				if (Object.keys(prefetchCachedSnapshot).length > 0 && Object.keys(freshValues).length > 0) {
-					interface KeyMeta { panelId: string; panelLabel: string; sectionLabel?: string; subPanelLabel?: string; itemTitle?: string }
+					interface KeyMeta {
+						panelId: string;
+						panelLabel: string;
+						sectionLabel?: string;
+						subPanelLabel?: string;
+						itemTitle?: string;
+					}
 					const keyMeta: Record<string, KeyMeta> = {};
 					function tagItem(item: any, base: Omit<KeyMeta, 'itemTitle'>) {
 						keyMeta[item.key] = { ...base, itemTitle: item.title || item.key };
@@ -492,7 +519,7 @@
 				</div>
 				<p class="flex-1 text-sm font-medium text-[var(--sl-text-1)]">Device Connection Required</p>
 				<button
-					class="btn btn-ghost btn-xs text-[var(--sl-text-2)]"
+					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs"
 					onclick={() => dismissHelp(false)}
 				>
 					Dismiss
@@ -502,7 +529,8 @@
 				<div class="flex gap-2.5">
 					<Shield class="mt-0.5 shrink-0 text-primary" size={16} />
 					<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
-						We do <strong class="text-[var(--sl-text-1)]">not</strong> store your device settings on our servers. A direct device connection is required.
+						We do <strong class="text-[var(--sl-text-1)]">not</strong> store your device settings on
+						our servers. A direct device connection is required.
 					</p>
 				</div>
 				<div class="flex gap-2.5">
@@ -516,7 +544,7 @@
 				<label class="flex cursor-pointer items-center gap-2">
 					<input
 						type="checkbox"
-						class="checkbox checkbox-xs checkbox-primary border-slate-500"
+						class="checkbox border-slate-500 checkbox-xs checkbox-primary"
 						onchange={(e: Event) => {
 							if ((e.target as HTMLInputElement).checked) dismissHelp(true);
 						}}
@@ -531,16 +559,23 @@
 <!-- Offline/error banner — inline above content, never replaces it -->
 {#if deviceId && isDeviceUnavailable && !isLoading}
 	<div class="mx-auto mb-4 w-full max-w-2xl xl:max-w-3xl">
-		<div class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
-			{isError ? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5' : 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}">
+		<div
+			class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
+			{isError
+				? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5'
+				: 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}"
+		>
 			{#if isError}
 				<AlertTriangle size={16} class="shrink-0 text-orange-600 dark:text-orange-400" />
 				<div class="flex-1">
 					<p class="text-sm text-orange-800 dark:text-orange-200/80">
-						<span class="font-medium">Connection error</span> — Unable to reach device. Settings may be outdated.
+						<span class="font-medium">Connection error</span> — Unable to reach device. Settings may
+						be outdated.
 					</p>
 					{#if lastRetryAt}
-						<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+						<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">
+							Checked {formatRelativeTime(lastRetryAt)}
+						</p>
 					{/if}
 				</div>
 			{:else}
@@ -550,21 +585,26 @@
 						{#if retryFailed}
 							<span class="font-medium">Still offline</span> — Device not reachable. Showing cached settings.
 						{:else}
-							<span class="font-medium">Offline</span> — Showing cached settings. Changes disabled until device is online.
+							<span class="font-medium">Offline</span> — Showing cached settings. Changes disabled until
+							device is online.
 						{/if}
 					</p>
 					{#if lastRetryAt}
-						<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+						<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">
+							Checked {formatRelativeTime(lastRetryAt)}
+						</p>
 					{/if}
 				</div>
 			{/if}
 			<button
-				class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-700 dark:text-orange-400' : 'text-yellow-700 dark:text-yellow-400'}"
+				class="btn shrink-0 btn-ghost btn-xs {isError
+					? 'text-orange-700 dark:text-orange-400'
+					: 'text-yellow-700 dark:text-yellow-400'}"
 				disabled={retrying}
 				onclick={handleRetry}
 			>
 				{#if retrying}
-					<span class="loading loading-spinner loading-xs"></span>
+					<span class="loading loading-xs loading-spinner"></span>
 					Checking...
 				{:else}
 					<RefreshCw size={14} />

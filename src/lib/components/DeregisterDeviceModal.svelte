@@ -179,7 +179,9 @@
 									<Download size={20} />
 								</div>
 								<div>
-									<h4 class="font-bold text-blue-700 dark:text-blue-400">Recommended: Backup Settings</h4>
+									<h4 class="font-bold text-blue-700 dark:text-blue-400">
+										Recommended: Backup Settings
+									</h4>
 									<p class="mt-1 text-sm text-[var(--sl-text-2)]">
 										Before deregistering, download a backup of your settings so you can restore them
 										to a new device later.
@@ -210,7 +212,8 @@
 								<span
 									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
 								>
-									I understand this action <span class="font-bold text-[var(--sl-text-1)]">cannot be undone</span
+									I understand this action <span class="font-bold text-[var(--sl-text-1)]"
+										>cannot be undone</span
 									>.
 								</span>
 							</label>
@@ -239,7 +242,9 @@
 								onclick={copyId}
 								title="Click to copy ID"
 							>
-								<span class="font-mono font-bold tracking-wide text-[var(--sl-text-1)]">{deviceId}</span>
+								<span class="font-mono font-bold tracking-wide text-[var(--sl-text-1)]"
+									>{deviceId}</span
+								>
 								<span
 									class="rounded bg-[var(--sl-bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--sl-text-2)] transition-colors group-hover:bg-[var(--sl-bg-surface)] group-hover:text-[var(--sl-text-1)]"
 								>
@@ -258,7 +263,10 @@
 						</div>
 
 						<div class="flex items-center justify-end gap-3 pt-2">
-							<button class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]" onclick={close}>
+							<button
+								class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+								onclick={close}
+							>
 								Cancel
 							</button>
 							<button
@@ -278,7 +286,9 @@
 								Please double check you are deleting the correct device:
 							</p>
 
-							<div class="space-y-3 rounded-xl border border-[var(--sl-border)]/50 bg-[var(--sl-bg-surface)]/50 p-4">
+							<div
+								class="space-y-3 rounded-xl border border-[var(--sl-border)]/50 bg-[var(--sl-bg-surface)]/50 p-4"
+							>
 								{#if alias && alias !== deviceId}
 									<div class="flex flex-col gap-1 border-b border-[var(--sl-border)]/50 pb-2">
 										<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase"
@@ -290,7 +300,8 @@
 
 								<div class="flex items-center justify-between">
 									<span class="text-[var(--sl-text-2)]">Sunnylink ID</span>
-									<span class="rounded bg-[var(--sl-bg-input)] px-3 py-1.5 font-mono text-[var(--sl-text-1)]"
+									<span
+										class="rounded bg-[var(--sl-bg-input)] px-3 py-1.5 font-mono text-[var(--sl-text-1)]"
 										>{deviceId}</span
 									>
 								</div>
@@ -301,7 +312,9 @@
 								<div class="flex items-center justify-between">
 									<span class="text-[var(--sl-text-2)]">Status</span>
 									{#if isOnline}
-										<span class="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+										<span
+											class="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400"
+										>
 											<Wifi size={14} /> Online
 										</span>
 									{:else}

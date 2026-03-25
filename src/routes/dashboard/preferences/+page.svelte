@@ -50,7 +50,11 @@
 			const keysToRemove: string[] = [];
 			for (let i = 0; i < localStorage.length; i++) {
 				const key = localStorage.key(i);
-				if (key?.startsWith('sunnylink_schema_') || key?.startsWith('sunnylink_pending_') || key?.startsWith('sunnylink_values_')) {
+				if (
+					key?.startsWith('sunnylink_schema_') ||
+					key?.startsWith('sunnylink_pending_') ||
+					key?.startsWith('sunnylink_values_')
+				) {
 					keysToRemove.push(key);
 				}
 			}
@@ -62,9 +66,9 @@
 	}
 </script>
 
-<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
+<div class="mx-auto w-full max-w-2xl space-y-6 xl:max-w-3xl">
 	<div class="px-4">
-		<h2 class="text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+		<h2 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
 			Preferences
 		</h2>
 		<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
@@ -74,13 +78,19 @@
 
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Appearance</p>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Theme and visual preferences</p>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+			Theme and visual preferences
+		</p>
 	</div>
-	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<div
+		class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+	>
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Theme</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Choose your preferred color scheme</p>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Choose your preferred color scheme
+				</p>
 			</div>
 			<div class="flex rounded-lg bg-[var(--sl-bg-page)] p-1">
 				{#each themeOptions as opt}
@@ -108,18 +118,26 @@
 
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Display</p>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Page behavior and information display</p>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+			Page behavior and information display
+		</p>
 	</div>
-	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<div
+		class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+	>
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Default Landing Page</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Page shown when you open sunnylink</p>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Page shown when you open sunnylink
+				</p>
 			</div>
 			<SelectDropdown
 				options={landingPageOptions}
 				value={preferences.defaultLandingPage}
-				onchange={(v) => { preferences.defaultLandingPage = String(v) as typeof preferences.defaultLandingPage; }}
+				onchange={(v) => {
+					preferences.defaultLandingPage = String(v) as typeof preferences.defaultLandingPage;
+				}}
 			/>
 		</div>
 
@@ -127,8 +145,14 @@
 
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}>Device Connection Help</button>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Show the explanation modal when visiting settings</p>
+				<button
+					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}
+					>Device Connection Help</button
+				>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Show the explanation modal when visiting settings
+				</p>
 			</div>
 			<button
 				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
@@ -148,13 +172,23 @@
 
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Notifications</p>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Control which alerts and status updates you see</p>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+			Control which alerts and status updates you see
+		</p>
 	</div>
-	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<div
+		class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+	>
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}>Device Offline Alerts</button>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Notify when device loses connection</p>
+				<button
+					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}
+					>Device Offline Alerts</button
+				>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Notify when device loses connection
+				</p>
 			</div>
 			<button
 				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
@@ -175,8 +209,14 @@
 
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}>Sync Failure Alerts</button>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Notify when settings fail to push to device</p>
+				<button
+					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}
+					>Sync Failure Alerts</button
+				>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Notify when settings fail to push to device
+				</p>
 			</div>
 			<button
 				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
@@ -197,8 +237,14 @@
 
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}>Settings Drift Alerts</button>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Notify when device values differ from your last known state</p>
+				<button
+					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}
+					>Settings Drift Alerts</button
+				>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Notify when device values differ from your last known state
+				</p>
 			</div>
 			<button
 				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
@@ -218,13 +264,19 @@
 
 	<div class="px-4">
 		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Data</p>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Manage cached data and local storage</p>
+		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+			Manage cached data and local storage
+		</p>
 	</div>
-	<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<div
+		class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+	>
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear Schema Cache</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Force re-fetch of settings schema from device</p>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Force re-fetch of settings schema from device
+				</p>
 			</div>
 			<button
 				class="rounded-lg border border-[var(--sl-border)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
@@ -239,7 +291,9 @@
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear Pending Changes</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Remove all pending settings changes for current device</p>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Remove all pending settings changes for current device
+				</p>
 			</div>
 			<button
 				class="rounded-lg border border-[var(--sl-border)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
@@ -254,7 +308,9 @@
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
 				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Clear All Cached Data</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Remove all cached schemas, values, and pending changes</p>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Remove all cached schemas, values, and pending changes
+				</p>
 			</div>
 			<button
 				class="rounded-lg border border-red-500/30 px-3 py-1.5 text-[0.75rem] font-medium text-red-400 transition-colors hover:bg-red-500/10"
@@ -268,14 +324,23 @@
 	{#if isDev}
 		<div class="px-4">
 			<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Developer</p>
-			<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">Debug tools and diagnostics</p>
+			<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+				Debug tools and diagnostics
+			</p>
 		</div>
-		<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+		<div
+			class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+		>
 			<!-- Debug Mode -->
 			<div class="flex items-center justify-between px-4 py-3.5">
 				<div>
-					<button class="text-[0.8125rem] font-medium text-[var(--sl-text-1)] text-left" onclick={() => (preferences.debugMode = !preferences.debugMode)}>Debug Mode</button>
-					<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">Show setting keys instead of labels</p>
+					<button
+						class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+						onclick={() => (preferences.debugMode = !preferences.debugMode)}>Debug Mode</button
+					>
+					<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+						Show setting keys instead of labels
+					</p>
 				</div>
 				<button
 					class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"

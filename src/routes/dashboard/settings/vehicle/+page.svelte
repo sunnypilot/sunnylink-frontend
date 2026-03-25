@@ -12,11 +12,21 @@
 	import type { SchemaItem } from '$lib/types/schema';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
-	let isDeviceOffline = $derived(deviceId ? (deviceState.onlineStatuses[deviceId] === 'offline' || deviceState.onlineStatuses[deviceId] === 'error') : false);
+	let isDeviceOffline = $derived(
+		deviceId
+			? deviceState.onlineStatuses[deviceId] === 'offline' ||
+					deviceState.onlineStatuses[deviceId] === 'error'
+			: false
+	);
 
 	// Load schema if not already loaded
 	$effect(() => {
-		if (deviceId && logtoClient && !schemaState.schemas[deviceId] && !schemaState.loading[deviceId]) {
+		if (
+			deviceId &&
+			logtoClient &&
+			!schemaState.schemas[deviceId] &&
+			!schemaState.loading[deviceId]
+		) {
 			loadSchema();
 		}
 	});
@@ -37,7 +47,9 @@
 	let currentBrand = $derived.by(() => {
 		if (!deviceId) return '';
 		// Primary: CarPlatformBundle.brand (available immediately after vehicle selection)
-		const bundle = deviceState.deviceValues[deviceId]?.CarPlatformBundle as { brand?: string } | null;
+		const bundle = deviceState.deviceValues[deviceId]?.CarPlatformBundle as {
+			brand?: string;
+		} | null;
 		if (bundle?.brand) return bundle.brand;
 		// Fallback: capabilities.brand (from CarParamsPersistent, available after fingerprint)
 		return schemaState.capabilities[deviceId]?.brand ?? '';
@@ -80,7 +92,7 @@
 			const response = await fetchSettingsAsync(deviceId, missing, token);
 
 			if (response.items) {
-				const vals = deviceState.deviceValues[deviceId] ??= {};
+				const vals = (deviceState.deviceValues[deviceId] ??= {});
 				for (const item of response.items) {
 					if (item.key && item.value !== undefined) {
 						vals[item.key] = decodeParamValue({
@@ -92,11 +104,12 @@
 				}
 			}
 
-			const vals = deviceState.deviceValues[deviceId] ??= {};
+			const vals = (deviceState.deviceValues[deviceId] ??= {});
 			for (const item of brandSettings) {
 				if (vals[item.key] === undefined) {
 					if (item.widget === 'toggle') vals[item.key] = false;
-					else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+					else if (item.widget === 'option' || item.widget === 'multiple_button')
+						vals[item.key] = item.options?.[0]?.value ?? '';
 					else vals[item.key] = '';
 				}
 			}
@@ -109,7 +122,7 @@
 	}
 
 	let schemaRevalStatus = $derived(
-		deviceId ? schemaState.revalidationStatus[deviceId] ?? null : null
+		deviceId ? (schemaState.revalidationStatus[deviceId] ?? null) : null
 	);
 
 	// Vehicle API in-flight tracking (select/remove operations)
@@ -129,15 +142,29 @@
 			try {
 				const token = await logtoClient.getIdToken();
 				if (token) await schemaState.refreshCapabilities(deviceId, token);
-			} catch { /* capabilities refresh is best-effort */ }
+			} catch {
+				/* capabilities refresh is best-effort */
+			}
 		}
 	}
 
 	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
 	const sync = createSyncStatus(
-		() => !isDeviceOffline && (loadingBrandValues || vehicleApiInFlight || batchActive || schemaRevalStatus === 'revalidating'),
-		() => !isDeviceOffline && !loadingBrandValues && !vehicleApiInFlight && !batchActive && !brandValuesFetchFailed && !vehicleApiFailed &&
-			schemaRevalStatus !== 'revalidating' && schemaRevalStatus !== 'failed'
+		() =>
+			!isDeviceOffline &&
+			(loadingBrandValues ||
+				vehicleApiInFlight ||
+				batchActive ||
+				schemaRevalStatus === 'revalidating'),
+		() =>
+			!isDeviceOffline &&
+			!loadingBrandValues &&
+			!vehicleApiInFlight &&
+			!batchActive &&
+			!brandValuesFetchFailed &&
+			!vehicleApiFailed &&
+			schemaRevalStatus !== 'revalidating' &&
+			schemaRevalStatus !== 'failed'
 	);
 </script>
 
@@ -153,21 +180,36 @@
 			<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Vehicle</p>
 		</div>
 		<div class="mt-3">
-			<VehicleSelector {deviceId} onApiStart={handleVehicleApiStart} onApiEnd={handleVehicleApiEnd} />
+			<VehicleSelector
+				{deviceId}
+				onApiStart={handleVehicleApiStart}
+				onApiEnd={handleVehicleApiEnd}
+			/>
 		</div>
 
 		{#if brandSettings.length > 0}
 			<!-- Brand settings section: 48px from previous card -->
 			<div class="mt-12">
 				<div class="px-4">
-					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{brandData?.title ?? currentBrand}</p>
+					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">
+						{brandData?.title ?? currentBrand}
+					</p>
 					{#if brandData?.description}
-						<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{brandData.description}</p>
+						<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+							{brandData.description}
+						</p>
 					{/if}
 				</div>
-				<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				<div
+					class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+				>
 					{#each brandSettings as item, i (item.key)}
-						<SchemaItemRenderer {deviceId} {item} loadingValues={loadingBrandValues} isLast={i === brandSettings.length - 1} />
+						<SchemaItemRenderer
+							{deviceId}
+							{item}
+							loadingValues={loadingBrandValues}
+							isLast={i === brandSettings.length - 1}
+						/>
 					{/each}
 				</div>
 			</div>

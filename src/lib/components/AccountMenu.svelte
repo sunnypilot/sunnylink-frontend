@@ -74,18 +74,17 @@
 				{authState.profile?.name}
 			</span>
 			{#if authState.profile?.email}
-				<span class="truncate text-[0.6875rem] text-[var(--sl-text-3)]">{authState.profile.email}</span>
+				<span class="truncate text-[0.6875rem] text-[var(--sl-text-3)]"
+					>{authState.profile.email}</span
+				>
 			{/if}
 		</span>
-		<ChevronsUpDown
-			size={14}
-			class="shrink-0 text-[var(--sl-text-3)]"
-		/>
+		<ChevronsUpDown size={14} class="shrink-0 text-[var(--sl-text-3)]" />
 	</button>
 
 	{#if open}
 		<div
-			class="absolute bottom-full left-0 right-0 z-50 mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
+			class="absolute right-0 bottom-full left-0 z-50 mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
 			role="menu"
 			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 		>

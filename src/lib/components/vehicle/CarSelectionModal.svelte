@@ -109,7 +109,9 @@
 			<!-- Search -->
 			<div class="border-b border-[var(--sl-border)] px-4 py-3">
 				<div class="relative">
-					<Search class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[var(--sl-text-3)]" />
+					<Search
+						class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[var(--sl-text-3)]"
+					/>
 					<input
 						type="text"
 						bind:value={searchQuery}
@@ -133,7 +135,9 @@
 				{:else}
 					<div class="space-y-4 p-2">
 						{#each groupedCars as group (group.make)}
-							<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+							<div
+								class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+							>
 								<div
 									class="px-4 py-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
 								>
@@ -152,9 +156,13 @@
 													<Car size={16} />
 												</div>
 												<div>
-													<div class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{car.id}</div>
+													<div class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+														{car.id}
+													</div>
 													{#if car.package}
-														<div class="text-[0.6875rem] text-[var(--sl-text-3)]">{car.package}</div>
+														<div class="text-[0.6875rem] text-[var(--sl-text-3)]">
+															{car.package}
+														</div>
 													{/if}
 												</div>
 											</div>

@@ -74,10 +74,17 @@
 				return null;
 			}
 			return entry;
-		} catch { return null; }
+		} catch {
+			return null;
+		}
 	}
 
-	function saveModelsCache(deviceId: string, list: ModelBundle[], activeShortName: string | undefined, favs: Set<string>): void {
+	function saveModelsCache(
+		deviceId: string,
+		list: ModelBundle[],
+		activeShortName: string | undefined,
+		favs: Set<string>
+	): void {
 		if (typeof localStorage === 'undefined') return;
 		try {
 			const entry: ModelsCacheEntry = {
@@ -95,7 +102,12 @@
 	// Load schema when device is selected (same pattern as settings pages)
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	$effect(() => {
-		if (deviceId && logtoClient && !schemaState.schemas[deviceId] && !schemaState.loading[deviceId]) {
+		if (
+			deviceId &&
+			logtoClient &&
+			!schemaState.schemas[deviceId] &&
+			!schemaState.loading[deviceId]
+		) {
 			loadSchema();
 		}
 	});
@@ -135,7 +147,9 @@
 
 	let deviceFavString = $derived(
 		deviceState.selectedDeviceId
-			? (deviceState.deviceValues[deviceState.selectedDeviceId]?.['ModelManager_Favs'] as string) ?? ''
+			? ((deviceState.deviceValues[deviceState.selectedDeviceId]?.[
+					'ModelManager_Favs'
+				] as string) ?? '')
 			: ''
 	);
 	let prevDeviceFavString = $state('');
@@ -291,7 +305,9 @@
 	// True only when refreshing with data already present (not cold load)
 	let isRevalidating = $derived(isFetchingModels && modelList !== null);
 
-	let batchActive = $derived(deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false);
+	let batchActive = $derived(
+		deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false
+	);
 	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
 	const sync = createSyncStatus(
 		() => isRevalidating || batchActive || isStale,
@@ -589,7 +605,6 @@
 		}
 	}
 
-
 	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
@@ -808,7 +823,6 @@
 		});
 	}}
 >
-
 	{#if authState.loading}
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
@@ -846,16 +860,24 @@
 	{:else}
 		<!-- Inline offline/error banner — identical to settings/+layout.svelte -->
 		{#if isOffline || isError}
-			<div class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
-				{isError ? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5' : 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}">
+			<div
+				class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
+				{isError
+					? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5'
+					: 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}"
+			>
 				{#if isError}
 					<AlertTriangle size={16} class="shrink-0 text-orange-600 dark:text-orange-400" />
 					<div class="flex-1">
 						<p class="text-sm text-orange-800 dark:text-orange-200/80">
-							<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] || 'Unable to reach device.'} Showing cached models.
+							<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[
+								deviceState.selectedDeviceId || ''
+							] || 'Unable to reach device.'} Showing cached models.
 						</p>
 						{#if lastRetryAt}
-							<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+							<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">
+								Checked {formatRelativeTime(lastRetryAt)}
+							</p>
 						{/if}
 					</div>
 				{:else}
@@ -863,23 +885,29 @@
 					<div class="flex-1">
 						<p class="text-sm text-amber-800 dark:text-yellow-200/80">
 							{#if retryFailed}
-								<span class="font-medium">Still offline</span> — Device not reachable. Showing cached models.
+								<span class="font-medium">Still offline</span> — Device not reachable. Showing cached
+								models.
 							{:else}
-								<span class="font-medium">Offline</span> — Showing cached models. Changes disabled until device is online.
+								<span class="font-medium">Offline</span> — Showing cached models. Changes disabled until
+								device is online.
 							{/if}
 						</p>
 						{#if lastRetryAt}
-							<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">Checked {formatRelativeTime(lastRetryAt)}</p>
+							<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">
+								Checked {formatRelativeTime(lastRetryAt)}
+							</p>
 						{/if}
 					</div>
 				{/if}
 				<button
-					class="btn btn-ghost btn-xs shrink-0 {isError ? 'text-orange-700 dark:text-orange-400' : 'text-yellow-700 dark:text-yellow-400'}"
+					class="btn shrink-0 btn-ghost btn-xs {isError
+						? 'text-orange-700 dark:text-orange-400'
+						: 'text-yellow-700 dark:text-yellow-400'}"
 					disabled={retrying}
 					onclick={handleRetry}
 				>
 					{#if retrying}
-						<span class="loading loading-spinner loading-xs"></span>
+						<span class="loading loading-xs loading-spinner"></span>
 						Checking...
 					{:else}
 						<RefreshCw size={14} />
@@ -890,97 +918,118 @@
 		{/if}
 		<div>
 			{#if currentModel}
-				<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel ? 'opacity-60' : ''}  transition-opacity duration-200">
-				<div class="flex items-center justify-between px-4 py-4">
-					<div class="flex items-center gap-3 min-w-0">
-						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]">
-							<Smartphone size={14} class="text-[var(--sl-text-2)]" />
-						</div>
-						<div class="min-w-0">
-							<div class="flex items-center gap-2">
-								<span class="text-sm font-medium text-[var(--sl-text-1)] truncate">{currentModel.display_name}</span>
-								<code class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{currentModel.short_name}</code>
+				<div
+					class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel
+						? 'opacity-60'
+						: ''}  transition-opacity duration-200"
+				>
+					<div class="flex items-center justify-between px-4 py-4">
+						<div class="flex min-w-0 items-center gap-3">
+							<div
+								class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]"
+							>
+								<Smartphone size={14} class="text-[var(--sl-text-2)]" />
+							</div>
+							<div class="min-w-0">
+								<div class="flex items-center gap-2">
+									<span class="truncate text-sm font-medium text-[var(--sl-text-1)]"
+										>{currentModel.display_name}</span
+									>
+									<code
+										class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
+										>{currentModel.short_name}</code
+									>
+								</div>
 							</div>
 						</div>
+						{#if sendingModel}
+							<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
+								<span class="loading loading-xs loading-spinner"></span>
+								Sending...
+							</div>
+						{:else if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
+							<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
+								<span class="loading loading-xs loading-spinner"></span>
+								Downloading
+							</div>
+						{:else}
+							<div class="flex shrink-0 items-center gap-1.5 text-xs text-[var(--sl-green)]">
+								<span class="h-1.5 w-1.5 rounded-full bg-[var(--sl-green)]"></span>
+								Active
+							</div>
+						{/if}
 					</div>
-					{#if sendingModel}
-						<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
-							<span class="loading loading-xs loading-spinner"></span>
-							Sending...
-						</div>
-					{:else if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
-						<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
-							<span class="loading loading-xs loading-spinner"></span>
-							Downloading
-						</div>
-					{:else}
-						<div class="flex shrink-0 items-center gap-1.5 text-xs text-[var(--sl-green)]">
-							<span class="h-1.5 w-1.5 rounded-full bg-[var(--sl-green)]"></span>
-							Active
+					<!-- Metadata: label-value rows (consistent with Dashboard card pattern) -->
+					{#if currentModel.environment !== 'N/A' || currentModel.generation || currentModel.runner}
+						<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
+							<div class="max-w-[280px] space-y-1.5">
+								{#if currentModel.environment && currentModel.environment !== 'N/A'}
+									<div class="flex items-center gap-3">
+										<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
+											>Environment</span
+										>
+										<span class="text-[0.75rem] text-[var(--sl-text-2)]"
+											>{currentModel.environment}</span
+										>
+									</div>
+								{/if}
+								{#if currentModel.runner && currentModel.runner !== 'N/A'}
+									<div class="flex items-center gap-3">
+										<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Runner</span>
+										<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.runner}</span
+										>
+									</div>
+								{/if}
+								{#if currentModel.generation}
+									<div class="flex items-center gap-3">
+										<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
+											>Generation</span
+										>
+										<span class="text-[0.75rem] text-[var(--sl-text-2)]"
+											>{currentModel.generation}</span
+										>
+									</div>
+								{/if}
+							</div>
 						</div>
 					{/if}
-				</div>
-				<!-- Metadata: label-value rows (consistent with Dashboard card pattern) -->
-				{#if currentModel.environment !== 'N/A' || currentModel.generation || currentModel.runner}
-					<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
-						<div class="max-w-[280px] space-y-1.5">
-							{#if currentModel.environment && currentModel.environment !== 'N/A'}
-								<div class="flex items-center gap-3">
-									<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Environment</span>
-									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.environment}</span>
-								</div>
-							{/if}
-							{#if currentModel.runner && currentModel.runner !== 'N/A'}
-								<div class="flex items-center gap-3">
-									<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Runner</span>
-									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.runner}</span>
-								</div>
-							{/if}
-							{#if currentModel.generation}
-								<div class="flex items-center gap-3">
-									<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Generation</span>
-									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.generation}</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-				{/if}
-				<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
-					{#if currentModelShortName !== undefined}
+					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
+						{#if currentModelShortName !== undefined}
+							<button
+								class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] disabled:opacity-40"
+								onclick={() => (resetModalOpen = true)}
+								disabled={sendingModel}
+								title={!isOffroad ? 'Device must be offroad' : undefined}
+							>
+								Reset to Default
+							</button>
+							<span class="text-[var(--sl-border)]">|</span>
+						{/if}
 						<button
-							class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] disabled:opacity-40"
-							onclick={() => (resetModalOpen = true)}
-							disabled={sendingModel}
+							class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-red-600 disabled:opacity-40 dark:hover:text-red-400"
+							onclick={() => (clearCacheModalOpen = true)}
+							disabled={clearingCache}
 							title={!isOffroad ? 'Device must be offroad' : undefined}
 						>
-							Reset to Default
+							Clear Cache
 						</button>
-						<span class="text-[var(--sl-border)]">|</span>
-					{/if}
-					<button
-						class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40"
-						onclick={() => (clearCacheModalOpen = true)}
-						disabled={clearingCache}
-						title={!isOffroad ? 'Device must be offroad' : undefined}
-					>
-						Clear Cache
-					</button>
+					</div>
 				</div>
-			</div>
-
 			{/if}
 
 			<div class="mt-12 px-4">
 				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Available Models</p>
 			</div>
 
-			<div class="mt-3 relative overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]">
+			<div
+				class="relative mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]"
+			>
 				<div class="border-b border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)] px-4 py-2.5">
 					<div class="relative">
 						<input
 							type="text"
 							placeholder="Search models..."
-							class="w-full rounded-lg border-none bg-[var(--sl-bg-input)] py-2 pr-9 pl-9 text-[0.8125rem] text-[var(--sl-text-1)] placeholder:text-[var(--sl-text-3)] focus:outline-none focus:ring-1 focus:ring-[var(--sl-border)]"
+							class="w-full rounded-lg border-none bg-[var(--sl-bg-input)] py-2 pr-9 pl-9 text-[0.8125rem] text-[var(--sl-text-1)] placeholder:text-[var(--sl-text-3)] focus:ring-1 focus:ring-[var(--sl-border)] focus:outline-none"
 							bind:value={searchQuery}
 						/>
 						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
@@ -990,7 +1039,9 @@
 							<button
 								type="button"
 								class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
-								onclick={() => { searchQuery = ''; }}
+								onclick={() => {
+									searchQuery = '';
+								}}
 								aria-label="Clear search"
 							>
 								<X size={14} />
@@ -1025,12 +1076,17 @@
 												: ''}"
 										/>
 										{#if group.name === 'Favorites'}
-											<Star size={16} class="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
+											<Star
+												size={16}
+												class="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400"
+											/>
 										{:else}
 											<Folder size={16} class="text-primary" />
 										{/if}
 										<div class="flex items-center gap-2">
-											<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{group.name}</span>
+											<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+												>{group.name}</span
+											>
 											{#if getFolderExplanation(group.name)}
 												<div
 													class="tooltip tooltip-right flex items-center"
@@ -1051,45 +1107,92 @@
 									{#if openFolders[group.name]}
 										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
 											{#each group.models as model (model.short_name)}
-												{@const favKeyState = toggledFavRefs.has(model.ref) && deviceState.selectedDeviceId ? batchPush.getKeyState(deviceState.selectedDeviceId, 'ModelManager_Favs') : undefined}
+												{@const favKeyState =
+													toggledFavRefs.has(model.ref) && deviceState.selectedDeviceId
+														? batchPush.getKeyState(
+																deviceState.selectedDeviceId,
+																'ModelManager_Favs'
+															)
+														: undefined}
 												{@const isFavSyncing = favKeyState === 'syncing'}
-												<div role="button" tabindex="0"
+												<div
+													role="button"
+													tabindex="0"
 													class="group flex w-full items-center justify-between px-4 py-3.5 pl-11 text-left transition-all hover:bg-[var(--sl-bg-subtle)]"
 													class:opacity-50={isFavSyncing}
 													class:pointer-events-none={isFavSyncing}
-													onclick={() => (selectedModelShortName = selectedModelShortName === model.short_name ? undefined : model.short_name)}
+													onclick={() =>
+														(selectedModelShortName =
+															selectedModelShortName === model.short_name
+																? undefined
+																: model.short_name)}
 												>
 													<div class="flex items-center gap-2">
 														<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 															{model.display_name}
 														</span>
 														{#if favKeyState === 'pending'}
-															<span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+															<span
+																class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+																>Pending</span
+															>
 														{:else if isFavSyncing}
-															<span class="loading loading-spinner loading-xs text-primary"></span>
+															<span class="loading loading-xs loading-spinner text-primary"></span>
 														{:else if favKeyState === 'confirmed'}
-															<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-																stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-																class="text-emerald-600 dark:text-emerald-400"><path d="M20 6 9 17l-5-5" /></svg>
+															<svg
+																xmlns="http://www.w3.org/2000/svg"
+																width="12"
+																height="12"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2.5"
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																class="text-emerald-600 dark:text-emerald-400"
+																><path d="M20 6 9 17l-5-5" /></svg
+															>
 														{/if}
 													</div>
 													<div class="flex items-center gap-2">
 														<button
-															class="p-1.5 text-[var(--sl-text-3)] transition-all duration-150 hover:text-amber-600 dark:hover:text-amber-400 active:scale-90"
+															class="p-1.5 text-[var(--sl-text-3)] transition-all duration-150 hover:text-amber-600 active:scale-90 dark:hover:text-amber-400"
 															class:pointer-events-none={isFavSyncing}
-															onclick={(e) => { e.stopPropagation(); toggleFavorite(model, e); }}
-															title={favorites.has(model.ref) ? 'Remove from Favorites' : 'Add to Favorites'}
+															onclick={(e) => {
+																e.stopPropagation();
+																toggleFavorite(model, e);
+															}}
+															title={favorites.has(model.ref)
+																? 'Remove from Favorites'
+																: 'Add to Favorites'}
 														>
-															<Star size={14} class="transition-all duration-150 {favorites.has(model.ref) ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 scale-110' : 'scale-100'}" />
+															<Star
+																size={14}
+																class="transition-all duration-150 {favorites.has(model.ref)
+																	? 'scale-110 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+																	: 'scale-100'}"
+															/>
 														</button>
-														<ChevronRight size={14} class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName === model.short_name ? 'rotate-90' : ''}" />
+														<ChevronRight
+															size={14}
+															class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName ===
+															model.short_name
+																? 'rotate-90'
+																: ''}"
+														/>
 													</div>
 												</div>
 												{#if selectedModelShortName === model.short_name}
-													<div transition:slide={{ duration: 150 }} class="border-t border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)]/60 px-4 py-4 pl-11">
+													<div
+														transition:slide={{ duration: 150 }}
+														class="border-t border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)]/60 px-4 py-4 pl-11"
+													>
 														<div class="flex items-start justify-between gap-4">
 															<div class="min-w-0 flex-1">
-																<code class="rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{model.short_name}</code>
+																<code
+																	class="rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
+																	>{model.short_name}</code
+																>
 																<div class="mt-3 flex max-w-xs flex-col gap-1.5 text-xs">
 																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Environment</span>
@@ -1097,27 +1200,52 @@
 																	</div>
 																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Runner</span>
-																		<span class="text-[var(--sl-text-2)]">{model.runner ?? 'Unknown'}</span>
+																		<span class="text-[var(--sl-text-2)]"
+																			>{model.runner ?? 'Unknown'}</span
+																		>
 																	</div>
 																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Generation</span>
-																		<span class="text-[var(--sl-text-2)]">{model.generation ?? 'Unknown'}</span>
+																		<span class="text-[var(--sl-text-2)]"
+																			>{model.generation ?? 'Unknown'}</span
+																		>
 																	</div>
 																	<div class="flex items-baseline justify-between">
 																		<span class="text-[var(--sl-text-3)]">Build</span>
-																		<span class="text-[var(--sl-text-2)]">{model.build_time ? new Date(model.build_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown'}</span>
+																		<span class="text-[var(--sl-text-2)]"
+																			>{model.build_time
+																				? new Date(model.build_time).toLocaleDateString(undefined, {
+																						year: 'numeric',
+																						month: 'short',
+																						day: 'numeric'
+																					})
+																				: 'Unknown'}</span
+																		>
 																	</div>
 																</div>
 															</div>
 														</div>
 														{#if !isOffroad}
-															<p class="mt-3 text-xs text-amber-700 dark:text-amber-400">Device is onroad. Models cannot be changed while driving.</p>
+															<p class="mt-3 text-xs text-amber-700 dark:text-amber-400">
+																Device is onroad. Models cannot be changed while driving.
+															</p>
 														{/if}
 														<div class="mt-4 flex items-center gap-3">
 															{#if currentModel?.short_name === model.short_name}
-																<div class="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-																	<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-																		stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+																<div
+																	class="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400"
+																>
+																	<svg
+																		xmlns="http://www.w3.org/2000/svg"
+																		width="12"
+																		height="12"
+																		viewBox="0 0 24 24"
+																		fill="none"
+																		stroke="currentColor"
+																		stroke-width="2.5"
+																		stroke-linecap="round"
+																		stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg
+																	>
 																	Active
 																</div>
 															{:else}
@@ -1127,7 +1255,7 @@
 																	disabled={sendingModel || !isOffroad}
 																>
 																	{#if sendingModel}
-																		<span class="loading loading-xs loading-spinner mr-1"></span>
+																		<span class="loading mr-1 loading-xs loading-spinner"></span>
 																		Activating...
 																	{:else}
 																		Activate
@@ -1148,14 +1276,16 @@
 			</div>
 
 			{#if deviceState.selectedDeviceId}
-				{@const modelsPanel = schemaState.schemas[deviceState.selectedDeviceId]?.panels?.find(p => p.id === 'models')}
+				{@const modelsPanel = schemaState.schemas[deviceState.selectedDeviceId]?.panels?.find(
+					(p) => p.id === 'models'
+				)}
 				{#if modelsPanel}
 					<div class="mt-12">
-					<SchemaPanel
-						deviceId={deviceState.selectedDeviceId}
-						panel={modelsPanel}
-						loadingValues={loadingModels}
-					/>
+						<SchemaPanel
+							deviceId={deviceState.selectedDeviceId}
+							panel={modelsPanel}
+							loadingValues={loadingModels}
+						/>
 					</div>
 				{:else if currentModel}
 					{@const modelSettingItems = [
@@ -1170,7 +1300,9 @@
 						<div class="mt-12 px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
 						</div>
-						<div class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+						<div
+							class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+						>
 							{#each modelSettingItems as param, i (param.key)}
 								<SchemaItemRenderer
 									deviceId={deviceState.selectedDeviceId}

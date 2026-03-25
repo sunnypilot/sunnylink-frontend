@@ -77,7 +77,7 @@
 	<div
 		use:portal
 		transition:scale={{ start: 0.96, duration: 120, opacity: 0 }}
-		class="fixed z-[9999] w-max max-w-[400px] origin-top rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.8125rem] font-normal leading-relaxed text-[var(--sl-text-2)] shadow-sm"
+		class="fixed z-[9999] w-max max-w-[400px] origin-top rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.8125rem] leading-relaxed font-normal text-[var(--sl-text-2)] shadow-sm"
 		style="left: {x}px; top: {y}px; transform: translateX(-50%);"
 		role="tooltip"
 	>
