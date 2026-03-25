@@ -230,9 +230,6 @@
 		revalidatingValues = false;
 		valuesFetchFailed = false;
 	});
-	let jsonModalOpen = $state(false);
-	let jsonModalContent = $state('');
-	let jsonModalTitle = $state('');
 	let pushModalOpen = $state(false);
 
 	// Fetch values for schema-driven rendering (cancels on nav away)
@@ -473,28 +470,6 @@
 		});
 	}
 
-	function syntaxHighlightJson(json: string): string {
-		if (!json) return '';
-		json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-		return json.replace(
-			/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-			function (match) {
-				let cls = 'text-orange-700 dark:text-orange-400';
-				if (/^"/.test(match)) {
-					if (/:$/.test(match)) {
-						cls = 'text-blue-700 dark:text-blue-400';
-					} else {
-						cls = 'text-green-700 dark:text-green-400';
-					}
-				} else if (/true|false/.test(match)) {
-					cls = 'text-purple-700 dark:text-purple-400';
-				} else if (/null/.test(match)) {
-					cls = 'text-gray-500 dark:text-gray-400';
-				}
-				return '<span class="' + cls + '">' + match + '</span>';
-			}
-		);
-	}
 
 	/** Group settings by their section headers for grouped card rendering */
 	function groupSettingsBySection(settings: RenderableSetting[]): { label: string | null; settings: RenderableSetting[] }[] {
@@ -513,12 +488,6 @@
 		return groups;
 	}
 
-	function openJsonModal(title: string, content: any) {
-		jsonModalTitle = title;
-		const formatted = JSON.stringify(content, null, 2);
-		jsonModalContent = syntaxHighlightJson(formatted);
-		jsonModalOpen = true;
-	}
 </script>
 
 <div class="space-y-9" class:pb-16={hasChanges && !useSchema}>
@@ -751,31 +720,3 @@
 	/>
 {/if}
 
-{#if jsonModalOpen}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-		<div class="w-full max-w-3xl rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-6 shadow-2xl">
-			<div class="mb-4 flex items-center justify-between">
-				<h3 class="text-lg font-bold text-[var(--sl-text-1)]">{jsonModalTitle}</h3>
-				<button
-					class="btn btn-circle text-[var(--sl-text-2)] btn-ghost btn-sm"
-					onclick={() => (jsonModalOpen = false)}
-				>
-					✕
-				</button>
-			</div>
-			<div class="max-h-[60vh] overflow-auto rounded-lg bg-[var(--sl-bg-input)] p-4">
-				<div class="flex font-mono text-xs">
-					<div class="mr-4 text-right text-slate-600 select-none">
-						{#each jsonModalContent.split('\n') as _, i}
-							<div>{i + 1}</div>
-						{/each}
-					</div>
-					<pre class="text-[var(--sl-text-2)]">{@html jsonModalContent}</pre>
-				</div>
-			</div>
-			<div class="mt-6 flex justify-end">
-				<button class="btn btn-primary" onclick={() => (jsonModalOpen = false)}>Close</button>
-			</div>
-		</div>
-	</div>
-{/if}

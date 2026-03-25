@@ -42,7 +42,7 @@
 		if (pcStatus === 'failed') return 'error';
 		return 'idle';
 	});
-	let pushError = $state('');
+
 
 
 	let ruleContext: RuleContext = $derived({
@@ -112,9 +112,7 @@
 	});
 
 	let currentValue = $derived(deviceState.deviceValues[deviceId]?.[item.key]);
-	let displayValue: unknown = $derived(
-		currentValue !== undefined ? currentValue : undefined
-	);
+	let displayValue: unknown = $derived(currentValue);
 
 	function isOptionEnabled(option: SchemaOption): boolean {
 		if (!option.enablement || option.enablement.length === 0) return true;
@@ -213,7 +211,6 @@
 		// Clear any stale offline pending entry — this key is now handled by batchPush
 		pendingChanges.remove(deviceId, item.key);
 		deviceState.deviceValues[deviceId][item.key] = newValue;
-		pushError = '';
 		batchPush.enqueue(deviceId, item.key, newValue, previousValue, inferParamType());
 	}
 
@@ -324,10 +321,7 @@
 					{:else if item.description}
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
-					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
-					{/if}
-				</div>
+					</div>
 				<div class="flex shrink-0 items-center">
 					{#if isLoading}
 						<div class="h-8 w-24 skeleton-shimmer rounded-full"></div>
@@ -431,10 +425,7 @@
 					{#if item.description}
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
-					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
-					{/if}
-				</div>
+					</div>
 				<div class="flex shrink-0 items-center">
 					{#if isLoading}
 						<div class="h-[26px] w-[44px] skeleton-shimmer rounded-full"></div>
@@ -525,10 +516,7 @@
 					{#if item.description}
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
-					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
-					{/if}
-				</div>
+					</div>
 				<div class="shrink-0">
 					{#if isLoading}
 						<div class="h-8 w-20 skeleton-shimmer rounded-lg"></div>
@@ -590,9 +578,6 @@
 				</div>
 				{#if item.description}
 					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-				{/if}
-				{#if pushState === 'error'}
-					<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 				{/if}
 
 				<div class="mt-2.5">
@@ -715,10 +700,7 @@
 					{#if item.description}
 						<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
 					{/if}
-					{#if pushState === 'error'}
-						<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
-					{/if}
-				</div>
+					</div>
 				<span class="shrink-0 text-[0.8125rem] font-medium tabular-nums text-[var(--sl-text-2)]">
 					{#if isLoading}
 						<div class="h-4 w-12 skeleton-shimmer rounded"></div>
@@ -771,9 +753,6 @@
 				</div>
 				{#if item.description}
 					<p class="mt-0.5 text-[0.75rem] font-[450] leading-snug text-[var(--sl-text-3)]">{@html sanitizeDescription(item.description)}</p>
-				{/if}
-				{#if pushState === 'error'}
-					<p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{pushError}</p>
 				{/if}
 
 				<div class="mt-2.5">
