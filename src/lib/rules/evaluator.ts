@@ -202,6 +202,8 @@ function _describeFailedRule(
 		}
 
 		case 'param': {
+			const paramVal = ctx.paramValues[rule.key];
+			if (paramVal === undefined || paramVal === null) return null;
 			const title = paramTitleLookup?.(rule.key) ?? rule.key;
 			if (rule.equals === true) return `Enable "${title}" first`;
 			if (rule.equals === false) return `Disable "${title}" first`;
@@ -222,6 +224,8 @@ function _describeFailedRule(
 		case 'not': {
 			// The not rule failed = inner condition is true, but we need it false
 			if (rule.condition.type === 'param') {
+				const notParamVal = ctx.paramValues[rule.condition.key];
+				if (notParamVal === undefined || notParamVal === null) return null;
 				const title = paramTitleLookup?.(rule.condition.key) ?? rule.condition.key;
 				if (rule.condition.equals === true) return `Disable "${title}" first`;
 				if (rule.condition.equals === false) return `Enable "${title}" first`;
@@ -338,7 +342,10 @@ export function collectParamDependencies(rules: Rule[] | undefined): string[] {
  */
 function _compareParamValue(actual: unknown, expected: unknown): boolean {
 	if (actual === expected) return true;
-	if (actual === undefined || actual === null) return false;
+	if (actual === undefined || actual === null) {
+		if (typeof expected === 'boolean') return expected === false;
+		return false;
+	}
 
 	// Boolean comparison with string coercion
 	if (typeof expected === 'boolean') {
