@@ -124,12 +124,13 @@
 </script>
 
 {#if hasContent}
-	<div class="space-y-6">
+	<div class="space-y-8">
 		{#if useSections}
 			<!-- ═══ V2: Sections-based rendering ═══ -->
-			{#each orderedSections as section (section.id)}
+			{#each orderedSections as section, si (section.id)}
 				{@const sectionEnabled = isSectionEnabled(section)}
 				{@const sectionReasons = sectionEnabled ? [] : getSectionDisabledReasons(section)}
+				<div class="space-y-3" class:mt-2={si > 0 && section.title}>
 				<!-- Section title + description (outside card, indented to match page title) -->
 				{#if section.title}
 					<div class="px-4 transition-opacity duration-150" class:setting-dimmed={!sectionEnabled}>
@@ -194,6 +195,7 @@
 						{/each}
 					</div>
 				{/if}
+				</div>
 			{/each}
 		{:else}
 			<!-- ═══ V1: Legacy flat items rendering ═══ -->
