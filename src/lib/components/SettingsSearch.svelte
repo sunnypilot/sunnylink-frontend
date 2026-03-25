@@ -93,7 +93,7 @@
 			type="text"
 			bind:value={searchState.query}
 			placeholder="Search settings..."
-			class="w-full rounded-lg border border-transparent bg-[var(--sl-bg-elevated)] py-2 pr-10 pl-10 text-[0.8125rem] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] transition-colors focus:border-[var(--sl-border)] focus:bg-[var(--sl-bg-surface)] focus:outline-none"
+			class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] py-2 pr-10 pl-10 text-[0.8125rem] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] transition-colors focus:border-[var(--sl-text-3)] focus:outline-none"
 			onfocus={() => {
 				isFocused = true;
 				if (searchState.query.trim()) isOpen = true;
@@ -116,7 +116,7 @@
 
 	{#if isOpen && results.length > 0}
 		<div
-			class="search-results absolute z-50 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
+			class="search-results absolute z-50 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-sm"
 		>
 			{#each results as result}
 				<button
@@ -142,7 +142,7 @@
 		</div>
 	{:else if isOpen && searchState.query.trim()}
 		<div
-			class="search-results absolute z-50 mt-2 w-full rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-4 text-center text-sm text-[var(--sl-text-2)] shadow-2xl"
+			class="search-results absolute z-50 mt-2 w-full rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 text-center text-sm text-[var(--sl-text-2)] shadow-sm"
 		>
 			No settings found.
 		</div>

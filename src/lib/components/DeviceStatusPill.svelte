@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { scale } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
@@ -9,7 +10,7 @@
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import {
-		Wifi, RefreshCw, Loader2, AlertTriangle,
+		RefreshCw, Loader2, AlertTriangle,
 		Copy, Check, ChevronRight, Monitor, GitBranch
 	} from 'lucide-svelte';
 
@@ -90,6 +91,20 @@
 	let stoppingForce = $state(false);
 	let forceModalOpen = $state(false);
 	let copiedId = $state(false);
+	let copiedField = $state<string | null>(null);
+	let marqueeEl = $state<HTMLElement | undefined>();
+
+	$effect(() => {
+		if (!marqueeEl || !popoverOpen) return;
+		const container = marqueeEl.parentElement;
+		if (!container) return;
+		const overflow = marqueeEl.scrollWidth - container.clientWidth;
+		if (overflow > 0) {
+			container.style.setProperty('--marquee-offset', `-${overflow}px`);
+		} else {
+			container.style.removeProperty('--marquee-offset');
+		}
+	});
 
 	let pillState: PillState = $derived.by(() => {
 		if (!deviceId) {
@@ -245,6 +260,15 @@
 		} catch { /* ignore */ }
 	}
 
+	async function copyField(field: string, value: string | undefined) {
+		if (!value) return;
+		try {
+			await navigator.clipboard.writeText(value);
+			copiedField = field;
+			setTimeout(() => { copiedField = null; }, 2000);
+		} catch { /* ignore */ }
+	}
+
 	function formatNetworkType(type: string | undefined): string {
 		if (!type || type === 'unknown') return '--';
 		const map: Record<string, string> = {
@@ -275,7 +299,8 @@
 
 		{#if popoverOpen}
 			<div
-				class="absolute right-0 top-full z-[100] mt-2 w-72 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-lg"
+				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
+				class="absolute right-0 top-full z-[100] mt-2 w-72 origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
 				role="dialog"
 				aria-label="Device status details"
 			>
@@ -306,13 +331,10 @@
 
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
-				<div class="px-2.5 py-2 space-y-2">
+				<div class="space-y-0.5 px-1">
 					{#if isOnline && telemetry}
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-1.5 text-[var(--sl-text-3)]">
-								<Wifi size={13} class="shrink-0" />
-								<span class="text-[0.75rem]">Network</span>
-							</div>
+						<div class="flex items-center justify-between rounded-md px-1.5 py-1">
+							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Network</span>
 							<span class="text-[0.75rem] text-[var(--sl-text-2)]">
 								{formatNetworkType(telemetry.networkType)}
 								{#if telemetry.networkMetered}
@@ -322,31 +344,50 @@
 						</div>
 					{/if}
 					{#if branchName}
-						<div class="flex items-center justify-between">
+						<button
+							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							onclick={() => copyField('branch', branchName)}
+						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
-							<span class="truncate max-w-[160px] font-mono text-[0.75rem] text-[var(--sl-text-2)]">
-								{branchName}
-							</span>
-						</div>
+							{#if copiedField === 'branch'}
+								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
+							{:else}
+								<span class="marquee-container max-w-[140px] overflow-hidden text-right">
+									<span bind:this={marqueeEl} class="marquee-text inline-block whitespace-nowrap font-mono text-[0.75rem] text-[var(--sl-text-2)]">
+										{branchName}
+									</span>
+								</span>
+							{/if}
+						</button>
 					{/if}
 					{#if softwareVersion}
-						<div class="flex items-center justify-between">
+						<button
+							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							onclick={() => copyField('version', softwareVersion)}
+						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
-							<span class="text-[0.75rem] text-[var(--sl-text-2)]">
-								{softwareVersion}
-							</span>
-						</div>
+							{#if copiedField === 'version'}
+								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
+							{:else}
+								<span class="text-[0.75rem] text-[var(--sl-text-2)]">{softwareVersion}</span>
+							{/if}
+						</button>
 					{/if}
 					{#if commitHash}
-						<div class="flex items-center justify-between">
+						<button
+							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-subtle)]"
+							onclick={() => copyField('commit', commitHash)}
+						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
-							<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">
-								{commitHash}
-							</span>
-						</div>
+							{#if copiedField === 'commit'}
+								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
+							{:else}
+								<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commitHash}</span>
+							{/if}
+						</button>
 					{/if}
 					{#if lastSeen}
-						<div class="flex items-center justify-between">
+						<div class="flex items-center justify-between rounded-md px-1.5 py-1">
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Last seen</span>
 							<!-- Force re-render every 10s via statusPolling tick -->
 							{#key statusPolling.tickCounter}
@@ -417,3 +458,21 @@
 
 	<ForceOffroadModal bind:open={forceModalOpen} onSuccess={onForceOffroadSuccess} />
 {/if}
+
+<style>
+	.marquee-container {
+		display: inline-block;
+		-webkit-mask-image: linear-gradient(to right, transparent, black 4px, black calc(100% - 12px), transparent);
+		mask-image: linear-gradient(to right, transparent, black 4px, black calc(100% - 12px), transparent);
+	}
+	.marquee-text {
+		animation: marquee-slide var(--marquee-duration, 6s) linear infinite;
+	}
+	@keyframes marquee-slide {
+		0%, 10% { transform: translateX(0); opacity: 1; }
+		70% { transform: translateX(var(--marquee-offset, 0px)); opacity: 1; }
+		80% { transform: translateX(var(--marquee-offset, 0px)); opacity: 0; }
+		81% { transform: translateX(0); opacity: 0; }
+		90%, 100% { transform: translateX(0); opacity: 1; }
+	}
+</style>

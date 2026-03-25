@@ -194,7 +194,7 @@
 <button
 	bind:this={triggerEl}
 	type="button"
-	class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-text-3)] focus:outline-none"
+	class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-text-3)] focus:outline-none"
 	class:opacity-50={disabled}
 	class:pointer-events-none={disabled}
 	{disabled}
@@ -218,7 +218,7 @@
 		></div>
 		<div
 			bind:this={menuEl}
-			class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-lg"
+			class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-sm"
 			style={menuStyle}
 			role="listbox"
 		>
@@ -239,16 +239,15 @@
 				class:scroll-fade-bottom={canScrollDown}
 				onscroll={handleScroll}
 			>
-				<div class="py-[5px]">
+				<div class="p-1.5">
 					{#each options as opt (opt.value)}
 						{@const isSelected = String(opt.value) === String(value)}
 						{@const isOptDisabled = !!disabledValues?.has(opt.value)}
 						<button
 							type="button"
-							class="flex w-full items-center justify-between px-2.5 py-1.5 text-[0.8125rem] transition-colors"
+							class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[0.8125rem] transition-colors"
 							class:text-[var(--sl-text-1)]={!isOptDisabled}
 							class:hover:bg-[var(--sl-bg-subtle)]={!isOptDisabled}
-							class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
 							class:text-[var(--sl-text-3)]={isOptDisabled}
 							class:opacity-40={isOptDisabled}
 							class:cursor-not-allowed={isOptDisabled}
