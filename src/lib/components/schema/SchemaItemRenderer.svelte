@@ -216,8 +216,9 @@
 							: 'border-l-2 border-l-transparent'
 	);
 
-	// Divider: show unless this is the last item
-	let showDivider = $derived(!isLast);
+	// Divider: show unless this is the last item with no sub_items below it
+	let hasSubItems = $derived(!!(item.sub_items && item.sub_items.length > 0));
+	let showDivider = $derived(!isLast || hasSubItems);
 
 	function formatDisplay(val: unknown): string {
 		if (val === undefined || val === null) return '-';
