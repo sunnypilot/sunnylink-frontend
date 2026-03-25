@@ -40,10 +40,9 @@
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 	let hasChanges = $derived(deviceId ? deviceState.hasChanges(deviceId) : false);
 
-
 	let useSchema = $derived(deviceId ? schemaState.hasSchema(deviceId) : false);
 	let schemaLoading = $derived(
-		deviceId ? (!!schemaState.loading[deviceId] && !schemaState.schemaUnavailable[deviceId]) : false
+		deviceId ? !!schemaState.loading[deviceId] && !schemaState.schemaUnavailable[deviceId] : false
 	);
 
 	// Find the matching schema panel for this category
@@ -56,7 +55,12 @@
 
 	// Load schema when device is selected
 	$effect(() => {
-		if (deviceId && logtoClient && !schemaState.schemas[deviceId] && !schemaState.loading[deviceId]) {
+		if (
+			deviceId &&
+			logtoClient &&
+			!schemaState.schemas[deviceId] &&
+			!schemaState.loading[deviceId]
+		) {
 			loadSchema();
 		}
 	});
@@ -127,7 +131,6 @@
 		goto(url.toString(), { keepFocus: true, noScroll: true });
 	}
 
-
 	let currentDeviceAlias = $derived(
 		deviceId ? (deviceState.aliases[deviceId] ?? deviceId) : undefined
 	);
@@ -177,7 +180,6 @@
 	let writableGroups = $derived(groupSettingsBySection(writableSettings));
 	let readonlyGroups = $derived(groupSettingsBySection(readonlySettings));
 
-
 	let loadingValues = $state(false);
 	let revalidatingValues = $state(false);
 	let valuesFetchFailed = $state(false);
@@ -186,9 +188,11 @@
 	// Once any page successfully fetches values, all pages are instantly "Up to Date".
 	// Offline/error devices are considered verified immediately (nothing to fetch).
 	let deviceOnlineStatus = $derived(deviceId ? deviceState.onlineStatuses[deviceId] : undefined);
-	let isDeviceOfflineOrError = $derived(deviceOnlineStatus === 'offline' || deviceOnlineStatus === 'error');
+	let isDeviceOfflineOrError = $derived(
+		deviceOnlineStatus === 'offline' || deviceOnlineStatus === 'error'
+	);
 	let deviceVerified = $derived(
-		deviceId ? (isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId]) : false
+		deviceId ? isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId] : false
 	);
 
 	// True when values are actively being fetched or a global refresh is in-flight.
@@ -198,12 +202,17 @@
 	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
 	let isDeviceLoading = $derived(deviceOnlineStatus === 'loading');
 	let isRevalidating = $derived(
-		isDeviceLoading || (!isDeviceOfflineOrError && (revalidatingValues || !deviceVerified || isStale))
+		isDeviceLoading ||
+			(!isDeviceOfflineOrError && (revalidatingValues || !deviceVerified || isStale))
 	);
 
 	// Overall revalidation succeeded: device is online, verified, no active fetch, not stale.
 	let revalidationSucceeded = $derived(
-		!isDeviceOfflineOrError && deviceVerified && !revalidatingValues && !valuesFetchFailed && !isStale
+		!isDeviceOfflineOrError &&
+			deviceVerified &&
+			!revalidatingValues &&
+			!valuesFetchFailed &&
+			!isStale
 	);
 
 	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
@@ -321,12 +330,16 @@
 						const response = await fetchSettingsAsync(did, chunk, token, { signal });
 						if (signal?.aborted) return;
 						if (response.items) {
-							const vals = deviceState.deviceValues[did] ??= {};
+							const vals = (deviceState.deviceValues[did] ??= {});
 							for (const item of response.items) {
 								if (item.key && item.value !== undefined) {
 									// Preserve user's optimistic value for keys with in-flight changes
 									const pc = pendingChanges.getForKey(did, item.key);
-									const pcActive = pc && (pc.status === 'pending' || pc.status === 'pushing' || pc.status === 'blocked_onroad');
+									const pcActive =
+										pc &&
+										(pc.status === 'pending' ||
+											pc.status === 'pushing' ||
+											pc.status === 'blocked_onroad');
 									if (batchPush.hasPendingKey(did, item.key) || pcActive) continue;
 									vals[item.key] = decodeParamValue({
 										key: item.key,
@@ -347,19 +360,20 @@
 
 			// Fill defaults for keys the device didn't return
 			if (schemaPanel) {
-				const vals = deviceState.deviceValues[did] ??= {};
+				const vals = (deviceState.deviceValues[did] ??= {});
 				const allItems = [
 					...(schemaPanel.items ?? []),
-					...(schemaPanel.sub_panels ?? []).flatMap(sp => sp.items),
-					...(schemaPanel.sections ?? []).flatMap(s => [
+					...(schemaPanel.sub_panels ?? []).flatMap((sp) => sp.items),
+					...(schemaPanel.sections ?? []).flatMap((s) => [
 						...s.items,
-						...(s.sub_panels ?? []).flatMap(sp => sp.items)
+						...(s.sub_panels ?? []).flatMap((sp) => sp.items)
 					])
 				];
 				for (const item of allItems) {
 					if (vals[item.key] === undefined) {
 						if (item.widget === 'toggle') vals[item.key] = false;
-						else if (item.widget === 'option' || item.widget === 'multiple_button') vals[item.key] = item.options?.[0]?.value ?? '';
+						else if (item.widget === 'option' || item.widget === 'multiple_button')
+							vals[item.key] = item.options?.[0]?.value ?? '';
 						else vals[item.key] = '';
 					}
 				}
@@ -404,11 +418,15 @@
 						const response = await fetchSettingsAsync(did, chunk, token, { signal });
 						if (signal?.aborted) return;
 						if (response.items) {
-							const vals = deviceState.deviceValues[did] ??= {};
+							const vals = (deviceState.deviceValues[did] ??= {});
 							for (const item of response.items) {
 								if (item.key && item.value !== undefined) {
 									const pc = pendingChanges.getForKey(did, item.key);
-									const pcActive = pc && (pc.status === 'pending' || pc.status === 'pushing' || pc.status === 'blocked_onroad');
+									const pcActive =
+										pc &&
+										(pc.status === 'pending' ||
+											pc.status === 'pushing' ||
+											pc.status === 'blocked_onroad');
 									if (batchPush.hasPendingKey(did, item.key) || pcActive) continue;
 									const def = categorySettings.find((s) => s.key === item.key);
 									const type = def?.value?.type ?? 'String';
@@ -459,11 +477,15 @@
 		});
 	}
 
-
 	/** Group settings by their section headers for grouped card rendering */
-	function groupSettingsBySection(settings: RenderableSetting[]): { label: string | null; settings: RenderableSetting[] }[] {
+	function groupSettingsBySection(
+		settings: RenderableSetting[]
+	): { label: string | null; settings: RenderableSetting[] }[] {
 		const groups: { label: string | null; settings: RenderableSetting[] }[] = [];
-		let current: { label: string | null; settings: RenderableSetting[] } = { label: null, settings: [] };
+		let current: { label: string | null; settings: RenderableSetting[] } = {
+			label: null,
+			settings: []
+		};
 
 		for (const s of settings) {
 			if (s.isSection) {
@@ -476,7 +498,6 @@
 		if (current.settings.length > 0) groups.push(current);
 		return groups;
 	}
-
 </script>
 
 <div class="space-y-9" class:pb-16={hasChanges && !useSchema}>
@@ -506,10 +527,15 @@
 							>
 							{schemaPanel?.label ?? category}
 						</button>
-						<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)]">
+						<h2
+							class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
+						>
 							<span>{activeSubPanel.label}</span>
 							{#if loadingValues}
-								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+								<span
+									class="loading loading-xs loading-spinner text-primary"
+									style="align-self: center;"
+								></span>
 							{:else}
 								<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
 							{/if}
@@ -517,16 +543,23 @@
 					</div>
 				{:else}
 					<div class="px-4">
-						<h2 class="flex items-baseline gap-3 text-[24px] font-medium leading-[32px] tracking-[-0.16px] text-[var(--sl-text-1)] capitalize">
+						<h2
+							class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)] capitalize"
+						>
 							<span>{schemaPanel?.label ?? category}</span>
 							{#if loadingValues}
-								<span class="loading loading-spinner loading-xs text-primary" style="align-self: center;"></span>
+								<span
+									class="loading loading-xs loading-spinner text-primary"
+									style="align-self: center;"
+								></span>
 							{:else}
 								<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
 							{/if}
 						</h2>
 						{#if schemaPanel?.description}
-							<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">{schemaPanel.description}</p>
+							<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+								{schemaPanel.description}
+							</p>
 						{/if}
 					</div>
 				{/if}
@@ -569,8 +602,10 @@
 		<!-- Waiting for device connection + schema/legacy settings to load.
 		     Show a non-blocking connecting state instead of an infinite spinner. -->
 		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-			<div class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center">
-				<span class="loading loading-spinner loading-md text-primary"></span>
+			<div
+				class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
+			>
+				<span class="loading loading-md loading-spinner text-primary"></span>
 				<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">Connecting to device...</p>
 			</div>
 		</div>
@@ -584,9 +619,16 @@
 					out:fly={{ x: subPanelDirection === 'forward' ? -30 : 30, duration: 120 }}
 				>
 					{#if activeSubPanel}
-						<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+						<div
+							class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+						>
 							{#each activeSubPanel.items as item, i (item.key)}
-								<SchemaItemRenderer {deviceId} {item} {loadingValues} isLast={i === activeSubPanel.items.length - 1} />
+								<SchemaItemRenderer
+									{deviceId}
+									{item}
+									{loadingValues}
+									isLast={i === activeSubPanel.items.length - 1}
+								/>
 							{/each}
 						</div>
 					{:else}
@@ -603,14 +645,16 @@
 	{:else if useSchema && !schemaPanel}
 		<!-- Schema loaded but no panel for this category — render with unified style -->
 		{#if writableSettings.length > 0}
-			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-					{#each writableGroups as group (group.label ?? '__default__')}
+			<div class="mx-auto w-full max-w-2xl space-y-6 xl:max-w-3xl">
+				{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
 						<div class="px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
 						</div>
 					{/if}
-					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+					<div
+						class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+					>
 						{#each group.settings as setting, i (setting.key)}
 							<SchemaItemRenderer
 								{deviceId}
@@ -630,14 +674,16 @@
 	{:else}
 		<!-- ═══ Legacy rendering (no schema available) — unified style ═══ -->
 		{#if writableSettings.length > 0}
-			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl space-y-6">
-					{#each writableGroups as group (group.label ?? '__default__')}
+			<div class="mx-auto w-full max-w-2xl space-y-6 xl:max-w-3xl">
+				{#each writableGroups as group (group.label ?? '__default__')}
 					{#if group.label}
 						<div class="px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
 						</div>
 					{/if}
-					<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+					<div
+						class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+					>
 						{#each group.settings as setting, i (setting.key)}
 							<SchemaItemRenderer
 								{deviceId}
@@ -653,7 +699,9 @@
 
 		{#if readonlySettings.length > 0}
 			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-				<details class="group mt-8 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] open:bg-[var(--sl-bg-input)]">
+				<details
+					class="group mt-8 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] open:bg-[var(--sl-bg-input)]"
+				>
 					<summary
 						class="flex cursor-pointer items-center justify-between p-4 font-medium text-[var(--sl-text-2)] hover:text-[var(--sl-text-1)]"
 					>
@@ -679,7 +727,9 @@
 									<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
 								</div>
 							{/if}
-							<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+							<div
+								class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+							>
 								{#each group.settings as setting, i (setting.key)}
 									<SchemaItemRenderer
 										{deviceId}
@@ -711,4 +761,3 @@
 		alias={currentDeviceAlias}
 	/>
 {/if}
-
