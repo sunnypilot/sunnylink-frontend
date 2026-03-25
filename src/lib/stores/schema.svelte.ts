@@ -12,7 +12,6 @@
 import { browser } from '$app/environment';
 import type { SettingsSchema, Capabilities } from '$lib/types/schema';
 import { fetchParamsMetadata } from '$lib/api/device';
-import { deviceState } from '$lib/stores/device.svelte';
 
 const SCHEMA_CACHE_PREFIX = 'sunnylink_schema_';
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

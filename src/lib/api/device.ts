@@ -3,7 +3,7 @@ import { deviceState } from '$lib/stores/device.svelte';
 import { schemaState } from '$lib/stores/schema.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
-import { decodeCompressedJson, isCompressedBase64 } from '$lib/utils/compression';
+import { decodeCompressedJson } from '$lib/utils/compression';
 import type { SettingsSchema } from '$lib/types/schema';
 import type { components } from '../../sunnylink/v1/schema';
 
