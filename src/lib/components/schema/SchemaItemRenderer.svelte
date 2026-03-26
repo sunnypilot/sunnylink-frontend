@@ -443,7 +443,7 @@
 					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
@@ -535,7 +535,7 @@
 						style="transition: background-color var(--dur-instant) var(--ease-out);"
 						class:opacity-50={isPushing}
 						class:cursor-not-allowed={!enabled || isPushing}
-						class:pointer-events-none={isPushing}
+						class:pointer-events-none={isPushing || !enabled}
 						disabled={!enabled || isPushing}
 						role="switch"
 						aria-checked={isOn}
@@ -575,7 +575,7 @@
 					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
@@ -677,7 +677,7 @@
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">
 						<span
-							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 							>Pending</span
 						>
 					</Tooltip>
@@ -771,7 +771,7 @@
 						<div
 							class="flex items-center gap-2 transition-opacity duration-200"
 							class:opacity-50={isPushing}
-							class:pointer-events-none={isPushing}
+							class:pointer-events-none={isPushing || !enabled}
 						>
 							<button
 								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
@@ -863,7 +863,7 @@
 					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
@@ -958,7 +958,7 @@
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">
 						<span
-							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 							>Pending</span
 						>
 					</Tooltip>
@@ -1051,7 +1051,7 @@
 					<div
 						class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200"
 						class:opacity-50={isPushing}
-						class:pointer-events-none={isPushing}
+						class:pointer-events-none={isPushing || !enabled}
 					>
 						{#if selectedIdx >= 0}
 							<div
@@ -1066,14 +1066,17 @@
 								class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments
 									? 'px-1.5 text-[0.8125rem] tracking-tight'
 									: 'px-2.5 text-sm'}"
-								class:text-white={isSelected && optEnabled}
-								class:text-[var(--sl-text-2)]={!isSelected && optEnabled}
-								class:hover:text-[var(--sl-text-1)]={!isSelected && optEnabled && !isPushing}
-								class:opacity-30={!optEnabled}
-								class:cursor-not-allowed={!optEnabled}
-								class:pointer-events-none={isPushing}
+								class:text-white={isSelected && optEnabled && enabled}
+								class:text-[var(--sl-text-2)]={!isSelected && optEnabled && enabled}
+								class:hover:text-[var(--sl-text-1)]={!isSelected &&
+									enabled &&
+									optEnabled &&
+									!isPushing}
+								class:opacity-30={!optEnabled || !enabled}
+								class:cursor-not-allowed={!optEnabled || !enabled}
+								class:pointer-events-none={isPushing || !enabled}
 								disabled={!enabled || isPushing || !optEnabled}
-								aria-disabled={!optEnabled}
+								aria-disabled={!optEnabled || !enabled}
 								onclick={() => handleChange(option.value)}
 							>
 								{option.label}

@@ -6,16 +6,24 @@ export interface PreferencesData {
 	debugMode: boolean;
 	showDeviceOnlineHelp: boolean;
 	showDashboardNudge: boolean;
+	autoRefresh: boolean;
 	defaultLandingPage: 'overview' | 'steering' | 'device' | 'last_visited';
 	notifyDeviceOffline: boolean;
 	notifySyncFailure: boolean;
 	notifySettingsDrift: boolean;
 }
 
+/** Detect browser/OS data saver mode */
+function detectSaveData(): boolean {
+	if (typeof navigator === 'undefined') return false;
+	return !!(navigator as any).connection?.saveData;
+}
+
 const DEFAULTS: PreferencesData = {
 	debugMode: false,
 	showDeviceOnlineHelp: true,
 	showDashboardNudge: true,
+	autoRefresh: !detectSaveData(),
 	defaultLandingPage: 'overview',
 	notifyDeviceOffline: true,
 	notifySyncFailure: true,
@@ -26,6 +34,7 @@ class PreferencesStore {
 	debugMode = $state(DEFAULTS.debugMode);
 	showDeviceOnlineHelp = $state(DEFAULTS.showDeviceOnlineHelp);
 	showDashboardNudge = $state(DEFAULTS.showDashboardNudge);
+	autoRefresh = $state(DEFAULTS.autoRefresh);
 	defaultLandingPage = $state<PreferencesData['defaultLandingPage']>(DEFAULTS.defaultLandingPage);
 	notifyDeviceOffline = $state(DEFAULTS.notifyDeviceOffline);
 	notifySyncFailure = $state(DEFAULTS.notifySyncFailure);
@@ -55,6 +64,7 @@ class PreferencesStore {
 					this.showDeviceOnlineHelp = parsed.showDeviceOnlineHelp;
 				if (parsed.showDashboardNudge !== undefined)
 					this.showDashboardNudge = parsed.showDashboardNudge;
+				if (parsed.autoRefresh !== undefined) this.autoRefresh = parsed.autoRefresh;
 				if (parsed.defaultLandingPage !== undefined)
 					this.defaultLandingPage = parsed.defaultLandingPage;
 				if (parsed.notifyDeviceOffline !== undefined)
@@ -99,6 +109,7 @@ class PreferencesStore {
 			debugMode: this.debugMode,
 			showDeviceOnlineHelp: this.showDeviceOnlineHelp,
 			showDashboardNudge: this.showDashboardNudge,
+			autoRefresh: this.autoRefresh,
 			defaultLandingPage: this.defaultLandingPage,
 			notifyDeviceOffline: this.notifyDeviceOffline,
 			notifySyncFailure: this.notifySyncFailure,

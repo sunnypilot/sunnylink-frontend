@@ -8,9 +8,10 @@
 import { fetchSettingsAsync } from '$lib/api/device';
 import { logtoClient } from '$lib/logto/auth.svelte';
 import { decodeParamValue } from '$lib/utils/device';
+import { preferences } from '$lib/stores/preferences.svelte';
 
-const ACTIVE_INTERVAL_MS = 5_000;
-const BACKGROUND_INTERVAL_MS = 30_000;
+const ACTIVE_INTERVAL_MS = 15_000; // 15s when tab visible (was 5s)
+const BACKGROUND_INTERVAL_MS = 60_000; // 60s when tab hidden (was 30s)
 
 export interface VersionPollerOptions {
 	deviceId: string;
@@ -60,6 +61,8 @@ class VersionPoller {
 	}
 
 	private scheduleNext(): void {
+		// Don't poll when auto-refresh is off
+		if (!preferences.autoRefresh) return;
 		const interval = this.isActive ? ACTIVE_INTERVAL_MS : BACKGROUND_INTERVAL_MS;
 		this.intervalId = setInterval(() => this.poll(), interval);
 	}

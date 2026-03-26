@@ -1,23 +1,62 @@
 import { checkDeviceStatus } from '$lib/api/device';
 import { deviceState } from '$lib/stores/device.svelte';
 import { logtoClient } from '$lib/logto/auth.svelte';
+import { preferences } from '$lib/stores/preferences.svelte';
 
-const POLL_INTERVAL_MS = 60_000; // 60s for device status
+const POLL_INTERVAL_MS = 60_000; // 60s base interval
+const IDLE_SLOW_MS = 120_000; // 2min after 5min idle
+const IDLE_STOP_MS = 300_000; // 5min after 15min idle
 const BACKOFF_MAX_MS = 300_000; // 5min max backoff
 const STALE_WARN_MS = 240_000; // 4min → amber
 const STALE_CRITICAL_MS = 600_000; // 10min → dimmed
+
+// Idle detection: reduce polling when user isn't interacting
+const IDLE_SLOW_THRESHOLD_MS = 300_000; // 5min → slow down
+const IDLE_STOP_THRESHOLD_MS = 900_000; // 15min → stop polling
 
 let lastCheckedAt = $state<number>(0);
 let isRefreshing = $state(false);
 let consecutiveFailures = $state(0);
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let tickId: ReturnType<typeof setInterval> | null = null;
-let tickCounter = $state(0); // triggers reactivity for relative time
+let tickCounter = $state(0);
+let lastActivityAt = Date.now();
+let activityListenersAdded = false;
 
-function getBackoffInterval(): number {
-	if (consecutiveFailures === 0) return POLL_INTERVAL_MS;
-	const backoff = POLL_INTERVAL_MS * Math.pow(2, consecutiveFailures);
-	return Math.min(backoff, BACKOFF_MAX_MS);
+function resetActivity() {
+	lastActivityAt = Date.now();
+}
+
+function addActivityListeners() {
+	if (activityListenersAdded || typeof document === 'undefined') return;
+	const events = ['mousedown', 'keydown', 'touchstart', 'scroll'] as const;
+	for (const e of events) document.addEventListener(e, resetActivity, { passive: true });
+	activityListenersAdded = true;
+}
+
+function removeActivityListeners() {
+	if (!activityListenersAdded || typeof document === 'undefined') return;
+	const events = ['mousedown', 'keydown', 'touchstart', 'scroll'] as const;
+	for (const e of events) document.removeEventListener(e, resetActivity);
+	activityListenersAdded = false;
+}
+
+function getEffectiveInterval(): number {
+	if (!preferences.autoRefresh) return 0; // 0 = don't poll
+
+	const idleMs = Date.now() - lastActivityAt;
+
+	// Adaptive: slow down when user is idle
+	if (idleMs > IDLE_STOP_THRESHOLD_MS) return IDLE_STOP_MS;
+	if (idleMs > IDLE_SLOW_THRESHOLD_MS) return IDLE_SLOW_MS;
+
+	// Backoff on failures
+	if (consecutiveFailures > 0) {
+		const backoff = POLL_INTERVAL_MS * Math.pow(2, consecutiveFailures);
+		return Math.min(backoff, BACKOFF_MAX_MS);
+	}
+
+	return POLL_INTERVAL_MS;
 }
 
 async function pollAllDevices(force: boolean = false, silent: boolean = false) {
@@ -27,7 +66,6 @@ async function pollAllDevices(force: boolean = false, silent: boolean = false) {
 	const token = await logtoClient.getIdToken();
 	if (!token) return;
 
-	// Get all known device IDs from the store
 	const deviceIds = Object.keys(deviceState.onlineStatuses);
 	if (deviceIds.length === 0) return;
 
@@ -46,14 +84,15 @@ async function pollAllDevices(force: boolean = false, silent: boolean = false) {
 		isRefreshing = false;
 	}
 
-	// Reschedule with backoff if needed
 	reschedule();
 }
 
 function reschedule() {
 	stopInterval();
-	const interval = getBackoffInterval();
-	intervalId = setInterval(() => pollAllDevices(true, true), interval);
+	const interval = getEffectiveInterval();
+	if (interval > 0) {
+		intervalId = setInterval(() => pollAllDevices(true, true), interval);
+	}
 }
 
 function stopInterval() {
@@ -65,7 +104,6 @@ function stopInterval() {
 
 function startTick() {
 	stopTick();
-	// Update tick counter every 10s to trigger reactive timestamp updates
 	tickId = setInterval(() => {
 		tickCounter++;
 	}, 10_000);
@@ -83,10 +121,12 @@ function handleVisibilityChange() {
 		stopInterval();
 		stopTick();
 	} else {
-		// Immediate refresh on tab return if stale
-		const staleMs = Date.now() - lastCheckedAt;
-		if (staleMs > POLL_INTERVAL_MS) {
-			pollAllDevices(true, true);
+		resetActivity(); // Tab return = user activity
+		if (preferences.autoRefresh) {
+			const staleMs = Date.now() - lastCheckedAt;
+			if (staleMs > POLL_INTERVAL_MS) {
+				pollAllDevices(true, true);
+			}
 		}
 		startTick();
 		reschedule();
@@ -112,42 +152,36 @@ export const statusPolling = {
 		return 'fresh';
 	},
 
-	/** Start polling. Call once when app initializes with devices. */
 	start() {
 		if (typeof document === 'undefined') return;
 		document.addEventListener('visibilitychange', handleVisibilityChange);
+		addActivityListeners();
 		startTick();
 		reschedule();
 	},
 
-	/** Stop all polling. Call on cleanup. */
 	stop() {
 		if (typeof document === 'undefined') return;
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
+		removeActivityListeners();
 		stopInterval();
 		stopTick();
 	},
 
-	/** Manual refresh — force-checks all devices immediately. */
 	async refreshNow() {
 		await pollAllDevices(true);
 	},
 
-	/** Mark that an initial check has been done (from layout load). */
 	markChecked() {
 		lastCheckedAt = Date.now();
 	},
 
-	/**
-	 * Signal that a device was confirmed reachable by a settings fetch.
-	 * Updates online status + resets poll timer to avoid immediate overwrite.
-	 */
 	confirmReachable(deviceId: string) {
 		if (deviceState.onlineStatuses[deviceId] !== 'online') {
 			deviceState.onlineStatuses[deviceId] = 'online';
 		}
 		lastCheckedAt = Date.now();
 		consecutiveFailures = 0;
-		reschedule(); // Reset the 60s timer so it doesn't poll immediately after
+		reschedule();
 	}
 };
