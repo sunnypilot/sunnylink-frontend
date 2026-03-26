@@ -5,6 +5,7 @@ import {
 	isVisible,
 	isEnabled,
 	requiresOffroad,
+	getDisabledReasons,
 	type RuleContext
 } from './evaluator';
 import type { Rule } from '$lib/types/schema';
@@ -505,5 +506,16 @@ describe('real-world rule combinations', () => {
 				ctx({ paramValues: { ToyotaEnforceStockLongitudinal: false }, isOffroad: false })
 			)
 		).toBe(false);
+	});
+
+	it('no car fingerprinted: capability rules fail with vehicle-start message', () => {
+		const rules: Rule[] = [{ type: 'capability', field: 'has_longitudinal_control', equals: true }];
+		const noCar = ctx();
+		noCar.capabilities!.brand = '';
+		noCar.capabilities!.has_longitudinal_control = false;
+
+		expect(isEnabled(rules, noCar)).toBe(false);
+		const reasons = getDisabledReasons(rules, noCar);
+		expect(reasons).toEqual(['Start the vehicle to check vehicle compatibility']);
 	});
 });

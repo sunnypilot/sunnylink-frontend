@@ -195,6 +195,11 @@ function _describeFailedRule(
 			return null;
 
 		case 'capability': {
+			// When no car is fingerprinted (brand empty), show a vehicle-start prompt
+			// instead of specific capability names — matches device-side behavior.
+			const noCarFingerprinted = ctx.capabilities && !ctx.capabilities.brand;
+			if (noCarFingerprinted) return 'Start the vehicle to check vehicle compatibility';
+
 			const label = capLabels?.[rule.field] ?? CAPABILITY_LABELS_FALLBACK[rule.field] ?? rule.field;
 			if (rule.equals === true) return `Requires ${label}`;
 			if (rule.equals === false) return `Not available with ${label}`;

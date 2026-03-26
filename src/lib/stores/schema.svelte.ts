@@ -50,10 +50,10 @@ class SchemaStore {
 		const result: Record<string, Capabilities | null> = {};
 		for (const [deviceId, schema] of Object.entries(this.schemas)) {
 			if (schema.capabilities) {
-				// When no car is fingerprinted (brand empty), car-derived capabilities
-				// are all defaults (false). Return null to trigger permissive evaluation
-				// so settings aren't incorrectly gated before a car is connected.
-				result[deviceId] = schema.capabilities.brand ? schema.capabilities : null;
+				// Return actual capabilities even when brand is empty (no car fingerprinted).
+				// Car-derived fields default to false, which correctly disables settings
+				// that require longitudinal control, BSM, etc. — matching device-side behavior.
+				result[deviceId] = schema.capabilities;
 			}
 		}
 		return result;
