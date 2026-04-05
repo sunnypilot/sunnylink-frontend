@@ -42,7 +42,7 @@
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
 	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
-	import { toastState } from '$lib/stores/toast.svelte';
+	import { toast } from 'svelte-sonner';
 
 	const DEFAULT_MODEL: ModelBundle = {
 		short_name: 'default',
@@ -504,7 +504,7 @@
 					const message: string =
 						(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
 						'Failed to fetch models. Please try again.';
-					toastState.show(message, 'error');
+					toast.error(message);
 				}
 				return;
 			}
@@ -689,7 +689,7 @@
 		} catch (e: unknown) {
 			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);
-			toastState.show(message, 'error');
+			toast.error(message);
 		} finally {
 			sendingModel = false;
 		}
@@ -741,10 +741,10 @@
 					Authorization: `Bearer ${await logtoClient.getIdToken()}`
 				}
 			});
-			toastState.show('Models cache cleared successfully!', 'success');
+			toast.success('Models cache cleared successfully!');
 		} catch (e) {
 			console.error('Error clearing models cache:', e);
-			toastState.show('Failed to clear models cache.', 'error');
+			toast.error('Failed to clear models cache.');
 		} finally {
 			clearingCache = false;
 			clearCacheModalOpen = false;
@@ -1359,7 +1359,7 @@
 	bind:open={pushModalOpen}
 	onPushSuccess={() => {
 		fetchModelsForDevice(true);
-		toastState.show('Settings pushed successfully!', 'success');
+		toast.success('Settings pushed successfully!');
 	}}
 />
 

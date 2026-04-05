@@ -4,10 +4,10 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
-	import { toastState } from '$lib/stores/toast.svelte';
 	import { browser } from '$app/environment';
 	import { Sun, Moon, Monitor } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
+	import { toast } from 'svelte-sonner';
 
 	const isDev =
 		import.meta.env.DEV || (browser && localStorage.getItem('debug_override') === 'true');
@@ -29,9 +29,9 @@
 		const deviceId = deviceState.selectedDeviceId;
 		if (deviceId) {
 			schemaState.clearCache(deviceId);
-			toastState.show('Schema cache cleared. Will re-fetch on next page load.', 'success');
+			toast.success('Schema cache cleared. Will re-fetch on next page load.');
 		} else {
-			toastState.show('No device selected.', 'error');
+			toast.error('No device selected.');
 		}
 	}
 
@@ -39,9 +39,9 @@
 		const deviceId = deviceState.selectedDeviceId;
 		if (deviceId) {
 			pendingChanges.clearAll(deviceId);
-			toastState.show('Pending changes cleared.', 'success');
+			toast.success('Pending changes cleared.');
 		} else {
-			toastState.show('No device selected.', 'error');
+			toast.error('No device selected.');
 		}
 	}
 
@@ -61,7 +61,7 @@
 			for (const key of keysToRemove) {
 				localStorage.removeItem(key);
 			}
-			toastState.show(`Cleared ${keysToRemove.length} cached entries.`, 'success');
+			toast.success(`Cleared ${keysToRemove.length} cached entries.`);
 		}
 	}
 </script>

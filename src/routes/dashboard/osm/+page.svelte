@@ -7,7 +7,6 @@
 	import { logtoClient, authState } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import type { OSMRegion } from '$lib/types/osm';
-	import { toastState } from '$lib/stores/toast.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
@@ -15,6 +14,7 @@
 	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
+	import { toast } from 'svelte-sonner';
 
 	const OSM_CACHE_PREFIX = 'sunnylink_osm_';
 	const OSM_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -378,10 +378,10 @@
 			}
 
 			await setDeviceParams(deviceState.selectedDeviceId, paramsToSet, token);
-			toastState.show('Download started on device', 'success');
+			toast.success('Download started on device');
 		} catch (e) {
 			console.error('Failed to start download', e);
-			toastState.show('Failed to start download', 'error');
+			toast.error('Failed to start download');
 			localDownloadingOverride = false;
 		}
 	}
@@ -391,7 +391,7 @@
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 
-		toastState.show('Checking for updates...', 'info');
+		toast.info('Checking for updates...');
 		localDownloadingOverride = true;
 
 		try {
@@ -400,9 +400,9 @@
 				[{ key: 'OsmDbUpdatesCheck', value: '1' }],
 				token
 			);
-			toastState.show('Update initiated on device', 'success');
+			toast.success('Update initiated on device');
 		} catch (e) {
-			toastState.show('Failed to check for updates', 'error');
+			toast.error('Failed to check for updates');
 			localDownloadingOverride = false;
 		}
 	}

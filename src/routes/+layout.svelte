@@ -32,12 +32,12 @@
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import PairingModal from '$lib/components/PairingModal.svelte';
-	import Toast from '$lib/components/Toast.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import ForceOffroadBanner from '$lib/components/ForceOffroadBanner.svelte';
 	import PendingChangesPill from '$lib/components/PendingChangesPill.svelte';
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
+	import { Toaster } from 'svelte-sonner';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
@@ -575,7 +575,7 @@
 	bind:deviceType={deviceState.pairingState.deviceType}
 />
 
-<Toast />
+<Toaster />
 <PendingChangesPill />
 {#if isIOS && !isLandingPage}
 	<PWAPrompt
