@@ -524,7 +524,7 @@
 				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
 					{#if authState.isAuthenticated}
 						<div class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-							<AccountMenu />
+							<AccountMenu onNavigate={closeDrawerOnMobile} />
 						</div>
 					{:else}
 						<button

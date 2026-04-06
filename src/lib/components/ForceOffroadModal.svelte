@@ -6,7 +6,7 @@
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { portal } from '$lib/utils/portal';
-	import { onMount, onDestroy } from 'svelte';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
 
 	let { open = $bindable(false), onSuccess } = $props<{
 		open: boolean;
@@ -17,42 +17,17 @@
 	let pushing = $state(false);
 	let error = $state<string | null>(null);
 	let confirmed = $state(false);
-	let countdown = $state(5);
-	let timer: ReturnType<typeof setInterval>;
 
 	$effect(() => {
 		if (open) {
 			// Reset state when opening
 			confirmed = false;
-			countdown = 5;
 			error = null;
-			startTimer();
-		} else {
-			stopTimer();
 		}
 	});
 
-	function startTimer() {
-		stopTimer();
-		timer = setInterval(() => {
-			if (countdown > 0) {
-				countdown--;
-			} else {
-				stopTimer();
-			}
-		}, 1000);
-	}
-
-	function stopTimer() {
-		if (timer) clearInterval(timer);
-	}
-
-	onDestroy(() => {
-		stopTimer();
-	});
-
 	async function handleForceOffroad() {
-		if (!deviceId || !confirmed || countdown > 0) return;
+		if (!deviceId || !confirmed) return;
 
 		pushing = true;
 		error = null;
@@ -89,6 +64,17 @@
 			}
 
 			// Success
+			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+			deviceState.deviceValues[deviceId]['OffroadMode'] = true;
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
+				forceOffroad: true
+			};
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: true });
+			}
+			driftStore.resolveKeys(deviceId, ['OffroadMode']);
 			onSuccess();
 			open = false;
 		} catch (e: any) {
@@ -158,7 +144,7 @@
 							bind:checked={confirmed}
 							class="checkbox h-6 w-6 checkbox-error"
 						/>
-						<span class="label-text text-[var(--sl-text-1)]"
+						<span class="label-text pr-1 text-sm leading-relaxed whitespace-normal break-words text-[var(--sl-text-1)]"
 							>I understand the risks and want to proceed</span
 						>
 					</label>
@@ -178,13 +164,11 @@
 				<button
 					class="btn min-w-[140px] btn-error"
 					onclick={handleForceOffroad}
-					disabled={!confirmed || countdown > 0 || pushing}
+					disabled={!confirmed || pushing}
 				>
 					{#if pushing}
 						<Loader2 size={18} class="mr-2 animate-spin" />
 						Forcing...
-					{:else if countdown > 0}
-						Wait {countdown}s
 					{:else}
 						Force Offroad
 					{/if}

@@ -5,10 +5,22 @@
 	import { encodeParamValue } from '$lib/utils/device';
 	import { AlertTriangle, Loader2 } from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let offroadStatus = $derived(deviceId ? deviceState.offroadStatuses[deviceId] : undefined);
-	let isForceOffroad = $derived(offroadStatus?.forceOffroad ?? false);
+	let offroadModeParam = $derived(
+		deviceId ? deviceState.deviceValues[deviceId]?.['OffroadMode'] : undefined
+	);
+	let isForceOffroad = $derived.by(() => {
+		const fromStatus = offroadStatus?.forceOffroad ?? false;
+		const fromParam =
+			offroadModeParam === true ||
+			offroadModeParam === 1 ||
+			offroadModeParam === '1' ||
+			offroadModeParam === 'true';
+		return fromStatus || fromParam;
+	});
 
 	let stopping = $state(false);
 
@@ -38,8 +50,20 @@
 				headers: { Authorization: `Bearer ${token}` }
 			});
 
+			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+			deviceState.deviceValues[deviceId]['OffroadMode'] = false;
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
+				forceOffroad: false
+			};
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: false });
+			}
+			driftStore.resolveKeys(deviceId, ['OffroadMode']);
+
 			// Refresh status
-			await checkDeviceStatus(deviceId, token);
+			await checkDeviceStatus(deviceId, token, true);
 		} catch (e) {
 			console.error('Failed to stop forcing offroad', e);
 		} finally {

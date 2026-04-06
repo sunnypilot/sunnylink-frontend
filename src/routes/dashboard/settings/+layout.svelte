@@ -146,6 +146,11 @@
 				for (const change of encoded) {
 					pendingChanges.markConfirmed(did, change.key);
 					if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
+					const baseline = driftStore.getBaseline(did);
+					if (Object.keys(baseline).length > 0) {
+						driftStore.updateBaseline(did, { ...baseline, [change.key]: change.desiredValue });
+					}
+					driftStore.resolveKeys(did, [change.key]);
 				}
 			} catch (e) {
 				const eName = (e as { name?: string })?.name;
@@ -159,6 +164,11 @@
 					// processed the write. Treat optimistically.
 					for (const change of encoded) {
 						pendingChanges.markConfirmed(did, change.key);
+						const baseline = driftStore.getBaseline(did);
+						if (Object.keys(baseline).length > 0) {
+							driftStore.updateBaseline(did, { ...baseline, [change.key]: change.desiredValue });
+						}
+						driftStore.resolveKeys(did, [change.key]);
 					}
 				}
 			}

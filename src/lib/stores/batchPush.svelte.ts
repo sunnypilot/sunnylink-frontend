@@ -6,6 +6,7 @@ import { deviceState } from '$lib/stores/device.svelte';
 import { logtoClient } from '$lib/logto/auth.svelte';
 import { updateCachedValue } from '$lib/stores/valuesCache';
 import { pushStateStore } from '$lib/stores/pushState.svelte';
+import { driftStore } from '$lib/stores/driftStore.svelte';
 import { toast } from 'svelte-sonner';
 
 const DEBOUNCE_MS = 4_000;
@@ -211,6 +212,11 @@ class BatchPushStore {
 			this.setKeyState(deviceId, k, 'confirmed');
 			pushStateStore.endPush(deviceId, k);
 			if (gitCommit) updateCachedValue(deviceId, gitCommit, k, entries[k]!.desiredValue);
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, [k]: entries[k]!.desiredValue });
+			}
+			driftStore.resolveKeys(deviceId, [k]);
 		}
 		this.removeKeys(deviceId, keys);
 		setTimeout(() => {
