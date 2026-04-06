@@ -10,6 +10,61 @@ import type { components } from '../../sunnylink/v1/schema';
 type DeviceParam = components['schemas']['DeviceParam'];
 type ParamType = components['schemas']['ParamType'];
 
+function hydrateDeviceSettingsFromSchema(deviceId: string, schema: SettingsSchema): void {
+	const keys = new Set<string>();
+	const items: ExtendedDeviceParamKey[] = [];
+
+	function addItem(item: {
+		key: string;
+		title?: string;
+		description?: string;
+		sub_items?: { key: string; title?: string; description?: string }[];
+	}) {
+		if (!item.key || keys.has(item.key)) return;
+		keys.add(item.key);
+		items.push({
+			key: item.key,
+			_extra: {
+				title: item.title,
+				description: item.description
+			}
+		} as ExtendedDeviceParamKey);
+		for (const sub of item.sub_items ?? []) {
+			if (!sub.key || keys.has(sub.key)) continue;
+			keys.add(sub.key);
+			items.push({
+				key: sub.key,
+				_extra: {
+					title: sub.title,
+					description: sub.description
+				}
+			} as ExtendedDeviceParamKey);
+		}
+	}
+
+	for (const panel of schema.panels ?? []) {
+		for (const item of panel.items ?? []) addItem(item as any);
+		for (const sp of panel.sub_panels ?? []) {
+			for (const item of sp.items ?? []) addItem(item as any);
+		}
+		for (const section of panel.sections ?? []) {
+			for (const item of section.items ?? []) addItem(item as any);
+			for (const sp of section.sub_panels ?? []) {
+				for (const item of sp.items ?? []) addItem(item as any);
+			}
+		}
+	}
+
+	const brand = schema.capabilities?.brand;
+	const vehicleItems =
+		brand && schema.vehicle_settings?.[brand] ? schema.vehicle_settings[brand].items : undefined;
+	for (const item of vehicleItems ?? []) addItem(item as any);
+
+	if (items.length > 0) {
+		deviceState.deviceSettings[deviceId] = items;
+	}
+}
+
 /** Maps raw JS error messages to user-friendly text */
 function friendlyErrorMessage(raw: string | undefined): string {
 	if (!raw) return 'Connection failed';
@@ -397,6 +452,7 @@ export async function checkDeviceStatus(
 		// Store schema from compressed metadata (primary path for new devices)
 		// Only update if schema structure actually changed to avoid re-triggering derived state.
 		if (compressedSettings !== null) {
+			hydrateDeviceSettingsFromSchema(deviceId, compressedSettings);
 			const existing = schemaState.schemas[deviceId];
 			const schemaChanged =
 				!existing ||
