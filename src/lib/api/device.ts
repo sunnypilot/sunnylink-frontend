@@ -298,13 +298,17 @@ export async function fetchDeviceMessage(
  * Returns the decoded boolean or null on failure.
  */
 async function fetchForceOffroadStatus(deviceId: string, token: string): Promise<boolean | null> {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort('OffroadMode timeout'), 15_000);
+
 	try {
 		const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
 			params: {
 				path: { deviceId },
 				query: { paramKeys: ['OffroadMode'] }
 			},
-			headers: { Authorization: `Bearer ${token}` }
+			headers: { Authorization: `Bearer ${token}` },
+			signal: controller.signal
 		});
 
 		if (res.data?.items) {
@@ -316,8 +320,11 @@ async function fetchForceOffroadStatus(deviceId: string, token: string): Promise
 		}
 		return false;
 	} catch (e) {
+		if ((e as { name?: string })?.name === 'AbortError') return null;
 		console.error(`Failed to fetch OffroadMode for ${deviceId}:`, e);
 		return null;
+	} finally {
+		clearTimeout(timeoutId);
 	}
 }
 
@@ -503,6 +510,7 @@ export async function checkDeviceStatus(
 		deviceState.lastErrorMessages[deviceId] = friendlyErrorMessage(
 			(e as { message?: string })?.message
 		);
+		deviceState.markStatusChecked(deviceId);
 	}
 }
 

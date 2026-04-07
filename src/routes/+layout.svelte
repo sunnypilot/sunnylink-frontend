@@ -38,6 +38,7 @@
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	import { Toaster } from 'svelte-sonner';
+	import { themeState } from '$lib/stores/theme.svelte';
 	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
 	import PWAPrompt from 'svelte-ios-pwa-prompt';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
@@ -575,7 +576,7 @@
 	bind:deviceType={deviceState.pairingState.deviceType}
 />
 
-<Toaster />
+<Toaster theme={themeState.effective} richColors />
 <PendingChangesPill />
 {#if isIOS && !isLandingPage}
 	<PWAPrompt
