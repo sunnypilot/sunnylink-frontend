@@ -60,7 +60,7 @@ function hydrateDeviceSettingsFromSchema(deviceId: string, schema: SettingsSchem
 		brand && schema.vehicle_settings?.[brand] ? schema.vehicle_settings[brand].items : undefined;
 	for (const item of vehicleItems ?? []) addItem(item as any);
 
-	if (items.length > 0) {
+	if (items.length > 0 && !deviceState.deviceSettings[deviceId]?.length) {
 		deviceState.deviceSettings[deviceId] = items;
 	}
 }
