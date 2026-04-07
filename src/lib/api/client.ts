@@ -16,25 +16,35 @@ const API_TIMEOUT_MS = 30_000; // 30s max for any single API call
 export const customFetch: typeof fetch = async (input, init) => {
 	// Skip the global timeout if the caller already provides an AbortSignal
 	// (e.g., setDeviceParams with its own 20s timeout). Avoids double-abort conflicts.
+	// Helper: retry a 401/403 with a fresh token (always with a timeout)
+	async function retryWithFreshToken(input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
+		if (!browser || !logtoClient) return null;
+		try {
+			const refreshed = await authState.refreshSession();
+			if (!refreshed) return null;
+			const newToken = await getIdToken();
+			if (!newToken) return null;
+			const newHeaders = new Headers(init?.headers);
+			newHeaders.set('Authorization', `Bearer ${newToken}`);
+			const retryController = new AbortController();
+			const retryTimeout = setTimeout(() => retryController.abort('API retry timeout'), API_TIMEOUT_MS);
+			try {
+				return await fetch(input, { ...init, signal: retryController.signal, headers: newHeaders });
+			} finally {
+				clearTimeout(retryTimeout);
+			}
+		} catch (e) {
+			console.error('Session refresh failed during 401/403 interception:', e);
+			return null;
+		}
+	}
+
 	if (init?.signal) {
 		const response = await fetch(input, init);
 
 		if (response.status === 401 || response.status === 403) {
-			if (browser && logtoClient) {
-				try {
-					const refreshed = await authState.refreshSession();
-					if (refreshed) {
-						const newToken = await getIdToken();
-						if (newToken) {
-							const newHeaders = new Headers(init?.headers);
-							newHeaders.set('Authorization', `Bearer ${newToken}`);
-							return fetch(input, { ...init, headers: newHeaders });
-						}
-					}
-				} catch (e) {
-					console.error('Session refresh failed during 401/403 interception:', e);
-				}
-			}
+			const retried = await retryWithFreshToken(input, init);
+			if (retried) return retried;
 		}
 
 		return response;
@@ -52,22 +62,8 @@ export const customFetch: typeof fetch = async (input, init) => {
 		});
 
 		if (response.status === 401 || response.status === 403) {
-			if (browser && logtoClient) {
-				try {
-					// Refresh session (server round-trip) then get fresh token
-					const refreshed = await authState.refreshSession();
-					if (refreshed) {
-						const newToken = await getIdToken();
-						if (newToken) {
-							const newHeaders = new Headers(init?.headers);
-							newHeaders.set('Authorization', `Bearer ${newToken}`);
-							return fetch(input, { ...init, headers: newHeaders });
-						}
-					}
-				} catch (e) {
-					console.error('Session refresh failed during 401/403 interception:', e);
-				}
-			}
+			const retried = await retryWithFreshToken(input, init);
+			if (retried) return retried;
 		}
 
 		return response;
