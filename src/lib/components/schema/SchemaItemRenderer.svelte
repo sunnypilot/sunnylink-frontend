@@ -13,15 +13,14 @@
 	} from '$lib/rules/evaluator';
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
-	import { toastState } from '$lib/stores/toast.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
-	import { logtoClient } from '$lib/logto/auth.svelte';
 	import type { SchemaItem, SchemaOption } from '$lib/types/schema';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import { Loader2 } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		deviceId: string;
@@ -225,9 +224,9 @@
 			const stillPending = !!pendingChanges.getForKey(deviceId, item.key);
 
 			if (!stillPending && hadPending) {
-				toastState.show('Reverted to original. Pending changes removed.', 'info');
+				toast.info('Reverted to original. Pending changes removed.');
 			} else if (stillPending) {
-				toastState.show('Changes pending. Will sync when device reconnects.', 'info');
+				toast.info('Changes pending. Will sync when device reconnects.');
 			}
 			return;
 		}

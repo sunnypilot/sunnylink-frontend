@@ -4,7 +4,6 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
-	import { toastState } from '$lib/stores/toast.svelte';
 	import {
 		SETTINGS_DEFINITIONS,
 		type SettingCategory,
@@ -31,6 +30,7 @@
 	import SettingCard from '$lib/components/SettingCard.svelte';
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
 
@@ -472,7 +472,7 @@
 		} else {
 			fetchCurrentValues();
 		}
-		toastState.show('Settings pushed successfully!', 'success');
+		toast.success('Settings pushed successfully!');
 	}
 
 	function handleManualRefresh() {

@@ -21,11 +21,11 @@
 	import type { PendingChange } from '$lib/stores/pendingChanges.svelte';
 	import { collectOffroadOnlyKeys } from '$lib/rules/evaluator';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
-	import { toastState } from '$lib/stores/toast.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { versionPoller } from '$lib/stores/versionPoller.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { children, data } = $props();
 
@@ -46,7 +46,7 @@
 	$effect(() => {
 		if (isOnline && wasOffline) {
 			wasOffline = false;
-			toastState.show('Device reconnected', 'success');
+			toast.success('Device reconnected');
 			// Auto-flush any queued changes now that device is back online
 			if (deviceId) flushPendingChanges(deviceId);
 		}
@@ -107,9 +107,8 @@
 		}
 
 		if (blockedCount > 0) {
-			toastState.show(
-				`${blockedCount} change${blockedCount === 1 ? '' : 's'} blocked — vehicle is driving. Will sync when parked.`,
-				'warning'
+			toast.warning(
+				`${blockedCount} change${blockedCount === 1 ? '' : 's'} blocked — vehicle is driving. Will sync when parked.`
 			);
 		}
 
@@ -147,6 +146,11 @@
 				for (const change of encoded) {
 					pendingChanges.markConfirmed(did, change.key);
 					if (gitCommit) updateCachedValue(did, gitCommit, change.key, change.desiredValue);
+					const baseline = driftStore.getBaseline(did);
+					if (Object.keys(baseline).length > 0) {
+						driftStore.updateBaseline(did, { ...baseline, [change.key]: change.desiredValue });
+					}
+					driftStore.resolveKeys(did, [change.key]);
 				}
 			} catch (e) {
 				const eName = (e as { name?: string })?.name;
@@ -160,6 +164,11 @@
 					// processed the write. Treat optimistically.
 					for (const change of encoded) {
 						pendingChanges.markConfirmed(did, change.key);
+						const baseline = driftStore.getBaseline(did);
+						if (Object.keys(baseline).length > 0) {
+							driftStore.updateBaseline(did, { ...baseline, [change.key]: change.desiredValue });
+						}
+						driftStore.resolveKeys(did, [change.key]);
 					}
 				}
 			}
@@ -170,10 +179,7 @@
 		// Failed changes get a toast
 		const failedCount = pendingChanges.failedCount(did);
 		if (failedCount > 0) {
-			toastState.show(
-				`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`,
-				'error'
-			);
+			toast.error(`${failedCount} change${failedCount === 1 ? '' : 's'} failed to sync`);
 		}
 	}
 

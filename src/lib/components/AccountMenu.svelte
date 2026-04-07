@@ -4,6 +4,12 @@
 	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
 	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
 
+	interface Props {
+		onNavigate?: () => void;
+	}
+
+	let { onNavigate }: Props = $props();
+
 	let open = $state(false);
 
 	const themeOptions: { value: ThemePreference; icon: typeof Sun; label: string }[] = [
@@ -133,7 +139,10 @@
 					href="/dashboard/preferences"
 					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 					role="menuitem"
-					onclick={() => (open = false)}
+					onclick={() => {
+						open = false;
+						onNavigate?.();
+					}}
 				>
 					<Settings size={15} class="shrink-0" />
 					<span>Preferences</span>

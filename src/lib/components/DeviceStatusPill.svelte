@@ -9,6 +9,7 @@
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import {
 		RefreshCw,
 		Loader2,
@@ -58,6 +59,12 @@
 		return deviceState.lastSeenOnline[deviceId];
 	});
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
+	let isForceOffroad = $derived.by(() => {
+		const fromStatus = offroadStatus?.forceOffroad;
+		const raw = deviceValues?.['OffroadMode'];
+		const fromParam = raw === true || raw === 1 || raw === '1' || raw === 'true';
+		return (fromStatus ?? false) || fromParam;
+	});
 
 	// Device name: check unsaved overrides → persisted aliases → raw ID
 	let deviceName = $derived.by(() => {
@@ -163,7 +170,7 @@
 			};
 		}
 
-		if (offroadStatus?.forceOffroad) {
+		if (isForceOffroad) {
 			return {
 				label: 'Forced Offroad',
 				dotClass: 'bg-amber-400',
@@ -243,6 +250,17 @@
 				body: payload,
 				headers: { Authorization: `Bearer ${token}` }
 			});
+			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+			deviceState.deviceValues[deviceId]['OffroadMode'] = false;
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
+				forceOffroad: false
+			};
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: false });
+			}
+			driftStore.resolveKeys(deviceId, ['OffroadMode']);
 			await checkDeviceStatus(deviceId, token, true);
 		} catch (e) {
 			console.error('Failed to stop force offroad', e);
@@ -252,7 +270,7 @@
 	}
 
 	function handleForceOffroadClick() {
-		if (offroadStatus?.forceOffroad) {
+		if (isForceOffroad) {
 			stopForceOffroad();
 		} else {
 			closePopover();
@@ -462,7 +480,7 @@
 						{#if stoppingForce}
 							<Loader2 size={13} class="shrink-0 animate-spin" />
 							<span>Stopping...</span>
-						{:else if offroadStatus?.forceOffroad}
+						{:else if isForceOffroad}
 							<AlertTriangle size={13} class="shrink-0 text-amber-600 dark:text-amber-400" />
 							<span>Stop Force Offroad</span>
 						{:else}

@@ -4,9 +4,10 @@ import { setDeviceParams, fetchSettingsAsync, DeviceRejectionError } from '$lib/
 import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 import { deviceState } from '$lib/stores/device.svelte';
 import { logtoClient } from '$lib/logto/auth.svelte';
-import { toastState } from '$lib/stores/toast.svelte';
 import { updateCachedValue } from '$lib/stores/valuesCache';
 import { pushStateStore } from '$lib/stores/pushState.svelte';
+import { driftStore } from '$lib/stores/driftStore.svelte';
+import { toast } from 'svelte-sonner';
 
 const DEBOUNCE_MS = 4_000;
 const CONFIRMED_CLEAR_MS = 3_000;
@@ -70,7 +71,7 @@ class BatchPushStore {
 
 		const encoded = encodeParamValue({ key, value: newValue, type: paramType });
 		if (encoded === null) {
-			toastState.show(`Failed to encode value for ${key}`, 'error');
+			toast.error(`Failed to encode value for ${key}`);
 			return;
 		}
 
@@ -134,12 +135,11 @@ class BatchPushStore {
 			setDeviceParams(deviceId, params, token, 30_000).catch((err) => {
 				if (err instanceof DeviceRejectionError) {
 					this.rollbackKeys(deviceId, keys, entries);
-					toastState.show(`Device rejected: ${err.message}`, 'error');
+					toast.error(`Device rejected: ${err.message}`);
 				} else if ((err as { name?: string })?.name === 'TypeError') {
 					this.rollbackKeys(deviceId, keys, entries);
-					toastState.show(
+					toast.error(
 						'No network connection. Please check your internet and try again.',
-						'error'
 					);
 				}
 				// Abort, timeout, 5xx — device likely processed the write.
@@ -212,6 +212,11 @@ class BatchPushStore {
 			this.setKeyState(deviceId, k, 'confirmed');
 			pushStateStore.endPush(deviceId, k);
 			if (gitCommit) updateCachedValue(deviceId, gitCommit, k, entries[k]!.desiredValue);
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, [k]: entries[k]!.desiredValue });
+			}
+			driftStore.resolveKeys(deviceId, [k]);
 		}
 		this.removeKeys(deviceId, keys);
 		setTimeout(() => {
@@ -244,7 +249,7 @@ class BatchPushStore {
 		message: string
 	): void {
 		this.rollbackKeys(deviceId, keys, entries);
-		toastState.show(message, 'error');
+		toast.error(message);
 	}
 
 	/** Get the current state for a specific key. */
