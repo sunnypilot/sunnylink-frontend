@@ -7,6 +7,7 @@ import { logtoClient } from '$lib/logto/auth.svelte';
 import { updateCachedValue } from '$lib/stores/valuesCache';
 import { pushStateStore } from '$lib/stores/pushState.svelte';
 import { driftStore } from '$lib/stores/driftStore.svelte';
+import { schemaState } from '$lib/stores/schema.svelte';
 import { toast } from 'svelte-sonner';
 
 const DEBOUNCE_MS = 4_000;
@@ -222,6 +223,12 @@ class BatchPushStore {
 		setTimeout(() => {
 			for (const k of keys) this.clearKeyState(deviceId, k, 'confirmed');
 		}, CONFIRMED_CLEAR_MS);
+
+		// Refresh capabilities so dependent settings update their enablement
+		// (e.g., toggling ICBM updates has_icbm capability → Custom ACC enables)
+		logtoClient?.getIdToken().then((token) => {
+			if (token) schemaState.refreshCapabilities(deviceId, token);
+		});
 	}
 
 	/** Roll back keys to previous values, mark as failed. */
