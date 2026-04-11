@@ -24,6 +24,8 @@
 		onDeregistered?: () => void;
 	}>();
 
+	const CONFIRMATION_PHRASE = 'FACTORY RESET';
+
 	let step = $state(1);
 	let confirmationInput = $state('');
 	let isProcessing = $state(false);
@@ -32,10 +34,7 @@
 
 	// Checkboxes state
 	let checkedUndone = $state(false);
-	let checkedReason = $state(false);
-
-	// Copy state
-	let copied = $state(false);
+	let checkedFactoryReset = $state(false);
 
 	function reset() {
 		step = 1;
@@ -44,8 +43,7 @@
 		error = null;
 		fatalError = false;
 		checkedUndone = false;
-		checkedReason = false;
-		copied = false;
+		checkedFactoryReset = false;
 	}
 
 	function close() {
@@ -55,8 +53,12 @@
 	}
 
 	function handleFirstConfirmation() {
-		if (confirmationInput !== deviceId || !checkedUndone || !checkedReason) return;
+		if (confirmationInput !== CONFIRMATION_PHRASE || !checkedUndone || !checkedFactoryReset) return;
 		step = 2;
+	}
+
+	function blockPaste(e: Event) {
+		e.preventDefault();
 	}
 
 	async function handleFinalDeregister() {
@@ -107,11 +109,6 @@
 		});
 	}
 
-	function copyId() {
-		navigator.clipboard.writeText(deviceId);
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
-	}
 </script>
 
 {#if open}
@@ -160,15 +157,18 @@
 						<div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
 							<p class="font-bold text-red-600 dark:text-red-400">WARNING: IRREVERSIBLE ACTION</p>
 							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-								You are about to permanently deregister this device.
-								<span class="font-bold text-[var(--sl-text-1)]"
-									>All historical data and backups associated with this device ID will be
-									permanently inaccessible.</span
-								>
+								Deregistration <span class="font-bold text-[var(--sl-text-1)]">must only be done after performing a full factory reset</span> on
+								your device. Deregistering without a factory reset will leave your device in a
+								broken state that cannot be fixed remotely.
 							</p>
 							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-								This action cannot be undone. You should only do this if you are selling or
-								returning your device.
+								All historical data and backups associated with this device ID will be
+								permanently inaccessible.
+								<span class="font-bold text-[var(--sl-text-1)]">This action cannot be undone.</span>
+							</p>
+							<p class="mt-2 text-sm font-semibold text-red-600 dark:text-red-400">
+								If you are trying to fix a problem with your device, deregistering is NOT the
+								solution. Please ask for help in the community first.
 							</p>
 						</div>
 
@@ -214,51 +214,38 @@
 								>
 									I understand this action <span class="font-bold text-[var(--sl-text-1)]"
 										>cannot be undone</span
-									>.
+									> and is <span class="font-bold text-[var(--sl-text-1)]">NOT a troubleshooting step</span>.
 								</span>
 							</label>
 							<label class="group flex cursor-pointer items-start gap-3">
 								<input
 									type="checkbox"
-									bind:checked={checkedReason}
+									bind:checked={checkedFactoryReset}
 									class="checkbox h-6 w-6 rounded-md border-[var(--sl-border)] bg-transparent checkbox-error transition-all hover:border-red-400"
 								/>
 								<span
 									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
 								>
-									I am going to gift, sell, or return this device.
+									I have already performed a <span class="font-bold text-[var(--sl-text-1)]">full factory reset</span> on this device.
 								</span>
 							</label>
 						</div>
 
 						<div class="space-y-2 pt-2">
 							<label for="confirmation" class="text-sm font-medium text-[var(--sl-text-2)]">
-								Type the Sunnylink ID to confirm:
+								Type <span class="font-mono font-bold text-red-600 dark:text-red-400">{CONFIRMATION_PHRASE}</span> to confirm:
 							</label>
-
-							<!-- Copyable ID -->
-							<button
-								class="group mb-2 flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/50 p-3 transition-all hover:border-[var(--sl-border)] hover:bg-[var(--sl-bg-surface)]"
-								onclick={copyId}
-								title="Click to copy ID"
-							>
-								<span class="font-mono font-bold tracking-wide text-[var(--sl-text-1)]"
-									>{deviceId}</span
-								>
-								<span
-									class="rounded bg-[var(--sl-bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--sl-text-2)] transition-colors group-hover:bg-[var(--sl-bg-surface)] group-hover:text-[var(--sl-text-1)]"
-								>
-									{copied ? 'Copied!' : 'Click to Copy'}
-								</span>
-							</button>
 
 							<input
 								id="confirmation"
 								type="text"
 								bind:value={confirmationInput}
+								onpaste={blockPaste}
+								ondrop={blockPaste}
 								class="input w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:border-red-500 focus:outline-none"
-								placeholder={deviceId}
+								placeholder={CONFIRMATION_PHRASE}
 								autocomplete="off"
+								spellcheck="false"
 							/>
 						</div>
 
@@ -271,7 +258,7 @@
 							</button>
 							<button
 								class="btn border-none bg-red-600 text-[var(--sl-text-1)] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={confirmationInput !== deviceId || !checkedUndone || !checkedReason}
+								disabled={confirmationInput !== CONFIRMATION_PHRASE || !checkedUndone || !checkedFactoryReset}
 								onclick={handleFirstConfirmation}
 							>
 								Next
