@@ -12,9 +12,13 @@ export function settingToSchemaItem(setting: RenderableSetting): SchemaItem {
 	const extra = setting._extra ?? setting.value?._extra;
 	const type = setting.value?.type;
 
+	// Use authoritative widget from schema metadata when available (Proposal E).
+	// Falls back to type-based inference for legacy V1 entries.
 	let widget: WidgetType = 'info';
 
-	if (type === 'Bool') {
+	if (extra?.widget && isValidWidget(extra.widget)) {
+		widget = extra.widget as WidgetType;
+	} else if (type === 'Bool') {
 		widget = 'toggle';
 	} else if (extra?.options && extra.options.length > 0) {
 		widget = extra.options.length <= 4 ? 'multiple_button' : 'option';
@@ -41,6 +45,12 @@ export function settingToSchemaItem(setting: RenderableSetting): SchemaItem {
 		step: extra?.step,
 		unit: extra?.unit
 	};
+}
+
+const VALID_WIDGETS = new Set<string>(['toggle', 'option', 'multiple_button', 'button', 'info']);
+
+function isValidWidget(widget: string): boolean {
+	return VALID_WIDGETS.has(widget);
 }
 
 /**

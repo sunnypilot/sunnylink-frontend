@@ -10,6 +10,19 @@ import type { components } from '../../sunnylink/v1/schema';
 type DeviceParam = components['schemas']['DeviceParam'];
 type ParamType = components['schemas']['ParamType'];
 
+/** Infer a ParamType from a schema widget type for legacy rendering compatibility */
+function inferTypeFromWidget(widget?: string): ParamType | undefined {
+	switch (widget) {
+		case 'toggle':
+			return 'Bool';
+		case 'option':
+		case 'multiple_button':
+			return 'Int';
+		default:
+			return undefined;
+	}
+}
+
 function hydrateDeviceSettingsFromSchema(deviceId: string, schema: SettingsSchema): void {
 	const keys = new Set<string>();
 	const items: ExtendedDeviceParamKey[] = [];
@@ -18,25 +31,57 @@ function hydrateDeviceSettingsFromSchema(deviceId: string, schema: SettingsSchem
 		key: string;
 		title?: string;
 		description?: string;
-		sub_items?: { key: string; title?: string; description?: string }[];
+		widget?: string;
+		options?: { value: number | string; label: string }[];
+		min?: number;
+		max?: number;
+		step?: number;
+		unit?: string | { metric: string; imperial: string };
+		sub_items?: {
+			key: string;
+			title?: string;
+			description?: string;
+			widget?: string;
+			options?: { value: number | string; label: string }[];
+			min?: number;
+			max?: number;
+			step?: number;
+			unit?: string | { metric: string; imperial: string };
+		}[];
 	}) {
 		if (!item.key || keys.has(item.key)) return;
 		keys.add(item.key);
+		const resolvedUnit = typeof item.unit === 'string' ? item.unit : item.unit?.metric;
 		items.push({
 			key: item.key,
+			type: inferTypeFromWidget(item.widget),
 			_extra: {
 				title: item.title,
-				description: item.description
+				description: item.description,
+				widget: item.widget,
+				options: item.options,
+				min: item.min,
+				max: item.max,
+				step: item.step,
+				unit: resolvedUnit
 			}
 		} as ExtendedDeviceParamKey);
 		for (const sub of item.sub_items ?? []) {
 			if (!sub.key || keys.has(sub.key)) continue;
 			keys.add(sub.key);
+			const subUnit = typeof sub.unit === 'string' ? sub.unit : sub.unit?.metric;
 			items.push({
 				key: sub.key,
+				type: inferTypeFromWidget(sub.widget),
 				_extra: {
 					title: sub.title,
-					description: sub.description
+					description: sub.description,
+					widget: sub.widget,
+					options: sub.options,
+					min: sub.min,
+					max: sub.max,
+					step: sub.step,
+					unit: subUnit
 				}
 			} as ExtendedDeviceParamKey);
 		}
@@ -60,8 +105,40 @@ function hydrateDeviceSettingsFromSchema(deviceId: string, schema: SettingsSchem
 		brand && schema.vehicle_settings?.[brand] ? schema.vehicle_settings[brand].items : undefined;
 	for (const item of vehicleItems ?? []) addItem(item as any);
 
-	if (items.length > 0 && !deviceState.deviceSettings[deviceId]?.length) {
+	if (items.length === 0) return;
+
+	// Merge strategy: preserve existing V1-sourced entries (which have authoritative
+	// type info from the device), and only add NEW keys from the schema. This avoids
+	// the race condition where skeleton items overwrite full V1 data, while ensuring
+	// schema-derived metadata (widget, options, title) is available for the adapter.
+	const existing = deviceState.deviceSettings[deviceId] ?? [];
+	if (existing.length === 0) {
 		deviceState.deviceSettings[deviceId] = items;
+		return;
+	}
+
+	const existingKeys = new Set(existing.map((e) => e.key));
+	const newItems = items.filter((i) => !existingKeys.has(i.key));
+
+	// Immutable backfill: merge schema _extra + type onto existing entries that lack them.
+	// Uses .map() to produce new objects — required for Svelte 5 rune reactivity.
+	const schemaMap = new Map(items.map((i) => [i.key, i]));
+	let needsBackfill = false;
+	const updated = existing.map((entry) => {
+		if (entry._extra?.widget) return entry;
+		const schemaEntry = schemaMap.get(entry.key!);
+		if (!schemaEntry?._extra) return entry;
+		needsBackfill = true;
+		return {
+			...entry,
+			type: entry.type ?? schemaEntry.type,
+			_extra: { ...schemaEntry._extra, ...entry._extra }
+		};
+	});
+
+	if (needsBackfill || newItems.length > 0) {
+		deviceState.deviceSettings[deviceId] =
+			newItems.length > 0 ? [...updated, ...newItems] : updated;
 	}
 }
 

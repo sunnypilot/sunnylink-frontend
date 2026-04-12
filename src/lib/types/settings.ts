@@ -8,6 +8,8 @@ export interface ParamExtra {
 	max?: number;
 	step?: number;
 	options?: { value: number | string; label: string }[];
+	/** Widget type from the device schema — authoritative when present */
+	widget?: string;
 }
 
 export type ExtendedDeviceParamKey = components['schemas']['DeviceParamKey'] & {
