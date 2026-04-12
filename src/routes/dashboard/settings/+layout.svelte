@@ -24,7 +24,7 @@
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { versionPoller } from '$lib/stores/versionPoller.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { children, data } = $props();
@@ -299,10 +299,26 @@
 		}
 	});
 
+	// Reactive trigger: only re-run when deviceId changes, prefetchDone is cleared,
+	// or schema availability changes. All other reads are untracked to prevent
+	// re-triggering on capability refreshes or online status flickers.
+	let prefetchTrigger = $derived(
+		deviceId && !prefetchDone[deviceId ?? ''] && schemaState.hasSchema(deviceId ?? '')
+			? deviceId
+			: null
+	);
 	$effect(() => {
-		if (!deviceId || !isOnline || !logtoClient) return;
-		if (prefetchDone[deviceId]) return;
-		const schema = schemaState.schemas[deviceId];
+		const did = prefetchTrigger;
+		if (!did) return;
+		// Mark as done immediately to prevent re-entry while the async fetch is in-flight.
+		// On failure, prefetchDone is NOT reverted — the versionPoller or manual refresh
+		// will clear it via valuesStale when the device actually has new data.
+		prefetchDone[did] = true;
+		// All subsequent reads are untracked — we only care about the trigger above
+		const online = untrack(() => isOnline);
+		const client = untrack(() => logtoClient);
+		if (!online || !client) return;
+		const schema = untrack(() => schemaState.schemas[did]);
 		if (!schema?.panels) return;
 
 		// Collect all keys from all panels
@@ -338,12 +354,12 @@
 		const uniqueKeys = [...new Set(allKeys)];
 
 		// Use the persistent drift baseline (survives layout unmount).
-		const prefetchCachedSnapshot = driftStore.getBaseline(deviceId);
+		const prefetchCachedSnapshot = driftStore.getBaseline(did);
 
 		// Background fetch — always fetch all keys for global drift detection
 		(async () => {
 			try {
-				const token = await logtoClient!.getIdToken();
+				const token = await client!.getIdToken();
 				if (!token) return;
 
 				// Chunk into batches of 10 (matching existing pattern)
@@ -356,9 +372,9 @@
 				await Promise.all(
 					chunks.map(async (chunk) => {
 						try {
-							const response = await fetchSettingsAsync(deviceId!, chunk, token);
+							const response = await fetchSettingsAsync(did, chunk, token);
 							if (response.items) {
-								const vals = (deviceState.deviceValues[deviceId!] ??= {});
+								const vals = (deviceState.deviceValues[did] ??= {});
 								for (const item of response.items) {
 									if (item.key && item.value !== undefined) {
 										const decoded = decodeParamValue({
@@ -367,13 +383,13 @@
 											type: item.type ?? 'String'
 										});
 										// Preserve user's optimistic value for keys with in-flight changes
-										const pcEntry = pendingChanges.getForKey(deviceId!, item.key);
+										const pcEntry = pendingChanges.getForKey(did, item.key);
 										const pcInFlight =
 											pcEntry &&
 											(pcEntry.status === 'pending' ||
 												pcEntry.status === 'pushing' ||
 												pcEntry.status === 'blocked_onroad');
-										if (!batchPush.hasPendingKey(deviceId!, item.key) && !pcInFlight) {
+										if (!batchPush.hasPendingKey(did, item.key) && !pcInFlight) {
 											vals[item.key] = decoded;
 										}
 										freshValues[item.key] = decoded;
@@ -385,7 +401,7 @@
 				);
 
 				// Fill defaults for keys the device didn't return
-				const vals = (deviceState.deviceValues[deviceId!] ??= {});
+				const vals = (deviceState.deviceValues[did] ??= {});
 				const allSchemaItems = [
 					...schema.panels.flatMap((p: Panel) => [
 						...(p.items ?? []),
@@ -448,7 +464,7 @@
 					}
 
 					const allDrifts = detectDrift(prefetchCachedSnapshot, schemaFreshValues);
-					const pending = pendingChanges.getAll(deviceId!);
+					const pending = pendingChanges.getAll(did);
 					const meaningful = filterMeaningfulDrift(allDrifts, pending);
 
 					for (const d of meaningful) {
@@ -461,19 +477,19 @@
 							d.itemTitle = meta.itemTitle;
 						}
 					}
-					driftStore.mergeDrifts(deviceId!, meaningful);
+					driftStore.mergeDrifts(did, meaningful);
 
 					const driftedKeys = new Set(meaningful.map((d) => d.key));
 					const resolvedKeys = Object.keys(freshValues).filter((k) => !driftedKeys.has(k));
-					if (resolvedKeys.length > 0) driftStore.resolveKeys(deviceId!, resolvedKeys);
+					if (resolvedKeys.length > 0) driftStore.resolveKeys(did, resolvedKeys);
 				}
 
-				prefetchDone[deviceId!] = true;
-				deviceState.valuesStale[deviceId!] = false;
-				deviceState.valuesVerifiedThisSession[deviceId!] = true;
+				prefetchDone[did] = true;
+				deviceState.valuesStale[did] = false;
+				deviceState.valuesVerifiedThisSession[did] = true;
 				// Settings fetch succeeded — device is reachable.
 				// Use confirmReachable to update status + reset poll timer atomically.
-				statusPolling.confirmReachable(deviceId!);
+				statusPolling.confirmReachable(did);
 			} catch {}
 		})();
 	});

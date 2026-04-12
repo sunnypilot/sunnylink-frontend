@@ -241,11 +241,19 @@
 
 	// Fetch values for schema-driven rendering (cancels on nav away)
 	// Tracks: deviceId, category, logtoClient, useSchema, schemaPanel (re-runs when schema loads)
-	// Untracked: isDeviceOfflineOrError (prevents cascade from onlineStatuses writes)
+	// Untracked: isDeviceOfflineOrError, deviceVerified (prevents cascade from store writes)
+	//
+	// Skip the per-page fetch when the layout's global prefetch has already verified
+	// all values this session. This eliminates redundant device round-trips on every
+	// category navigation (values are already in deviceState.deviceValues from the
+	// layout prefetch). Only fetch on first visit or when explicitly stale.
 	$effect(() => {
 		if (deviceId && logtoClient && useSchema && schemaPanel) {
 			const offline = untrack(() => isDeviceOfflineOrError);
 			if (offline) return;
+			const verified = untrack(() => deviceVerified);
+			const stale = untrack(() => isStale);
+			if (verified && !stale) return;
 			const controller = new AbortController();
 			fetchSchemaValues(controller.signal);
 			return () => controller.abort('effect cleanup');
@@ -257,6 +265,9 @@
 		if (deviceId && logtoClient && !useSchema && categorySettings.length > 0) {
 			const offline = untrack(() => isDeviceOfflineOrError);
 			if (offline) return;
+			const verified = untrack(() => deviceVerified);
+			const stale = untrack(() => isStale);
+			if (verified && !stale) return;
 			const controller = new AbortController();
 			fetchCurrentValues(controller.signal);
 			return () => controller.abort('effect cleanup');

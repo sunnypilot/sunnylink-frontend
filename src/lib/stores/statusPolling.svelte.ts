@@ -66,8 +66,16 @@ async function pollAllDevices(force: boolean = false, silent: boolean = false) {
 	const token = await logtoClient.getIdToken();
 	if (!token) return;
 
-	const deviceIds = Object.keys(deviceState.onlineStatuses);
-	if (deviceIds.length === 0) return;
+	const allDeviceIds = Object.keys(deviceState.onlineStatuses);
+	if (allDeviceIds.length === 0) return;
+
+	// Only poll devices that are online, loading, or recently had errors.
+	// Skip confirmed-offline devices — they'll be re-checked on manual refresh
+	// or when the user navigates to their settings.
+	const deviceIds = allDeviceIds.filter((id) => {
+		const status = deviceState.onlineStatuses[id];
+		return status !== 'offline';
+	});
 
 	isRefreshing = true;
 

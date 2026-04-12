@@ -9,22 +9,13 @@ export type DeviceFetchResult = {
 	error: DeviceFetchError;
 };
 
-export const load: LayoutLoad = async ({ url, depends }) => {
+export const load: LayoutLoad = async ({ depends }) => {
 	// Only re-run this load when explicitly invalidated via invalidate('app:devices').
-	// Without this, SvelteKit re-runs on EVERY route change, causing redundant
-	// device list + status fetches on each category navigation.
+	// IMPORTANT: Do NOT access `url` here — SvelteKit treats it as a dependency and
+	// re-runs the load on every route change, causing redundant device list fetches.
 	depends('app:devices');
-	if (url.pathname === '/') {
-		return {
-			streamed: {
-				deviceResult: Promise.resolve({ devices: [], error: null } as DeviceFetchResult)
-			}
-		};
-	}
 
 	const fetchAllDeviceData = async (): Promise<DeviceFetchResult> => {
-		if (url.pathname === '/') return { devices: [], error: null };
-
 		if (!logtoClient || !(await logtoClient.isAuthenticated())) {
 			return { devices: [], error: 'auth_expired' };
 		}

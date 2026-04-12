@@ -139,18 +139,25 @@ class BatchPushStore {
 					toast.error(`Device rejected: ${err.message}`);
 				} else if ((err as { name?: string })?.name === 'TypeError') {
 					this.rollbackKeys(deviceId, keys, entries);
-					toast.error(
-						'No network connection. Please check your internet and try again.',
-					);
+					toast.error('No network connection. Please check your internet and try again.');
 				}
 				// Abort, timeout, 5xx — device likely processed the write.
 			});
 
 			// 2. Verify the write by reading back values via the fast v1 async API.
 			//    This completes in ~2s for ALL params regardless of v0 POST timing.
-			const verified = await this.verifyWrite(deviceId, keys, entries, token);
+			const result = await this.verifyWrite(deviceId, keys, entries, token);
 
-			if (verified) {
+			if (result.conflicts.length > 0) {
+				// Device has different values than what we pushed — device wins.
+				// Roll back conflicted keys to the device's actual values.
+				this.handleConflicts(deviceId, result.conflicts, entries);
+				// Confirm any non-conflicted keys normally
+				const confirmedKeys = keys.filter((k) => !result.conflicts.some((c) => c.key === k));
+				if (confirmedKeys.length > 0) {
+					this.confirmKeys(deviceId, confirmedKeys, entries);
+				}
+			} else if (result.verified) {
 				this.confirmKeys(deviceId, keys, entries);
 			} else {
 				// Verification timed out — confirm optimistically, prefetch will correct if wrong.
@@ -165,13 +172,14 @@ class BatchPushStore {
 	}
 
 	/** Read back pushed keys from device via v1 async API to verify the write.
-	 *  Returns true once all values match, or false after max attempts. */
+	 *  Detects conflicts: if device value differs from desiredValue AND from
+	 *  previousValue, the device changed the setting independently — conflict. */
 	private async verifyWrite(
 		deviceId: string,
 		keys: string[],
 		entries: Record<string, BatchEntry>,
 		token: string
-	): Promise<boolean> {
+	): Promise<{ verified: boolean; conflicts: Array<{ key: string; deviceValue: unknown }> }> {
 		for (let attempt = 0; attempt < VERIFY_MAX_ATTEMPTS; attempt++) {
 			if (attempt > 0) {
 				await new Promise((r) => setTimeout(r, VERIFY_POLL_INTERVAL_MS));
@@ -181,8 +189,9 @@ class BatchPushStore {
 				const response = await fetchSettingsAsync(deviceId, keys, token);
 				if (!response.items) continue;
 
-				// Check if ALL pushed values match what the device now has
 				let allMatch = true;
+				const conflicts: Array<{ key: string; deviceValue: unknown }> = [];
+
 				for (const item of response.items) {
 					if (!item.key || item.value === undefined) continue;
 					const entry = entries[item.key];
@@ -192,18 +201,102 @@ class BatchPushStore {
 						value: item.value,
 						type: item.type ?? 'String'
 					});
-					if (!this.valuesEqual(deviceValue, entry.desiredValue)) {
-						allMatch = false;
-						break;
+
+					if (this.valuesEqual(deviceValue, entry.desiredValue)) {
+						continue; // Write applied successfully
 					}
+
+					// Device value differs from what we pushed.
+					// Check if it also differs from the previous baseline —
+					// if so, the device changed it independently (conflict).
+					// If it equals previousValue, the write just hasn't applied yet.
+					if (!this.valuesEqual(deviceValue, entry.previousValue)) {
+						conflicts.push({ key: item.key, deviceValue });
+					}
+
+					allMatch = false;
 				}
 
-				if (allMatch && response.items.length > 0) return true;
+				// If we found conflicts, return immediately — device wins
+				if (conflicts.length > 0) {
+					return { verified: false, conflicts };
+				}
+
+				if (allMatch && response.items.length > 0) {
+					return { verified: true, conflicts: [] };
+				}
 			} catch {
 				// Read failed — retry
 			}
 		}
-		return false;
+		return { verified: false, conflicts: [] };
+	}
+
+	/** Handle keys where the device has a different value than what was pushed.
+	 *  Device is source of truth: roll back UI to the device's actual value. */
+	private handleConflicts(
+		deviceId: string,
+		conflicts: Array<{ key: string; deviceValue: unknown }>,
+		entries: Record<string, BatchEntry>
+	): void {
+		const values = deviceState.deviceValues[deviceId];
+		for (const { key, deviceValue } of conflicts) {
+			// Roll back UI to device's actual value
+			if (values) values[key] = deviceValue;
+			this.setKeyState(deviceId, key, 'failed');
+			pushStateStore.endPush(deviceId, key);
+
+			// Update cache + drift baseline to reflect device reality
+			const gitCommit = (deviceState.deviceValues[deviceId]?.['GitCommit'] as string) || '';
+			if (gitCommit) updateCachedValue(deviceId, gitCommit, key, deviceValue);
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, [key]: deviceValue });
+			}
+			driftStore.resolveKeys(deviceId, [key]);
+		}
+		this.removeKeys(
+			deviceId,
+			conflicts.map((c) => c.key)
+		);
+
+		// Notify user
+		if (conflicts.length === 1) {
+			const entry = entries[conflicts[0]!.key];
+			const title = this.getSettingTitle(deviceId, conflicts[0]!.key);
+			toast.warning(`"${title}" was changed on the device. Your change was not applied.`);
+		} else {
+			toast.warning(
+				`${conflicts.length} settings were changed on the device. Your changes were not applied.`
+			);
+		}
+	}
+
+	/** Look up human-readable title for a setting key from the schema. */
+	private getSettingTitle(deviceId: string, key: string): string {
+		const schema = schemaState.schemas[deviceId];
+		if (!schema) return key;
+		for (const panel of schema.panels ?? []) {
+			for (const item of panel.items ?? []) {
+				if (item.key === key) return item.title || key;
+			}
+			for (const sp of panel.sub_panels ?? []) {
+				for (const item of sp.items) {
+					if (item.key === key) return item.title || key;
+				}
+			}
+			for (const sec of panel.sections ?? []) {
+				for (const item of sec.items) {
+					if (item.key === key) return item.title || key;
+				}
+				for (const sp of sec.sub_panels ?? []) {
+					for (const item of sp.items) {
+						if (item.key === key) return item.title || key;
+					}
+				}
+			}
+		}
+		return key;
 	}
 
 	/** Mark keys as confirmed, update cache, remove from queue. */
