@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
-	import { Copy, Check, Monitor } from 'lucide-svelte';
+	import { Copy, Check, Monitor, ArrowRight } from 'lucide-svelte';
 
 	interface Props {
 		deviceId: string;
@@ -100,11 +101,16 @@
 			/* ignore */
 		}
 	}
+
+	/** True while we have no confirmed status from the backend — used to distinguish
+	 *  "still fetching" (show skeleton) from "fetched and empty" (show "—"). */
+	let isLoading = $derived(!onlineStatus || onlineStatus === 'loading');
 </script>
 
 <section
 	class="mb-4 overflow-hidden rounded-xl border border-y border-r border-l-[3px] border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-[var(--sl-bg-surface)] {stripColor}"
 	aria-label="Device identity"
+	aria-busy={isLoading ? 'true' : undefined}
 >
 	<div class="flex items-start gap-3 px-4 py-3">
 		<div class="min-w-0 flex-1">
@@ -119,49 +125,39 @@
 						{deviceTypeName}
 					</span>
 				{/if}
+				<div class="ml-auto shrink-0">
+					<button
+						type="button"
+						class="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						onclick={() => deviceSelectorState.toggle()}
+						aria-label="Change selected device"
+					>
+						<span>Change device</span>
+						<ArrowRight size={12} class="shrink-0" />
+					</button>
+				</div>
 			</div>
 
 			<div class="mt-2.5 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+				{@render row('Status', statusText, false, isLoading)}
+				{@render row('Version', version, false, isLoading)}
+				{@render row('Branch', branch, true, isLoading)}
+				{@render row('Commit', commit, true, isLoading)}
+				{@render row('Network', networkType, false, isLoading)}
 				<div class="flex items-center gap-3">
-					<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Status</span>
-					<span class="text-[0.75rem] text-[var(--sl-text-2)]">{statusText}</span>
-				</div>
-				{#if version}
-					<div class="flex items-center gap-3">
-						<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
-						<span class="text-[0.75rem] text-[var(--sl-text-2)]">{version}</span>
-					</div>
-				{/if}
-				{#if branch}
-					<div class="flex items-center gap-3">
-						<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
-						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]"
-							>{branch}</span
-						>
-					</div>
-				{/if}
-				{#if commit}
-					<div class="flex items-center gap-3">
-						<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
-						<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commit}</span>
-					</div>
-				{/if}
-				{#if networkType}
-					<div class="flex items-center gap-3">
-						<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Network</span>
-						<span class="text-[0.75rem] text-[var(--sl-text-2)]">{networkType}</span>
-					</div>
-				{/if}
-				{#if lastSeen}
-					<div class="flex items-center gap-3">
-						<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Last seen</span>
-						{#key statusPolling.tickCounter}
-							<span class="text-[0.75rem] text-[var(--sl-text-2)]"
+					<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Last seen</span>
+					{#key statusPolling.tickCounter}
+						{#if lastSeen}
+							<span class="value-fade-in text-[0.75rem] text-[var(--sl-text-2)]"
 								>{formatRelativeTime(lastSeen)}</span
 							>
-						{/key}
-					</div>
-				{/if}
+						{:else if isLoading}
+							<span class="skeleton-bar w-24" aria-hidden="true"></span>
+						{:else}
+							<span class="text-[0.75rem] text-[var(--sl-text-3)]">—</span>
+						{/if}
+					{/key}
+				</div>
 				<div class="flex items-center gap-3 sm:col-span-2">
 					<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Device ID</span>
 					<button
@@ -191,3 +187,22 @@
 		</div>
 	</div>
 </section>
+
+{#snippet row(label: string, value: string | null, mono: boolean, loading: boolean)}
+	<div class="flex items-center gap-3">
+		<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">{label}</span>
+		{#key value}
+			{#if value}
+				<span
+					class="value-fade-in truncate text-[0.75rem] text-[var(--sl-text-2)] {mono
+						? 'font-mono'
+						: ''}">{value}</span
+				>
+			{:else if loading}
+				<span class="skeleton-bar w-24" aria-hidden="true"></span>
+			{:else}
+				<span class="text-[0.75rem] text-[var(--sl-text-3)]">—</span>
+			{/if}
+		{/key}
+	</div>
+{/snippet}

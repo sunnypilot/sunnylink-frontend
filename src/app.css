@@ -80,6 +80,8 @@
 	--sl-accent-muted: rgba(89, 74, 226, 0.08);
 	--sl-toggle-off: #d4d4d4;
 	--sl-toggle-off-disabled: #e5e5e5;
+	--sl-skeleton-bar: #d4d4d4;
+	--sl-skeleton-highlight: #e8e8e8;
 }
 
 [data-theme='sunny-dark'] {
@@ -99,6 +101,8 @@
 	--sl-accent-muted: rgba(124, 111, 235, 0.12);
 	--sl-toggle-off: #333333;
 	--sl-toggle-off-disabled: #282828;
+	--sl-skeleton-bar: #2e2e2e;
+	--sl-skeleton-highlight: #3a3a3a;
 }
 
 @theme {
@@ -223,12 +227,65 @@ code,
 	animation: shimmer 1.5s ease-in-out infinite;
 }
 
+/* Inline value placeholder used while a single field streams in.
+   Sized to the typography line-height so rows never change height. */
+.skeleton-bar {
+	display: inline-block;
+	height: 0.8125rem;
+	border-radius: 0.25rem;
+	vertical-align: middle;
+	background: linear-gradient(
+		90deg,
+		var(--sl-skeleton-bar) 25%,
+		var(--sl-skeleton-highlight) 50%,
+		var(--sl-skeleton-bar) 75%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s ease-in-out infinite;
+}
+
 @keyframes shimmer {
 	0% {
 		background-position: 200% 0;
 	}
 	100% {
 		background-position: -200% 0;
+	}
+}
+
+/* Crossfade a value in when it streams from the prefetch. Short, no layout shift. */
+@keyframes value-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.value-fade-in {
+	animation: value-fade-in var(--dur-fast) var(--ease-out) both;
+}
+
+/* SPA nav uses the View Transitions API when available — slide the whole root,
+   not each individual element, so unrelated chrome does not flicker.
+   Elements that opt into shared-element morphing (e.g. the active device card)
+   set their own `view-transition-name` inline. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 220ms;
+	animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.skeleton-shimmer,
+	.skeleton-bar,
+	.value-fade-in {
+		animation: none !important;
+	}
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none !important;
 	}
 }
 

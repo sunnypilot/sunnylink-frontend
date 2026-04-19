@@ -9,12 +9,20 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { Save, Plus, Loader2, ChevronDown, ChevronRight, Check } from 'lucide-svelte';
+	import {
+		Save,
+		Plus,
+		Loader2,
+		ChevronDown,
+		ChevronRight,
+		Pencil
+	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
 	import { v1Client } from '$lib/api/client';
 	import { preferences } from '$lib/stores/preferences.svelte';
+	import { pendingChanges as pendingChangesStore } from '$lib/stores/pendingChanges.svelte';
 	import { Mouse } from 'lucide-svelte';
 
 	let { data } = $props();
@@ -241,6 +249,45 @@
 		return 'border-l-emerald-400';
 	}
 
+	/**
+	 * Top-edge status stripe is 3 segments (connection, driving, pending changes).
+	 * At-a-glance health: each segment lights only when its condition is active,
+	 * so a healthy-idle device stays visually calm.
+	 */
+	function getConnectionSegColor(device: any): string {
+		const status = deviceState.onlineStatuses[device.device_id];
+		if (status === 'error') return 'bg-red-400';
+		if (status === 'offline') return 'bg-[var(--sl-text-3)]/15';
+		if (!status || status === 'loading') return 'bg-[var(--sl-text-3)]/30';
+		return 'bg-emerald-400';
+	}
+
+	function getDrivingSegColor(device: any): string {
+		const status = deviceState.onlineStatuses[device.device_id];
+		if (status !== 'online') return 'bg-[var(--sl-text-3)]/15';
+		const offroad = deviceState.offroadStatuses[device.device_id];
+		if (offroad?.forceOffroad) return 'bg-amber-400';
+		if (offroad?.isOffroad === false) return 'bg-blue-400';
+		return 'bg-[var(--sl-text-3)]/15';
+	}
+
+	function getPendingSegColor(device: any): string {
+		const count = pendingChangesStore.getByStatus(device.device_id, 'pending').length;
+		return count > 0 ? 'bg-amber-500' : 'bg-[var(--sl-text-3)]/15';
+	}
+
+	/**
+	 * Primary glance values for the stat strip. Return null when unknown so the
+	 * template can render a stable "—" slot instead of shifting layout.
+	 */
+	function formatLastSeenShort(device: any, _tick?: number): string | null {
+		// _tick unused in body — receiving it ties the template call site to
+		// `statusPolling.tickCounter` so the relative-time string re-renders each poll.
+		const ts = getLastSeen(device);
+		if (!ts) return null;
+		return formatRelativeTime(ts);
+	}
+
 	function getSubtitle(device: any): string {
 		const parts: string[] = [];
 		const typeName = getDeviceTypeName(device);
@@ -428,6 +475,59 @@
 				<RefreshIndicator />
 			</div>
 
+			{#snippet statCell(
+				label: string,
+				value: string | null,
+				mono: boolean,
+				loading: boolean
+			)}
+				<div
+					class="flex min-w-0 flex-col gap-1 rounded-lg bg-[var(--sl-bg-elevated)]/40 px-2 py-2"
+				>
+					<span
+						class="text-[0.625rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+						>{label}</span
+					>
+					{#key value}
+						{#if value}
+							<span
+								class="value-fade-in truncate text-[0.75rem] font-medium text-[var(--sl-text-1)] {mono
+									? 'font-mono'
+									: ''}">{value}</span
+							>
+						{:else if loading}
+							<span class="skeleton-bar w-12" aria-hidden="true"></span>
+						{:else}
+							<span class="text-[0.75rem] text-[var(--sl-text-3)]">—</span>
+						{/if}
+					{/key}
+				</div>
+			{/snippet}
+
+			{#snippet detailRow(
+				label: string,
+				value: string | null,
+				mono: boolean,
+				loading: boolean
+			)}
+				<div class="flex items-center gap-3">
+					<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">{label}</span>
+					{#key value}
+						{#if value}
+							<span
+								class="value-fade-in truncate text-[0.75rem] text-[var(--sl-text-2)] {mono
+									? 'font-mono'
+									: ''}">{value}</span
+							>
+						{:else if loading}
+							<span class="skeleton-bar w-24" aria-hidden="true"></span>
+						{:else}
+							<span class="text-[0.75rem] text-[var(--sl-text-3)]">—</span>
+						{/if}
+					{/key}
+				</div>
+			{/snippet}
+
 			<div class="flex flex-col gap-3" role="list" aria-label="Device list">
 				{#each onlineDevices as device (device.device_id)}
 					{@const isLoading =
@@ -438,12 +538,10 @@
 					{@const isRenaming = renamingDeviceId === device.device_id}
 					{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
-					<div
-						class="group rounded-xl border border-y border-r border-l-[3px] transition-all duration-150 hover:border-y-[var(--sl-text-3)]/30 hover:border-r-[var(--sl-text-3)]/30 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {getStripColor(
-							device
-						)} {isSelected
-							? 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-primary/[0.04] dark:bg-primary/[0.08]'
-							: 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-[var(--sl-bg-surface)]'}"
+					<article
+						class="group overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+							? 'border-2 border-primary bg-primary/[0.03] dark:bg-primary/[0.06]'
+							: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
 						onclick={() => handleDeviceClick(device)}
 						onkeydown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
@@ -454,9 +552,18 @@
 						role="listitem"
 						tabindex="0"
 						aria-label="{getAlias(device)} - {getStatusText(device)}"
+						aria-busy={isLoading ? 'true' : undefined}
 					>
-						<div class="flex items-start gap-3 px-4 py-4">
+						<!-- Tri-segment status stripe: connection · driving · pending -->
+						<div class="flex h-1 w-full" aria-hidden="true">
+							<span class="flex-1 {getConnectionSegColor(device)}"></span>
+							<span class="flex-1 {getDrivingSegColor(device)}"></span>
+							<span class="flex-1 {getPendingSegColor(device)}"></span>
+						</div>
+
+						<div class="flex items-start gap-3 px-4 py-3.5">
 							<div class="min-w-0 flex-1">
+								<!-- Alias + rename pencil + live loader -->
 								<div class="flex items-center gap-2">
 									{#if isRenaming}
 										<input
@@ -479,88 +586,50 @@
 										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
 											{getAlias(device)}
 										</span>
-									{/if}
-									{#if isSelected}
-										<span
-											class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-white"
+										<button
+											type="button"
+											class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+											onclick={(e) => {
+												e.stopPropagation();
+												startRename(device.device_id);
+											}}
+											onkeydown={(e) => e.stopPropagation()}
+											aria-label="Rename {getAlias(device)}"
 										>
-											<Check size={10} strokeWidth={3} />
-										</span>
+											<Pencil size={12} />
+										</button>
 									{/if}
 									{#if isLoading}
-										<Loader2 size={12} class="shrink-0 animate-spin text-[var(--sl-text-3)]" />
+										<Loader2
+											size={12}
+											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+											aria-label="Checking status"
+										/>
 									{/if}
 								</div>
 
+								<!-- Substatus caption -->
+								<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
+									{getSubtitle(device) || getStatusText(device)}
+								</p>
+
+								<!-- Primary 3-column stat strip: Version · Branch · Last seen -->
+								<div class="mt-3 grid grid-cols-3 gap-2">
+									{@render statCell('Version', getVersion(device), false, isLoading)}
+									{@render statCell('Branch', getBranch(device), true, isLoading)}
+									{@render statCell(
+										'Last seen',
+										formatLastSeenShort(device, statusPolling.tickCounter),
+										false,
+										isLoading
+									)}
+								</div>
+
+								<!-- Secondary rows: stable slots with "—" fallback so layout never shifts -->
 								<div class="mt-3 max-w-[280px] space-y-1.5">
-									{#if getDeviceTypeName(device)}
-										<div class="flex items-center gap-3">
-											<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-												>Device</span
-											>
-											<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-												>{getDeviceTypeName(device)}</span
-											>
-										</div>
-									{/if}
-									<div class="flex items-center gap-3">
-										<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Status</span>
-										<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-											>{getDrivingState(device) ?? getStatusText(device)}</span
-										>
-									</div>
-									{#if getVersion(device)}
-										<div class="flex items-center gap-3">
-											<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-												>Version</span
-											>
-											<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-												>{getVersion(device)}</span
-											>
-										</div>
-									{/if}
-									{#if getBranch(device)}
-										<div class="flex items-center gap-3">
-											<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-												>Branch</span
-											>
-											<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]"
-												>{getBranch(device)}</span
-											>
-										</div>
-									{/if}
-									{#if getCommit(device)}
-										<div class="flex items-center gap-3">
-											<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-												>Commit</span
-											>
-											<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]"
-												>{getCommit(device)}</span
-											>
-										</div>
-									{/if}
-									{#if getNetworkType(device)}
-										<div class="flex items-center gap-3">
-											<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-												>Network</span
-											>
-											<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-												>{getNetworkType(device)}</span
-											>
-										</div>
-									{/if}
-									{#if getLastSeen(device)}
-										<div class="flex items-center gap-3">
-											<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-												>Last seen</span
-											>
-											{#key statusPolling.tickCounter}
-												<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-													>{formatRelativeTime(getLastSeen(device)!)}</span
-												>
-											{/key}
-										</div>
-									{/if}
+									{@render detailRow('Device', getDeviceTypeName(device), false, isLoading)}
+									{@render detailRow('Network', getNetworkType(device), false, isLoading)}
+									{@render detailRow('Commit', getCommit(device), true, isLoading)}
 								</div>
 							</div>
 
@@ -581,7 +650,7 @@
 								/>
 							</div>
 						</div>
-					</div>
+					</article>
 				{/each}
 
 				{#if offlineDevices.length > 0}
@@ -608,10 +677,10 @@
 								{@const isRenaming = renamingDeviceId === device.device_id}
 								{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
-								<div
-									class="group rounded-xl border border-y border-r border-l-[3px] border-l-[var(--sl-text-3)]/20 transition-all duration-150 hover:border-y-[var(--sl-text-3)]/30 hover:border-r-[var(--sl-text-3)]/30 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
-										? 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-primary/[0.04] dark:bg-primary/[0.08]'
-										: 'border-y-[var(--sl-border)] border-r-[var(--sl-border)] bg-[var(--sl-bg-surface)]'}"
+								<article
+									class="group overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+										? 'border-2 border-primary bg-primary/[0.03] dark:bg-primary/[0.06]'
+										: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
 									onclick={() => handleDeviceClick(device)}
 									onkeydown={(e) => {
 										if (e.key === 'Enter' || e.key === ' ') {
@@ -623,7 +692,14 @@
 									tabindex="0"
 									aria-label="{getAlias(device)} - Offline"
 								>
-									<div class="flex items-start gap-3 px-4 py-4">
+									<!-- Tri-segment status stripe: connection · driving · pending -->
+									<div class="flex h-1 w-full" aria-hidden="true">
+										<span class="flex-1 {getConnectionSegColor(device)}"></span>
+										<span class="flex-1 {getDrivingSegColor(device)}"></span>
+										<span class="flex-1 {getPendingSegColor(device)}"></span>
+									</div>
+
+									<div class="flex items-start gap-3 px-4 py-3.5">
 										<div class="min-w-0 flex-1">
 											<div class="flex items-center gap-2">
 												{#if isRenaming}
@@ -647,65 +723,37 @@
 													<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
 														{getAlias(device)}
 													</span>
-												{/if}
-												{#if isSelected}
-													<span
-														class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-white"
+													<button
+														type="button"
+														class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+														onclick={(e) => {
+															e.stopPropagation();
+															startRename(device.device_id);
+														}}
+														onkeydown={(e) => e.stopPropagation()}
+														aria-label="Rename {getAlias(device)}"
 													>
-														<Check size={10} strokeWidth={3} />
-													</span>
+														<Pencil size={12} />
+													</button>
 												{/if}
 											</div>
 
+											<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">Offline</p>
+
+											<div class="mt-3 grid grid-cols-3 gap-2">
+												{@render statCell('Version', getVersion(device), false, false)}
+												{@render statCell('Branch', getBranch(device), true, false)}
+												{@render statCell(
+													'Last seen',
+													formatLastSeenShort(device, statusPolling.tickCounter),
+													false,
+													false
+												)}
+											</div>
+
 											<div class="mt-3 max-w-[280px] space-y-1.5">
-												{#if getDeviceTypeName(device)}
-													<div class="flex items-center gap-3">
-														<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-															>Device</span
-														>
-														<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-															>{getDeviceTypeName(device)}</span
-														>
-													</div>
-												{/if}
-												<div class="flex items-center gap-3">
-													<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-														>Status</span
-													>
-													<span class="text-[0.75rem] text-[var(--sl-text-2)]">Offline</span>
-												</div>
-												{#if getBranch(device)}
-													<div class="flex items-center gap-3">
-														<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-															>Branch</span
-														>
-														<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]"
-															>{getBranch(device)}</span
-														>
-													</div>
-												{/if}
-												{#if getCommit(device)}
-													<div class="flex items-center gap-3">
-														<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-															>Commit</span
-														>
-														<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]"
-															>{getCommit(device)}</span
-														>
-													</div>
-												{/if}
-												{#if getLastSeen(device)}
-													<div class="flex items-center gap-3">
-														<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
-															>Last seen</span
-														>
-														{#key statusPolling.tickCounter}
-															<span class="text-[0.75rem] text-[var(--sl-text-2)]"
-																>{formatRelativeTime(getLastSeen(device)!)}</span
-															>
-														{/key}
-													</div>
-												{/if}
+												{@render detailRow('Device', getDeviceTypeName(device), false, false)}
+												{@render detailRow('Commit', getCommit(device), true, false)}
 											</div>
 										</div>
 
@@ -723,7 +771,7 @@
 											/>
 										</div>
 									</div>
-								</div>
+								</article>
 							{/each}
 						</div>
 					{/if}

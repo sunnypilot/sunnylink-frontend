@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
-	import { invalidate } from '$app/navigation';
+	import { invalidate, onNavigate } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -51,6 +51,23 @@
 
 	let drawerOpen = $state(false);
 	const pathname = $derived(page.url.pathname);
+
+	// Smooth SPA transitions via the View Transitions API on browsers that support it.
+	// SvelteKit's onNavigate fires before the new page mounts; wrapping navigation.complete
+	// in startViewTransition lets the browser diff the DOM and crossfade. Skip entirely when
+	// the user prefers reduced motion or the API is unavailable — nav proceeds instantly.
+	onNavigate((navigation) => {
+		if (typeof document === 'undefined') return;
+		if (!('startViewTransition' in document)) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+		return new Promise((resolve) => {
+			(document as any).startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 
 	// Collapsible section state
 	let settingsOpen = $state(true);
