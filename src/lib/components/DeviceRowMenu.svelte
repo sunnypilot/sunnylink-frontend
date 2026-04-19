@@ -143,10 +143,7 @@
 							<Check size={14} class="text-emerald-600 dark:text-emerald-400" />
 						</span>
 					{:else}
-						<Copy
-							size={14}
-							class="text-[var(--sl-text-3)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-						/>
+						<Copy size={14} class="text-[var(--sl-text-3)]" />
 					{/if}
 				</span>
 			</button>
@@ -173,10 +170,7 @@
 								<Check size={14} class="text-emerald-600 dark:text-emerald-400" />
 							</span>
 						{:else}
-							<Copy
-								size={14}
-								class="text-[var(--sl-text-3)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-							/>
+							<Copy size={14} class="text-[var(--sl-text-3)]" />
 						{/if}
 					</span>
 				</button>
