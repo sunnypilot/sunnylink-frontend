@@ -18,10 +18,13 @@ function detectSaveData(): boolean {
 	return !!(navigator as any).connection?.saveData;
 }
 
+// Auto-refresh defaults to OFF. Manual refresh (RefreshIndicator) is the
+// primary mechanism. See references/polling.md for the policy rationale —
+// at 100k users each 60s poll fans out to ~5 RPC calls per device.
 const DEFAULTS: PreferencesData = {
 	debugMode: false,
 	showDeviceOnlineHelp: true,
-	autoRefresh: !detectSaveData(),
+	autoRefresh: false,
 	defaultLandingPage: 'overview',
 	notifyDeviceOffline: true,
 	notifySyncFailure: true,
@@ -96,6 +99,15 @@ class PreferencesStore {
 		if (hadLegacy) {
 			localStorage.removeItem('sunnylink_debug_mode');
 			localStorage.removeItem('sunnylink_show_device_online_help');
+		}
+
+		// One-time reset of autoRefresh to the new manual-first default. Existing
+		// users who had it on from the previous default get flipped off once;
+		// they can re-enable via Preferences if they want live updates.
+		const autoRefreshMigrated = localStorage.getItem('sunnylink_auto_refresh_migrated_v2');
+		if (autoRefreshMigrated !== 'true') {
+			this.autoRefresh = false;
+			localStorage.setItem('sunnylink_auto_refresh_migrated_v2', 'true');
 		}
 	}
 

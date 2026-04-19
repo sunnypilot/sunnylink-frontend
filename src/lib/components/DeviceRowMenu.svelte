@@ -71,7 +71,9 @@
 
 <div class="relative">
 	<button
-		class="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:text-[var(--sl-text-1)] focus-visible:outline-none"
+		class="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:text-[var(--sl-text-1)] focus-visible:outline-none {open
+			? 'relative z-50'
+			: ''}"
 		onclick={toggle}
 		aria-label="Device actions"
 		aria-haspopup="menu"
@@ -81,6 +83,19 @@
 	</button>
 
 	{#if open}
+		<!-- Mobile-only backdrop: captures outside taps so the close does not
+		     also trigger the element behind the menu. Desktop uses the
+		     svelte:window listener above so clicks can fall through as before. -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-40 md:hidden"
+			onclick={(e) => {
+				e.stopPropagation();
+				close();
+			}}
+			aria-hidden="true"
+		></div>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div

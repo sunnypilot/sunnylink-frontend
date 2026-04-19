@@ -80,14 +80,21 @@ async function pollAllDevices(force: boolean = false, silent: boolean = false) {
 	isRefreshing = true;
 
 	try {
-		await Promise.all(
+		// allSettled so one device's 5xx / timeout doesn't mask the others —
+		// the previous Promise.all rejected on first failure and bumped
+		// consecutiveFailures even when other devices succeeded.
+		const results = await Promise.allSettled(
 			deviceIds.map((deviceId) => checkDeviceStatus(deviceId, token, force, silent))
 		);
+		const failed = results.filter((r) => r.status === 'rejected').length;
 		lastCheckedAt = Date.now();
-		consecutiveFailures = 0;
-	} catch (e) {
-		console.error('Status poll failed:', e);
-		consecutiveFailures++;
+		if (failed === 0) {
+			consecutiveFailures = 0;
+		} else if (failed >= Math.ceil(results.length / 2)) {
+			// Majority failed — likely backend outage, back off.
+			consecutiveFailures++;
+			console.error(`Status poll: ${failed}/${results.length} devices failed`);
+		}
 	} finally {
 		isRefreshing = false;
 	}
