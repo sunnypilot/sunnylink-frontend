@@ -39,8 +39,7 @@
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import { themeState } from '$lib/stores/theme.svelte';
-	// @ts-ignore - svelte-ios-pwa-prompt types/peer deps might be loose
-	import PWAPrompt from 'svelte-ios-pwa-prompt';
+	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { onMount } from 'svelte';
@@ -579,16 +578,15 @@
 <Toaster theme={themeState.effective} richColors />
 <PendingChangesPill />
 {#if isIOS && !isLandingPage}
-	<PWAPrompt
-		copyTitle="Add to Home Screen"
-		copyBody="This website has app functionality. Add it to your home screen to use it in fullscreen and while offline."
-		copyShareButtonLabel="1) Press the 'Share' button"
-		copyAddHomeButtonLabel="2) Press 'Add to Home Screen'"
-		copyClosePrompt="Cancel"
+	<PWAInstallPrompt
+		title="Install sunnylink"
+		body="Add to your Home Screen for fullscreen access and offline use."
+		shareLabel="Tap the Share button in Safari's toolbar"
+		addLabel='Choose "Add to Home Screen"'
+		dismissLabel="Not now"
 		promptOnVisit={1}
 		timesToShow={3}
-		delay={3000}
+		delayMs={3000}
 		permanentlyHideOnDismiss={false}
-		debug={false}
 	/>
 {/if}
