@@ -30,6 +30,7 @@
 	import SettingCard from '$lib/components/SettingCard.svelte';
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
+	import DeviceIdentityCard from '$lib/components/DeviceIdentityCard.svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
@@ -634,6 +635,11 @@
 		</div>
 	{:else if useSchema && schemaPanel}
 		<!-- ═══ Schema-driven rendering (centered narrow column, grouped cards) ═══ -->
+		{#if category === 'device' && deviceId && !activeSubPanel}
+			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+				<DeviceIdentityCard {deviceId} />
+			</div>
+		{/if}
 		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
 			{#key activeSubPanel?.id ?? '__root__'}
 				<div
