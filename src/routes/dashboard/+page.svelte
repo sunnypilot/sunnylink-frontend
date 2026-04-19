@@ -9,21 +9,13 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import {
-		Save,
-		Plus,
-		Loader2,
-		ChevronDown,
-		ChevronRight,
-		Pencil
-	} from 'lucide-svelte';
+	import { Save, Plus, Loader2, ChevronDown, Pencil } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
 	import { v1Client } from '$lib/api/client';
-	import { preferences } from '$lib/stores/preferences.svelte';
 	import { pendingChanges as pendingChangesStore } from '$lib/stores/pendingChanges.svelte';
-	import { Mouse } from 'lucide-svelte';
+	import MarqueeText from '$lib/components/MarqueeText.svelte';
 
 	let { data } = $props();
 
@@ -238,44 +230,6 @@
 		return 'bg-emerald-400';
 	}
 
-	function getStripColor(device: any): string {
-		const status = deviceState.onlineStatuses[device.device_id];
-		if (!status || status === 'loading') return 'border-l-[var(--sl-text-3)]/40';
-		if (status === 'error') return 'border-l-red-400';
-		if (status === 'offline') return 'border-l-[var(--sl-text-3)]/20';
-		const offroad = deviceState.offroadStatuses[device.device_id];
-		if (offroad?.forceOffroad) return 'border-l-amber-400';
-		if (offroad?.isOffroad === false) return 'border-l-blue-400';
-		return 'border-l-emerald-400';
-	}
-
-	/**
-	 * Top-edge status stripe is 3 segments (connection, driving, pending changes).
-	 * At-a-glance health: each segment lights only when its condition is active,
-	 * so a healthy-idle device stays visually calm.
-	 */
-	function getConnectionSegColor(device: any): string {
-		const status = deviceState.onlineStatuses[device.device_id];
-		if (status === 'error') return 'bg-red-400';
-		if (status === 'offline') return 'bg-[var(--sl-text-3)]/15';
-		if (!status || status === 'loading') return 'bg-[var(--sl-text-3)]/30';
-		return 'bg-emerald-400';
-	}
-
-	function getDrivingSegColor(device: any): string {
-		const status = deviceState.onlineStatuses[device.device_id];
-		if (status !== 'online') return 'bg-[var(--sl-text-3)]/15';
-		const offroad = deviceState.offroadStatuses[device.device_id];
-		if (offroad?.forceOffroad) return 'bg-amber-400';
-		if (offroad?.isOffroad === false) return 'bg-blue-400';
-		return 'bg-[var(--sl-text-3)]/15';
-	}
-
-	function getPendingSegColor(device: any): string {
-		const count = pendingChangesStore.getByStatus(device.device_id, 'pending').length;
-		return count > 0 ? 'bg-amber-500' : 'bg-[var(--sl-text-3)]/15';
-	}
-
 	/**
 	 * Primary glance values for the stat strip. Return null when unknown so the
 	 * template can render a stable "—" slot instead of shifting layout.
@@ -369,15 +323,9 @@
 	}
 
 	function handleDeviceClick(device: any) {
-		sessionDismissedNudge = true;
 		deviceState.setSelectedDevice(device.device_id);
 		goto('/dashboard/settings/device');
 	}
-
-	// Nudge: show hint for first-time users when no device is selected
-	let showNudge = $derived(!deviceState.selectedDeviceId && preferences.showDashboardNudge);
-	let sessionDismissedNudge = $state(false);
-	let nudgeVisible = $derived(showNudge && !sessionDismissedNudge);
 
 	// Use cached devices from deviceState for instant rendering; update when API returns
 	let devices = $derived(deviceState.pairedDevices);
@@ -439,35 +387,6 @@
 				</p>
 			</div>
 
-			{#if nudgeVisible}
-				<div class="mb-4 px-4" transition:slide={{ duration: 150 }}>
-					<div
-						class="flex items-center gap-3 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3"
-					>
-						<Mouse size={16} class="shrink-0 text-[var(--sl-text-3)]" />
-						<p class="flex-1 text-[0.8125rem] text-[var(--sl-text-2)]">
-							Click a device card to view and manage its settings
-						</p>
-						<button
-							class="btn text-[var(--sl-text-3)] btn-ghost btn-xs"
-							onclick={() => {
-								sessionDismissedNudge = true;
-							}}>Dismiss</button
-						>
-						<label class="flex items-center gap-1.5">
-							<input
-								type="checkbox"
-								class="checkbox border-slate-500 checkbox-xs checkbox-primary"
-								onchange={() => {
-									preferences.showDashboardNudge = false;
-								}}
-							/>
-							<span class="text-xs text-[var(--sl-text-3)]">Don't show again</span>
-						</label>
-					</div>
-				</div>
-			{/if}
-
 			<div class="mb-3 flex items-center justify-between px-4">
 				<h2 class="text-xs font-semibold tracking-[0.2em] text-[var(--sl-text-3)] uppercase">
 					Devices
@@ -475,56 +394,38 @@
 				<RefreshIndicator />
 			</div>
 
-			{#snippet statCell(
+			{#snippet labelValueRow(
 				label: string,
 				value: string | null,
 				mono: boolean,
-				loading: boolean
+				loading: boolean,
+				marquee: boolean = false
 			)}
-				<div
-					class="flex min-w-0 flex-col gap-1 rounded-lg bg-[var(--sl-bg-elevated)]/40 px-2 py-2"
-				>
-					<span
-						class="text-[0.625rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
-						>{label}</span
-					>
-					{#key value}
-						{#if value}
-							<span
-								class="value-fade-in truncate text-[0.75rem] font-medium text-[var(--sl-text-1)] {mono
-									? 'font-mono'
-									: ''}">{value}</span
-							>
-						{:else if loading}
-							<span class="skeleton-bar w-12" aria-hidden="true"></span>
-						{:else}
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">—</span>
-						{/if}
-					{/key}
-				</div>
-			{/snippet}
-
-			{#snippet detailRow(
-				label: string,
-				value: string | null,
-				mono: boolean,
-				loading: boolean
-			)}
-				<div class="flex items-center gap-3">
-					<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">{label}</span>
-					{#key value}
-						{#if value}
-							<span
-								class="value-fade-in truncate text-[0.75rem] text-[var(--sl-text-2)] {mono
-									? 'font-mono'
-									: ''}">{value}</span
-							>
-						{:else if loading}
-							<span class="skeleton-bar w-24" aria-hidden="true"></span>
-						{:else}
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">—</span>
-						{/if}
-					{/key}
+				<div class="flex items-center justify-between gap-3">
+					<span class="shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">{label}</span>
+					<div class="min-w-0 flex-1 text-right">
+						{#key value}
+							{#if value}
+								{#if marquee}
+									<MarqueeText
+										text={value}
+										mono={mono}
+										className="value-fade-in text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+									/>
+								{:else}
+									<span
+										class="value-fade-in inline-block max-w-full truncate align-middle text-[0.8125rem] font-medium text-[var(--sl-text-1)] {mono
+											? 'font-mono'
+											: ''}">{value}</span
+									>
+								{/if}
+							{:else if loading}
+								<span class="skeleton-bar w-20" aria-hidden="true"></span>
+							{:else}
+								<span class="text-[0.8125rem] text-[var(--sl-text-3)]">—</span>
+							{/if}
+						{/key}
+					</div>
 				</div>
 			{/snippet}
 
@@ -540,7 +441,7 @@
 
 					<article
 						class="group overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
-							? 'border-2 border-primary bg-primary/[0.03] dark:bg-primary/[0.06]'
+							? 'border-2 border-primary'
 							: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
 						onclick={() => handleDeviceClick(device)}
 						onkeydown={(e) => {
@@ -554,100 +455,97 @@
 						aria-label="{getAlias(device)} - {getStatusText(device)}"
 						aria-busy={isLoading ? 'true' : undefined}
 					>
-						<!-- Tri-segment status stripe: connection · driving · pending -->
-						<div class="flex h-1 w-full" aria-hidden="true">
-							<span class="flex-1 {getConnectionSegColor(device)}"></span>
-							<span class="flex-1 {getDrivingSegColor(device)}"></span>
-							<span class="flex-1 {getPendingSegColor(device)}"></span>
-						</div>
-
-						<div class="flex items-start gap-3 px-4 py-3.5">
-							<div class="min-w-0 flex-1">
-								<!-- Alias + rename pencil + live loader -->
-								<div class="flex items-center gap-2">
-									{#if isRenaming}
-										<input
-											id="alias-{device.device_id}"
-											type="text"
-											value={getAlias(device)}
-											oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-											onblur={() => {
-												renamingDeviceId = null;
-											}}
-											onkeydown={(e) => {
-												if (e.key === 'Enter' || e.key === 'Escape') {
+						<div class="px-4 py-3.5">
+							<div class="flex items-start gap-3">
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2">
+										<span
+											class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
+											class:animate-pulse={isLoading}
+											aria-hidden="true"
+										></span>
+										{#if isRenaming}
+											<input
+												id="alias-{device.device_id}"
+												type="text"
+												value={getAlias(device)}
+												oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+												onblur={() => {
 													renamingDeviceId = null;
-												}
-											}}
-											onclick={(e) => e.stopPropagation()}
-											class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-										/>
-									{:else}
-										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-											{getAlias(device)}
-										</span>
-										<button
-											type="button"
-											class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-											onclick={(e) => {
-												e.stopPropagation();
-												startRename(device.device_id);
-											}}
-											onkeydown={(e) => e.stopPropagation()}
-											aria-label="Rename {getAlias(device)}"
-										>
-											<Pencil size={12} />
-										</button>
-									{/if}
-									{#if isLoading}
-										<Loader2
-											size={12}
-											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-											aria-label="Checking status"
-										/>
-									{/if}
+												}}
+												onkeydown={(e) => {
+													if (e.key === 'Enter' || e.key === 'Escape') {
+														renamingDeviceId = null;
+													}
+												}}
+												onclick={(e) => e.stopPropagation()}
+												class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+											/>
+										{:else}
+											<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
+												{getAlias(device)}
+											</span>
+											<button
+												type="button"
+												class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+												onclick={(e) => {
+													e.stopPropagation();
+													startRename(device.device_id);
+												}}
+												onkeydown={(e) => e.stopPropagation()}
+												aria-label="Rename {getAlias(device)}"
+											>
+												<Pencil size={12} />
+											</button>
+										{/if}
+										{#if isLoading}
+											<Loader2
+												size={12}
+												class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+												aria-label="Checking status"
+											/>
+										{/if}
+									</div>
+
+									<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
+										{getSubtitle(device) || getStatusText(device)}
+									</p>
 								</div>
 
-								<!-- Substatus caption -->
-								<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
-									{getSubtitle(device) || getStatusText(device)}
-								</p>
-
-								<!-- Primary 3-column stat strip: Version · Branch · Last seen -->
-								<div class="mt-3 grid grid-cols-3 gap-2">
-									{@render statCell('Version', getVersion(device), false, isLoading)}
-									{@render statCell('Branch', getBranch(device), true, isLoading)}
-									{@render statCell(
-										'Last seen',
-										formatLastSeenShort(device, statusPolling.tickCounter),
-										false,
-										isLoading
-									)}
-								</div>
-
-								<!-- Secondary rows: stable slots with "—" fallback so layout never shifts -->
-								<div class="mt-3 max-w-[280px] space-y-1.5">
-									{@render detailRow('Device', getDeviceTypeName(device), false, isLoading)}
-									{@render detailRow('Network', getNetworkType(device), false, isLoading)}
-									{@render detailRow('Commit', getCommit(device), true, isLoading)}
+								<div
+									class="shrink-0"
+									onclick={(e) => e.stopPropagation()}
+									onkeydown={(e) => e.stopPropagation()}
+								>
+									<DeviceRowMenu
+										deviceId={device.device_id}
+										dongleId={isUnregistered ? undefined : device.comma_dongle_id}
+										pairedAt={device.created_at}
+										isDownloading={deviceState.backupState.isDownloading &&
+											deviceState.backupState.deviceId === device.device_id}
+										onRename={() => startRename(device.device_id)}
+										onDownloadBackup={() => handleDownloadBackup(device.device_id)}
+										onDeregister={() => openDeregisterModal(device)}
+									/>
 								</div>
 							</div>
 
 							<div
-								class="shrink-0 pt-0.5"
-								onclick={(e) => e.stopPropagation()}
-								onkeydown={(e) => e.stopPropagation()}
+								class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5"
 							>
-								<DeviceRowMenu
-									deviceId={device.device_id}
-									dongleId={isUnregistered ? undefined : device.comma_dongle_id}
-									pairedAt={device.created_at}
-									isDownloading={deviceState.backupState.isDownloading &&
-										deviceState.backupState.deviceId === device.device_id}
-									onRename={() => startRename(device.device_id)}
-									onDownloadBackup={() => handleDownloadBackup(device.device_id)}
-									onDeregister={() => openDeregisterModal(device)}
-								/>
+								{@render labelValueRow('Version', getVersion(device), false, true)}
+								{@render labelValueRow('Branch', getBranch(device), true, true, true)}
+								{#key statusPolling.tickCounter}
+									{@render labelValueRow(
+										'Last seen',
+										formatLastSeenShort(device, statusPolling.tickCounter),
+										false,
+										true
+									)}
+								{/key}
+								{@render labelValueRow('Device', getDeviceTypeName(device), false, true)}
+								{@render labelValueRow('Network', getNetworkType(device), false, true)}
+								{@render labelValueRow('Commit', getCommit(device), true, true)}
 							</div>
 						</div>
 					</article>
@@ -655,22 +553,34 @@
 
 				{#if offlineDevices.length > 0}
 					<button
-						class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/30"
+						class="group flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3 text-left transition-colors hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-none"
 						onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
 						aria-expanded={offlineSectionOpen}
+						aria-controls="offline-devices-section"
 					>
-						<span class="text-xs text-[var(--sl-text-3)]">
-							Offline · {offlineDevices.length} device{offlineDevices.length === 1 ? '' : 's'}
-						</span>
-						{#if offlineSectionOpen}
-							<ChevronDown size={14} class="text-[var(--sl-text-3)]" />
-						{:else}
-							<ChevronRight size={14} class="text-[var(--sl-text-3)]" />
-						{/if}
+						<div class="flex items-center gap-2">
+							<ChevronDown
+								size={16}
+								class="shrink-0 text-[var(--sl-text-2)] transition-transform duration-200 {offlineSectionOpen
+									? ''
+									: '-rotate-90'}"
+								aria-hidden="true"
+							/>
+							<span class="text-sm font-medium text-[var(--sl-text-1)]">Offline</span>
+							<span
+								class="rounded-full bg-[var(--sl-bg-elevated)] px-2 py-0.5 text-[0.6875rem] font-semibold text-[var(--sl-text-2)] group-hover:bg-[var(--sl-bg-subtle)]"
+							>
+								{offlineDevices.length}
+							</span>
+						</div>
 					</button>
 
 					{#if offlineSectionOpen}
-						<div class="flex flex-col gap-3" transition:slide={{ duration: 150 }}>
+						<div
+							id="offline-devices-section"
+							class="flex flex-col gap-3"
+							transition:slide={{ duration: 150 }}
+						>
 							{#each offlineDevices as device (device.device_id)}
 								{@const isUnregistered =
 									device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
@@ -679,7 +589,7 @@
 
 								<article
 									class="group overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
-										? 'border-2 border-primary bg-primary/[0.03] dark:bg-primary/[0.06]'
+										? 'border-2 border-primary'
 										: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
 									onclick={() => handleDeviceClick(device)}
 									onkeydown={(e) => {
@@ -692,83 +602,84 @@
 									tabindex="0"
 									aria-label="{getAlias(device)} - Offline"
 								>
-									<!-- Tri-segment status stripe: connection · driving · pending -->
-									<div class="flex h-1 w-full" aria-hidden="true">
-										<span class="flex-1 {getConnectionSegColor(device)}"></span>
-										<span class="flex-1 {getDrivingSegColor(device)}"></span>
-										<span class="flex-1 {getPendingSegColor(device)}"></span>
-									</div>
-
-									<div class="flex items-start gap-3 px-4 py-3.5">
-										<div class="min-w-0 flex-1">
-											<div class="flex items-center gap-2">
-												{#if isRenaming}
-													<input
-														id="alias-{device.device_id}"
-														type="text"
-														value={getAlias(device)}
-														oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-														onblur={() => {
-															renamingDeviceId = null;
-														}}
-														onkeydown={(e) => {
-															if (e.key === 'Enter' || e.key === 'Escape') {
+									<div class="px-4 py-3.5">
+										<div class="flex items-start gap-3">
+											<div class="min-w-0 flex-1">
+												<div class="flex items-center gap-2">
+													<span
+														class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
+														aria-hidden="true"
+													></span>
+													{#if isRenaming}
+														<input
+															id="alias-{device.device_id}"
+															type="text"
+															value={getAlias(device)}
+															oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
+															onblur={() => {
 																renamingDeviceId = null;
-															}
-														}}
-														onclick={(e) => e.stopPropagation()}
-														class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-													/>
-												{:else}
-													<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-														{getAlias(device)}
-													</span>
-													<button
-														type="button"
-														class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-														onclick={(e) => {
-															e.stopPropagation();
-															startRename(device.device_id);
-														}}
-														onkeydown={(e) => e.stopPropagation()}
-														aria-label="Rename {getAlias(device)}"
-													>
-														<Pencil size={12} />
-													</button>
-												{/if}
+															}}
+															onkeydown={(e) => {
+																if (e.key === 'Enter' || e.key === 'Escape') {
+																	renamingDeviceId = null;
+																}
+															}}
+															onclick={(e) => e.stopPropagation()}
+															class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+														/>
+													{:else}
+														<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
+															{getAlias(device)}
+														</span>
+														<button
+															type="button"
+															class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+															onclick={(e) => {
+																e.stopPropagation();
+																startRename(device.device_id);
+															}}
+															onkeydown={(e) => e.stopPropagation()}
+															aria-label="Rename {getAlias(device)}"
+														>
+															<Pencil size={12} />
+														</button>
+													{/if}
+												</div>
+
+												<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">Offline</p>
 											</div>
 
-											<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">Offline</p>
+											<div
+												class="shrink-0"
+												onclick={(e) => e.stopPropagation()}
+												onkeydown={(e) => e.stopPropagation()}
+											>
+												<DeviceRowMenu
+													deviceId={device.device_id}
+													dongleId={isUnregistered ? undefined : device.comma_dongle_id}
+													pairedAt={device.created_at}
+													onRename={() => startRename(device.device_id)}
+													onDeregister={() => openDeregisterModal(device)}
+												/>
+											</div>
+										</div>
 
-											<div class="mt-3 grid grid-cols-3 gap-2">
-												{@render statCell('Version', getVersion(device), false, false)}
-												{@render statCell('Branch', getBranch(device), true, false)}
-												{@render statCell(
+										<div
+											class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5"
+										>
+											{@render labelValueRow('Version', getVersion(device), false, false)}
+											{@render labelValueRow('Branch', getBranch(device), true, false, true)}
+											{#key statusPolling.tickCounter}
+												{@render labelValueRow(
 													'Last seen',
 													formatLastSeenShort(device, statusPolling.tickCounter),
 													false,
 													false
 												)}
-											</div>
-
-											<div class="mt-3 max-w-[280px] space-y-1.5">
-												{@render detailRow('Device', getDeviceTypeName(device), false, false)}
-												{@render detailRow('Commit', getCommit(device), true, false)}
-											</div>
-										</div>
-
-										<div
-											class="shrink-0 pt-0.5"
-											onclick={(e) => e.stopPropagation()}
-											onkeydown={(e) => e.stopPropagation()}
-										>
-											<DeviceRowMenu
-												deviceId={device.device_id}
-												dongleId={isUnregistered ? undefined : device.comma_dongle_id}
-												pairedAt={device.created_at}
-												onRename={() => startRename(device.device_id)}
-												onDeregister={() => openDeregisterModal(device)}
-											/>
+											{/key}
+											{@render labelValueRow('Device', getDeviceTypeName(device), false, false)}
+											{@render labelValueRow('Network', getNetworkType(device), false, false)}
+											{@render labelValueRow('Commit', getCommit(device), true, false)}
 										</div>
 									</div>
 								</article>
