@@ -368,7 +368,7 @@
 						<button
 							onclick={refreshStatus}
 							disabled={refreshing}
-							class="rounded-md p-1 text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							class="flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none disabled:opacity-50"
 							aria-label="Refresh status"
 						>
 							<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
@@ -483,7 +483,7 @@
 					<button
 						onclick={handleForceOffroadClick}
 						disabled={stoppingForce}
-						class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] disabled:opacity-50"
+						class="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none disabled:opacity-50"
 					>
 						{#if stoppingForce}
 							<Loader2 size={13} class="shrink-0 animate-spin" />

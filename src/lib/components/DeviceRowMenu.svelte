@@ -71,9 +71,11 @@
 
 <div class="relative">
 	<button
-		class="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+		class="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:text-[var(--sl-text-1)] focus-visible:outline-none"
 		onclick={toggle}
 		aria-label="Device actions"
+		aria-haspopup="menu"
+		aria-expanded={open}
 	>
 		<EllipsisVertical size={16} />
 	</button>
@@ -89,7 +91,7 @@
 		>
 			{#if onRename}
 				<button
-					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none"
 					onclick={(e) => handleAction(e, onRename)}
 				>
 					<Pencil size={14} />
@@ -167,7 +169,7 @@
 
 			{#if onDownloadBackup}
 				<button
-					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none"
 					onclick={(e) => handleAction(e, onDownloadBackup)}
 					disabled={isDownloading}
 				>
@@ -193,7 +195,7 @@
 			{#if onDeregister}
 				<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
 				<button
-					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-red-600 transition-colors hover:bg-red-500/5 dark:text-red-400"
+					class="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[0.8125rem] text-red-600 transition-colors hover:bg-red-500/5 focus-visible:bg-red-500/5 focus-visible:outline-none dark:text-red-400"
 					onclick={(e) => handleAction(e, onDeregister)}
 				>
 					<Trash2 size={14} />

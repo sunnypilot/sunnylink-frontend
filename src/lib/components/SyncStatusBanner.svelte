@@ -217,7 +217,7 @@
 			{#if failedCount > 0 || driftCount > 0}
 				<span class="ml-auto"></span>
 				<button
-					class="text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+					class="flex h-11 w-11 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-2)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none"
 					onclick={() => {
 						if (failedCount > 0) handleDismissFailed();
 						if (driftCount > 0) handleDismissDrift();
