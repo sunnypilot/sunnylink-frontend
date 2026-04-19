@@ -75,7 +75,7 @@
 	const getPageTitle = (path: string) => {
 		const titles: Record<string, string> = {
 			'/': 'Home',
-			'/dashboard': 'Dashboard',
+			'/dashboard': 'Home',
 			'/dashboard/models': 'Models',
 			'/dashboard/settings/device': 'Device Settings',
 			'/dashboard/settings/toggles': 'Toggles',
@@ -102,9 +102,9 @@
 		}
 	});
 
-	// Dashboard is a standalone top-level item (not a setting)
+	// Home is the standalone top-level item (not a setting)
 	let dashboardItem: NavItem | null = $derived(
-		authState.isAuthenticated ? { icon: House, label: 'Dashboard', href: '/dashboard' } : null
+		authState.isAuthenticated ? { icon: House, label: 'Home', href: '/dashboard' } : null
 	);
 
 	let navSections = $derived<NavSection[]>(

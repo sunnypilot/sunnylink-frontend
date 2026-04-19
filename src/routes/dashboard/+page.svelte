@@ -380,7 +380,7 @@
 				<h1
 					class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
 				>
-					Dashboard
+					Home
 				</h1>
 				<p class="mt-1 text-[0.8125rem] text-[var(--sl-text-2)]">
 					{devices.length} device{devices.length === 1 ? '' : 's'}

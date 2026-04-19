@@ -5,7 +5,6 @@ const STORAGE_KEY = 'sunnylink_preferences';
 export interface PreferencesData {
 	debugMode: boolean;
 	showDeviceOnlineHelp: boolean;
-	showDashboardNudge: boolean;
 	autoRefresh: boolean;
 	defaultLandingPage: 'overview' | 'steering' | 'device' | 'last_visited';
 	notifyDeviceOffline: boolean;
@@ -22,7 +21,6 @@ function detectSaveData(): boolean {
 const DEFAULTS: PreferencesData = {
 	debugMode: false,
 	showDeviceOnlineHelp: true,
-	showDashboardNudge: true,
 	autoRefresh: !detectSaveData(),
 	defaultLandingPage: 'overview',
 	notifyDeviceOffline: true,
@@ -33,7 +31,6 @@ const DEFAULTS: PreferencesData = {
 class PreferencesStore {
 	debugMode = $state(DEFAULTS.debugMode);
 	showDeviceOnlineHelp = $state(DEFAULTS.showDeviceOnlineHelp);
-	showDashboardNudge = $state(DEFAULTS.showDashboardNudge);
 	autoRefresh = $state(DEFAULTS.autoRefresh);
 	defaultLandingPage = $state<PreferencesData['defaultLandingPage']>(DEFAULTS.defaultLandingPage);
 	notifyDeviceOffline = $state(DEFAULTS.notifyDeviceOffline);
@@ -62,8 +59,6 @@ class PreferencesStore {
 				if (parsed.debugMode !== undefined) this.debugMode = parsed.debugMode;
 				if (parsed.showDeviceOnlineHelp !== undefined)
 					this.showDeviceOnlineHelp = parsed.showDeviceOnlineHelp;
-				if (parsed.showDashboardNudge !== undefined)
-					this.showDashboardNudge = parsed.showDashboardNudge;
 				if (parsed.autoRefresh !== undefined) this.autoRefresh = parsed.autoRefresh;
 				if (parsed.defaultLandingPage !== undefined)
 					this.defaultLandingPage = parsed.defaultLandingPage;
@@ -108,7 +103,6 @@ class PreferencesStore {
 		const data: PreferencesData = {
 			debugMode: this.debugMode,
 			showDeviceOnlineHelp: this.showDeviceOnlineHelp,
-			showDashboardNudge: this.showDashboardNudge,
 			autoRefresh: this.autoRefresh,
 			defaultLandingPage: this.defaultLandingPage,
 			notifyDeviceOffline: this.notifyDeviceOffline,

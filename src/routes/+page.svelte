@@ -96,7 +96,7 @@
 					onclick={handleMainAction}
 					class="rounded-full bg-[#594AE2] px-5 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#4839cf] hover:shadow-[0_0_20px_-5px_#594AE2] active:scale-95"
 				>
-					{authState.isAuthenticated ? 'Dashboard' : 'Sign In'}
+					{authState.isAuthenticated ? 'Home' : 'Sign In'}
 				</button>
 			</div>
 		</div>
@@ -129,7 +129,7 @@
 						onclick={handleMainAction}
 						class="w-full rounded-lg bg-[#594AE2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4839cf]"
 					>
-						{authState.isAuthenticated ? 'Dashboard' : 'Sign In'}
+						{authState.isAuthenticated ? 'Home' : 'Sign In'}
 					</button>
 				</div>
 			</div>
@@ -171,7 +171,7 @@
 							onclick={handleMainAction}
 							class="group flex items-center justify-center gap-2 rounded-xl bg-[#594AE2] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#594AE2]/20 transition-all hover:-translate-y-1 hover:bg-[#4839cf] hover:shadow-xl hover:shadow-[#594AE2]/30"
 						>
-							{authState.isAuthenticated ? 'Go to sunnylink Dashboard' : 'Sign in via sunnylink'}
+							{authState.isAuthenticated ? 'Go to sunnylink Home' : 'Sign in via sunnylink'}
 							<ArrowRight class="h-5 w-5 transition-transform group-hover:translate-x-1" />
 						</button>
 						<a

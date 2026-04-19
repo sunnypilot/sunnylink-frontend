@@ -19,7 +19,7 @@
 	];
 
 	const landingPageOptions: { value: string; label: string }[] = [
-		{ value: 'overview', label: 'Dashboard' },
+		{ value: 'overview', label: 'Home' },
 		{ value: 'steering', label: 'Steering' },
 		{ value: 'device', label: 'Device' },
 		{ value: 'last_visited', label: 'Last Visited' }
