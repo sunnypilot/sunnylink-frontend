@@ -279,7 +279,7 @@
 									<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></div>
 									<span class="text-xs text-amber-700 dark:text-amber-400">Checking...</span>
 								{/if}
-								<span class="text-xs text-[var(--sl-text-3)]">• {device.device_id}</span>
+								<span class="text-xs text-[var(--sl-text-3)]">•</span><span class="font-mono text-xs text-[var(--sl-text-2)]">{device.device_id}</span>
 							</span>
 						</span>
 						{#if isSelected}
@@ -329,7 +329,7 @@
 											<span class="flex items-center gap-1.5">
 												<span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>
 												<span class="text-xs text-red-600 dark:text-red-400">Offline</span>
-												<span class="text-xs text-[var(--sl-text-3)]">• {device.device_id}</span>
+												<span class="text-xs text-[var(--sl-text-3)]">•</span><span class="font-mono text-xs text-[var(--sl-text-2)]">{device.device_id}</span>
 											</span>
 										</span>
 										{#if isSelected}

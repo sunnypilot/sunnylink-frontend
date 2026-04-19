@@ -97,45 +97,71 @@
 				</button>
 			{/if}
 
+			<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
+			<div class="px-2.5 pt-1 pb-0.5">
+				<span
+					class="text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+					>Identity</span
+				>
+			</div>
+
 			<button
-				class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+				class="group flex min-h-[44px] w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none"
 				onclick={(e) => copyToClipboard(e, deviceId, 'sunnylink')}
+				aria-label="Copy sunnylink Device ID {deviceId}"
 			>
-				<span class="relative flex h-[14px] w-[14px] items-center justify-center">
+				<span class="min-w-0 flex-1">
+					<span
+						class="block text-[0.6875rem] tracking-wide text-[var(--sl-text-3)] uppercase"
+						>sunnylink</span
+					>
+					<span
+						class="block truncate font-mono text-[0.8125rem] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+						>{deviceId}</span
+					>
+				</span>
+				<span class="relative flex h-[14px] w-[14px] shrink-0 items-center justify-center">
 					{#if copiedField === 'sunnylink'}
 						<span in:fly={{ y: 4, duration: 200 }} out:fade={{ duration: 100 }}>
 							<Check size={14} class="text-emerald-600 dark:text-emerald-400" />
 						</span>
 					{:else}
-						<Copy size={14} />
+						<Copy
+							size={14}
+							class="text-[var(--sl-text-3)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+						/>
 					{/if}
 				</span>
-				{#if copiedField === 'sunnylink'}
-					<span class="text-emerald-600 dark:text-emerald-400">Copied!</span>
-				{:else}
-					Copy sunnylink Device ID
-				{/if}
 			</button>
 
 			{#if dongleId}
 				<button
-					class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="group flex min-h-[44px] w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none"
 					onclick={(e) => copyToClipboard(e, dongleId, 'dongle')}
+					aria-label="Copy comma Dongle ID {dongleId}"
 				>
-					<span class="relative flex h-[14px] w-[14px] items-center justify-center">
+					<span class="min-w-0 flex-1">
+						<span
+							class="block text-[0.6875rem] tracking-wide text-[var(--sl-text-3)] uppercase"
+							>comma dongle</span
+						>
+						<span
+							class="block truncate font-mono text-[0.8125rem] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+							>{dongleId}</span
+						>
+					</span>
+					<span class="relative flex h-[14px] w-[14px] shrink-0 items-center justify-center">
 						{#if copiedField === 'dongle'}
 							<span in:fly={{ y: 4, duration: 200 }} out:fade={{ duration: 100 }}>
 								<Check size={14} class="text-emerald-600 dark:text-emerald-400" />
 							</span>
 						{:else}
-							<Copy size={14} />
+							<Copy
+								size={14}
+								class="text-[var(--sl-text-3)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+							/>
 						{/if}
 					</span>
-					{#if copiedField === 'dongle'}
-						<span class="text-emerald-600 dark:text-emerald-400">Copied!</span>
-					{:else}
-						Copy comma Dongle ID
-					{/if}
 				</button>
 			{/if}
 

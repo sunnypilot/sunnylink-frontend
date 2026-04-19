@@ -17,6 +17,7 @@
 		Copy,
 		Check,
 		ChevronRight,
+		ChevronDown,
 		Monitor,
 		GitBranch
 	} from 'lucide-svelte';
@@ -332,9 +333,10 @@
 	<div class="relative" bind:this={pillRef}>
 		<button
 			onclick={togglePopover}
-			class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors duration-[var(--dur-fast)] hover:brightness-110 {pillState.bgClass} {pillState.borderClass}"
-			aria-label="Device status: {pillState.label}"
+			class="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors duration-[var(--dur-fast)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none {pillState.bgClass} {pillState.borderClass}"
+			aria-label="Device status: {pillState.label}, click to view details"
 			aria-expanded={popoverOpen}
+			aria-haspopup="dialog"
 		>
 			<span
 				class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
@@ -343,6 +345,12 @@
 			<span class="text-[0.75rem] leading-none font-medium {pillState.textClass}">
 				{pillState.label}
 			</span>
+			<ChevronDown
+				size={12}
+				class="shrink-0 transition-transform duration-150 {pillState.textClass} opacity-70 {popoverOpen
+					? 'rotate-180'
+					: ''}"
+			/>
 		</button>
 
 		{#if popoverOpen}
@@ -491,31 +499,42 @@
 				{/if}
 
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-				<div class="flex items-center justify-between">
+				<div class="px-1.5 pt-1.5 pb-1">
+					<div
+						class="px-1 pb-0.5 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+					>
+						Device ID
+					</div>
 					<button
 						onclick={copyDeviceId}
-						class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
-						aria-label="Copy device ID"
+						class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						aria-label="Copy device ID {deviceId}"
 					>
+						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span>
 						{#if copiedId}
-							<Check size={11} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
-							<span class="text-emerald-600 dark:text-emerald-400">Copied</span>
+							<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+								<Check size={12} class="shrink-0" />
+								Copied
+							</span>
 						{:else}
-							<Copy size={11} class="shrink-0" />
-							<span>Copy Device ID</span>
+							<Copy
+								size={12}
+								class="shrink-0 text-[var(--sl-text-3)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+							/>
 						{/if}
 					</button>
-					<button
-						onclick={() => {
-							closePopover();
-							goto('/dashboard');
-						}}
-						class="flex items-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[0.6875rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:bg-[var(--sl-bg-subtle)]"
-					>
-						<span>Overview</span>
-						<ChevronRight size={12} />
-					</button>
 				</div>
+				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+				<button
+					onclick={() => {
+						closePopover();
+						goto('/dashboard');
+					}}
+					class="flex min-h-[36px] w-full items-center justify-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[0.75rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:bg-[var(--sl-bg-subtle)]"
+				>
+					<span>Back to Overview</span>
+					<ChevronRight size={12} />
+				</button>
 			</div>
 		{/if}
 	</div>
