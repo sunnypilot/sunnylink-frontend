@@ -239,13 +239,14 @@
 		const { pwaInfo } = await import('virtual:pwa-info');
 		if (pwaInfo) {
 			const { registerSW } = await import('virtual:pwa-register');
-			const updateSW = registerSW({
+			// registerType: 'autoUpdate' (vite.config.ts) handles SW activation itself.
+			// A manual updateSW(true) here reloads the page on every SW update — in dev
+			// that fires on HMR rebuilds and breaks the auth-callback → dashboard nav
+			// mid-flight. Leave onNeedRefresh as a no-op.
+			registerSW({
 				immediate: true,
 				onRegistered(r) {
 					console.log(`SW Registered: ${r}`);
-				},
-				onNeedRefresh() {
-					updateSW(true);
 				},
 				onRegisterError(error) {
 					console.log('SW registration error', error);

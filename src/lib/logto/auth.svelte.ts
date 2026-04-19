@@ -57,6 +57,11 @@ class AuthState {
 	isAuthenticated = $state(false);
 	profile = $state<UserInfoResponse | undefined>(undefined);
 
+	/** Cached in-flight init() promise. Ensures concurrent callers share one init pass
+	 *  instead of racing `loading`/`isAuthenticated` writes (constructor auto-init vs
+	 *  auth/callback's explicit init). */
+	#initPromise: Promise<void> | null = null;
+
 	constructor() {
 		if (browser && logtoClient) {
 			this.init();
@@ -64,10 +69,19 @@ class AuthState {
 	}
 
 	/**
-	 * Initialize or re-initialize auth state.
-	 * fetchUserInfo() is bounded by a 5s timeout to prevent navigation hangs.
+	 * Initialize or re-initialize auth state. Idempotent — concurrent calls await
+	 * the same promise. fetchUserInfo() is bounded by a 5s timeout to prevent
+	 * navigation hangs.
 	 */
-	async init() {
+	init(): Promise<void> {
+		if (this.#initPromise) return this.#initPromise;
+		this.#initPromise = this.#doInit().finally(() => {
+			this.#initPromise = null;
+		});
+		return this.#initPromise;
+	}
+
+	async #doInit(): Promise<void> {
 		if (!logtoClient) return;
 		this.loading = true;
 

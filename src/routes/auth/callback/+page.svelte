@@ -1,14 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import type { UserInfoResponse } from '@logto/browser';
 	import { goto, invalidateAll } from '$app/navigation';
-
-	const auth = $state({
-		loading: true,
-		isAuthenticated: false,
-		profile: undefined as UserInfoResponse | undefined
-	});
 
 	onMount(async () => {
 		if (!logtoClient) return;
@@ -20,7 +13,8 @@
 			await invalidateAll();
 			goto('/dashboard');
 		} else {
-			goto('/login');
+			// Sign-in failed — back to landing (no /login route exists)
+			goto('/');
 		}
 	});
 </script>

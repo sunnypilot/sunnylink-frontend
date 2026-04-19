@@ -357,7 +357,12 @@
 	let pendingChanges = $derived(getPendingChanges(devices));
 </script>
 
-{#if devices.length === 0 && !deviceState.pairedDevicesLoaded}
+{#if authState.loading}
+	<!-- Auth state still resolving — don't render content and don't let the guard $effect fire prematurely -->
+	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+{:else if !authState.isAuthenticated}
+	<!-- Guard $effect above handles goto('/'); render nothing while redirect is in flight -->
+{:else if devices.length === 0 && !deviceState.pairedDevicesLoaded}
 	<!-- Cold start: no cached devices, API hasn't returned yet — show skeleton -->
 	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 {:else}

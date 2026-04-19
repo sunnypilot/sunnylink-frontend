@@ -44,6 +44,10 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
 				navigateFallback: '/',
+				// Never serve the SPA shell in place of the Logto sign-in callback —
+				// /auth/callback must reach the live app so handleSignInCallback() can
+				// process ?code= params.
+				navigateFallbackDenylist: [/^\/auth\//],
 				cleanupOutdatedCaches: true
 			},
 			devOptions: {
