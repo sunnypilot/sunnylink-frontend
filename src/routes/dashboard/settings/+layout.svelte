@@ -562,17 +562,14 @@
 					</p>
 				</div>
 			</div>
-			<div class="border-t border-[var(--sl-border)] px-4 py-2.5">
-				<label class="flex cursor-pointer items-center gap-2">
-					<input
-						type="checkbox"
-						class="checkbox border-slate-500 checkbox-xs checkbox-primary"
-						onchange={(e: Event) => {
-							if ((e.target as HTMLInputElement).checked) dismissHelp(true);
-						}}
-					/>
-					<span class="text-xs text-[var(--sl-text-2)]">Don't show again</span>
-				</label>
+			<div class="flex justify-end border-t border-[var(--sl-border)] px-4 py-2.5">
+				<button
+					type="button"
+					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs"
+					onclick={() => dismissHelp(true)}
+				>
+					Don't show again
+				</button>
 			</div>
 		</div>
 	</div>
