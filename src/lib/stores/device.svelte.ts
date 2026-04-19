@@ -20,6 +20,7 @@ export const deviceState = $state({
 		string,
 		{
 			started: boolean;
+			engaged: boolean;
 			networkType: string;
 			networkMetered: boolean;
 			freeSpacePercent: number;

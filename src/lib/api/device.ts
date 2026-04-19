@@ -343,12 +343,20 @@ export async function fetchDeviceMessage(
 	deviceId: string,
 	token: string
 ): Promise<Record<string, unknown> | null> {
+	return fetchCerealService(deviceId, token, 'deviceState');
+}
+
+async function fetchCerealService(
+	deviceId: string,
+	token: string,
+	service: string
+): Promise<Record<string, unknown> | null> {
 	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort('getMessage timeout'), 15_000);
+	const timeoutId = setTimeout(() => controller.abort(`${service} getMessage timeout`), 15_000);
 
 	try {
 		const response = await customFetch(
-			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
+			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=${encodeURIComponent(service)}`,
 			{
 				headers: { Authorization: `Bearer ${token}` },
 				signal: controller.signal
@@ -360,10 +368,10 @@ export async function fetchDeviceMessage(
 		}
 
 		const data = await response.json();
-		return data?.deviceState ?? null;
+		return (data?.[service] as Record<string, unknown>) ?? null;
 	} catch (e) {
 		if ((e as { name?: string })?.name === 'AbortError') return null;
-		console.error(`fetchDeviceMessage: failed for ${deviceId}:`, e);
+		console.error(`fetchCerealService(${service}): failed for ${deviceId}:`, e);
 		return null;
 	} finally {
 		clearTimeout(timeoutId);
@@ -439,17 +447,31 @@ export async function checkDeviceStatus(
 	}
 
 	try {
-		// Phase 1: getMessage + getParamsMetadata + OffroadMode in parallel
-		const [messageResult, metadataResult, forceOffroadResult] = await Promise.allSettled([
+		// Phase 1: getMessage + getParamsMetadata + OffroadMode in parallel.
+		// Also pull selfdriveState + selfdriveStateSP so the rule evaluator
+		// can resolve `not_engaged` rules without an extra round-trip.
+		const [
+			messageResult,
+			metadataResult,
+			forceOffroadResult,
+			selfdriveResult,
+			selfdriveSpResult
+		] = await Promise.allSettled([
 			fetchDeviceMessage(deviceId, token),
 			fetchParamsMetadata(deviceId, token),
-			fetchForceOffroadStatus(deviceId, token)
+			fetchForceOffroadStatus(deviceId, token),
+			fetchCerealService(deviceId, token, 'selfdriveState'),
+			fetchCerealService(deviceId, token, 'selfdriveStateSP')
 		]);
 
 		const deviceMessage = messageResult.status === 'fulfilled' ? messageResult.value : null;
 		const compressedSettings = metadataResult.status === 'fulfilled' ? metadataResult.value : null;
 		const forceOffroad =
 			forceOffroadResult.status === 'fulfilled' ? forceOffroadResult.value : null;
+		const selfdriveState =
+			selfdriveResult.status === 'fulfilled' ? selfdriveResult.value : null;
+		const selfdriveStateSP =
+			selfdriveSpResult.status === 'fulfilled' ? selfdriveSpResult.value : null;
 
 		// Check if any call had a network/auth error (rejected) vs endpoint not supported (fulfilled null)
 		const hasNetworkError =
@@ -481,6 +503,11 @@ export async function checkDeviceStatus(
 		// Store offroad from getMessage (started is always present in cereal deviceState)
 		if (deviceMessage !== null) {
 			const started = (deviceMessage.started as boolean) ?? false;
+			const selfdriveEnabled = (selfdriveState?.enabled as boolean) ?? false;
+			const madsEnabled =
+				((selfdriveStateSP?.mads as Record<string, unknown> | undefined)?.enabled as boolean) ??
+				false;
+			const engaged = started && (selfdriveEnabled || madsEnabled);
 			deviceState.offroadStatuses[deviceId] = {
 				isOffroad: !started,
 				forceOffroad: forceOffroad ?? false
@@ -488,6 +515,7 @@ export async function checkDeviceStatus(
 
 			deviceState.deviceTelemetry[deviceId] = {
 				started,
+				engaged,
 				networkType: (deviceMessage.networkType as string) ?? 'unknown',
 				networkMetered: (deviceMessage.networkMetered as boolean) ?? false,
 				freeSpacePercent: (deviceMessage.freeSpacePercent as number) ?? 0,

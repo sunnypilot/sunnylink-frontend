@@ -53,7 +53,8 @@
 	let ruleContext: RuleContext = $derived({
 		capabilities: schemaState.capabilities[deviceId] ?? null,
 		paramValues: deviceState.deviceValues[deviceId] ?? {},
-		isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true
+		isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
+		engaged: deviceState.deviceTelemetry[deviceId]?.engaged ?? false
 	});
 
 	let visible = $derived(isVisible(item.visibility, ruleContext));

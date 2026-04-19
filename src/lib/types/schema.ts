@@ -9,6 +9,7 @@
 
 export type Rule =
 	| OffroadOnlyRule
+	| NotEngagedRule
 	| CapabilityRule
 	| ParamRule
 	| ParamCompareRule
@@ -18,6 +19,10 @@ export type Rule =
 
 export interface OffroadOnlyRule {
 	type: 'offroad_only';
+}
+
+export interface NotEngagedRule {
+	type: 'not_engaged';
 }
 
 export interface CapabilityRule {
@@ -55,6 +60,7 @@ export interface AllRule {
 }
 
 export interface Capabilities {
+	protocol_version?: number;
 	has_longitudinal_control: boolean;
 	has_icbm: boolean;
 	icbm_available: boolean;
@@ -71,6 +77,8 @@ export interface Capabilities {
 	has_stop_and_go: boolean;
 	stock_longitudinal: boolean;
 	device_type: string;
+	subaru_has_sng?: boolean;
+	hyundai_alpha_long_available?: boolean;
 }
 
 export type WidgetType = 'toggle' | 'option' | 'multiple_button' | 'button' | 'info';
@@ -98,6 +106,7 @@ export interface SchemaItem {
 	action?: string;
 	needs_onroad_cycle?: boolean;
 	blocked?: boolean;
+	requires_attestation?: boolean;
 	title_param_suffix?: {
 		param: string;
 		values: Record<string, string>;
@@ -121,6 +130,7 @@ export interface PanelSection {
 	sub_panels?: SubPanel[];
 	enablement?: Rule[];
 	visibility?: Rule[];
+	attestation_required?: boolean;
 }
 
 export interface Panel {

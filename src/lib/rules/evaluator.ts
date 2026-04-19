@@ -6,6 +6,9 @@
  *
  * Rule types:
  * - offroad_only: true when device is offroad
+ * - not_engaged: true when the vehicle is not actively engaged (matches
+ *   Raylib `engaged = started AND (selfdriveState.enabled OR
+ *   selfdriveStateSP.mads.enabled)`)
  * - capability: checks a field from SettingsCapabilities
  * - param: checks a current param value for equality
  * - param_compare: checks a param value with >, <, >=, <=
@@ -27,6 +30,7 @@ export interface RuleContext {
 	capabilities: Capabilities | null;
 	paramValues: Record<string, unknown>;
 	isOffroad: boolean;
+	engaged: boolean;
 }
 
 /**
@@ -52,6 +56,9 @@ export function evaluateRule(rule: Rule, ctx: RuleContext): boolean {
 	switch (rule.type) {
 		case 'offroad_only':
 			return ctx.isOffroad;
+
+		case 'not_engaged':
+			return !ctx.engaged;
 
 		case 'capability': {
 			const value = ctx.capabilities![rule.field as keyof Capabilities];
@@ -193,6 +200,9 @@ function _describeFailedRule(
 	switch (rule.type) {
 		case 'offroad_only':
 			return null;
+
+		case 'not_engaged':
+			return 'Disengage the vehicle to change this setting';
 
 		case 'capability': {
 			// When no car is fingerprinted (brand empty), show a vehicle-start prompt

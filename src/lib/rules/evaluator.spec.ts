@@ -34,6 +34,7 @@ function ctx(overrides: Partial<RuleContext> = {}): RuleContext {
 		},
 		paramValues: {},
 		isOffroad: true,
+		engaged: false,
 		...overrides
 	};
 }
