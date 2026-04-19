@@ -198,7 +198,7 @@
 			{#if driftCount > 0}
 				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
 					<RefreshCw size={14} />
-					{driftCount} drifted
+					{driftCount} {driftCount === 1 ? 'setting' : 'settings'} modified on device
 				</span>
 				<button
 					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"

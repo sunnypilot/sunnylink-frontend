@@ -506,11 +506,11 @@
 					{/if}
 					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
 						<Tooltip
-							text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+							text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
 						>
 							<span
 								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
-								>Restart</span
+								>Reboot to apply</span
 							>
 						</Tooltip>
 					{/if}
@@ -637,11 +637,11 @@
 					{/if}
 					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
 						<Tooltip
-							text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+							text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
 						>
 							<span
 								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
-								>Restart</span
+								>Reboot to apply</span
 							>
 						</Tooltip>
 					{/if}
@@ -732,11 +732,11 @@
 				{/if}
 				{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
 					<Tooltip
-						text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+						text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
 					>
 						<span
 							class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
-							>Restart</span
+							>Reboot to apply</span
 						>
 					</Tooltip>
 				{/if}
@@ -925,11 +925,11 @@
 					{/if}
 					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
 						<Tooltip
-							text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+							text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
 						>
 							<span
 								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
-								>Restart</span
+								>Reboot to apply</span
 							>
 						</Tooltip>
 					{/if}
@@ -1013,11 +1013,11 @@
 				{/if}
 				{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
 					<Tooltip
-						text="For this setting to take effect, a restart of sunnypilot is required if the car is powered on."
+						text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
 					>
 						<span
 							class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
-							>Restart</span
+							>Reboot to apply</span
 						>
 					</Tooltip>
 				{/if}
