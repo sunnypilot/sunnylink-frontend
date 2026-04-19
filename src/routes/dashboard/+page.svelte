@@ -9,7 +9,20 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { Save, Plus, Loader2, ChevronDown, Pencil } from 'lucide-svelte';
+	import {
+		Save,
+		Plus,
+		Loader2,
+		ChevronDown,
+		Pencil,
+		ArrowRight,
+		HardDrive,
+		ToggleLeft,
+		Bot,
+		Gauge,
+		Wind,
+		Map as MapIcon
+	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
@@ -27,6 +40,16 @@
 	let deviceToDeregisterIsOnline = $state<boolean>(false);
 	let renamingDeviceId = $state<string | null>(null);
 	let offlineSectionOpen = $state(false);
+	let expandedDeviceId = $state<string | null>(null);
+
+	const TILES: { label: string; icon: typeof HardDrive; route: string }[] = [
+		{ label: 'Device', icon: HardDrive, route: '/dashboard/settings/device' },
+		{ label: 'Toggles', icon: ToggleLeft, route: '/dashboard/settings/toggles' },
+		{ label: 'Models', icon: Bot, route: '/dashboard/models' },
+		{ label: 'Steering', icon: Gauge, route: '/dashboard/settings/steering' },
+		{ label: 'Cruise', icon: Wind, route: '/dashboard/settings/cruise' },
+		{ label: 'OSM', icon: MapIcon, route: '/dashboard/osm' }
+	];
 
 	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
 		if (!deviceId || deviceState.backupState.isDownloading) return;
@@ -322,9 +345,18 @@
 		return deviceState.lastSeenOnline[device.device_id] ?? null;
 	}
 
-	function handleDeviceClick(device: any) {
+	function toggleExpand(device: any) {
+		if (expandedDeviceId === device.device_id) {
+			expandedDeviceId = null;
+			return;
+		}
+		expandedDeviceId = device.device_id;
 		deviceState.setSelectedDevice(device.device_id);
-		goto('/dashboard/settings/device');
+	}
+
+	function navToTile(device: any, route: string) {
+		deviceState.setSelectedDevice(device.device_id);
+		goto(route);
 	}
 
 	// Use cached devices from deviceState for instant rendering; update when API returns
@@ -429,6 +461,45 @@
 				</div>
 			{/snippet}
 
+			{#snippet expandedActions(device: any)}
+				<div
+					class="border-t border-[var(--sl-border-muted)] px-4 pt-3 pb-4"
+					transition:slide={{ duration: 200 }}
+				>
+					<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+						{#each TILES as t}
+							{@const Icon = t.icon}
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									navToTile(device, t.route);
+								}}
+								onkeydown={(e) => e.stopPropagation()}
+								class="flex aspect-square min-h-[88px] flex-col items-center justify-center gap-2 rounded-xl bg-[var(--sl-bg-elevated)] px-3 py-4 transition-colors hover:bg-[var(--sl-bg-subtle)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-2 focus-visible:outline-primary"
+							>
+								<Icon size={24} class="text-[var(--sl-text-2)]" />
+								<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+									>{t.label}</span
+								>
+							</button>
+						{/each}
+					</div>
+					<button
+						type="button"
+						onclick={(e) => {
+							e.stopPropagation();
+							navToTile(device, '/dashboard/settings/device');
+						}}
+						onkeydown={(e) => e.stopPropagation()}
+						class="mt-3 flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-none"
+					>
+						<span>Open full settings</span>
+						<ArrowRight size={16} class="shrink-0 text-[var(--sl-text-3)]" />
+					</button>
+				</div>
+			{/snippet}
+
 			<div class="flex flex-col gap-3" role="list" aria-label="Device list">
 				{#each onlineDevices as device (device.device_id)}
 					{@const isLoading =
@@ -439,19 +510,24 @@
 					{@const isRenaming = renamingDeviceId === device.device_id}
 					{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
+					{@const isExpanded = expandedDeviceId === device.device_id}
 					<article
-						class="group overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+						class="group rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 							? 'border-2 border-primary'
 							: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-						onclick={() => handleDeviceClick(device)}
+						onclick={() => toggleExpand(device)}
 						onkeydown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault();
-								handleDeviceClick(device);
+								toggleExpand(device);
+							} else if (e.key === 'Escape' && isExpanded) {
+								e.preventDefault();
+								expandedDeviceId = null;
 							}
 						}}
 						role="listitem"
 						tabindex="0"
+						aria-expanded={isExpanded}
 						aria-label="{getAlias(device)} - {getStatusText(device)}"
 						aria-busy={isLoading ? 'true' : undefined}
 					>
@@ -474,7 +550,9 @@
 													renamingDeviceId = null;
 												}}
 												onkeydown={(e) => {
+													e.stopPropagation();
 													if (e.key === 'Enter' || e.key === 'Escape') {
+														e.preventDefault();
 														renamingDeviceId = null;
 													}
 												}}
@@ -548,6 +626,9 @@
 								{@render labelValueRow('Commit', getCommit(device), true, true)}
 							</div>
 						</div>
+						{#if isExpanded}
+							{@render expandedActions(device)}
+						{/if}
 					</article>
 				{/each}
 
@@ -587,19 +668,24 @@
 								{@const isRenaming = renamingDeviceId === device.device_id}
 								{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
+								{@const isExpanded = expandedDeviceId === device.device_id}
 								<article
-									class="group overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+									class="group rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 										? 'border-2 border-primary'
 										: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-									onclick={() => handleDeviceClick(device)}
+									onclick={() => toggleExpand(device)}
 									onkeydown={(e) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
-											handleDeviceClick(device);
+											toggleExpand(device);
+										} else if (e.key === 'Escape' && isExpanded) {
+											e.preventDefault();
+											expandedDeviceId = null;
 										}
 									}}
 									role="listitem"
 									tabindex="0"
+									aria-expanded={isExpanded}
 									aria-label="{getAlias(device)} - Offline"
 								>
 									<div class="px-4 py-3.5">
@@ -620,7 +706,9 @@
 																renamingDeviceId = null;
 															}}
 															onkeydown={(e) => {
+																e.stopPropagation();
 																if (e.key === 'Enter' || e.key === 'Escape') {
+																	e.preventDefault();
 																	renamingDeviceId = null;
 																}
 															}}
@@ -682,6 +770,9 @@
 											{@render labelValueRow('Commit', getCommit(device), true, false)}
 										</div>
 									</div>
+									{#if isExpanded}
+										{@render expandedActions(device)}
+									{/if}
 								</article>
 							{/each}
 						</div>
