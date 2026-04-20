@@ -632,9 +632,12 @@
 				</div>
 			</div>
 		{/await}
-	{:else if !useSchema && !isDeviceOfflineOrError && !settings && !categorySettings.length}
-		<!-- Waiting for device connection + schema/legacy settings to load.
-		     Show a non-blocking connecting state instead of an infinite spinner. -->
+	{:else if !isDeviceOfflineOrError && (schemaLoading || (!useSchema && !settings && !categorySettings.length))}
+		<!-- Hold the rendering branch until the schema fetch resolves one way or
+		     the other. Otherwise the page momentarily renders the legacy branch
+		     (no description, tight title→card gap) before the schema arrives and
+		     the layout snaps to the wider schema branch — visible jank on fresh
+		     loads. Same reasoning when settings are still in-flight. -->
 		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 			<div
 				class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
