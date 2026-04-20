@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import LogtoClient, { type UserInfoResponse } from '@logto/browser';
+import LogtoClient, { type UserInfoResponse, LogtoRequestError } from '@logto/browser';
 import { PUBLIC_LOGTO_ENDPOINT, PUBLIC_LOGTO_APP_ID } from '$env/static/public';
 
 const config = {
@@ -85,22 +85,53 @@ class AuthState {
 		if (!logtoClient) return;
 		this.loading = true;
 
-		try {
-			this.isAuthenticated = await logtoClient.isAuthenticated();
+		// Compute the final auth result locally and commit to reactive state ONCE at the end.
+		// Writing `isAuthenticated = true` before confirming fetchUserInfo succeeds caused a
+		// transient true → false flicker when the server-side refresh grant was invalid, which
+		// triggered the layout's `$effect(() => isAuthenticated && invalidate('app:devices'))`
+		// cascade: load → 401 → refreshSession → init → flicker again → loop.
+		let finalAuthed = false;
+		let finalProfile: UserInfoResponse | undefined = undefined;
 
-			if (this.isAuthenticated) {
-				// 5s timeout — fetchUserInfo can hang on stale sessions
-				const profile = await withTimeout(logtoClient.fetchUserInfo(), 5000);
-				if (profile) {
-					this.profile = profile;
+		try {
+			if (await logtoClient.isAuthenticated()) {
+				try {
+					// 5s timeout — fetchUserInfo can hang on stale sessions. The SDK auto-refreshes
+					// the access token via the refresh token here, so a revoked/invalid grant
+					// surfaces as a LogtoRequestError from this call.
+					const profile = await withTimeout(logtoClient.fetchUserInfo(), 5000);
+					if (profile) {
+						finalAuthed = true;
+						finalProfile = profile;
+					}
+					// Timeout (profile === undefined): treat as unauthenticated rather than committing
+					// a half-authenticated state. User retries via Sign In; no cascade.
+				} catch (e) {
+					// Distinguish refresh-grant failure from transient network failure. Only the
+					// former should wipe local tokens — clearing on a network blip would sign the
+					// user out whenever they lose connectivity briefly, which is unacceptable UX.
+					//
+					// `LogtoRequestError` is thrown only when the server responded with a non-2xx
+					// and a parseable OIDC error body (see SDK requester.js). `fetch()` failures,
+					// timeouts, and CORS errors throw native `TypeError`/`AbortError` instead, so
+					// they slip past this branch and leave tokens intact for the next try.
+					if (e instanceof LogtoRequestError) {
+						console.error('Auth init: refresh grant invalid, clearing stale tokens', e);
+						try {
+							await logtoClient.clearAllTokens();
+						} catch (clearErr) {
+							console.error('Failed to clear stale tokens:', clearErr);
+						}
+					} else {
+						console.error('Auth init: transient fetchUserInfo failure, keeping tokens', e);
+					}
 				}
-				// If timeout, keep isAuthenticated true but profile may be stale
 			}
 		} catch (e) {
 			console.error('Auth init error:', e);
-			this.isAuthenticated = false;
-			this.profile = undefined;
 		} finally {
+			this.isAuthenticated = finalAuthed;
+			this.profile = finalProfile;
 			this.loading = false;
 		}
 	}
