@@ -64,6 +64,27 @@
 		});
 	}
 
+	// Mobile keyboard squishes the visual viewport but `100dvh` doesn't
+	// always react on iOS, so the list ends up extending behind the keyboard
+	// with the bottom rows unreachable. Track `visualViewport.height` and
+	// pin the container to it so results stay scrollable above the keyboard —
+	// same pattern as Linear/Slack command bars.
+	let viewportHeight = $state<number | null>(null);
+	$effect(() => {
+		if (!searchState.isOpen || typeof window === 'undefined') return;
+		const vv = window.visualViewport;
+		if (!vv) return;
+		const update = () => (viewportHeight = vv.height);
+		update();
+		vv.addEventListener('resize', update);
+		vv.addEventListener('scroll', update);
+		return () => {
+			vv.removeEventListener('resize', update);
+			vv.removeEventListener('scroll', update);
+			viewportHeight = null;
+		};
+	});
+
 	function handleSelect(result: SearchResult) {
 		const { setting } = result;
 		searchState.pushHistory(searchState.query);
@@ -221,7 +242,8 @@
 		}}
 	>
 		<div
-			class="flex h-dvh flex-col overflow-hidden bg-[var(--sl-bg-surface)] shadow-2xl md:h-auto md:max-h-[70vh] md:rounded-xl md:border md:border-[var(--sl-border)]"
+			class="flex h-[var(--cp-h,100dvh)] flex-col overflow-hidden bg-[var(--sl-bg-surface)] shadow-2xl md:h-auto md:max-h-[70vh] md:rounded-xl md:border md:border-[var(--sl-border)]"
+			style="--cp-h: {viewportHeight !== null ? `${viewportHeight}px` : '100dvh'}"
 		>
 			<div class="flex items-center gap-3 border-b border-[var(--sl-border)] px-4 py-3">
 				<Search class="h-4 w-4 shrink-0 text-[var(--sl-text-3)]" aria-hidden="true" />

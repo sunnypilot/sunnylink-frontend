@@ -498,24 +498,38 @@
 
 				{#if isOnline}
 					<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-					<div class="px-1.5 pt-0.5 pb-1">
-						<button
-							onclick={handleForceOffroadClick}
-							disabled={stoppingForce}
-							class="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[0.8125rem] font-semibold text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-2 disabled:opacity-50 dark:text-amber-300"
+					<button
+						onclick={handleForceOffroadClick}
+						disabled={stoppingForce}
+						role="switch"
+						aria-checked={isForceOffroad}
+						aria-label="Always Offroad"
+						aria-describedby="always-offroad-hint"
+						class="group flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+					>
+						<span class="flex min-w-0 flex-col">
+							<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Always Offroad</span>
+							<span id="always-offroad-hint" class="text-[0.6875rem] text-[var(--sl-text-3)]">
+								Keeps openpilot disengaged
+							</span>
+						</span>
+						<span
+							aria-hidden="true"
+							class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors {isForceOffroad
+								? 'bg-amber-500'
+								: 'bg-[var(--sl-bg-input)] border border-[var(--sl-border)]'}"
 						>
 							{#if stoppingForce}
-								<Loader2 size={14} class="shrink-0 animate-spin" />
-								<span>Stopping…</span>
-							{:else if isForceOffroad}
-								<AlertTriangle size={14} class="shrink-0" />
-								<span>Disable Always Offroad</span>
+								<Loader2 size={12} class="absolute left-1/2 -translate-x-1/2 animate-spin text-[var(--sl-text-2)]" />
 							{:else}
-								<AlertTriangle size={14} class="shrink-0" />
-								<span>Enable Always Offroad</span>
+								<span
+									class="absolute top-1/2 left-0.5 h-5 w-5 -translate-y-1/2 transform rounded-full bg-white shadow-sm transition-transform {isForceOffroad
+										? 'translate-x-4'
+										: ''}"
+								></span>
 							{/if}
-						</button>
-					</div>
+						</span>
+					</button>
 				{/if}
 
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>

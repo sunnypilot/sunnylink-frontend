@@ -15,10 +15,16 @@ interface SearchRecord {
 	category: string;
 }
 
-// `threshold` and `MIN_MATCH_SCORE` tuned together after browser testing:
-// 0.4 was too lenient (almost every setting matched common tokens like
-// "enable"). 0.3 drops fuzzy recall; the post-filter then strips residual
-// low-confidence hits so results look relevant, not exhaustive.
+// Tuned after browser testing. Single-word queries like "enable" used to
+// match half the catalog at threshold 0.4; tightening to 0.3 alone then
+// broke multi-word queries because the default fuzzy matcher treats the
+// whole query as one contiguous pattern, so "enable runner" couldn't span
+// "GitHub Runner" + "EnableGithubRunner" in different fields.
+//
+// `useExtendedSearch` flips space-separated tokens into an AND of per-token
+// fuzzy patterns — each token must match in at least one key per record.
+// That naturally filters noise for multi-word queries, so the hard score
+// floor can relax to 40 without false positives creeping back in.
 const FUSE_OPTIONS: IFuseOptions<SearchRecord> = {
 	keys: [
 		{ name: 'title', weight: 0.5 },
@@ -29,11 +35,12 @@ const FUSE_OPTIONS: IFuseOptions<SearchRecord> = {
 	threshold: 0.3,
 	ignoreLocation: true,
 	minMatchCharLength: 3,
+	useExtendedSearch: true,
 	includeScore: true,
 	includeMatches: true
 };
 
-const MIN_MATCH_SCORE = 50;
+const MIN_MATCH_SCORE = 40;
 
 // Cache Fuse instances keyed by the source array identity. `$derived` returns a
 // stable reference across re-renders while dependencies are unchanged, so the
