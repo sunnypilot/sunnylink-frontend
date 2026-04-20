@@ -556,10 +556,11 @@ export async function checkDeviceStatus(
 			};
 		}
 
-		// Fetch basic device info params (GitBranch, GitCommit, Version) for Dashboard/popover.
-		// Always re-fetch (not just when missing) — these change when the device updates branches.
+		// Fetch basic device info params (GitBranch, GitCommit, GitCommitDate, Version)
+		// for Dashboard/popover and the About page. Always re-fetch (not just when
+		// missing) — these change when the device updates branches.
 		// Fire-and-forget — don't block status check completion.
-		const infoKeys = ['GitBranch', 'GitCommit', 'Version'];
+		const infoKeys = ['GitBranch', 'GitCommit', 'GitCommitDate', 'Version'];
 		{
 			fetchSettingsAsync(deviceId, infoKeys, token)
 				.then((result) => {

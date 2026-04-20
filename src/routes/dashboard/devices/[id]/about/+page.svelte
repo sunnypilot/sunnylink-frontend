@@ -48,6 +48,23 @@
 	let version = $derived((values?.['Version'] as string | undefined) ?? null);
 	let branch = $derived((values?.['GitBranch'] as string | undefined) ?? null);
 	let commit = $derived((values?.['GitCommit'] as string | undefined) ?? null);
+	let commitShort = $derived(commit ? commit.slice(0, 7) : null);
+
+	// GitCommitDate format from device's get_commit_date():
+	//   "'1708012345 2024-02-15 10:32:25 +0000'" (quoted unix seconds + ISO).
+	// Parse the leading unix timestamp and surface as a relative "X ago" label.
+	let commitDateMs = $derived.by(() => {
+		const raw = values?.['GitCommitDate'] as string | undefined;
+		if (!raw) return null;
+		const trimmed = raw.replace(/^'|'$/g, '').trim();
+		const first = trimmed.split(/\s+/)[0];
+		const sec = Number(first);
+		if (!Number.isFinite(sec) || sec <= 0) return null;
+		return sec * 1000;
+	});
+	let commitDateLabel = $derived(
+		commitDateMs ? (statusPolling.tickCounter, formatRelativeTime(commitDateMs)) : null
+	);
 
 	let lastSeen = $derived.by(() => {
 		if (!id) return null;
@@ -55,31 +72,49 @@
 		return deviceState.lastSeenOnline[id];
 	});
 
-	let drivingState = $derived.by(() => {
+	type BadgeTone = 'green' | 'red' | 'amber' | 'cyan' | 'gray';
+	type Badge = { label: string; tone: BadgeTone };
+
+	let connectivityBadge = $derived.by<Badge>(() => {
+		if (!onlineStatus || onlineStatus === 'loading') return { label: 'Checking…', tone: 'gray' };
+		if (onlineStatus === 'error') return { label: 'Error', tone: 'red' };
+		if (onlineStatus === 'offline') return { label: 'Offline', tone: 'red' };
+		return { label: 'Online', tone: 'green' };
+	});
+
+	let drivingBadge = $derived.by<Badge | null>(() => {
 		if (onlineStatus !== 'online') return null;
-		if (offroadStatus?.forceOffroad) return 'Always Offroad';
-		if (offroadStatus?.isOffroad === false) return 'Onroad';
-		if (offroadStatus?.isOffroad === true) return 'Offroad';
+		if (offroadStatus?.forceOffroad) return { label: 'Always Offroad', tone: 'amber' };
+		if (offroadStatus?.isOffroad === false) return { label: 'Onroad', tone: 'cyan' };
+		if (offroadStatus?.isOffroad === true) return { label: 'Offroad', tone: 'gray' };
 		return null;
 	});
 
-	let statusText = $derived.by(() => {
-		if (!onlineStatus || onlineStatus === 'loading') return 'Checking…';
-		if (onlineStatus === 'error') return 'Error';
-		if (onlineStatus === 'offline') return 'Offline';
-		return drivingState ? `Online · ${drivingState}` : 'Online';
-	});
+	// Inline-pill colors. Each tone targets WCAG AA (4.5:1) on the tinted bg
+	// in both light and dark modes; ring adds a subtle border for low-luminance
+	// fills so the boundary remains visible against the surface card.
+	const TONE_CLASSES: Record<BadgeTone, string> = {
+		green:
+			'bg-emerald-500/10 text-emerald-700 ring-1 ring-inset ring-emerald-500/30 dark:text-emerald-400',
+		red: 'bg-red-500/10 text-red-700 ring-1 ring-inset ring-red-500/30 dark:text-red-400',
+		amber: 'bg-amber-500/10 text-amber-700 ring-1 ring-inset ring-amber-500/30 dark:text-amber-400',
+		cyan: 'bg-cyan-500/10 text-cyan-700 ring-1 ring-inset ring-cyan-500/30 dark:text-cyan-400',
+		gray: 'bg-[var(--sl-bg-elevated)] text-[var(--sl-text-2)] ring-1 ring-inset ring-[var(--sl-border)]'
+	};
 
 	let pairedDate = $derived.by(() => {
 		if (!device?.created_at) return null;
+		// API exposes created_at as int64 unix seconds. Multiply to ms before
+		// handing to Date — passing seconds directly returns 1970.
+		const ms = typeof device.created_at === 'number' ? device.created_at * 1000 : device.created_at;
 		try {
-			return new Date(device.created_at).toLocaleDateString(undefined, {
+			return new Date(ms).toLocaleDateString(undefined, {
 				year: 'numeric',
 				month: 'short',
 				day: 'numeric'
 			});
 		} catch {
-			return device.created_at;
+			return String(device.created_at);
 		}
 	});
 
@@ -125,7 +160,7 @@
 	<dl
 		class="mt-6 divide-y divide-[var(--sl-border)] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
 	>
-		{@render row('Status', statusText)}
+		{@render statusRow()}
 		{@render row('Device type', deviceTypeName)}
 		{@render row('Network', networkType)}
 		{@render row(
@@ -134,10 +169,11 @@
 		)}
 		{@render row('Paired date', pairedDate)}
 		{@render row('Version', version)}
-		{@render row('Branch', branch, true)}
-		{@render row('Commit', commit, true)}
+		{@render row('Date', commitDateLabel)}
+		{@render scrollRow('Branch', branch)}
+		{@render commitRow()}
 		{@render copyRow('sunnylink Device ID', id ?? null, 'sunnylink')}
-		{@render copyRow('comma dongle ID', device?.comma_dongle_id ?? null, 'dongle')}
+		{@render copyRow('comma Dongle ID', device?.comma_dongle_id ?? null, 'dongle')}
 	</dl>
 
 	{#if !deviceState.pairedDevicesLoaded && !device}
@@ -160,11 +196,74 @@
 	</div>
 {/snippet}
 
+{#snippet badgePill(badge: Badge)}
+	<span
+		class="inline-flex items-center rounded-full px-2 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap {TONE_CLASSES[
+			badge.tone
+		]}"
+	>
+		{badge.label}
+	</span>
+{/snippet}
+
+{#snippet statusRow()}
+	<div class="flex items-center justify-between gap-4 px-4 py-3">
+		<dt class="text-[0.8125rem] text-[var(--sl-text-3)]">Status</dt>
+		<dd class="flex flex-wrap items-center justify-end gap-1.5">
+			{@render badgePill(connectivityBadge)}
+			{#if drivingBadge}
+				{@render badgePill(drivingBadge)}
+			{/if}
+		</dd>
+	</div>
+{/snippet}
+
+{#snippet scrollRow(label: string, value: string | null)}
+	<div class="flex items-center justify-between gap-4 px-4 py-3">
+		<dt class="shrink-0 text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
+		<dd class="min-w-0 flex-1 overflow-x-auto text-right whitespace-nowrap">
+			<span class="font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+				{value ?? '—'}
+			</span>
+		</dd>
+	</div>
+{/snippet}
+
+{#snippet commitRow()}
+	<div class="flex items-center justify-between gap-4 px-4 py-3">
+		<dt class="shrink-0 text-[0.8125rem] text-[var(--sl-text-3)]">Commit</dt>
+		<dd class="flex min-w-0 flex-1 items-center justify-end gap-2">
+			<span
+				class="overflow-x-auto font-mono text-[0.8125rem] font-medium whitespace-nowrap text-[var(--sl-text-1)]"
+				title={commit ?? ''}
+			>
+				{commitShort ?? '—'}
+			</span>
+			{#if commit}
+				<button
+					type="button"
+					onclick={() => copyValue('commit', commit)}
+					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+					aria-label="Copy commit hash"
+				>
+					{#if copiedField === 'commit'}
+						<Check size={12} class="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+					{:else}
+						<Copy size={12} aria-hidden="true" />
+					{/if}
+				</button>
+			{/if}
+		</dd>
+	</div>
+{/snippet}
+
 {#snippet copyRow(label: string, value: string | null, field: string)}
 	<div class="flex items-center justify-between gap-4 px-4 py-3">
-		<dt class="text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
-		<dd class="flex min-w-0 items-center gap-2">
-			<span class="truncate font-mono text-[0.8125rem] text-[var(--sl-text-1)]">
+		<dt class="shrink-0 text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
+		<dd class="flex min-w-0 flex-1 items-center justify-end gap-2">
+			<span
+				class="overflow-x-auto font-mono text-[0.8125rem] whitespace-nowrap text-[var(--sl-text-1)]"
+			>
 				{value ?? '—'}
 			</span>
 			{#if value}
