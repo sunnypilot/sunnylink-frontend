@@ -7,7 +7,6 @@
 	import { logtoClient, authState } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import type { OSMRegion } from '$lib/types/osm';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
@@ -485,7 +484,12 @@
 						Retry Connection
 					</button>
 					{#if devices && devices.length > 1}
-						<DeviceSelector {devices} />
+						<a
+							href="/dashboard/devices"
+							class="text-[0.8125rem] text-[var(--sl-text-2)] underline decoration-[var(--sl-text-3)]/30 underline-offset-2 hover:text-[var(--sl-text-1)]"
+						>
+							Switch to another device
+						</a>
 					{/if}
 				</div>
 			</div>

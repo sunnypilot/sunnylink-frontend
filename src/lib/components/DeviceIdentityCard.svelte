@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { Copy, Check, Monitor, ArrowRight } from 'lucide-svelte';
@@ -126,15 +125,14 @@
 					</span>
 				{/if}
 				<div class="ml-auto shrink-0">
-					<button
-						type="button"
+					<a
+						href="/dashboard/devices"
 						class="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-						onclick={() => deviceSelectorState.toggle()}
 						aria-label="Change selected device"
 					>
 						<span>Change device</span>
 						<ArrowRight size={12} class="shrink-0" />
-					</button>
+					</a>
 				</div>
 			</div>
 

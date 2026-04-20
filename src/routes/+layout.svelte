@@ -6,7 +6,6 @@
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { deviceSelectorState } from '$lib/stores/deviceSelector.svelte';
 	import {
 		Bot,
 		Car,
@@ -30,7 +29,6 @@
 	import CommandPalette from '$lib/components/search/CommandPalette.svelte';
 	import DeviceStatusPill from '$lib/components/DeviceStatusPill.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsMigrationWizard from '$lib/components/SettingsMigrationWizard.svelte';
 	import PairingModal from '$lib/components/PairingModal.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
@@ -162,28 +160,6 @@
 
 	let devices = $state<any[]>([]);
 	let deviceFetchError = $state<import('./+layout').DeviceFetchError>(null);
-
-	let selectedDeviceForBrand = $derived(
-		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId)
-	);
-
-	let sidebarDeviceAlias = $derived.by(() => {
-		if (!deviceState.selectedDeviceId) return undefined;
-		const did = deviceState.selectedDeviceId;
-		return deviceState.aliases[did] ?? selectedDeviceForBrand?.alias ?? did;
-	});
-
-	let sidebarDeviceStatus = $derived(
-		deviceState.selectedDeviceId
-			? deviceState.onlineStatuses[deviceState.selectedDeviceId]
-			: undefined
-	);
-
-	// Pending changes badge for sidebar
-	let sidebarPendingCount = $derived.by(() => {
-		if (!deviceState.selectedDeviceId) return 0;
-		return pendingChanges.getByStatus(deviceState.selectedDeviceId, 'pending').length;
-	});
 
 	async function checkAllDevicesStatus(devices: any[]) {
 		if (!logtoClient) return;
@@ -385,57 +361,23 @@
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<aside
 				class={[
-					'flex min-h-full flex-col border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)] transition-[width,filter] duration-300',
+					'flex min-h-full flex-col border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)] transition-[width] duration-300',
 					drawerOpen ? 'w-72' : 'w-16',
-					'lg:w-[18rem]',
-					deviceSelectorState.isOpen ? 'blur-sm' : ''
+					'lg:w-[18rem]'
 				]}
 			>
-				<!-- Brand + Device Context -->
-				<button
-					type="button"
-					class="flex h-14 w-full items-center gap-2 px-4 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] lg:px-5"
-					onclick={() => deviceSelectorState.toggle()}
-				>
-					<div class={['min-w-0 flex-1 space-y-0.5', drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-						<p
-							class="font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-3)] uppercase"
-						>
-							sunnylink
-						</p>
-						{#if sidebarDeviceAlias}
-							<div class="flex items-center gap-1.5">
-								<span
-									class="h-1.5 w-1.5 shrink-0 rounded-full {sidebarDeviceStatus === 'online'
-										? 'bg-emerald-400'
-										: sidebarDeviceStatus === 'offline'
-											? 'bg-red-400'
-											: sidebarDeviceStatus === 'error'
-												? 'bg-amber-400'
-												: 'animate-pulse bg-amber-400'}"
-								></span>
-								<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-									{sidebarDeviceAlias}
-								</span>
-								{#if sidebarPendingCount > 0}
-									<span
-										class="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/20 px-1 text-[0.625rem] font-bold text-amber-700 dark:text-amber-400"
-									>
-										{sidebarPendingCount}
-									</span>
-								{/if}
-							</div>
-						{:else}
-							<span class="text-sm text-[var(--sl-text-2)]">Select a device</span>
-						{/if}
-					</div>
-					<ChevronDown
-						size={14}
-						class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-200 {drawerOpen
-							? 'block'
-							: 'hidden'} lg:block {deviceSelectorState.isOpen ? 'rotate-180' : ''}"
-					/>
-				</button>
+				<!-- Brand wordmark (non-interactive) -->
+				<div class="flex h-14 w-full items-center px-4 lg:px-5">
+					<p
+						class={[
+							'font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-2)] uppercase',
+							drawerOpen ? 'block' : 'hidden',
+							'lg:block'
+						]}
+					>
+						sunnylink
+					</p>
+				</div>
 
 				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
 					<!-- Top-level items (standalone, above settings sections) -->
@@ -583,8 +525,6 @@
 		</div>
 	{/if}
 </div>
-
-<DeviceSelector {devices} triggerHidden />
 
 <BackupStatusIndicator />
 

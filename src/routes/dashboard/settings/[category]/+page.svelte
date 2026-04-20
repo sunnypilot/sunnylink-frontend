@@ -24,7 +24,6 @@
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
 	import SettingCard from '$lib/components/SettingCard.svelte';
@@ -613,11 +612,16 @@
 				</div>
 				<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
 				<p class="mt-2 max-w-md text-[var(--sl-text-2)]">
-					Please select a device to configure its settings.
+					Pick a device from My Devices to configure its settings.
 				</p>
 				<div class="mt-6">
 					{#if devs.length > 0}
-						<DeviceSelector devices={devs} />
+						<a
+							href="/dashboard/devices"
+							class="inline-flex items-center gap-2 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary"
+						>
+							Go to My Devices
+						</a>
 					{/if}
 				</div>
 			</div>
