@@ -109,7 +109,7 @@
 			<div class="border-b border-red-500/20 bg-red-500/10 p-6">
 				<div class="flex items-center gap-3 text-red-500">
 					<AlertTriangle size={28} />
-					<h3 class="text-xl font-bold">Force Offroad Mode</h3>
+					<h3 class="text-xl font-bold">Enable Always Offroad Mode</h3>
 				</div>
 			</div>
 
@@ -119,11 +119,11 @@
 						WARNING: This action will immediately stop the vehicle from engaging.
 					</p>
 					<p>
-						Forcing offroad mode while driving is extremely dangerous and will cause openpilot to
+						Enabling Always Offroad while driving is extremely dangerous and will cause openpilot to
 						disengage immediately.
 					</p>
 					<p>
-						Only proceed if the vehicle is parked and you need to force the device into offroad mode
+						Only proceed if the vehicle is parked and you need to keep the device in offroad mode
 						for maintenance or updates.
 					</p>
 				</div>
@@ -168,9 +168,9 @@
 				>
 					{#if pushing}
 						<Loader2 size={18} class="mr-2 animate-spin" />
-						Forcing...
+						Enabling...
 					{:else}
-						Force Offroad
+						Enable Always Offroad
 					{/if}
 				</button>
 			</div>

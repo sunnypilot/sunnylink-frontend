@@ -84,7 +84,7 @@
 					<AlertTriangle size={20} />
 				</div>
 				<div>
-					<p class="font-bold text-[var(--sl-text-1)]">Force Offroad Active</p>
+					<p class="font-bold text-[var(--sl-text-1)]">Always Offroad Active</p>
 					<p class="text-xs text-[var(--sl-text-2)]">Vehicle engagement is disabled.</p>
 				</div>
 			</div>
@@ -92,7 +92,7 @@
 				<Loader2 size={30} class="mr-2 animate-spin text-[var(--sl-text-1)]" />
 			{:else}
 				<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
-					Stop Forcing
+					Disable Always Offroad
 				</button>
 			{/if}
 		</div>

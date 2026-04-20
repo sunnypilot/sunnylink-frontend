@@ -359,11 +359,11 @@
 	id={item.key}
 >
 	{#if isOffroadMode}
-		<!-- ── Force Offroad Mode: Button pattern (matches device UI) ── -->
+		<!-- ── Always Offroad Mode: Button pattern (matches device UI) ── -->
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
 				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-					{item.title || 'Force Offroad Mode'}
+					{item.title || 'Always Offroad Mode'}
 				</span>
 				{#if isOn}
 					<p
@@ -404,9 +404,9 @@
 
 		<ConfirmationModal
 			bind:open={offroadConfirmOpen}
-			title="Enable Force Offroad Mode?"
-			message="This will immediately prevent the vehicle from engaging. Only use this when the vehicle is parked and you need to force maintenance mode."
-			confirmText="Enable Offroad"
+			title="Enable Always Offroad?"
+			message="This will immediately prevent the vehicle from engaging. Only use this when the vehicle is parked and you need to keep the device in offroad mode for maintenance."
+			confirmText="Enable"
 			variant="danger"
 			isProcessing={isPushing}
 			onConfirm={() => {

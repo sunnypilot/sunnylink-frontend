@@ -71,8 +71,8 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	// Device
 	{
 		key: 'OffroadMode',
-		label: 'Force Offroad Mode',
-		description: 'Forced offroad mode',
+		label: 'Always Offroad Mode',
+		description: 'Keeps openpilot in offroad mode so vehicle engagement is disabled.',
 		category: 'device'
 	},
 	{

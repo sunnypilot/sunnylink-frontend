@@ -329,7 +329,7 @@
 		const status = deviceState.onlineStatuses[device.device_id];
 		if (status !== 'online') return null;
 		const offroad = deviceState.offroadStatuses[device.device_id];
-		if (offroad?.forceOffroad) return 'Forced Offroad';
+		if (offroad?.forceOffroad) return 'Always Offroad';
 		if (offroad?.isOffroad === false) return 'Onroad';
 		if (offroad?.isOffroad === true) return 'Offroad';
 		return null;

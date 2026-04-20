@@ -57,7 +57,7 @@
 
 	let drivingState = $derived.by(() => {
 		if (onlineStatus !== 'online') return null;
-		if (offroadStatus?.forceOffroad) return 'Forced Offroad';
+		if (offroadStatus?.forceOffroad) return 'Always Offroad';
 		if (offroadStatus?.isOffroad === false) return 'Onroad';
 		if (offroadStatus?.isOffroad === true) return 'Offroad';
 		return null;

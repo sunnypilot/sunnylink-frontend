@@ -173,7 +173,7 @@
 
 		if (isForceOffroad) {
 			return {
-				label: 'Forced Offroad',
+				label: 'Always Offroad',
 				dotClass: 'bg-amber-400',
 				bgClass: 'bg-amber-500/8 dark:bg-amber-500/10',
 				textClass: 'text-amber-600 dark:text-amber-400',
@@ -490,10 +490,10 @@
 							<span>Stopping...</span>
 						{:else if isForceOffroad}
 							<AlertTriangle size={13} class="shrink-0 text-amber-600 dark:text-amber-400" />
-							<span>Stop Force Offroad</span>
+							<span>Disable Always Offroad</span>
 						{:else}
 							<AlertTriangle size={13} class="shrink-0" />
-							<span>Force Offroad</span>
+							<span>Enable Always Offroad</span>
 						{/if}
 					</button>
 				{/if}
