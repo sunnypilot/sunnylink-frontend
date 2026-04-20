@@ -158,15 +158,15 @@
 				<!-- Skip sections where all items are hidden by visibility rules -->
 				{#if sectionHasContent}
 					<!-- 48px between sections (Linear: card bottom → next section title), 0 for first -->
-					<div class:mt-12={si > 0}>
+					<div class:mt-8={si > 0}>
 						<!-- Section title + description -->
 						{#if section.title}
 							<div
 								class="px-4 transition-opacity duration-150"
 								class:setting-dimmed={!sectionEnabled}
 							>
-								<div class="flex items-center gap-2">
-									<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">
+								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+									<p class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]">
 										{section.title}
 									</p>
 									{#if !sectionEnabled && sectionReasons.length > 0}
@@ -254,10 +254,12 @@
 		{:else}
 			<!-- ═══ V1: Legacy flat items rendering ═══ -->
 			{#each itemGroups as group, gi (gi)}
-				<div class:mt-12={gi > 0 && group.label} class:mt-3={gi > 0 && !group.label}>
+				<div class:mt-8={gi > 0 && group.label} class:mt-3={gi > 0 && !group.label}>
 					{#if group.label}
 						<div class="px-4">
-							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">{group.label}</p>
+							<p class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]">
+								{group.label}
+							</p>
 						</div>
 					{/if}
 

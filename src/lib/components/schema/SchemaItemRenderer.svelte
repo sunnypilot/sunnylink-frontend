@@ -416,7 +416,7 @@
 		<!-- ── Toggle Row ──────────────────────────────────────────────── -->
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 					<button
 						class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 						class:cursor-not-allowed={!enabled}
@@ -555,7 +555,7 @@
 		<!-- ── Dropdown Row (Linear-style inline select) ────────────────── -->
 		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 			<div class="min-w-0 flex-1">
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 					{#if isBlocked}
 						<Tooltip
@@ -670,7 +670,7 @@
 	{:else if item.widget === 'option' && item.min !== undefined && item.max !== undefined}
 		<!-- ── Slider Row (range input below label) ────────────────────── -->
 		<div class="px-4 py-4">
-			<div class="flex items-center gap-2">
+			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">
@@ -843,7 +843,7 @@
 		<!-- ── Option Display-Only Row (inline right-aligned value) ────── -->
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 					{#if isBlocked}
 						<Tooltip
@@ -951,7 +951,7 @@
 	{:else if item.widget === 'multiple_button'}
 		<!-- ── Segmented Button Row ────────────────────────────────────── -->
 		<div class="px-4 py-4">
-			<div class="flex items-center gap-2">
+			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">

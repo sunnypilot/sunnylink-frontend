@@ -133,7 +133,7 @@
 		ontouchend={onTouchEnd}
 		onfocus={onFocus}
 		onblur={onBlur}
-		class="inline-flex"
+		class="inline-flex shrink-0"
 		tabindex="0"
 		role="note"
 	>

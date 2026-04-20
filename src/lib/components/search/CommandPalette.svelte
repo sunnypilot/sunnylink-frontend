@@ -232,7 +232,7 @@
 
 	<div
 		bind:this={dialogRef}
-		class="fixed inset-x-0 top-0 z-[70] mx-auto w-full max-w-xl md:top-[12vh] md:px-4"
+		class="fixed inset-x-0 top-0 z-[70] mx-auto w-full max-w-xl touch-none md:top-[12vh] md:px-4"
 		role="dialog"
 		aria-modal="true"
 		aria-label="Search settings"
@@ -249,7 +249,7 @@
 			class="flex h-[var(--cp-h,100dvh)] flex-col overflow-hidden bg-[var(--sl-bg-surface)] shadow-2xl md:h-auto md:max-h-[70vh] md:rounded-xl md:border md:border-[var(--sl-border)]"
 			style="--cp-h: {viewportHeight !== null ? `${viewportHeight}px` : '100dvh'}"
 		>
-			<div class="flex items-center gap-3 border-b border-[var(--sl-border)] px-4 py-3">
+			<div class="flex touch-auto items-center gap-3 border-b border-[var(--sl-border)] px-4 py-3">
 				<Search class="h-4 w-4 shrink-0 text-[var(--sl-text-3)]" aria-hidden="true" />
 				<input
 					bind:this={inputRef}
@@ -288,7 +288,7 @@
 				</button>
 			</div>
 
-			<div bind:this={listRef} class="flex-1 overflow-y-auto overscroll-contain">
+			<div bind:this={listRef} class="flex-1 touch-pan-y overflow-y-auto overscroll-contain">
 				{#if searchState.query.trim() && searchState.query.trim().length < MIN_QUERY_LENGTH}
 					<div class="px-4 py-10 text-center text-sm text-[var(--sl-text-2)]">
 						Keep typing — at least {MIN_QUERY_LENGTH} characters.

@@ -383,3 +383,29 @@ code,
 .animate-pulse-slower {
 	animation: pulse-slower 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Status pills next to setting titles (Device only, Unavailable, Reboot to apply, etc.).
+   Keep a single line so they never word-wrap inside the pill, and append a small
+   info glyph so the tooltip affordance is visible on touch devices. */
+.bright-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.bright-badge::after {
+	content: '';
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	background-color: currentColor;
+	opacity: 0.7;
+	-webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='8' r='6.5'/><line x1='8' y1='7' x2='8' y2='11'/><circle cx='8' cy='4.8' r='0.6' fill='currentColor' stroke='none'/></svg>");
+	mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='8' r='6.5'/><line x1='8' y1='7' x2='8' y2='11'/><circle cx='8' cy='4.8' r='0.6' fill='currentColor' stroke='none'/></svg>");
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+}
