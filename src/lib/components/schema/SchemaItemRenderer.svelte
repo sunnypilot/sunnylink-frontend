@@ -482,7 +482,7 @@
 						</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<Tooltip text="Only available when the car is powered off.">
+						<Tooltip text="Requires Always Offroad or the car powered off.">
 							<span
 								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Offroad</span
@@ -613,7 +613,7 @@
 						</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<Tooltip text="Only available when the car is powered off.">
+						<Tooltip text="Requires Always Offroad or the car powered off.">
 							<span
 								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Offroad</span
@@ -715,7 +715,7 @@
 					</Tooltip>
 				{/if}
 				{#if needsOffroad && !ruleContext.isOffroad}
-					<Tooltip text="Only available when the car is powered off.">
+					<Tooltip text="Requires Always Offroad or the car powered off.">
 						<span
 							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 							>Offroad</span
@@ -901,7 +901,7 @@
 						</Tooltip>
 					{/if}
 					{#if needsOffroad && !ruleContext.isOffroad}
-						<Tooltip text="Only available when the car is powered off.">
+						<Tooltip text="Requires Always Offroad or the car powered off.">
 							<span
 								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Offroad</span
@@ -996,7 +996,7 @@
 					</Tooltip>
 				{/if}
 				{#if needsOffroad && !ruleContext.isOffroad}
-					<Tooltip text="Only available when the car is powered off.">
+					<Tooltip text="Requires Always Offroad or the car powered off.">
 						<span
 							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 							>Offroad</span

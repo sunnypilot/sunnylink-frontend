@@ -30,6 +30,7 @@
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
 	import DeviceIdentityCard from '$lib/components/DeviceIdentityCard.svelte';
+	import AlwaysOffroadPrompt from '$lib/components/AlwaysOffroadPrompt.svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
@@ -524,6 +525,9 @@
 </script>
 
 <div class="space-y-9" class:pb-16={hasChanges && !useSchema}>
+	<div class="mx-auto w-full max-w-2xl px-4 xl:max-w-3xl">
+		<AlwaysOffroadPrompt />
+	</div>
 	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
 		{#key activeSubPanel?.id ?? '__root__'}
 			<div

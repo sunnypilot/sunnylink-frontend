@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import AlwaysOffroadPrompt from '$lib/components/AlwaysOffroadPrompt.svelte';
 	import type { SyncStatus } from '$lib/utils/syncStatus.svelte';
 
 	interface Props {
@@ -33,8 +34,12 @@
 		{/if}
 	</div>
 
-	<!-- Content: 36px gap from title block to first content -->
-	<div class="mt-9">
+	<div class="mt-6 px-4">
+		<AlwaysOffroadPrompt />
+	</div>
+
+	<!-- Content: keep a visible gap between title and first content block -->
+	<div class="mt-3">
 		{@render children()}
 	</div>
 </div>
