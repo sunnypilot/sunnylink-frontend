@@ -17,10 +17,22 @@ class DriftStore {
 	 *  Persists across layout mount/unmount cycles (e.g. navigating to Models and back). */
 	private _baselines: Record<string, Record<string, unknown>> = {};
 
+	/** Listener invoked whenever a baseline mutates. Used by batchPush to detect
+	 *  reconnect/refresh conflicts: if a queued desiredValue no longer matches
+	 *  the fresh baseline, the debounce is paused and the user is asked to
+	 *  resolve via SyncStatusBanner. One listener is enough for the current
+	 *  use case; if more consumers appear, switch to a Set<fn>. */
+	private _baselineUpdateListener: ((deviceId: string) => void) | null = null;
+
+	setBaselineUpdateListener(fn: (deviceId: string) => void): void {
+		this._baselineUpdateListener = fn;
+	}
+
 	/** Capture a baseline snapshot for a device (only captures once per session). */
 	captureBaseline(deviceId: string, values: Record<string, unknown>): void {
 		if (this._baselines[deviceId]) return;
 		this._baselines[deviceId] = { ...values };
+		this._baselineUpdateListener?.(deviceId);
 	}
 
 	/** Get the baseline for drift comparison. Returns empty if not captured. */
@@ -31,6 +43,7 @@ class DriftStore {
 	/** Update baseline to current values (e.g. after version change or manual refresh). */
 	updateBaseline(deviceId: string, values: Record<string, unknown>): void {
 		this._baselines[deviceId] = { ...values };
+		this._baselineUpdateListener?.(deviceId);
 	}
 
 	/**

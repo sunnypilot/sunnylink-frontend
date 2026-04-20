@@ -1,10 +1,14 @@
-/** Tracks which param keys are currently being pushed per device */
+import { SvelteSet } from 'svelte/reactivity';
+
+/** Tracks which param keys are currently being pushed per device.
+ *  Uses SvelteSet (not Set) because plain Set mutations inside a $state
+ *  record don't trigger reactivity — the Pending pill gets stuck otherwise. */
 class PushStateStore {
-	pushingKeys: Record<string, Set<string>> = $state({});
+	pushingKeys: Record<string, SvelteSet<string>> = $state({});
 
 	startPush(deviceId: string, key: string) {
 		if (!this.pushingKeys[deviceId]) {
-			this.pushingKeys[deviceId] = new Set();
+			this.pushingKeys[deviceId] = new SvelteSet();
 		}
 		this.pushingKeys[deviceId].add(key);
 	}

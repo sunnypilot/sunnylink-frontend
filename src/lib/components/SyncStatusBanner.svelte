@@ -3,8 +3,17 @@
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
-	import { AlertTriangle, RefreshCw, X, ChevronDown, ChevronUp, Shield } from 'lucide-svelte';
+	import {
+		AlertTriangle,
+		RefreshCw,
+		X,
+		ChevronDown,
+		ChevronUp,
+		Shield,
+		GitMerge
+	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { onDestroy } from 'svelte';
@@ -32,6 +41,12 @@
 	let driftCount = $derived(driftStore.count(deviceId));
 	let driftEntries = $derived(driftStore.getAll(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
+	let conflictCount = $derived(batchPush.getConflictCount(deviceId));
+	let conflicts = $derived(batchPush.getConflicts(deviceId));
+	let conflictEntries = $derived(
+		Object.entries(conflicts).map(([key, c]) => ({ key, ...c }))
+	);
+	let conflictExpanded = $state(true);
 
 	// Group drifts by panel for the expanded list
 	let driftsByPanel = $derived.by(() => {
@@ -81,7 +96,13 @@
 	});
 
 	// Only show for actionable states: failed (retry), drift (review), or actively syncing.
-	let showBanner = $derived(failedCount > 0 || blockedCount > 0 || isFlushing || driftCount > 0);
+	let showBanner = $derived(
+		failedCount > 0 ||
+			blockedCount > 0 ||
+			isFlushing ||
+			driftCount > 0 ||
+			conflictCount > 0
+	);
 
 	function handleDismissFailed() {
 		const failed = pendingChanges.getByStatus(deviceId, 'failed');
@@ -132,29 +153,33 @@
 	let borderColor = $derived(
 		failedCount > 0
 			? 'border-red-500/30'
-			: blockedCount > 0
-				? 'border-orange-500/30'
-				: isFlushing
-					? 'border-primary/30'
-					: confirmedCount > 0
-						? 'border-emerald-500/30'
-						: driftCount > 0
-							? 'border-cyan-500/30'
-							: 'border-amber-500/30'
+			: conflictCount > 0
+				? 'border-amber-500/40'
+				: blockedCount > 0
+					? 'border-orange-500/30'
+					: isFlushing
+						? 'border-primary/30'
+						: confirmedCount > 0
+							? 'border-emerald-500/30'
+							: driftCount > 0
+								? 'border-cyan-500/30'
+								: 'border-amber-500/30'
 	);
 
 	let dotColor = $derived(
 		failedCount > 0
 			? 'bg-red-500'
-			: blockedCount > 0
-				? 'bg-orange-500'
-				: isFlushing
-					? 'bg-primary animate-pulse'
-					: confirmedCount > 0
-						? 'bg-emerald-500'
-						: driftCount > 0
-							? 'bg-cyan-500'
-							: 'bg-amber-500'
+			: conflictCount > 0
+				? 'bg-amber-500'
+				: blockedCount > 0
+					? 'bg-orange-500'
+					: isFlushing
+						? 'bg-primary animate-pulse'
+						: confirmedCount > 0
+							? 'bg-emerald-500'
+							: driftCount > 0
+								? 'bg-cyan-500'
+								: 'bg-amber-500'
 	);
 </script>
 
@@ -195,6 +220,24 @@
 				</span>
 			{/if}
 
+			{#if conflictCount > 0}
+				<span class="flex items-center gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+					<GitMerge size={14} />
+					{conflictCount} pending {conflictCount === 1 ? 'change' : 'changes'} need review
+				</span>
+				<button
+					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+					onclick={() => (conflictExpanded = !conflictExpanded)}
+				>
+					{conflictExpanded ? 'Hide' : 'Review'}
+					{#if conflictExpanded}
+						<ChevronUp size={12} />
+					{:else}
+						<ChevronDown size={12} />
+					{/if}
+				</button>
+			{/if}
+
 			{#if driftCount > 0}
 				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
 					<RefreshCw size={14} />
@@ -228,6 +271,68 @@
 				</button>
 			{/if}
 		</div>
+
+		{#if conflictCount > 0 && conflictExpanded}
+			<div
+				class="mt-2 border-t border-[var(--sl-border-muted)] pt-2"
+				transition:slide={{ duration: 150 }}
+			>
+				<div class="mb-2 flex items-center justify-between gap-2">
+					<span class="text-[0.75rem] text-[var(--sl-text-3)]">
+						Device state changed while you were editing. Pick which value wins.
+					</span>
+					<div class="flex shrink-0 gap-2">
+						<button
+							class="rounded-md px-2 py-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+							onclick={() => batchPush.resolveApplyAll(deviceId)}
+						>
+							Apply all yours
+						</button>
+						<button
+							class="rounded-md px-2 py-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+							onclick={() => batchPush.resolveKeepAll(deviceId)}
+						>
+							Keep all device
+						</button>
+					</div>
+				</div>
+				{#each conflictEntries as entry (entry.key)}
+					{@const title = keyToItem[entry.key]?.title || entry.key}
+					<div class="flex items-center justify-between gap-3 py-1.5">
+						<div class="min-w-0 flex-1">
+							<div class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+								{title}
+							</div>
+							<div class="mt-0.5 text-xs text-[var(--sl-text-3)]">
+								Your:
+								<span class="font-medium text-[var(--sl-text-2)]"
+									>{formatDriftValue(entry.yourValue, entry.key)}</span
+								>
+								<span class="mx-1">·</span>
+								Device:
+								<span class="font-medium text-[var(--sl-text-2)]"
+									>{formatDriftValue(entry.deviceValue, entry.key)}</span
+								>
+							</div>
+						</div>
+						<div class="flex shrink-0 gap-1.5">
+							<button
+								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-subtle)]"
+								onclick={() => batchPush.resolveApply(deviceId, entry.key)}
+							>
+								Apply yours
+							</button>
+							<button
+								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-subtle)]"
+								onclick={() => batchPush.resolveKeep(deviceId, entry.key)}
+							>
+								Keep device
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
 
 		{#if driftExpanded && driftEntries.length > 0}
 			<div
