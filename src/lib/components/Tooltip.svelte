@@ -1,13 +1,19 @@
 <script lang="ts">
 	import { portal } from '$lib/utils/portal';
-	import { fade, scale } from 'svelte/transition';
+	import { scale } from 'svelte/transition';
+	import { Info } from 'lucide-svelte';
 
 	interface Props {
 		text: string;
-		children: import('svelte').Snippet;
+		/** Optional children. When omitted, set `asInfoButton` to render an (i) icon trigger. */
+		children?: import('svelte').Snippet;
+		/** Render the trigger as a compact (i) info button instead of wrapping children. */
+		asInfoButton?: boolean;
+		/** Accessible label for the info button variant. Defaults to "More info". */
+		infoLabel?: string;
 	}
 
-	let { text, children }: Props = $props();
+	let { text, children, asInfoButton = false, infoLabel = 'More info' }: Props = $props();
 
 	let visible = $state(false);
 	let posX = $state(0);
@@ -19,6 +25,16 @@
 
 	const VIEWPORT_MARGIN = 8;
 	const TRIGGER_GAP = 8;
+
+	// Ghost-event window — iOS/Android fire synthetic mouseenter + click after
+	// touchend even with `preventDefault`, which would briefly re-show the
+	// tooltip below the trigger right as the user lifts off. Suppressing
+	// mouse/focus handlers for a short window after touch removes the flash.
+	const GHOST_WINDOW_MS = 500;
+	let lastTouchTs = 0;
+	function isGhost() {
+		return Date.now() - lastTouchTs < GHOST_WINDOW_MS;
+	}
 
 	function show(preferAbove: boolean) {
 		if (!triggerEl) return;
@@ -35,13 +51,10 @@
 			const vw = window.innerWidth;
 			const vh = window.innerHeight;
 
-			// Horizontal: keep tooltip inside viewport with margin.
 			let left = centerX - w / 2;
 			left = Math.max(VIEWPORT_MARGIN, Math.min(vw - w - VIEWPORT_MARGIN, left));
 			posX = left;
 
-			// Vertical: touch prefers above (finger blocks below); fall back
-			// below if there isn't room. Mouse/keyboard default below.
 			const topAbove = rect.top - h - TRIGGER_GAP;
 			const topBelow = rect.bottom + TRIGGER_GAP;
 			if (preferAbove && topAbove >= VIEWPORT_MARGIN) {
@@ -51,7 +64,6 @@
 				posY = topBelow;
 				placeAbove = false;
 			} else {
-				// Neither fits cleanly — clamp to the closer edge.
 				posY = Math.max(VIEWPORT_MARGIN, topAbove);
 				placeAbove = true;
 			}
@@ -64,52 +76,70 @@
 		positioned = false;
 	}
 
-	// PC: hover to show, leave to hide, click to dismiss. Position below.
 	function onMouseEnter() {
+		if (isGhost()) return;
 		show(false);
 	}
 	function onMouseLeave() {
+		if (isGhost()) return;
 		hide();
 	}
 	function onClick() {
+		if (isGhost()) return;
 		hide();
 	}
-
-	// Mobile: press-and-hold to show, release to hide. Position ABOVE the
-	// trigger so the user's finger doesn't cover the text (matches iOS/
-	// Android native tooltip/popover behaviour).
 	function onTouchStart(e: TouchEvent) {
 		e.preventDefault();
+		lastTouchTs = Date.now();
 		show(true);
 	}
 	function onTouchEnd() {
+		lastTouchTs = Date.now();
 		hide();
 	}
-
-	// Keyboard: focus to show, blur to hide. Position below.
 	function onFocus() {
+		if (isGhost()) return;
 		show(false);
 	}
 	function onBlur() {
+		if (isGhost()) return;
 		hide();
 	}
 </script>
 
-<span
-	bind:this={triggerEl}
-	onmouseenter={onMouseEnter}
-	onmouseleave={onMouseLeave}
-	onclick={onClick}
-	ontouchstart={onTouchStart}
-	ontouchend={onTouchEnd}
-	onfocus={onFocus}
-	onblur={onBlur}
-	class="inline-flex"
-	tabindex="0"
-	role="note"
->
-	{@render children()}
-</span>
+{#if asInfoButton}
+	<button
+		type="button"
+		bind:this={triggerEl}
+		onmouseenter={onMouseEnter}
+		onmouseleave={onMouseLeave}
+		onclick={onClick}
+		ontouchstart={onTouchStart}
+		ontouchend={onTouchEnd}
+		onfocus={onFocus}
+		onblur={onBlur}
+		class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+		aria-label={infoLabel}
+	>
+		<Info size={14} aria-hidden="true" />
+	</button>
+{:else}
+	<span
+		bind:this={triggerEl}
+		onmouseenter={onMouseEnter}
+		onmouseleave={onMouseLeave}
+		onclick={onClick}
+		ontouchstart={onTouchStart}
+		ontouchend={onTouchEnd}
+		onfocus={onFocus}
+		onblur={onBlur}
+		class="inline-flex"
+		tabindex="0"
+		role="note"
+	>
+		{#if children}{@render children()}{/if}
+	</span>
+{/if}
 
 {#if visible}
 	<div

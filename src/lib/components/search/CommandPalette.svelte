@@ -66,15 +66,33 @@
 
 	// Mobile keyboard squishes the visual viewport but `100dvh` doesn't
 	// always react on iOS, so the list ends up extending behind the keyboard
-	// with the bottom rows unreachable. Track `visualViewport.height` and
-	// pin the container to it so results stay scrollable above the keyboard —
-	// same pattern as Linear/Slack command bars.
+	// with the bottom rows unreachable. Track both `visualViewport.height`
+	// AND `offsetTop` — on iOS Safari PWA, the visual viewport can scroll
+	// inside the layout viewport when the keyboard animates, which leaves
+	// a `position: fixed` palette drifting outside the visible area. Syncing
+	// `top` to `offsetTop` keeps it pinned to the actual visible rectangle —
+	// the Linear/Slack command-bar approach.
 	let viewportHeight = $state<number | null>(null);
+	let viewportTop = $state(0);
+	let isMobile = $state(false);
+
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		const mql = window.matchMedia('(max-width: 767px)');
+		isMobile = mql.matches;
+		const h = (e: MediaQueryListEvent) => (isMobile = e.matches);
+		mql.addEventListener('change', h);
+		return () => mql.removeEventListener('change', h);
+	});
+
 	$effect(() => {
 		if (!searchState.isOpen || typeof window === 'undefined') return;
 		const vv = window.visualViewport;
 		if (!vv) return;
-		const update = () => (viewportHeight = vv.height);
+		const update = () => {
+			viewportHeight = vv.height;
+			viewportTop = vv.offsetTop;
+		};
 		update();
 		vv.addEventListener('resize', update);
 		vv.addEventListener('scroll', update);
@@ -82,6 +100,7 @@
 			vv.removeEventListener('resize', update);
 			vv.removeEventListener('scroll', update);
 			viewportHeight = null;
+			viewportTop = 0;
 		};
 	});
 
@@ -220,7 +239,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+		class="fixed inset-0 z-[60] touch-none bg-black/50 backdrop-blur-sm"
 		onclick={() => searchState.close()}
 		transition:fade={{ duration: reducedMotion ? 0 : 150 }}
 		aria-hidden="true"
@@ -235,6 +254,7 @@
 		aria-label="Search settings"
 		tabindex="-1"
 		onkeydown={handleTab}
+		style={isMobile && viewportHeight !== null ? `top: ${viewportTop}px;` : ''}
 		transition:fly={{
 			y: reducedMotion ? 0 : -8,
 			duration: reducedMotion ? 0 : 200,
