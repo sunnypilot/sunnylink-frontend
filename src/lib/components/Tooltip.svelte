@@ -10,50 +10,71 @@
 	let { text, children }: Props = $props();
 
 	let visible = $state(false);
-	let x = $state(0);
-	let y = $state(0);
+	let posX = $state(0);
+	let posY = $state(0);
+	let positioned = $state(false);
 	let triggerEl: HTMLElement | undefined = $state();
+	let tooltipEl: HTMLElement | undefined = $state();
 
-	function updatePosition() {
+	const VIEWPORT_MARGIN = 8;
+
+	function show() {
 		if (!triggerEl) return;
 		const rect = triggerEl.getBoundingClientRect();
-		x = rect.left + rect.width / 2;
-		y = rect.bottom + 6;
+		const centerX = rect.left + rect.width / 2;
+		posY = rect.bottom + 6;
+		// Initial placement — will be clamped once tooltip renders and we can
+		// measure its real width. Render hidden until then to avoid a flash at
+		// the wrong edge.
+		posX = centerX;
+		positioned = false;
+		visible = true;
+		queueMicrotask(() => {
+			if (!tooltipEl) return;
+			const w = tooltipEl.offsetWidth;
+			const vw = window.innerWidth;
+			let left = centerX - w / 2;
+			left = Math.max(VIEWPORT_MARGIN, Math.min(vw - w - VIEWPORT_MARGIN, left));
+			posX = left;
+			positioned = true;
+		});
+	}
+
+	function hide() {
+		visible = false;
+		positioned = false;
 	}
 
 	// PC: hover to show, leave to hide, click to dismiss
 	function onMouseEnter() {
-		updatePosition();
-		visible = true;
+		show();
 	}
 
 	function onMouseLeave() {
-		visible = false;
+		hide();
 	}
 
 	function onClick() {
-		visible = false;
+		hide();
 	}
 
 	// Mobile: press-and-hold to show, release to hide
 	function onTouchStart(e: TouchEvent) {
 		e.preventDefault();
-		updatePosition();
-		visible = true;
+		show();
 	}
 
 	function onTouchEnd() {
-		visible = false;
+		hide();
 	}
 
 	// Keyboard: focus to show, blur to hide
 	function onFocus() {
-		updatePosition();
-		visible = true;
+		show();
 	}
 
 	function onBlur() {
-		visible = false;
+		hide();
 	}
 </script>
 
@@ -75,10 +96,11 @@
 
 {#if visible}
 	<div
+		bind:this={tooltipEl}
 		use:portal
 		transition:scale={{ start: 0.96, duration: 120, opacity: 0 }}
-		class="fixed z-[9999] w-max max-w-[400px] origin-top rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.8125rem] leading-relaxed font-normal text-[var(--sl-text-2)] shadow-sm"
-		style="left: {x}px; top: {y}px; transform: translateX(-50%);"
+		class="fixed z-[9999] w-max rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.8125rem] leading-relaxed font-normal text-[var(--sl-text-2)] shadow-sm"
+		style="left: {posX}px; top: {posY}px; max-width: min(400px, calc(100vw - {VIEWPORT_MARGIN * 2}px)); visibility: {positioned ? 'visible' : 'hidden'};"
 		role="tooltip"
 	>
 		{text}

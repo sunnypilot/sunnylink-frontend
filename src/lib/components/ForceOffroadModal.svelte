@@ -6,6 +6,7 @@
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 
 	let { open = $bindable(false), onSuccess } = $props<{
@@ -92,9 +93,10 @@
 		role="dialog"
 		aria-modal="true"
 		use:portal
+		use:modalLock
 	>
 		<button
-			class="absolute inset-0 bg-black/40"
+			class="absolute inset-0 bg-black/40 backdrop-blur-sm"
 			transition:fade={{ duration: 200 }}
 			onclick={() => {
 				if (!pushing) open = false;

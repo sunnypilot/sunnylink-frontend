@@ -2,6 +2,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { Loader2 } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 
 	let {
 		open = $bindable(false),
@@ -35,9 +36,10 @@
 		role="dialog"
 		aria-modal="true"
 		use:portal
+		use:modalLock
 	>
 		<button
-			class="absolute inset-0 bg-black/40 transition-opacity"
+			class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
 			transition:fade={{ duration: 200 }}
 			onclick={close}
 			aria-label="Close modal"

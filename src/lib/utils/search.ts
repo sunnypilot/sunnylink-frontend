@@ -15,6 +15,10 @@ interface SearchRecord {
 	category: string;
 }
 
+// `threshold` and `MIN_MATCH_SCORE` tuned together after browser testing:
+// 0.4 was too lenient (almost every setting matched common tokens like
+// "enable"). 0.3 drops fuzzy recall; the post-filter then strips residual
+// low-confidence hits so results look relevant, not exhaustive.
 const FUSE_OPTIONS: IFuseOptions<SearchRecord> = {
 	keys: [
 		{ name: 'title', weight: 0.5 },
@@ -22,12 +26,14 @@ const FUSE_OPTIONS: IFuseOptions<SearchRecord> = {
 		{ name: 'description', weight: 0.15 },
 		{ name: 'category', weight: 0.05 }
 	],
-	threshold: 0.4,
+	threshold: 0.3,
 	ignoreLocation: true,
-	minMatchCharLength: 2,
+	minMatchCharLength: 3,
 	includeScore: true,
 	includeMatches: true
 };
+
+const MIN_MATCH_SCORE = 50;
 
 // Cache Fuse instances keyed by the source array identity. `$derived` returns a
 // stable reference across re-renders while dependencies are unchanged, so the
@@ -81,5 +87,6 @@ export function searchSettings(
 				matches: hit.matches
 			};
 		})
+		.filter((r) => r.score >= MIN_MATCH_SCORE)
 		.sort((a, b) => b.score - a.score);
 }

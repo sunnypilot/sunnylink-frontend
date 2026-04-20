@@ -3,6 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { browser } from '$app/environment';
 	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 
 	let {
 		open = $bindable(false),
@@ -57,16 +58,7 @@
 		if (!open) searchQuery = '';
 	});
 
-	// Lock body scroll when open
-	$effect(() => {
-		if (!browser) return;
-		if (open) {
-			document.body.style.overflow = 'hidden';
-			return () => {
-				document.body.style.overflow = '';
-			};
-		}
-	});
+	// Body scroll lock handled by `use:modalLock` on the overlay itself.
 
 	// Close on Escape key
 	$effect(() => {
@@ -82,10 +74,11 @@
 {#if open}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-[9999] flex items-end justify-center bg-black/40 p-4 sm:items-center sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center sm:p-0"
 		transition:fade={{ duration: 200 }}
 		onclick={() => (open = false)}
 		use:portal
+		use:modalLock
 	>
 		<!-- Modal Content — stop propagation so clicking inside doesn't close -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->

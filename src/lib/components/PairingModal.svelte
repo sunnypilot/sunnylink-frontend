@@ -144,7 +144,7 @@
 		use:portal
 	>
 		<button
-			class="absolute inset-0 bg-black/40"
+			class="absolute inset-0 bg-black/40 backdrop-blur-sm"
 			in:fade={{ duration: 400, easing: cubicOut }}
 			out:fade={{ duration: 250 }}
 			onclick={close}

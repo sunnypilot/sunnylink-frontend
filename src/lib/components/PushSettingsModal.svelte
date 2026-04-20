@@ -7,6 +7,7 @@
 	import { Loader2, AlertTriangle, ArrowRight } from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 
 	let {
 		open = $bindable(false),
@@ -151,9 +152,10 @@
 		role="dialog"
 		aria-modal="true"
 		use:portal
+		use:modalLock
 	>
 		<button
-			class="absolute inset-0 bg-black/40"
+			class="absolute inset-0 bg-black/40 backdrop-blur-sm"
 			transition:fade={{ duration: 200 }}
 			onclick={() => {
 				if (!pushing && !fetchingLatest) open = false;

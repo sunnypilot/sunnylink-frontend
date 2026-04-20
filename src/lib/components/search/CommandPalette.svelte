@@ -7,6 +7,7 @@
 	import { getAllSettings } from '$lib/utils/settings';
 	import { searchSettings, type SearchResult } from '$lib/utils/search';
 	import { MODEL_SETTINGS } from '$lib/types/settings';
+	import { modalLock } from '$lib/utils/modalLock';
 	import { goto } from '$app/navigation';
 	import type { FuseResultMatch } from 'fuse.js';
 
@@ -50,15 +51,6 @@
 			searchState.clear();
 			activeIdx = 0;
 		}
-	});
-
-	$effect(() => {
-		if (!searchState.isOpen) return;
-		const prev = document.body.style.overflow;
-		document.body.style.overflow = 'hidden';
-		return () => {
-			document.body.style.overflow = prev;
-		};
 	});
 
 	let reducedMotion = $state(false);
@@ -211,6 +203,7 @@
 		onclick={() => searchState.close()}
 		transition:fade={{ duration: reducedMotion ? 0 : 150 }}
 		aria-hidden="true"
+		use:modalLock
 	></div>
 
 	<div
@@ -269,7 +262,7 @@
 				</button>
 			</div>
 
-			<div bind:this={listRef} class="flex-1 overflow-y-auto">
+			<div bind:this={listRef} class="flex-1 overflow-y-auto overscroll-contain">
 				{#if searchState.query.trim() && searchState.query.trim().length < MIN_QUERY_LENGTH}
 					<div class="px-4 py-10 text-center text-sm text-[var(--sl-text-2)]">
 						Keep typing — at least {MIN_QUERY_LENGTH} characters.

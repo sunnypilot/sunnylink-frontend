@@ -11,6 +11,7 @@
 	} from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { downloadSettingsBackup } from '$lib/utils/settings';
 
@@ -82,9 +83,10 @@
 
 {#if deviceState.backupState.isOpen}
 	<div
-		class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
+		class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
 		transition:fade={{ duration: 200 }}
 		use:portal
+		use:modalLock
 	>
 		<div
 			class="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"

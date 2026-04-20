@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
 	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 	import { AlertTriangle, Loader2, Trash2, X, ArrowRight, Wifi, WifiOff } from 'lucide-svelte';
 	import { deregisterDevice, removeUserFromDevice } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -117,9 +118,10 @@
 		role="dialog"
 		aria-modal="true"
 		use:portal
+		use:modalLock
 	>
 		<button
-			class="absolute inset-0 bg-black/40 transition-opacity"
+			class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
 			transition:fade={{ duration: 200 }}
 			onclick={close}
 			aria-label="Close modal"

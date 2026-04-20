@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { scale } from 'svelte/transition';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -16,10 +15,8 @@
 		AlertTriangle,
 		Copy,
 		Check,
-		ChevronRight,
 		ChevronDown,
-		Monitor,
-		GitBranch
+		Monitor
 	} from 'lucide-svelte';
 
 	/**
@@ -404,55 +401,76 @@
 					{/if}
 					{#if branchName}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+							class="group relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => copyField('branch', branchName)}
+							aria-label="Copy branch {branchName}"
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
-							{#if copiedField === 'branch'}
-								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
-							{:else}
-								<span
-									bind:this={marqueeEl}
-									class="marquee-container max-w-[140px] overflow-hidden"
-									class:overflows={marqueeOverflows}
-								>
-									<span
-										class="marquee-track font-mono text-[0.75rem] whitespace-nowrap text-[var(--sl-text-2)]"
-									>
-										<span>{branchName}</span>
-										{#if marqueeOverflows}
-											<span class="marquee-gap"></span>
-											<span>{branchName}</span>
-										{/if}
+							<span class="flex min-w-0 items-center gap-1.5">
+								{#if copiedField === 'branch'}
+									<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+										<Check size={12} class="shrink-0" />
+										Copied
 									</span>
-								</span>
-							{/if}
+								{:else}
+									<span
+										bind:this={marqueeEl}
+										class="marquee-container max-w-[120px] overflow-hidden"
+										class:overflows={marqueeOverflows}
+									>
+										<span
+											class="marquee-track font-mono text-[0.75rem] whitespace-nowrap text-[var(--sl-text-2)]"
+										>
+											<span>{branchName}</span>
+											{#if marqueeOverflows}
+												<span class="marquee-gap"></span>
+												<span>{branchName}</span>
+											{/if}
+										</span>
+									</span>
+									<Copy size={11} class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]" />
+								{/if}
+							</span>
 						</button>
 					{/if}
 					{#if softwareVersion}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+							class="group relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => copyField('version', softwareVersion)}
+							aria-label="Copy version {softwareVersion}"
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
-							{#if copiedField === 'version'}
-								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
-							{:else}
-								<span class="text-[0.75rem] text-[var(--sl-text-2)]">{softwareVersion}</span>
-							{/if}
+							<span class="flex items-center gap-1.5">
+								{#if copiedField === 'version'}
+									<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+										<Check size={12} class="shrink-0" />
+										Copied
+									</span>
+								{:else}
+									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{softwareVersion}</span>
+									<Copy size={11} class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]" />
+								{/if}
+							</span>
 						</button>
 					{/if}
 					{#if commitHash}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+							class="group relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
 							onclick={() => copyField('commit', commitHash)}
+							aria-label="Copy commit {commitHash}"
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
-							{#if copiedField === 'commit'}
-								<Check size={12} class="shrink-0 text-emerald-600 dark:text-emerald-400" />
-							{:else}
-								<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commitHash}</span>
-							{/if}
+							<span class="flex items-center gap-1.5">
+								{#if copiedField === 'commit'}
+									<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+										<Check size={12} class="shrink-0" />
+										Copied
+									</span>
+								{:else}
+									<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commitHash}</span>
+									<Copy size={11} class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]" />
+								{/if}
+							</span>
 						</button>
 					{/if}
 					{#if lastSeen}
@@ -480,22 +498,24 @@
 
 				{#if isOnline}
 					<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-					<button
-						onclick={handleForceOffroadClick}
-						disabled={stoppingForce}
-						class="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none disabled:opacity-50"
-					>
-						{#if stoppingForce}
-							<Loader2 size={13} class="shrink-0 animate-spin" />
-							<span>Stopping...</span>
-						{:else if isForceOffroad}
-							<AlertTriangle size={13} class="shrink-0 text-amber-600 dark:text-amber-400" />
-							<span>Disable Always Offroad</span>
-						{:else}
-							<AlertTriangle size={13} class="shrink-0" />
-							<span>Enable Always Offroad</span>
-						{/if}
-					</button>
+					<div class="px-1.5 pt-0.5 pb-1">
+						<button
+							onclick={handleForceOffroadClick}
+							disabled={stoppingForce}
+							class="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[0.8125rem] font-semibold text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-2 disabled:opacity-50 dark:text-amber-300"
+						>
+							{#if stoppingForce}
+								<Loader2 size={14} class="shrink-0 animate-spin" />
+								<span>Stopping…</span>
+							{:else if isForceOffroad}
+								<AlertTriangle size={14} class="shrink-0" />
+								<span>Disable Always Offroad</span>
+							{:else}
+								<AlertTriangle size={14} class="shrink-0" />
+								<span>Enable Always Offroad</span>
+							{/if}
+						</button>
+					</div>
 				{/if}
 
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
@@ -503,12 +523,12 @@
 					<div
 						class="px-1 pb-0.5 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
 					>
-						Device ID
+						sunnylink Device ID
 					</div>
 					<button
 						onclick={copyDeviceId}
 						class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-						aria-label="Copy device ID {deviceId}"
+						aria-label="Copy sunnylink device ID {deviceId}"
 					>
 						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span>
 						{#if copiedId}
@@ -519,22 +539,11 @@
 						{:else}
 							<Copy
 								size={12}
-								class="shrink-0 text-[var(--sl-text-3)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+								class="shrink-0 text-[var(--sl-text-3)]/70 transition-colors group-hover:text-[var(--sl-text-2)] group-focus-visible:text-[var(--sl-text-2)]"
 							/>
 						{/if}
 					</button>
 				</div>
-				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-				<button
-					onclick={() => {
-						closePopover();
-						goto('/dashboard');
-					}}
-					class="flex min-h-[36px] w-full items-center justify-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[0.75rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:bg-[var(--sl-bg-subtle)]"
-				>
-					<span>Back to Overview</span>
-					<ChevronRight size={12} />
-				</button>
 			</div>
 		{/if}
 	</div>
