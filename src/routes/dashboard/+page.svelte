@@ -24,7 +24,12 @@
 	let announceSelection = $state('');
 
 	$effect(() => {
-		if (!authState.loading && !authState.isAuthenticated) {
+		// Skip the redirect when the session was killed mid-use — the modal in
+		// +layout.svelte handles that recovery (Sign in / Maybe later). Without
+		// this guard the redirect races the modal: modal flashes for a frame,
+		// pathname changes to '/', isAuthRequiredRoute flips false → modal
+		// hides, user lands on landing without ever seeing the prompt.
+		if (!authState.loading && !authState.isAuthenticated && !authState.sessionExpired) {
 			goto('/');
 		}
 	});
@@ -42,23 +47,6 @@
 			.sort((a, b) => b.score - a.score);
 		return scored[0]?.id ?? null;
 	}
-
-	let autoSelectRan = $state(false);
-	$effect(() => {
-		if (autoSelectRan) return;
-		if (deviceState.selectedDeviceId) {
-			autoSelectRan = true;
-			return;
-		}
-		if (devices.length === 0) return;
-		const id = mruDeviceId(devices);
-		if (!id) return;
-		autoSelectRan = true;
-		deviceState.setSelectedDevice(id);
-		const alias =
-			deviceState.aliases[id] ?? devices.find((d: any) => d.device_id === id)?.alias ?? id;
-		announceSelection = `Showing ${alias}`;
-	});
 
 	// Fresh sign-in routing: when the user just completed OAuth (flag set by
 	// /auth/callback), check the resolved selected device's online status. If
@@ -129,6 +117,32 @@
 	});
 
 	let waitingForSignInRoute = $derived(justSignedIn && !signInRouteResolved);
+
+	let autoSelectRan = $state(false);
+	$effect(() => {
+		if (autoSelectRan) return;
+		if (deviceState.selectedDeviceId) {
+			autoSelectRan = true;
+			return;
+		}
+		if (devices.length === 0) return;
+		// On fresh sign-in with no persisted selection, defer to smart routing
+		// (waitingForSignInRoute above) which sends the user to /dashboard/devices
+		// to pick explicitly. Auto-picking MRU here would surface a random
+		// (possibly offline) device pinned at the top of My Devices, which was
+		// the source of the "why is this offline device selected?" confusion.
+		if (justSignedIn) {
+			autoSelectRan = true;
+			return;
+		}
+		const id = mruDeviceId(devices);
+		if (!id) return;
+		autoSelectRan = true;
+		deviceState.setSelectedDevice(id);
+		const alias =
+			deviceState.aliases[id] ?? devices.find((d: any) => d.device_id === id)?.alias ?? id;
+		announceSelection = `Showing ${alias}`;
+	});
 
 	let isOffline = $derived(
 		selectedDevice ? deviceState.onlineStatuses[selectedDevice.device_id] === 'offline' : false

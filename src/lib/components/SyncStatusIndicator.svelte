@@ -42,15 +42,8 @@
 		aria-live="polite"
 		title={isRefreshing ? 'Refreshing' : 'Refresh'}
 	>
-		<span
-			class="status-icon"
-			class:visible={isRefreshing}
-			aria-hidden={!isRefreshing}
-		>
-			<span
-				class="loading loading-spinner text-primary"
-				style="width: 14px; height: 14px;"
-			></span>
+		<span class="status-icon" class:visible={isRefreshing} aria-hidden={!isRefreshing}>
+			<span class="loading loading-spinner text-primary" style="width: 14px; height: 14px;"></span>
 		</span>
 		<span
 			class="status-icon text-emerald-600 dark:text-emerald-400"

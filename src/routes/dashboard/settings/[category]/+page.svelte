@@ -208,9 +208,7 @@
 	// caused the legacy effect below to skip fetchCurrentValues on first load,
 	// leaving every toggle on its default-off state until the user pressed refresh.
 	let deviceVerified = $derived(
-		deviceId
-			? isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId]
-			: false
+		deviceId ? isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId] : false
 	);
 
 	// Skeleton flag for individual setting widgets — covers both the explicit

@@ -509,7 +509,6 @@
 					const resolvedKeys = Object.keys(freshValues).filter((k) => !driftedKeys.has(k));
 					if (resolvedKeys.length > 0) driftStore.resolveKeys(did, resolvedKeys);
 				}
-
 			} catch {
 				// Errors are non-fatal — flags still cleared in finally so the UI
 				// recovers from spinner-stuck state even on partial failure.

@@ -4,7 +4,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
-	import DashboardSkeleton from '../DashboardSkeleton.svelte';
+	import MyDevicesSkeleton from './MyDevicesSkeleton.svelte';
 	import DeviceRowMenu from '$lib/components/DeviceRowMenu.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
@@ -149,7 +149,10 @@
 	}
 
 	$effect(() => {
-		if (!authState.loading && !authState.isAuthenticated) {
+		// Skip the redirect when the session was killed mid-use — the modal in
+		// +layout.svelte handles that recovery (Sign in / Maybe later). Without
+		// this guard the redirect races the modal and swallows the prompt.
+		if (!authState.loading && !authState.isAuthenticated && !authState.sessionExpired) {
 			goto('/');
 		}
 	});
@@ -434,12 +437,12 @@
 
 {#if authState.loading}
 	<!-- Auth state still resolving — don't render content and don't let the guard $effect fire prematurely -->
-	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+	<MyDevicesSkeleton />
 {:else if !authState.isAuthenticated}
 	<!-- Guard $effect above handles goto('/'); render nothing while redirect is in flight -->
 {:else if devices.length === 0 && !deviceState.pairedDevicesLoaded}
 	<!-- Cold start: no cached devices, API hasn't returned yet — show skeleton -->
-	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+	<MyDevicesSkeleton />
 {:else}
 	<div class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl">
 		{#if devices.length === 0}

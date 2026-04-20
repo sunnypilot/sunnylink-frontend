@@ -55,10 +55,14 @@ export const deviceState = $state({
 	migrationTargetDeviceId: '',
 
 	// Helper to set selected device
-	setSelectedDevice(deviceId: string) {
-		this.selectedDeviceId = deviceId;
+	setSelectedDevice(deviceId: string | null) {
+		this.selectedDeviceId = deviceId ?? undefined;
 		if (typeof localStorage !== 'undefined') {
-			localStorage.setItem('selectedDeviceId', deviceId);
+			if (deviceId) {
+				localStorage.setItem('selectedDeviceId', deviceId);
+			} else {
+				localStorage.removeItem('selectedDeviceId');
+			}
 		}
 	},
 

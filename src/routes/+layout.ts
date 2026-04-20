@@ -102,11 +102,17 @@ export const load: LayoutLoad = async ({ depends }) => {
 			// Resolve which device to fetch full detail for. Keep cost constant —
 			// only the selected device gets a detail fetch on root navigation; the
 			// /dashboard/devices page hydrates the rest when visited.
+			//
+			// IMPORTANT: only honor a persisted selection. We deliberately do NOT
+			// fall back to ids[0] — auto-picking a random (often offline) device
+			// on fresh sign-in / cleared cache surfaced as "why is this offline
+			// device pinned?" confusion. Smart routing in /dashboard/+page.svelte
+			// sends the user to /dashboard/devices to pick explicitly.
 			const persisted =
 				typeof localStorage !== 'undefined'
 					? localStorage.getItem('selectedDeviceId') || undefined
 					: undefined;
-			const selectedId = persisted && ids.includes(persisted) ? persisted : ids[0];
+			const selectedId = persisted && ids.includes(persisted) ? persisted : null;
 
 			let selectedDetail: DeviceAuthResponseModel | null = null;
 			if (selectedId && token) {

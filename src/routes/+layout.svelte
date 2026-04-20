@@ -219,11 +219,15 @@
 						deviceState.aliases = { ...deviceState.aliases, [d.device_id]: d.alias };
 					}
 				}
-				// Resolve selectedDeviceId. If the persisted selection is stale (device
-				// removed) or unset, fall back to the first paired device.
+				// Resolve selectedDeviceId. Only clear if the persisted selection is
+				// stale (device removed from the account); we no longer auto-fall-back
+				// to ids[0], because surprise-picking a random (often offline) device
+				// on fresh sign-in confused users. /dashboard/+page.svelte's smart
+				// routing sends them to /dashboard/devices to pick when there's no
+				// valid selection.
 				const ids = merged.map((d: any) => d.device_id).filter(Boolean);
-				if (!deviceState.selectedDeviceId || !ids.includes(deviceState.selectedDeviceId)) {
-					if (ids.length > 0) deviceState.setSelectedDevice(ids[0]);
+				if (deviceState.selectedDeviceId && !ids.includes(deviceState.selectedDeviceId)) {
+					deviceState.setSelectedDevice(null);
 				}
 				// Only run the initial status check once. Per the device-fetch policy,
 				// the root layout polls only the selected device — /dashboard/devices
@@ -705,7 +709,7 @@
 	bind:deviceType={deviceState.pairingState.deviceType}
 />
 
-<Toaster theme={themeState.effective} richColors />
+<Toaster theme={themeState.effective} position="top-center" richColors />
 <PendingChangesPill />
 <CommandPalette />
 
