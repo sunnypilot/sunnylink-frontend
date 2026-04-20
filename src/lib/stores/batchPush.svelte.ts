@@ -12,8 +12,9 @@ import { toast } from 'svelte-sonner';
 
 const DEBOUNCE_MS = 4_000;
 const CONFIRMED_CLEAR_MS = 3_000;
-const VERIFY_POLL_INTERVAL_MS = 1_500;
-const VERIFY_MAX_ATTEMPTS = 6; // ~9s max verification time
+const VERIFY_SETTLE_MS = 500; // give the device a beat before the readback
+const VERIFY_POLL_INTERVAL_MS = 0; // unused: single-shot verify now
+const VERIFY_MAX_ATTEMPTS = 1; // one quick readback; fall through to optimistic confirm on miss (was 9s — caused 20s spinner regression)
 
 export type KeyState = 'pending' | 'syncing' | 'confirmed' | 'failed';
 
@@ -27,11 +28,24 @@ export interface BatchEntry {
 
 type DeviceQueue = Record<string, BatchEntry>;
 
+/**
+ * Queues/states are intentionally NOT $state — deep $state proxies were racing
+ * with rapid-click reverts (cancel() would reassign the nested proxy, but a
+ * subsequent enqueue within the same microtask could still read the pre-reset
+ * snapshot and leave the Pending pill stuck). Plain records make mutations
+ * visible to JS immediately; reactivity is driven by a single $state version
+ * counter that every reader reads and every mutator bumps.
+ */
 class BatchPushStore {
-	private queues: Record<string, DeviceQueue> = $state({});
-	private states: Record<string, Record<string, KeyState>> = $state({});
+	private queues: Record<string, DeviceQueue> = {};
+	private states: Record<string, Record<string, KeyState>> = {};
 	private timers: Record<string, ReturnType<typeof setTimeout>> = {};
 	private flushing: Record<string, boolean> = {};
+	private version = $state(0);
+
+	private bump(): void {
+		this.version++;
+	}
 
 	constructor() {
 		if (typeof window !== 'undefined') {
@@ -89,6 +103,7 @@ class BatchPushStore {
 			timestamp: Date.now()
 		};
 		this.states[deviceId][key] = 'pending';
+		this.bump();
 		this.resetTimer(deviceId);
 	}
 
@@ -136,8 +151,10 @@ class BatchPushStore {
 
 			const params = keys.map((k) => ({ key: k, value: entries[k]!.encodedValue }));
 
-			// 1. Fire the v0 POST — don't await the slow backend response.
-			//    Handle definite failures (4xx, no network) asynchronously.
+			// Fire the v0 POST — don't await the slow backend response.
+			// Optimistic confirm happens immediately below; errors roll the UI back
+			// asynchronously. A definite rejection (4xx, network) downgrades the
+			// confirmed checkmark to a failed state once the catch fires.
 			setDeviceParams(deviceId, params, token, 30_000).catch((err) => {
 				if (err instanceof DeviceRejectionError) {
 					this.rollbackKeys(deviceId, keys, entries);
@@ -149,25 +166,20 @@ class BatchPushStore {
 				// Abort, timeout, 5xx — device likely processed the write.
 			});
 
-			// 2. Verify the write by reading back values via the fast v1 async API.
-			//    This completes in ~2s for ALL params regardless of v0 POST timing.
-			const result = await this.verifyWrite(deviceId, keys, entries, token);
+			// Optimistic confirm: show the checkmark as soon as the debounce fires.
+			// User's perceived budget is ~4 s (match the refresh button). Waiting on
+			// the v0 POST response or a v1 readback adds 2-4 s of dead time on top
+			// of the debounce — that was the 20 s spinner regression.
+			this.confirmKeys(deviceId, keys, entries);
 
-			if (result.conflicts.length > 0) {
-				// Device has different values than what we pushed — device wins.
-				// Roll back conflicted keys to the device's actual values.
-				this.handleConflicts(deviceId, result.conflicts, entries);
-				// Confirm any non-conflicted keys normally
-				const confirmedKeys = keys.filter((k) => !result.conflicts.some((c) => c.key === k));
-				if (confirmedKeys.length > 0) {
-					this.confirmKeys(deviceId, confirmedKeys, entries);
+			// Background reconciliation: read back via the fast v1 async API and,
+			// if any key diverges, downgrade to a conflict toast + UI rollback.
+			// Non-blocking — the user already sees success.
+			void this.verifyWrite(deviceId, keys, entries, token).then((result) => {
+				if (result.conflicts.length > 0) {
+					this.handleConflicts(deviceId, result.conflicts, entries);
 				}
-			} else if (result.verified) {
-				this.confirmKeys(deviceId, keys, entries);
-			} else {
-				// Verification timed out — confirm optimistically, prefetch will correct if wrong.
-				this.confirmKeys(deviceId, keys, entries);
-			}
+			});
 		} catch {
 			// Token error or unexpected — confirm optimistically
 			this.confirmKeys(deviceId, keys, entries);
@@ -178,13 +190,19 @@ class BatchPushStore {
 
 	/** Read back pushed keys from device via v1 async API to verify the write.
 	 *  Detects conflicts: if device value differs from desiredValue AND from
-	 *  previousValue, the device changed the setting independently — conflict. */
+	 *  previousValue, the device changed the setting independently — conflict.
+	 *
+	 *  Timing budget is tight (user perceives anything past ~4s as a regression):
+	 *  one short settle, then at most 2 polls. If we still can't confirm,
+	 *  fall back to optimistic confirm — periodic drift detection will surface
+	 *  any mismatch later. Previous 6-attempt loop added ~9s to every push. */
 	private async verifyWrite(
 		deviceId: string,
 		keys: string[],
 		entries: Record<string, BatchEntry>,
 		token: string
 	): Promise<{ verified: boolean; conflicts: Array<{ key: string; deviceValue: unknown }> }> {
+		await new Promise((r) => setTimeout(r, VERIFY_SETTLE_MS));
 		for (let attempt = 0; attempt < VERIFY_MAX_ATTEMPTS; attempt++) {
 			if (attempt > 0) {
 				await new Promise((r) => setTimeout(r, VERIFY_POLL_INTERVAL_MS));
@@ -359,11 +377,13 @@ class BatchPushStore {
 
 	/** Get the current state for a specific key. */
 	getKeyState(deviceId: string, key: string): KeyState | undefined {
+		void this.version;
 		return this.states[deviceId]?.[key];
 	}
 
 	/** Count of pending changes for a device. */
 	getPendingCount(deviceId: string): number {
+		void this.version;
 		const s = this.states[deviceId];
 		if (!s) return 0;
 		return Object.values(s).filter((v) => v === 'pending').length;
@@ -371,6 +391,7 @@ class BatchPushStore {
 
 	/** True if there are any pending or syncing entries for a device (debounce or API in flight). */
 	isActive(deviceId: string): boolean {
+		void this.version;
 		const s = this.states[deviceId];
 		if (!s) return false;
 		return Object.values(s).some((v) => v === 'pending' || v === 'syncing');
@@ -378,24 +399,22 @@ class BatchPushStore {
 
 	/** True if a specific key has a pending or syncing change (user's optimistic value should be preserved). */
 	hasPendingKey(deviceId: string, key: string): boolean {
+		void this.version;
 		const state = this.states[deviceId]?.[key];
 		return state === 'pending' || state === 'syncing';
 	}
 
 	/** Remove a key from the pending batch before it flushes.
-	 *  Rebuilds the queue via Object.fromEntries + reassignment so the
-	 *  $state proxy always sees the structural change — in-place
-	 *  `delete queue[key]` has been unreliable across the nested $state
-	 *  proxy, which would leave the key in the queue and let the debounce
-	 *  timer fire and push a value the user had reverted. Also clears
-	 *  `pushStateStore` so the derived `pushState` in SchemaItemRenderer
-	 *  transitions away from 'pending' on the exact tick the user reverts. */
+	 *  Queues are plain records (not $state) so `delete` is safe and visible
+	 *  to JS immediately; the version bump notifies any derived readers.
+	 *  Also clears `pushStateStore` so the derived `pushState` in
+	 *  SchemaItemRenderer transitions away from 'pending' on the exact tick
+	 *  the user reverts. */
 	cancel(deviceId: string, key: string): void {
 		const queue = this.queues[deviceId];
 		if (queue && Object.prototype.hasOwnProperty.call(queue, key)) {
-			const entries = Object.entries(queue).filter(([k]) => k !== key);
-			this.queues[deviceId] = Object.fromEntries(entries);
-			if (entries.length === 0) this.clearTimer(deviceId);
+			delete queue[key];
+			if (Object.keys(queue).length === 0) this.clearTimer(deviceId);
 		}
 		this.clearKeyState(deviceId, key);
 		pushStateStore.endPush(deviceId, key);
@@ -435,25 +454,25 @@ class BatchPushStore {
 
 	private setKeyState(deviceId: string, key: string, state: KeyState): void {
 		if (!this.states[deviceId]) this.states[deviceId] = {};
-		this.states[deviceId] = { ...this.states[deviceId], [key]: state };
+		this.states[deviceId][key] = state;
+		this.bump();
 	}
 
 	/** Clear a key's state only if it still matches the expected value. */
 	private clearKeyState(deviceId: string, key: string, ifState?: KeyState): void {
-		const current = this.states[deviceId]?.[key];
+		const bucket = this.states[deviceId];
+		if (!bucket) return;
+		const current = bucket[key];
 		if (ifState && current !== ifState) return;
-		if (!this.states[deviceId]) return;
-		const next = { ...this.states[deviceId] };
-		delete next[key];
-		this.states[deviceId] = next;
+		delete bucket[key];
+		this.bump();
 	}
 
 	private removeKeys(deviceId: string, keys: string[]): void {
 		const queue = this.queues[deviceId];
 		if (!queue) return;
-		const next = { ...queue };
-		for (const k of keys) delete next[k];
-		this.queues[deviceId] = next;
+		for (const k of keys) delete queue[k];
+		this.bump();
 	}
 
 	/** Flush all devices (beforeunload / visibilitychange). */
