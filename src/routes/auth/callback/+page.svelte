@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 
 	type Phase = 'verifying' | 'loading' | 'redirecting';
 	let phase = $state<Phase>('verifying');
@@ -27,9 +27,6 @@
 
 		if (authState.isAuthenticated) {
 			phase = 'loading';
-			// Re-run all load functions so devices/etc. fetch with the fresh token
-			// before the dashboard mounts.
-			await invalidateAll();
 			// Flag the next /dashboard mount as a fresh sign-in so it can route
 			// the user appropriately (Home if persisted device is online, else
 			// /dashboard/devices). sessionStorage clears when the tab closes —
@@ -40,7 +37,13 @@
 				// private mode etc. — home falls back to default behavior
 			}
 			phase = 'redirecting';
-			goto('/dashboard');
+			// Navigate first so window.location.pathname is /dashboard before we
+			// invalidate; otherwise +layout.ts short-circuits its device fetch
+			// (the /auth/callback guard added to avoid a race during the code
+			// exchange) and the dashboard mounts with an empty load result that
+			// never sets pairedDevicesLoaded → skeleton stuck forever.
+			await goto('/dashboard');
+			await invalidate('app:devices');
 		} else {
 			// Sign-in failed — back to landing (no /login route exists)
 			goto('/');
