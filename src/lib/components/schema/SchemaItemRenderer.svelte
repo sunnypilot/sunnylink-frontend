@@ -61,7 +61,17 @@
 	let isDeviceOnly = $derived(!!item.blocked);
 	let enabledByRules = $derived(isDeviceOnly ? false : isEnabled(item.enablement, ruleContext));
 	let needsOffroad = $derived(requiresOffroad(item.enablement));
-	let isAdvanced = $derived(isAdvancedSetting(item.visibility));
+	let isAdvanced = $derived(
+		isAdvancedSetting(item.enablement) || isAdvancedSetting(item.visibility)
+	);
+	let isAdvancedGated = $derived(
+		isAdvanced && !ruleContext.paramValues.ShowAdvancedControls
+	);
+	let advancedTooltip = $derived(
+		isAdvancedGated
+			? 'Advanced setting. Enable "Show Advanced Controls" in Developer to access.'
+			: 'This is an advanced setting.'
+	);
 	let isPushing = $derived(pushState === 'pushing');
 
 	// Human-readable reasons why this item is disabled (for WCAG badges)
@@ -357,6 +367,46 @@
 			.replace(/&lt;br&gt;/gi, '<br>')
 			.replace(/&lt;br\s*\/&gt;/gi, '<br>');
 	}
+
+	/** Slider drag tracking — while pointer is held on the range input,
+	 *  pause the batchPush debounce timer so the per-key 4s countdown does
+	 *  not expire mid-drag and flush a stale value. Window-level pointerup /
+	 *  pointercancel / blur listeners catch every release path including
+	 *  pointer leaving the track or focus loss. A 30s safeguard force-
+	 *  releases if no release event fires (browser bug / dead pointer). */
+	let isDragging = false;
+	let dragSafetyTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+	const DRAG_SAFETY_MS = 30_000;
+
+	function endSliderDrag() {
+		if (!isDragging) return;
+		isDragging = false;
+		if (dragSafetyTimer !== undefined) {
+			clearTimeout(dragSafetyTimer);
+			dragSafetyTimer = undefined;
+		}
+		batchPush.releaseDebounce(deviceId);
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('pointerup', endSliderDrag);
+			window.removeEventListener('pointercancel', endSliderDrag);
+			window.removeEventListener('blur', endSliderDrag);
+		}
+	}
+
+	function startSliderDrag() {
+		if (isDragging) return;
+		isDragging = true;
+		batchPush.holdDebounce(deviceId);
+		if (typeof window !== 'undefined') {
+			window.addEventListener('pointerup', endSliderDrag);
+			window.addEventListener('pointercancel', endSliderDrag);
+			window.addEventListener('blur', endSliderDrag);
+		}
+		dragSafetyTimer = setTimeout(() => {
+			batchPush.clearHolds(deviceId);
+			endSliderDrag();
+		}, DRAG_SAFETY_MS);
+	}
 </script>
 
 <div
@@ -478,7 +528,7 @@
 						</Tooltip>
 					{/if}
 					{#if isAdvanced}
-						<Tooltip text="This is an advanced setting.">
+						<Tooltip text={advancedTooltip}>
 							<span
 								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Advanced</span
@@ -609,7 +659,7 @@
 						</Tooltip>
 					{/if}
 					{#if isAdvanced}
-						<Tooltip text="This is an advanced setting.">
+						<Tooltip text={advancedTooltip}>
 							<span
 								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Advanced</span
@@ -711,7 +761,7 @@
 					</Tooltip>
 				{/if}
 				{#if isAdvanced}
-					<Tooltip text="This is an advanced setting.">
+					<Tooltip text={advancedTooltip}>
 						<span
 							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 							>Advanced</span
@@ -807,6 +857,23 @@
 								value={displayValue !== undefined ? Number(displayValue) : item.min}
 								class="range flex-1 range-primary range-xs"
 								disabled={!enabled || isPushing}
+								onpointerdown={startSliderDrag}
+								onkeydown={(e) => {
+									if (
+										e.key === 'ArrowLeft' ||
+										e.key === 'ArrowRight' ||
+										e.key === 'ArrowUp' ||
+										e.key === 'ArrowDown' ||
+										e.key === 'Home' ||
+										e.key === 'End' ||
+										e.key === 'PageUp' ||
+										e.key === 'PageDown'
+									) {
+										startSliderDrag();
+									}
+								}}
+								onkeyup={endSliderDrag}
+								onblur={endSliderDrag}
 								oninput={(e) => {
 									const val = (e.currentTarget as HTMLInputElement).value;
 									sliderPreview = isFloat ? parseFloat(val) : parseInt(val, 10);
@@ -897,7 +964,7 @@
 						</Tooltip>
 					{/if}
 					{#if isAdvanced}
-						<Tooltip text="This is an advanced setting.">
+						<Tooltip text={advancedTooltip}>
 							<span
 								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Advanced</span
@@ -992,7 +1059,7 @@
 					</Tooltip>
 				{/if}
 				{#if isAdvanced}
-					<Tooltip text="This is an advanced setting.">
+					<Tooltip text={advancedTooltip}>
 						<span
 							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 							>Advanced</span

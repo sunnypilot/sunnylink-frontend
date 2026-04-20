@@ -2,7 +2,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
-	import { Smartphone, Loader2 } from 'lucide-svelte';
+	import { Smartphone, Loader2, ChevronRight, ArrowLeftRight } from 'lucide-svelte';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 
 	let { device } = $props<{ device: any }>();
@@ -79,12 +79,23 @@
 			<Smartphone size={22} aria-hidden="true" />
 		</div>
 		<div class="min-w-0 flex-1">
-			<h1
-				id="hero-alias"
-				class="truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
-			>
-				{alias}
-			</h1>
+			<div class="flex items-start justify-between gap-2">
+				<h1
+					id="hero-alias"
+					class="truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+				>
+					{alias}
+				</h1>
+				<a
+					href="/dashboard/devices"
+					class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+					aria-label="Change selected device"
+				>
+					<ArrowLeftRight size={12} aria-hidden="true" />
+					<span class="hidden sm:inline">Change device</span>
+					<span class="sm:hidden">Change</span>
+				</a>
+			</div>
 			<div class="mt-1 flex items-center gap-1.5">
 				<span
 					class="block h-2 w-2 shrink-0 rounded-full {statusDotClass}"
@@ -148,4 +159,13 @@
 			</dd>
 		</div>
 	</dl>
+
+	<a
+		href="/dashboard/devices/{device.device_id}/about"
+		class="mt-3 flex w-full items-center justify-between rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/40 px-4 py-2.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+		aria-label="More about this device"
+	>
+		<span>More about this device</span>
+		<ChevronRight size={14} aria-hidden="true" />
+	</a>
 </section>

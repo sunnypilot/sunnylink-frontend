@@ -139,18 +139,22 @@ export function requiresOffroad(enablement: Rule[] | undefined): boolean {
 }
 
 /**
- * Check if visibility rules depend on ShowAdvancedControls.
+ * Check if a rule list depends on ShowAdvancedControls.
  * Used to show an "Advanced" badge on the frontend.
+ *
+ * NOTE: schema now puts ShowAdvancedControls in `enablement` (so the item
+ * shows but is disabled when Advanced is off). Callers should pass the
+ * enablement list. Visibility list is also accepted for legacy schemas.
  */
-export function isAdvancedSetting(visibility: Rule[] | undefined): boolean {
-	if (!visibility) return false;
+export function isAdvancedSetting(rules: Rule[] | undefined): boolean {
+	if (!rules) return false;
 	function check(rule: Rule): boolean {
 		if (rule.type === 'param' && rule.key === 'ShowAdvancedControls') return true;
 		if (rule.type === 'all' || rule.type === 'any') return rule.conditions.some(check);
 		if (rule.type === 'not') return check(rule.condition);
 		return false;
 	}
-	return visibility.some(check);
+	return rules.some(check);
 }
 
 /** Fallback labels for capability fields (used when schema doesn't provide capability_labels) */
@@ -172,23 +176,43 @@ const CAPABILITY_LABELS_FALLBACK: Record<string, string> = {
  * Get human-readable reasons why an item is disabled.
  * Returns an array of short reason strings for each failed enablement rule.
  * Skips offroad_only (handled separately by the Offroad badge).
+ *
+ * Stack order: dependency reasons first (more actionable), Advanced last.
+ * The Advanced reason is rendered as a separate ADVANCED badge by the UI
+ * so it's filtered out of the returned array unless includeAdvanced is true.
  */
 export function getDisabledReasons(
 	enablement: Rule[] | undefined,
 	ctx: RuleContext,
 	paramTitleLookup?: (key: string) => string | undefined,
-	capabilityLabels?: Record<string, string>
+	capabilityLabels?: Record<string, string>,
+	includeAdvanced = false
 ): string[] {
 	if (!enablement || enablement.length === 0) return [];
 	const capLabels = capabilityLabels ?? CAPABILITY_LABELS_FALLBACK;
-	const reasons: string[] = [];
+	const dependencyReasons: string[] = [];
+	const advancedReasons: string[] = [];
 
 	for (const rule of enablement) {
 		if (evaluateRule(rule, ctx)) continue;
 		const reason = _describeFailedRule(rule, ctx, paramTitleLookup, capLabels);
-		if (reason) reasons.push(reason);
+		if (!reason) continue;
+		if (_isAdvancedFailure(rule)) {
+			advancedReasons.push(reason);
+		} else {
+			dependencyReasons.push(reason);
+		}
 	}
-	return reasons;
+	return includeAdvanced ? [...dependencyReasons, ...advancedReasons] : dependencyReasons;
+}
+
+/** True when a single rule is solely a ShowAdvancedControls = true check
+ *  (i.e. the rule's only purpose is the Advanced gate, not a real dependency). */
+function _isAdvancedFailure(rule: Rule): boolean {
+	if (rule.type === 'param' && rule.key === 'ShowAdvancedControls') return true;
+	if (rule.type === 'all' && rule.conditions.length === 1)
+		return _isAdvancedFailure(rule.conditions[0]!);
+	return false;
 }
 
 function _describeFailedRule(

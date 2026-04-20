@@ -2,10 +2,12 @@
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { RefreshCw } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
 
-	// Trigger reactivity on tick counter updates
+	const SPAM_WINDOW_MS = 5_000;
+	let lastClickAt = 0;
+
 	let displayTime = $derived.by(() => {
-		// Access tickCounter to re-derive every 10s
 		statusPolling.tickCounter;
 		if (statusPolling.lastCheckedAt === 0) return '';
 		return formatRelativeTime(statusPolling.lastCheckedAt);
@@ -19,6 +21,15 @@
 	});
 
 	async function handleRefresh() {
+		if (statusPolling.isRefreshing) {
+			const now = Date.now();
+			if (now - lastClickAt < SPAM_WINDOW_MS) {
+				toast('Already refreshing', { duration: 2_000 });
+			}
+			lastClickAt = now;
+			return;
+		}
+		lastClickAt = Date.now();
 		await statusPolling.refreshNow();
 	}
 </script>
@@ -30,9 +41,10 @@
 		</span>
 		<button
 			type="button"
-			class="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] disabled:opacity-50"
+			class="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] disabled:cursor-not-allowed disabled:opacity-50"
 			onclick={handleRefresh}
 			disabled={statusPolling.isRefreshing}
+			aria-disabled={statusPolling.isRefreshing}
 			aria-label="Refresh device status"
 			title="Refresh now"
 		>

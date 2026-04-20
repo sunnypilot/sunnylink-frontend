@@ -16,6 +16,8 @@
 		LogIn,
 		Map as MapIcon,
 		Menu,
+		Monitor,
+		Package,
 		Palette,
 		Settings,
 		ToggleLeft,
@@ -82,6 +84,8 @@
 			'/dashboard/settings/cruise': 'Cruise',
 			'/dashboard/settings/visuals': 'Visuals',
 			'/dashboard/settings/vehicle': 'Vehicle',
+			'/dashboard/settings/display': 'Display',
+			'/dashboard/settings/software': 'Software',
 			'/dashboard/settings/developer': 'Developer',
 			'/dashboard/osm': 'Maps',
 			'/dashboard/preferences': 'Preferences'
@@ -123,8 +127,10 @@
 							{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
 							{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
 							{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
+							{ icon: Monitor, label: 'Display', href: '/dashboard/settings/display' },
 							{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
 							{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
+							{ icon: Package, label: 'Software', href: '/dashboard/settings/software' },
 							{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
 						]
 					}

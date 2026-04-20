@@ -3,15 +3,15 @@ import { untrack } from 'svelte';
 export type SyncStatus = 'idle' | 'revalidating' | 'synced' | 'failed';
 
 const DEFAULT_HOLD_MS = 3000;
+const SETTLE_DEBOUNCE_MS = 250;
 
 /**
- * Creates a reactive sync status state machine.
+ * Reactive sync status state machine.
+ * Flow: idle → revalidating → synced|failed (hold) → idle
  *
- * State flow: idle → revalidating → synced|failed (hold) → idle
- *
- * @param isRevalidating — reactive getter: true while any background work is in-flight
- * @param isSucceeded — reactive getter: true when the most recent work completed without error
- * @param holdMs — how long to show synced/failed before returning to idle (default 3000)
+ * Settle debounce: when revalidating flips false, wait SETTLE_DEBOUNCE_MS
+ * before committing to synced/failed. Prevents flicker when concurrent
+ * loading flags clear in different microtasks.
  */
 export function createSyncStatus(
 	isRevalidating: () => boolean,
@@ -19,35 +19,50 @@ export function createSyncStatus(
 	holdMs = DEFAULT_HOLD_MS
 ) {
 	let status: SyncStatus = $state('idle');
-	let timerId: ReturnType<typeof setTimeout> | undefined = undefined;
+	let holdTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
+	let settleTimerId: ReturnType<typeof setTimeout> | undefined = undefined;
 
-	function clearTimer() {
-		if (timerId !== undefined) {
-			clearTimeout(timerId);
-			timerId = undefined;
+	function clearHoldTimer() {
+		if (holdTimerId !== undefined) {
+			clearTimeout(holdTimerId);
+			holdTimerId = undefined;
+		}
+	}
+
+	function clearSettleTimer() {
+		if (settleTimerId !== undefined) {
+			clearTimeout(settleTimerId);
+			settleTimerId = undefined;
 		}
 	}
 
 	function reset() {
-		clearTimer();
+		clearHoldTimer();
+		clearSettleTimer();
 		status = 'idle';
 	}
 
 	$effect(() => {
 		const revalidating = isRevalidating();
-		const succeeded = isSucceeded();
 
 		untrack(() => {
-			if (revalidating && status !== 'revalidating') {
-				clearTimer();
-				status = 'revalidating';
-			} else if (!revalidating && status === 'revalidating') {
-				status = succeeded ? 'synced' : 'failed';
-				timerId = setTimeout(() => {
-					status = 'idle';
-					timerId = undefined;
-				}, holdMs);
+			if (revalidating) {
+				clearSettleTimer();
+				clearHoldTimer();
+				if (status !== 'revalidating') status = 'revalidating';
+				return;
 			}
+			if (status !== 'revalidating') return;
+			if (settleTimerId !== undefined) return;
+			settleTimerId = setTimeout(() => {
+				settleTimerId = undefined;
+				if (isRevalidating()) return;
+				status = isSucceeded() ? 'synced' : 'failed';
+				holdTimerId = setTimeout(() => {
+					status = 'idle';
+					holdTimerId = undefined;
+				}, holdMs);
+			}, SETTLE_DEBOUNCE_MS);
 		});
 	});
 

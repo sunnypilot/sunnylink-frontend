@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { RefreshCw } from 'lucide-svelte';
+	import { RefreshCw, Check } from 'lucide-svelte';
 	import type { SyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		status: SyncStatus;
@@ -11,74 +12,54 @@
 	let { status, onRefresh }: Props = $props();
 
 	let isRefreshing = $derived(status === 'revalidating');
+	let isSynced = $derived(status === 'synced');
+	let lastClickAt = 0;
+	const SPAM_WINDOW_MS = 5_000;
+
+	function handleClick() {
+		if (!onRefresh) return;
+		if (isRefreshing) {
+			const now = Date.now();
+			if (now - lastClickAt < SPAM_WINDOW_MS) {
+				toast('Already refreshing', { duration: 2_000 });
+			}
+			lastClickAt = now;
+			return;
+		}
+		lastClickAt = Date.now();
+		onRefresh();
+	}
 </script>
 
-<span class="inline-flex items-center gap-1.5">
-	{#if status === 'revalidating'}
-		<span
-			class="loading loading-spinner text-[var(--sl-text-3)]"
-			style="width: 12px; height: 12px;"
-			transition:fade={{ duration: 150 }}
-		></span>
-		<span
-			class="text-[0.8125rem] font-normal text-[var(--sl-text-3)]"
-			transition:fade={{ duration: 150 }}>Refreshing...</span
-		>
-	{:else if status === 'synced'}
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			width="12"
-			height="12"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="3"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class="text-emerald-600 dark:text-emerald-400"
-			transition:fade={{ duration: 150 }}><path d="M20 6 9 17l-5-5" /></svg
-		>
-		<span
-			class="text-[0.8125rem] font-normal text-emerald-700 dark:text-emerald-400"
-			transition:fade={{ duration: 150 }}>Up to date</span
-		>
-	{:else if status === 'failed'}
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			width="12"
-			height="12"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class="text-amber-600 dark:text-amber-400"
-			transition:fade={{ duration: 150 }}
-			><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line
-				x1="12"
-				y1="16"
-				x2="12.01"
-				y2="16"
-			/></svg
-		>
-		<span
-			class="text-[0.8125rem] font-normal text-amber-700 dark:text-amber-400"
-			transition:fade={{ duration: 150 }}>Could not refresh</span
-		>
-	{/if}
-	{#if onRefresh}
-		<button
-			type="button"
-			class="flex h-5 w-5 items-center justify-center rounded transition-colors {isRefreshing
-				? 'text-[var(--sl-text-3)]'
-				: 'text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]'}"
-			onclick={onRefresh}
-			disabled={isRefreshing}
-			aria-label="Refresh"
-			title="Refresh now"
-		>
-			<RefreshCw size={11} class={isRefreshing ? 'animate-spin' : ''} />
-		</button>
-	{/if}
-</span>
+{#if onRefresh}
+	<button
+		type="button"
+		class="inline-flex h-6 w-6 items-center justify-center rounded transition-colors {isRefreshing
+			? 'cursor-not-allowed opacity-60'
+			: 'text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]'}"
+		onclick={handleClick}
+		aria-disabled={isRefreshing}
+		aria-label={isRefreshing ? 'Refreshing' : isSynced ? 'Synced' : 'Refresh'}
+		aria-live="polite"
+		title={isRefreshing ? 'Refreshing' : 'Refresh'}
+	>
+		{#if isRefreshing}
+			<span
+				class="loading loading-spinner text-primary"
+				style="width: 14px; height: 14px;"
+				transition:fade={{ duration: 150 }}
+			></span>
+		{:else if isSynced}
+			<span
+				class="inline-flex text-emerald-600 dark:text-emerald-400"
+				transition:fade={{ duration: 150 }}
+			>
+				<Check size={14} />
+			</span>
+		{:else}
+			<span class="inline-flex" transition:fade={{ duration: 150 }}>
+				<RefreshCw size={12} />
+			</span>
+		{/if}
+	</button>
+{/if}

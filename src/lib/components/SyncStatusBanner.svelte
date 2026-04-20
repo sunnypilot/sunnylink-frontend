@@ -16,7 +16,8 @@
 	} from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import { formatRelativeTime } from '$lib/utils/time';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	// Tick counter to keep relative timestamps live (updates every 15s)
 	let timeTick = $state(0);
@@ -47,6 +48,22 @@
 		Object.entries(conflicts).map(([key, c]) => ({ key, ...c }))
 	);
 	let conflictExpanded = $state(true);
+
+	// Toast on new conflict (0 → >0). Banner is sticky-top; toast nudges
+	// scrolled-down users to look up.
+	let lastConflictCount = 0;
+	$effect(() => {
+		const cur = conflictCount;
+		untrack(() => {
+			if (cur > lastConflictCount && cur > 0) {
+				toast.warning(
+					`${cur} setting${cur === 1 ? '' : 's'} differ on device — review at top of page.`,
+					{ duration: 5_000 }
+				);
+			}
+			lastConflictCount = cur;
+		});
+	});
 
 	// Group drifts by panel for the expanded list
 	let driftsByPanel = $derived.by(() => {

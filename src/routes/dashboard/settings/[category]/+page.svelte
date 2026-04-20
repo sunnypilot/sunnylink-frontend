@@ -29,7 +29,6 @@
 	import SettingCard from '$lib/components/SettingCard.svelte';
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
-	import DeviceIdentityCard from '$lib/components/DeviceIdentityCard.svelte';
 	import AlwaysOffroadPrompt from '$lib/components/AlwaysOffroadPrompt.svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -556,14 +555,7 @@
 							class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
 						>
 							<span>{activeSubPanel.label}</span>
-							{#if loadingValues}
-								<span
-									class="loading loading-xs loading-spinner text-primary"
-									style="align-self: center;"
-								></span>
-							{:else}
-								<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
-							{/if}
+							<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
 						</h2>
 					</div>
 				{:else}
@@ -572,14 +564,7 @@
 							class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)] capitalize"
 						>
 							<span>{schemaPanel?.label ?? category}</span>
-							{#if loadingValues}
-								<span
-									class="loading loading-xs loading-spinner text-primary"
-									style="align-self: center;"
-								></span>
-							{:else}
-								<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
-							{/if}
+							<SyncStatusIndicator status={sync.status} onRefresh={handleManualRefresh} />
 						</h2>
 						{#if schemaPanel?.description}
 							<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
@@ -641,11 +626,6 @@
 		</div>
 	{:else if useSchema && schemaPanel}
 		<!-- ═══ Schema-driven rendering (centered narrow column, grouped cards) ═══ -->
-		{#if category === 'device' && deviceId && !activeSubPanel}
-			<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-				<DeviceIdentityCard {deviceId} />
-			</div>
-		{/if}
 		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl" style="display: grid;">
 			{#key activeSubPanel?.id ?? '__root__'}
 				<div

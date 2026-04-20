@@ -16,6 +16,7 @@
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
+	import type { Panel } from '$lib/types/schema';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
@@ -1287,29 +1288,36 @@
 						/>
 					</div>
 				{:else if currentModel}
+					<!-- Schema-driven: enablement rules in settings_ui.json gate disable state.
+					     NNLC is the only remaining frontend-side conditional and exists solely for
+					     legacy model support. Drop the `nnlcParam && isLegacyActive` line below
+					     when legacy mode is removed. -->
 					{@const modelSettingItems = [
-						cameraOffsetParam && currentModel !== DEFAULT_MODEL ? cameraOffsetParam : null,
+						cameraOffsetParam,
 						lagdToggleParam,
-						lagdToggleDelayParam && lagdToggleValue === false ? lagdToggleDelayParam : null,
+						lagdToggleDelayParam,
 						laneTurnDesireParam,
-						laneTurnValueParam && laneTurnDesireParamValue === true ? laneTurnValueParam : null,
+						laneTurnValueParam,
 						nnlcParam && isLegacyActive ? nnlcParam : null
 					].filter((p): p is NonNullable<typeof p> => p !== null)}
-					{#if modelSettingItems.length > 0}
+					{#if modelSettingItems.length > 0 && deviceState.selectedDeviceId}
+						{@const modelPanel: Panel = {
+							id: 'model-settings',
+							label: 'Model Settings',
+							icon: 'models',
+							order: 0,
+							remote_configurable: true,
+							items: modelSettingItems.map(settingToSchemaItem)
+						}}
 						<div class="mt-12 px-4">
 							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
 						</div>
-						<div
-							class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
-						>
-							{#each modelSettingItems as param, i (param.key)}
-								<SchemaItemRenderer
-									deviceId={deviceState.selectedDeviceId}
-									item={settingToSchemaItem(param)}
-									loadingValues={loadingModels}
-									isLast={i === modelSettingItems.length - 1}
-								/>
-							{/each}
+						<div class="mt-3">
+							<SchemaPanel
+								deviceId={deviceState.selectedDeviceId}
+								panel={modelPanel}
+								loadingValues={loadingModels}
+							/>
 						</div>
 					{/if}
 				{/if}

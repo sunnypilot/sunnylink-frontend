@@ -54,6 +54,15 @@ class BatchPushStore {
 	 *  cleared and flush() early-returns — the user must resolve each
 	 *  conflict via SyncStatusBanner (Apply yours / Keep device). */
 	private paused: Record<string, boolean> = {};
+	/** Per-device hold counter — incremented while a UI widget (slider thumb,
+	 *  drag handle) is actively interacted with. While > 0, the debounce
+	 *  timer is cleared and resetTimer() is a no-op. On release back to 0,
+	 *  the full DEBOUNCE_MS countdown restarts so the user gets the entire
+	 *  window after they finish interacting. */
+	private holds: Record<string, number> = {};
+	/** Per-device flag: a baseline update arrived while the user was holding
+	 *  a widget. Conflict re-check is deferred until release. */
+	private pendingConflictCheck: Record<string, boolean> = {};
 	/** Per-device conflict map surfaced in SyncStatusBanner. Rebuilt by
 	 *  `checkConflictsAgainstBaseline` every time driftStore notifies a
 	 *  baseline change. */
@@ -593,6 +602,14 @@ class BatchPushStore {
 	 *  per-device conflict map against the current queue; pauses debounce
 	 *  if any queued desiredValue diverges from the fresh baseline. */
 	private checkConflictsAgainstBaseline(deviceId: string): void {
+		// If the user is actively dragging a widget (slider held etc.), defer
+		// the conflict rebuild. releaseDebounce() will re-run this check when
+		// the final hold releases so we don't surface a "changed on device"
+		// prompt while the user is still interacting.
+		if ((this.holds[deviceId] ?? 0) > 0) {
+			this.pendingConflictCheck[deviceId] = true;
+			return;
+		}
 		const queue = this.queues[deviceId];
 		if (!queue || Object.keys(queue).length === 0) return;
 		const baseline = driftStore.getBaseline(deviceId);
@@ -693,7 +710,59 @@ class BatchPushStore {
 		// flush is gated on user action. New enqueues/reverts still mutate the
 		// queue; they just don't auto-flush until the user clears conflicts.
 		if (this.paused[deviceId]) return;
+		// While held (user actively dragging slider etc.), keep timer cleared —
+		// release will restart it.
+		if ((this.holds[deviceId] ?? 0) > 0) return;
 		this.timers[deviceId] = setTimeout(() => this.flush(deviceId), DEBOUNCE_MS);
+	}
+
+	/** UI-side hold: stop the debounce timer while a widget is being actively
+	 *  dragged/interacted. Multiple widgets can hold simultaneously (counter). */
+	holdDebounce(deviceId: string): void {
+		this.holds[deviceId] = (this.holds[deviceId] ?? 0) + 1;
+		this.clearTimer(deviceId);
+	}
+
+	/** Release a UI hold. When the counter reaches 0, restart the full
+	 *  DEBOUNCE_MS countdown so the user gets the entire window after they
+	 *  finish interacting. Any conflict re-check that arrived during the
+	 *  hold is now run. */
+	releaseDebounce(deviceId: string): void {
+		const cur = this.holds[deviceId] ?? 0;
+		if (cur <= 0) {
+			this.holds[deviceId] = 0;
+			return;
+		}
+		this.holds[deviceId] = cur - 1;
+		if (this.holds[deviceId] === 0) {
+			const queue = this.queues[deviceId];
+			if (queue && Object.keys(queue).length > 0) this.resetTimer(deviceId);
+			if (this.pendingConflictCheck[deviceId]) {
+				delete this.pendingConflictCheck[deviceId];
+				this.checkConflictsAgainstBaseline(deviceId);
+			}
+		}
+	}
+
+	/** Force-release all UI holds for a device (safeguard for stuck pointer). */
+	clearHolds(deviceId: string): void {
+		if ((this.holds[deviceId] ?? 0) === 0) return;
+		this.holds[deviceId] = 0;
+		const queue = this.queues[deviceId];
+		if (queue && Object.keys(queue).length > 0) this.resetTimer(deviceId);
+		if (this.pendingConflictCheck[deviceId]) {
+			delete this.pendingConflictCheck[deviceId];
+			this.checkConflictsAgainstBaseline(deviceId);
+		}
+	}
+
+	/** Restart full debounce countdown (used by reconnect race fix to give
+	 *  user a fresh 4s window when device transitions offline → online with
+	 *  pending changes already enqueued). */
+	restartDebounce(deviceId: string): void {
+		const queue = this.queues[deviceId];
+		if (!queue || Object.keys(queue).length === 0) return;
+		this.resetTimer(deviceId);
 	}
 
 	private clearTimer(deviceId: string): void {

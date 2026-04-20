@@ -22,9 +22,8 @@
 	import { collectOffroadOnlyKeys } from '$lib/rules/evaluator';
 	import { WifiOff, AlertTriangle, Shield, Info, Wifi, RefreshCw } from 'lucide-svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
-	import { versionPoller } from '$lib/stores/versionPoller.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { onDestroy, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { children, data } = $props();
@@ -33,6 +32,8 @@
 	let lastRetryAt = $state<number | null>(null);
 	let retryFailed = $state(false);
 	let wasOffline = $state(false);
+	let reconnectFlushTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+	const RECONNECT_DEBOUNCE_MS = 4_000;
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let deviceStatus = $derived(deviceId ? deviceState.onlineStatuses[deviceId] : undefined);
@@ -42,22 +43,48 @@
 	let isLoading = $derived(deviceStatus === 'loading' || deviceStatus === undefined);
 	let isError = $derived(deviceStatus === 'error');
 
-	// Track when device transitions from offline → online for success toast + auto-flush
+	// Track when device transitions from offline → online.
+	// Debounced flush: give the user the full RECONNECT_DEBOUNCE_MS window to
+	// react/edit before pending changes start syncing. No "Push now" button —
+	// pace is intentional to discourage rushing.
+	function scheduleReconnectFlush(did: string) {
+		if (reconnectFlushTimer !== undefined) clearTimeout(reconnectFlushTimer);
+		const count = pendingChanges.pendingCount(did);
+		if (count === 0) return;
+		toast.success(
+			`Device reconnected. ${count} pending change${count === 1 ? '' : 's'} will sync shortly.`
+		);
+		reconnectFlushTimer = setTimeout(() => {
+			reconnectFlushTimer = undefined;
+			if (!deviceState.onlineStatuses[did] || deviceState.onlineStatuses[did] !== 'online') return;
+			flushPendingChanges(did);
+		}, RECONNECT_DEBOUNCE_MS);
+	}
+
 	$effect(() => {
 		if (isOnline && wasOffline) {
 			wasOffline = false;
-			toast.success('Device reconnected');
-			// Auto-flush any queued changes now that device is back online
-			if (deviceId) flushPendingChanges(deviceId);
+			if (deviceId) {
+				if (pendingChanges.hasPending(deviceId)) {
+					scheduleReconnectFlush(deviceId);
+				} else {
+					toast.success('Device reconnected');
+				}
+			}
 		}
 		if (isDeviceUnavailable && !isLoading) {
 			wasOffline = true;
+			if (reconnectFlushTimer !== undefined) {
+				clearTimeout(reconnectFlushTimer);
+				reconnectFlushTimer = undefined;
+			}
 		}
 	});
 
 	// Also flush on initial load if device is online and has pending changes
+	// (no toast — this is the silent first-load path, not a reconnect event).
 	$effect(() => {
-		if (deviceId && isOnline && pendingChanges.hasPending(deviceId)) {
+		if (deviceId && isOnline && pendingChanges.hasPending(deviceId) && !wasOffline) {
 			flushPendingChanges(deviceId);
 		}
 	});
@@ -265,28 +292,6 @@
 		}
 	});
 
-	$effect(() => {
-		if (deviceId && isOnline) {
-			versionPoller.start({
-				deviceId,
-				onVersionChange: () => {
-					if (deviceId) {
-						prefetchDone[deviceId] = false;
-						deviceState.valuesStale[deviceId] = true;
-						deviceState.valuesVerifiedThisSession[deviceId] = false;
-						// Update drift baseline to current values so the next
-						// prefetch detects drift relative to what was just showing
-						const vals = deviceState.deviceValues[deviceId];
-						if (vals) driftStore.updateBaseline(deviceId, vals);
-					}
-				}
-			});
-		} else {
-			versionPoller.stop();
-		}
-	});
-	onDestroy(() => versionPoller.stop());
-
 	// Background prefetch: when schema is loaded and device is online,
 	// fetch ALL panel keys + vehicle_settings keys in the background so every
 	// settings page loads instantly from cache on subsequent visits or F5 refresh.
@@ -341,7 +346,7 @@
 		}
 
 		// Also collect vehicle_settings keys (brand-specific settings)
-		const caps = schemaState.capabilities[deviceId];
+		const caps = schemaState.capabilities[did];
 		const brand = caps?.brand ?? '';
 		const brandData = brand && schema.vehicle_settings ? schema.vehicle_settings[brand] : null;
 		const vehicleItems = brandData?.items ?? [];
@@ -350,7 +355,7 @@
 		// Also prefetch vehicle detection params (used by VehicleSelector)
 		allKeys.push('CarPlatformBundle', 'CarFingerprint', 'CarParamsPersistent');
 
-		const existing = deviceState.deviceValues[deviceId] ?? {};
+		const existing = deviceState.deviceValues[did] ?? {};
 		const uniqueKeys = [...new Set(allKeys)];
 
 		// Use the persistent drift baseline (survives layout unmount).

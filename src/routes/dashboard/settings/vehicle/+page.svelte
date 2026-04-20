@@ -7,9 +7,9 @@
 	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import VehicleSelector from '$lib/components/vehicle/VehicleSelector.svelte';
-	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
+	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
-	import type { SchemaItem } from '$lib/types/schema';
+	import type { Panel, SchemaItem } from '$lib/types/schema';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let isDeviceOffline = $derived(
@@ -195,7 +195,17 @@
 		</div>
 
 		{#if brandSettings.length > 0}
-			<!-- Brand settings section: 48px from previous card -->
+			{@const brandPanel: Panel = {
+				id: `vehicle-${currentBrand}`,
+				label: brandData?.title ?? currentBrand,
+				icon: 'vehicle',
+				order: 0,
+				remote_configurable: true,
+				description: brandData?.description,
+				items: brandSettings as SchemaItem[]
+			}}
+			<!-- Brand settings: schema-driven via SchemaPanel for visual + behavioral parity
+			     with all other settings pages (enablement rules, badges, etc.). -->
 			<div class="mt-12">
 				<div class="px-4">
 					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">
@@ -207,17 +217,12 @@
 						</p>
 					{/if}
 				</div>
-				<div
-					class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
-				>
-					{#each brandSettings as item, i (item.key)}
-						<SchemaItemRenderer
-							{deviceId}
-							{item}
-							loadingValues={loadingBrandValues}
-							isLast={i === brandSettings.length - 1}
-						/>
-					{/each}
+				<div class="mt-3">
+					<SchemaPanel
+						{deviceId}
+						panel={brandPanel}
+						loadingValues={loadingBrandValues}
+					/>
 				</div>
 			</div>
 		{/if}

@@ -22,10 +22,7 @@
 			class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
 		>
 			<span>{title}</span>
-			{#if loading}
-				<span class="loading loading-xs loading-spinner text-primary" style="align-self: center;"
-				></span>
-			{:else if syncStatus}
+			{#if syncStatus}
 				<SyncStatusIndicator status={syncStatus} {onRefresh} />
 			{/if}
 		</h2>
