@@ -26,7 +26,8 @@
 		Smartphone
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import SettingsSearch from '$lib/components/SettingsSearch.svelte';
+	import SearchTrigger from '$lib/components/search/SearchTrigger.svelte';
+	import CommandPalette from '$lib/components/search/CommandPalette.svelte';
 	import DeviceStatusPill from '$lib/components/DeviceStatusPill.svelte';
 	import BackupStatusIndicator from '$lib/components/BackupStatusIndicator.svelte';
 	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
@@ -308,18 +309,16 @@
 						>
 							<Menu size={20} />
 						</label>
-						<p
-							class="font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-3)] uppercase"
-						>
-							sunnylink
-						</p>
+						{#if deviceState.selectedDeviceId}
+							<DeviceStatusPill />
+						{/if}
 					</div>
 
 					<div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 						<div class="hidden flex-1 justify-center px-6 lg:flex">
 							{#if deviceState.selectedDeviceId}
 								<div class="w-full max-w-md">
-									<SettingsSearch />
+									<SearchTrigger />
 								</div>
 							{/if}
 						</div>
@@ -350,11 +349,8 @@
 				</div>
 
 				{#if deviceState.selectedDeviceId}
-					<div class="mt-2 flex items-center gap-3 lg:hidden">
-						<div class="flex-1">
-							<SettingsSearch />
-						</div>
-						<DeviceStatusPill />
+					<div class="mt-2 lg:hidden">
+						<SearchTrigger />
 					</div>
 				{/if}
 			</header>
@@ -595,6 +591,7 @@
 
 <Toaster theme={themeState.effective} richColors />
 <PendingChangesPill />
+<CommandPalette />
 {#if isIOS && !isLandingPage}
 	<PWAInstallPrompt
 		title="Install sunnylink"
