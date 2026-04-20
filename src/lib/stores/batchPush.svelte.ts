@@ -62,12 +62,16 @@ class BatchPushStore {
 		const originalValue = existing ? existing.previousValue : previousValue;
 
 		// Net-change detection: user reverted to original → drop the key.
-		// `cancel()` handles timer teardown when the queue becomes empty; if
-		// other keys are still queued we intentionally do NOT reset the timer
-		// so their original debounce window continues — otherwise reverting
-		// one key would silently delay the push of every other pending key.
+		// `cancel()` tears the timer down when the queue empties. When
+		// other keys remain queued we reset the shared debounce: the
+		// device has ONE countdown per batch, and any user action on any
+		// key (including a revert) counts as activity that extends the
+		// window for every still-queued key. This is the agreed batching
+		// strategy — one debounced flush per device, not per key.
 		if (this.valuesEqual(newValue, originalValue)) {
 			this.cancel(deviceId, key);
+			const stillQueued = Object.keys(this.queues[deviceId] ?? {}).length > 0;
+			if (stillQueued) this.resetTimer(deviceId);
 			return;
 		}
 
@@ -379,17 +383,19 @@ class BatchPushStore {
 	}
 
 	/** Remove a key from the pending batch before it flushes.
-	 *  Uses spread + reassignment so the $state proxy always observes the
-	 *  change — `delete queue[key]` alone doesn't guarantee reactive updates
-	 *  on nested $state objects, which would leave the key in the queue and
-	 *  the debounce timer would still fire and push a reverted value. */
+	 *  Rebuilds the queue via Object.fromEntries + reassignment so the
+	 *  $state proxy always sees the structural change — in-place
+	 *  `delete queue[key]` has been unreliable across the nested $state
+	 *  proxy, which would leave the key in the queue and let the debounce
+	 *  timer fire and push a value the user had reverted. Also clears
+	 *  `pushStateStore` so the derived `pushState` in SchemaItemRenderer
+	 *  transitions away from 'pending' on the exact tick the user reverts. */
 	cancel(deviceId: string, key: string): void {
 		const queue = this.queues[deviceId];
-		if (queue && key in queue) {
-			const next = { ...queue };
-			delete next[key];
-			this.queues[deviceId] = next;
-			if (Object.keys(next).length === 0) this.clearTimer(deviceId);
+		if (queue && Object.prototype.hasOwnProperty.call(queue, key)) {
+			const entries = Object.entries(queue).filter(([k]) => k !== key);
+			this.queues[deviceId] = Object.fromEntries(entries);
+			if (entries.length === 0) this.clearTimer(deviceId);
 		}
 		this.clearKeyState(deviceId, key);
 		pushStateStore.endPush(deviceId, key);
