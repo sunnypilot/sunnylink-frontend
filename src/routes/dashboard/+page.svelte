@@ -9,7 +9,7 @@
 	import DashboardEmptyState from '$lib/components/dashboard/DashboardEmptyState.svelte';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { v1Client } from '$lib/api/client';
+	import { Athenav1Client } from '$lib/api/client';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 
@@ -115,7 +115,7 @@
 
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				currentValues,
 				(progress, status) => {
@@ -175,7 +175,7 @@
 
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				previousSettings,
 				(progress, status) => {

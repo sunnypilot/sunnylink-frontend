@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { v0Client, v1Client } from '$lib/api/client';
+	import { Athenav0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
@@ -78,7 +78,7 @@
 			// Let's skip re-fetch for now unless user reports issues.
 			// Wait, the prompt says "fetch latest values".
 			// Let's do it.
-			// We can use v1Client directly.
+			// We can use Athenav1Client directly.
 		} finally {
 			fetchingLatest = false;
 		}
@@ -110,7 +110,7 @@
 				};
 			});
 
-			const response = await v0Client.POST('/settings/{deviceId}', {
+			const response = await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: { deviceId }
 				},

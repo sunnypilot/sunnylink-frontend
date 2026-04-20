@@ -13,7 +13,7 @@
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { v0Client, v1Client } from '$lib/api/client';
+	import { APIv0Client, Athenav1Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -49,7 +49,7 @@
 
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				currentValues,
 				(progress, status) => {
@@ -109,7 +109,7 @@
 
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				previousSettings,
 				(progress, status) => {
@@ -174,7 +174,7 @@
 			const detailTasks = list
 				.filter((d: any) => d.device_id && !d.alias)
 				.map(async (d: any) => {
-					const r = await v0Client.GET('/device/{deviceId}', {
+					const r = await APIv0Client.GET('/device/{deviceId}', {
 						params: { path: { deviceId: d.device_id } },
 						headers: { Authorization: `Bearer ${token}` }
 					});
@@ -214,7 +214,7 @@
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
-			const response = await v0Client.PATCH('/device/{deviceId}', {
+			const response = await APIv0Client.PATCH('/device/{deviceId}', {
 				params: { path: { deviceId } },
 				body: { alias: trimmed },
 				headers: { Authorization: `Bearer ${token}` }

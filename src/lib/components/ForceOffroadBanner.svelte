@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { v0Client } from '$lib/api/client';
+	import { Athenav0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { AlertTriangle, Loader2 } from 'lucide-svelte';
@@ -45,7 +45,7 @@
 				}
 			];
 
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: { path: { deviceId } },
 				body: payload,
 				headers: { Authorization: `Bearer ${token}` }

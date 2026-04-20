@@ -3,7 +3,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import { v0Client } from '$lib/api/client';
+	import { Athenav0Client } from '$lib/api/client';
 	import { encodeParamValue } from '$lib/utils/device';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
@@ -243,7 +243,7 @@
 					is_compressed: false
 				}
 			];
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: { path: { deviceId } },
 				body: payload,
 				headers: { Authorization: `Bearer ${token}` }

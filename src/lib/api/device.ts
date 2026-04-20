@@ -1,11 +1,17 @@
-import { v1Client, v0Client, API_BASE_URL, customFetch } from '$lib/api/client';
+import {
+	Athenav1Client,
+	APIv0Client,
+	Athenav0Client,
+	ATHENA_BASE_URL,
+	customFetch
+} from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import { schemaState } from '$lib/stores/schema.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
 import { decodeCompressedJson } from '$lib/utils/compression';
 import type { SettingsSchema } from '$lib/types/schema';
-import type { components } from '../../sunnylink/v1/schema';
+import type { components } from '../../sunnylink/v1/schema_athena';
 
 type DeviceParam = components['schemas']['DeviceParam'];
 type ParamType = components['schemas']['ParamType'];
@@ -195,7 +201,7 @@ export async function fetchSettingsAsync(
 
 	try {
 		// 1. Initiate async request
-		const initRes = await v1Client.GET('/v1/settings/{deviceId}/async/values', {
+		const initRes = await Athenav1Client.GET('/v1/settings/{deviceId}/async/values', {
 			params: {
 				path: { deviceId },
 				query: { paramKeys }
@@ -234,7 +240,7 @@ export async function fetchSettingsAsync(
 			// Wait before polling
 			await new Promise((resolve) => setTimeout(resolve, pollDelay));
 
-			const pollRes = await v1Client.GET('/v1/settings/{deviceId}/async/poll/{requestId}', {
+			const pollRes = await Athenav1Client.GET('/v1/settings/{deviceId}/async/poll/{requestId}', {
 				params: {
 					path: { deviceId, requestId }
 				},
@@ -298,7 +304,7 @@ export async function fetchParamsMetadata(
 
 	try {
 		const response = await customFetch(
-			`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
+			`${ATHENA_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
 			{
 				headers: { Authorization: `Bearer ${token}` },
 				signal: controller.signal
@@ -365,7 +371,7 @@ async function fetchCerealService(
 
 	try {
 		const response = await customFetch(
-			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=${encodeURIComponent(service)}`,
+			`${ATHENA_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=${encodeURIComponent(service)}`,
 			{
 				headers: { Authorization: `Bearer ${token}` },
 				signal
@@ -396,7 +402,7 @@ async function fetchForceOffroadStatus(deviceId: string, token: string): Promise
 	const timeoutId = setTimeout(() => controller.abort('OffroadMode timeout'), 15_000);
 
 	try {
-		const res = await v1Client.GET('/v1/settings/{deviceId}/values', {
+		const res = await Athenav1Client.GET('/v1/settings/{deviceId}/values', {
 			params: {
 				path: { deviceId },
 				query: { paramKeys: ['OffroadMode'] }
@@ -628,7 +634,7 @@ export async function checkDeviceStatus(
 		}
 
 		// Phase 2: Fallback to legacy V1 (old device without getParamsMetadata)
-		const settingsRes = await v1Client.GET('/v1/settings/{deviceId}', {
+		const settingsRes = await Athenav1Client.GET('/v1/settings/{deviceId}', {
 			params: { path: { deviceId } },
 			headers: { Authorization: `Bearer ${token}` }
 		});
@@ -649,7 +655,7 @@ export async function checkDeviceStatus(
 
 export async function deregisterDevice(deviceId: string, token: string) {
 	// Real implementation:
-	return await v0Client.DELETE('/device/{deviceId}', {
+	return await APIv0Client.DELETE('/device/{deviceId}', {
 		params: {
 			path: { deviceId }
 		},
@@ -658,7 +664,7 @@ export async function deregisterDevice(deviceId: string, token: string) {
 }
 
 export async function removeUserFromDevice(deviceId: string, userId: string, token: string) {
-	return await v0Client.DELETE('/device/{deviceId}/users/{userId}', {
+	return await APIv0Client.DELETE('/device/{deviceId}/users/{userId}', {
 		params: {
 			path: { deviceId, userId }
 		},
@@ -710,7 +716,7 @@ export async function setDeviceParams(
 	const timeoutId = setTimeout(() => controller.abort('Timeout'), timeoutMs);
 
 	try {
-		const res = await v0Client.POST('/settings/{deviceId}', {
+		const res = await Athenav0Client.POST('/settings/{deviceId}', {
 			params: {
 				path: { deviceId }
 			},

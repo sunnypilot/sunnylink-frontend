@@ -6,7 +6,7 @@
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import { v0Client } from '$lib/api/client';
+	import { APIv0Client } from '$lib/api/client';
 	import { ChevronLeft, Copy, Check } from 'lucide-svelte';
 
 	let id = $derived(page.params.id);
@@ -32,7 +32,7 @@
 			if (!existing || !existing.alias) {
 				tasks.push(
 					(async () => {
-						const r = await v0Client.GET('/device/{deviceId}', {
+						const r = await APIv0Client.GET('/device/{deviceId}', {
 							params: { path: { deviceId: id } },
 							headers: { Authorization: `Bearer ${token}` }
 						});

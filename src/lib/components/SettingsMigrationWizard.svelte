@@ -27,7 +27,7 @@
 		downloadSettingsBackup,
 		fetchAllSettings
 	} from '$lib/utils/settings';
-	import { v1Client } from '$lib/api/client';
+	import { Athenav1Client } from '$lib/api/client';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
@@ -218,7 +218,7 @@
 			const currentValues = deviceState.deviceValues[deviceId] || {};
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				currentValues,
 				(progress, status) => {
@@ -327,7 +327,7 @@
 
 			const result = await fetchAllSettings(
 				ms.targetDeviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				currentValues,
 				(progress, status) => {

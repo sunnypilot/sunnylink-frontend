@@ -1,4 +1,4 @@
-import type { components } from '../../sunnylink/v1/schema';
+import type { components } from '../../sunnylink/v1/schema_athena';
 
 export interface ParamExtra {
 	title?: string;

@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import { v0Client } from '$lib/api/client';
+	import { Athenav0Client } from '$lib/api/client';
 	import { checkDeviceStatus, fetchSettingsAsync, fetchDeviceMessage } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import {
@@ -605,6 +605,49 @@
 		}
 	}
 
+	async function refreshModels() {
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+
+		try {
+			loadingModels = true;
+			const token = await logtoClient.getIdToken();
+
+			// 1. Clear the last update time to force a refresh
+			await Athenav0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: deviceState.selectedDeviceId
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_LastSyncTime',
+						value: encodeParamValue({
+							key: 'ModelManager_LastSyncTime',
+							value: '0',
+							type: 'String'
+						})
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			// 2. Wait a moment for the device to process and potentially update
+			// We can't really know when it's done, but giving it a few seconds helps.
+			// Ideally we would poll ModelManager_LastSyncTime, but for now a delay + fetch is a good start.
+			await new Promise((resolve) => setTimeout(resolve, 2000));
+
+			// 3. Fetch the fresh list
+			await fetchModelsForDevice(true);
+		} catch (e) {
+			console.error('Error refreshing models:', e);
+		} finally {
+			loadingModels = false;
+		}
+	}
+
 	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
@@ -661,7 +704,7 @@
 				});
 			}
 
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId
@@ -720,7 +763,7 @@
 
 		try {
 			clearingCache = true;
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId

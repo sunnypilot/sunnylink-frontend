@@ -1,4 +1,4 @@
-import { v1Client, v0Client } from '$lib/api/client';
+import { APIv1Client, APIv0Client } from '$lib/api/client';
 import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
@@ -43,7 +43,7 @@ export const load: LayoutLoad = async ({ depends }) => {
 
 		// Helper to fetch list
 		const fetchList = async (t: string) => {
-			return await v1Client.GET('/v1/users/{userId}/devices', {
+			return await APIv1Client.GET('/v1/users/{userId}/devices', {
 				params: { path: { userId: 'self' } },
 				headers: { Authorization: `Bearer ${t}` }
 			});
@@ -92,14 +92,14 @@ export const load: LayoutLoad = async ({ depends }) => {
 
 			let selectedDetail: DeviceAuthResponseModel | null = null;
 			if (selectedId && token) {
-				const detailResp = await v0Client.GET('/device/{deviceId}', {
+				const detailResp = await APIv0Client.GET('/device/{deviceId}', {
 					params: { path: { deviceId: selectedId } },
 					headers: { Authorization: `Bearer ${token}` }
 				});
 				if (detailResp.response.status === 401) {
 					const fresh = await getIdToken();
 					if (fresh) {
-						const retry = await v0Client.GET('/device/{deviceId}', {
+						const retry = await APIv0Client.GET('/device/{deviceId}', {
 							params: { path: { deviceId: selectedId } },
 							headers: { Authorization: `Bearer ${fresh}` }
 						});
