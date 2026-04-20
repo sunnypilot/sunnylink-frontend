@@ -19,8 +19,20 @@
 	});
 </script>
 
-{#if authState.loading}
-	<p>Finishing up...</p>
-{:else}
-	<p>Redirecting to dashboard...</p>
-{/if}
+<div
+	class="flex min-h-screen flex-col items-center justify-center bg-[var(--sl-bg-page)] px-6"
+	role="status"
+	aria-live="polite"
+>
+	<p
+		class="font-audiowide text-[1.5rem] font-semibold tracking-[0.20em] text-[var(--sl-text-1)] uppercase"
+	>
+		sunnylink
+	</p>
+	<span
+		class="loading mt-8 loading-spinner text-primary"
+		style="width: 24px; height: 24px;"
+		aria-hidden="true"
+	></span>
+	<span class="sr-only">Signing you in</span>
+</div>

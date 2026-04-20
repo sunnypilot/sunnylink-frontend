@@ -349,17 +349,26 @@ export async function fetchDeviceMessage(
 async function fetchCerealService(
 	deviceId: string,
 	token: string,
-	service: string
+	service: string,
+	externalSignal?: AbortSignal
 ): Promise<Record<string, unknown> | null> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(`${service} getMessage timeout`), 15_000);
+
+	// Combine internal timeout signal with caller-provided abort (e.g. abort
+	// selfdriveState/SP fetches the moment deviceState resolves with
+	// started=false — these services don't publish while offroad and would
+	// otherwise hang for the full 15s timeout).
+	const signal = externalSignal
+		? AbortSignal.any([controller.signal, externalSignal])
+		: controller.signal;
 
 	try {
 		const response = await customFetch(
 			`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=${encodeURIComponent(service)}`,
 			{
 				headers: { Authorization: `Bearer ${token}` },
-				signal: controller.signal
+				signal
 			}
 		);
 
@@ -450,13 +459,30 @@ export async function checkDeviceStatus(
 		// Phase 1: getMessage + getParamsMetadata + OffroadMode in parallel.
 		// Also pull selfdriveState + selfdriveStateSP so the rule evaluator
 		// can resolve `not_engaged` rules without an extra round-trip.
+		//
+		// selfdriveState / selfdriveStateSP only publish while the device is
+		// onroad (deviceState.started === true). When offroad, the cereal
+		// service has nothing to return and would block until the 15s timeout.
+		// We fire all in parallel for the happy onroad path, but abort the two
+		// selfdrive fetches the instant getMessage resolves with started=false.
+		// No cache lookup — only the fresh deviceState response controls abort.
+		const sdCtl = new AbortController();
+		const sdSpCtl = new AbortController();
+		const messagePromise = fetchDeviceMessage(deviceId, token).then((m) => {
+			if (m && (m.started as boolean) === false) {
+				sdCtl.abort('device offroad — selfdriveState not published');
+				sdSpCtl.abort('device offroad — selfdriveStateSP not published');
+			}
+			return m;
+		});
+
 		const [messageResult, metadataResult, forceOffroadResult, selfdriveResult, selfdriveSpResult] =
 			await Promise.allSettled([
-				fetchDeviceMessage(deviceId, token),
+				messagePromise,
 				fetchParamsMetadata(deviceId, token),
 				fetchForceOffroadStatus(deviceId, token),
-				fetchCerealService(deviceId, token, 'selfdriveState'),
-				fetchCerealService(deviceId, token, 'selfdriveStateSP')
+				fetchCerealService(deviceId, token, 'selfdriveState', sdCtl.signal),
+				fetchCerealService(deviceId, token, 'selfdriveStateSP', sdSpCtl.signal)
 			]);
 
 		const deviceMessage = messageResult.status === 'fulfilled' ? messageResult.value : null;

@@ -472,18 +472,32 @@
 					const pending = pendingChanges.getAll(did);
 					const meaningful = filterMeaningfulDrift(allDrifts, pending);
 
-					for (const d of meaningful) {
-						const meta = keyMeta[d.key];
-						if (meta) {
-							d.panelId = meta.panelId;
-							d.panelLabel = meta.panelLabel;
-							d.sectionLabel = meta.sectionLabel;
-							d.subPanelLabel = meta.subPanelLabel;
-							d.itemTitle = meta.itemTitle;
-						}
-					}
-					driftStore.mergeDrifts(did, meaningful);
+					// Drift handling (device-as-server-of-truth model):
+					//
+					// Drifts on keys WITH a pending edit → conflict territory.
+					//   batchPush conflict UI handles them; we don't populate the
+					//   drift banner section to avoid double-surfacing.
+					// Drifts on keys WITHOUT a pending edit → device wins silently.
+					//   Update baseline + cached values + emit a brief informational
+					//   toast so the user knows fresh values arrived. No sticky banner.
+					const pendingKeys = new Set(pending.map((p) => p.key));
+					const passiveDrifts = meaningful.filter((d) => !pendingKeys.has(d.key));
 
+					if (passiveDrifts.length > 0) {
+						const newBaseline: Record<string, unknown> = {
+							...driftStore.getBaseline(did)
+						};
+						for (const d of passiveDrifts) newBaseline[d.key] = d.freshValue;
+						driftStore.updateBaseline(did, newBaseline);
+
+						const n = passiveDrifts.length;
+						toast(`${n} setting${n === 1 ? '' : 's'} refreshed from device`, {
+							duration: 4_000
+						});
+					}
+
+					// Sweep stale drift entries (anything no longer drifting) so the
+					// banner doesn't carry forward stale state from prior fetches.
 					const driftedKeys = new Set(meaningful.map((d) => d.key));
 					const resolvedKeys = Object.keys(freshValues).filter((k) => !driftedKeys.has(k));
 					if (resolvedKeys.length > 0) driftStore.resolveKeys(did, resolvedKeys);

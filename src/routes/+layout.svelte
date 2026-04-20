@@ -234,6 +234,14 @@
 		isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
 	});
 
+	// Session-expired modal: shown only after auth init has fully completed AND
+	// the post-init isAuthenticated is false AND the load reported auth_expired.
+	// Gating on `!authState.loading` prevents the modal from flashing during the
+	// init/refresh-grant window when the SDK is still resolving stale tokens.
+	let showSessionExpiredModal = $derived(
+		!authState.loading && !authState.isAuthenticated && deviceFetchError === 'auth_expired'
+	);
+
 	$effect(() => {
 		if (authState.isAuthenticated) {
 			invalidate('app:devices');
@@ -307,25 +315,24 @@
 
 						<div class="flex items-center gap-3">
 							<DeviceStatusPill />
-							{#await data.streamed.deviceResult then result}
-								{#if result.error === 'auth_expired'}
-									<button
-										class="btn text-warning btn-ghost btn-sm"
-										onclick={async () => {
-											await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
-										}}
-									>
-										Session expired — Sign in
-									</button>
-								{:else if result.error === 'api_error'}
-									<button
-										class="btn text-error btn-ghost btn-sm"
-										onclick={() => invalidate('app:devices')}
-									>
-										Failed to load — Retry
-									</button>
-								{/if}
-							{/await}
+							{#if authState.loading}
+								<span
+									class="loading loading-spinner text-[var(--sl-text-3)]"
+									style="width: 16px; height: 16px;"
+									aria-label="Checking session"
+								></span>
+							{:else}
+								{#await data.streamed.deviceResult then result}
+									{#if result.error === 'api_error'}
+										<button
+											class="btn text-error btn-ghost btn-sm"
+											onclick={() => invalidate('app:devices')}
+										>
+											Failed to load — Retry
+										</button>
+									{/if}
+								{/await}
+							{/if}
 						</div>
 					</div>
 
@@ -386,62 +393,114 @@
 				</div>
 
 				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
-					<!-- Top-level items (standalone, above settings sections) -->
-					{#if topLevelItems.length > 0}
-						<ul class="mb-2 flex flex-col gap-0.5">
-							{#each topLevelItems as item}
-								{@render navItemSnippet(item)}
+					<!-- Auth init in flight — show skeleton rows so the sidebar doesn't
+						 flash empty or flip to the logged-out view during the refresh
+						 grant window. -->
+					{#if authState.loading}
+						<ul class="mb-2 flex flex-col gap-0.5" aria-hidden="true">
+							{#each [0, 1] as _}
+								<li class="list-none">
+									<div class="flex items-center gap-3 rounded-lg px-3.5 py-2.5">
+										<div
+											class="h-5 w-5 shrink-0 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+										></div>
+										<div
+											class={[
+												'h-3 w-24 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+												drawerOpen ? 'block' : 'hidden',
+												'lg:block'
+											]}
+										></div>
+									</div>
+								</li>
 							{/each}
 						</ul>
-					{/if}
-
-					{#each navSections as section, si}
-						{#if si > 0}
-							<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
-						{/if}
-
-						{#if section.collapsible}
-							<button
-								class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
-								onclick={() => (settingsOpen = !settingsOpen)}
-							>
-								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
-								<ChevronDown
-									size={12}
-									class="transition-transform duration-150 {settingsOpen
-										? ''
-										: '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
-								/>
-							</button>
+						<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
+						<div class="mb-1 px-3 py-1.5">
 							<div
-								class="grid transition-[grid-template-rows] duration-200 ease-in-out"
-								style="grid-template-rows: {settingsOpen ? '1fr' : '0fr'};"
-							>
-								<ul class="mt-0.5 flex flex-col gap-0.5 overflow-hidden">
-									{#each section.items as item}
-										{@render navItemSnippet(item)}
-									{/each}
-								</ul>
-							</div>
-						{:else}
-							<div class="mb-1 px-3 py-1.5">
-								<span
-									class={[
-										'text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase',
-										drawerOpen ? 'block' : 'hidden',
-										'lg:block'
-									]}
-								>
-									{section.label}
-								</span>
-							</div>
-							<ul class="flex flex-col gap-0.5">
-								{#each section.items as item}
+								class={[
+									'h-2.5 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+									drawerOpen ? 'block' : 'hidden',
+									'lg:block'
+								]}
+							></div>
+						</div>
+						<ul class="flex flex-col gap-0.5" aria-hidden="true">
+							{#each [0, 1, 2, 3, 4, 5, 6, 7, 8] as _}
+								<li class="list-none">
+									<div class="flex items-center gap-3 rounded-lg px-3.5 py-2.5">
+										<div
+											class="h-5 w-5 shrink-0 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+										></div>
+										<div
+											class={[
+												'h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+												drawerOpen ? 'block' : 'hidden',
+												'lg:block'
+											]}
+										></div>
+									</div>
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<!-- Top-level items (standalone, above settings sections) -->
+						{#if topLevelItems.length > 0}
+							<ul class="mb-2 flex flex-col gap-0.5">
+								{#each topLevelItems as item}
 									{@render navItemSnippet(item)}
 								{/each}
 							</ul>
 						{/if}
-					{/each}
+
+						{#each navSections as section, si}
+							{#if si > 0}
+								<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
+							{/if}
+
+							{#if section.collapsible}
+								<button
+									class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
+									onclick={() => (settingsOpen = !settingsOpen)}
+								>
+									<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
+									<ChevronDown
+										size={12}
+										class="transition-transform duration-150 {settingsOpen
+											? ''
+											: '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
+									/>
+								</button>
+								<div
+									class="grid transition-[grid-template-rows] duration-200 ease-in-out"
+									style="grid-template-rows: {settingsOpen ? '1fr' : '0fr'};"
+								>
+									<ul class="mt-0.5 flex flex-col gap-0.5 overflow-hidden">
+										{#each section.items as item}
+											{@render navItemSnippet(item)}
+										{/each}
+									</ul>
+								</div>
+							{:else}
+								<div class="mb-1 px-3 py-1.5">
+									<span
+										class={[
+											'text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase',
+											drawerOpen ? 'block' : 'hidden',
+											'lg:block'
+										]}
+									>
+										{section.label}
+									</span>
+								</div>
+								<ul class="flex flex-col gap-0.5">
+									{#each section.items as item}
+										{@render navItemSnippet(item)}
+									{/each}
+								</ul>
+							{/if}
+						{/each}
+					{/if}
 
 					<!-- Utility items (device-level, e.g. Migration Wizard) -->
 					{#if utilityItems.length > 0}
@@ -494,7 +553,21 @@
 				{/snippet}
 
 				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
-					{#if authState.isAuthenticated}
+					{#if authState.loading}
+						<!-- Skeleton row matching account/login footer height -->
+						<div class="flex items-center gap-2.5 rounded-lg px-3 py-2" aria-hidden="true">
+							<div
+								class="h-8 w-8 shrink-0 animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"
+							></div>
+							<div
+								class={[
+									'h-3 w-24 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+									drawerOpen ? 'block' : 'hidden',
+									'lg:block'
+								]}
+							></div>
+						</div>
+					{:else if authState.isAuthenticated}
 						<div class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 							<AccountMenu onNavigate={closeDrawerOnMobile} />
 						</div>
@@ -548,6 +621,35 @@
 <Toaster theme={themeState.effective} richColors />
 <PendingChangesPill />
 <CommandPalette />
+
+{#if showSessionExpiredModal}
+	<div
+		class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="session-expired-title"
+	>
+		<div
+			class="w-full max-w-sm rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6 shadow-xl"
+		>
+			<h2 id="session-expired-title" class="text-[1.0625rem] font-semibold text-[var(--sl-text-1)]">
+				Session expired
+			</h2>
+			<p class="mt-2 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
+				Your sign-in has expired. Sign in again to continue.
+			</p>
+			<button
+				type="button"
+				class="mt-5 inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				onclick={async () => {
+					await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
+				}}
+			>
+				Sign in
+			</button>
+		</div>
+	</div>
+{/if}
 {#if isIOS && !isLandingPage}
 	<PWAInstallPrompt
 		title="Install sunnylink"

@@ -96,10 +96,10 @@ class AuthState {
 		try {
 			if (await logtoClient.isAuthenticated()) {
 				try {
-					// 5s timeout — fetchUserInfo can hang on stale sessions. The SDK auto-refreshes
+					// 10s timeout — fetchUserInfo can hang on stale sessions. The SDK auto-refreshes
 					// the access token via the refresh token here, so a revoked/invalid grant
 					// surfaces as a LogtoRequestError from this call.
-					const profile = await withTimeout(logtoClient.fetchUserInfo(), 5000);
+					const profile = await withTimeout(logtoClient.fetchUserInfo(), 10000);
 					if (profile) {
 						finalAuthed = true;
 						finalProfile = profile;

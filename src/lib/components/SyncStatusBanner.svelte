@@ -310,12 +310,14 @@
 				</div>
 				{#each conflictEntries as entry (entry.key)}
 					{@const title = keyToItem[entry.key]?.title || entry.key}
-					<div class="flex items-center justify-between gap-3 py-1.5">
+					<div
+						class="flex flex-col gap-2 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+					>
 						<div class="min-w-0 flex-1">
-							<div class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+							<div class="text-[0.8125rem] font-medium break-words text-[var(--sl-text-1)]" {title}>
 								{title}
 							</div>
-							<div class="mt-0.5 text-xs text-[var(--sl-text-3)]">
+							<div class="mt-0.5 text-xs break-words text-[var(--sl-text-3)]">
 								Your:
 								<span class="font-medium text-[var(--sl-text-2)]"
 									>{formatDriftValue(entry.yourValue, entry.key)}</span
@@ -327,7 +329,7 @@
 								>
 							</div>
 						</div>
-						<div class="flex shrink-0 gap-1.5">
+						<div class="flex shrink-0 flex-wrap gap-1.5">
 							<button
 								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-subtle)]"
 								onclick={() => batchPush.resolveApply(deviceId, entry.key)}

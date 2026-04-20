@@ -16,7 +16,17 @@ export const load: LayoutLoad = async ({ depends }) => {
 	depends('app:devices');
 
 	const fetchAllDeviceData = async (): Promise<DeviceFetchResult> => {
-		if (!logtoClient || !(await logtoClient.isAuthenticated())) {
+		if (!logtoClient) {
+			return { devices: [], error: 'auth_expired' };
+		}
+
+		// Wait for authState to finish init before checking auth. The SDK refreshes
+		// stale tokens via refresh-token grant inside init() / fetchUserInfo, so
+		// checking logtoClient.isAuthenticated() (local-only check) before this
+		// completes is racy and can falsely report auth_expired during the loading
+		// window after a long-idle browser refresh.
+		await authState.init();
+		if (!authState.isAuthenticated) {
 			return { devices: [], error: 'auth_expired' };
 		}
 
