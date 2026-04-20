@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { Smartphone, Plus } from 'lucide-svelte';
+	import { Plus } from 'lucide-svelte';
+	import pairDeviceIllustration from '$lib/assets/illustrations/pair-device.svg?raw';
 
 	let helpOpen = $state(false);
 </script>
@@ -9,16 +10,12 @@
 	class="mx-auto flex max-w-md flex-col items-center px-4 py-10 text-center"
 	aria-labelledby="empty-h1"
 >
-	<!--
-		TODO: swap this Lucide icon placeholder for a calm, hand-drawn SVG
-		illustration at src/lib/assets/illustrations/pair-device.svg.
-	-->
 	<div
-		class="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary"
+		class="mb-6 h-32 w-32 text-primary"
 		role="img"
-		aria-label="Illustration of a sunnypilot device"
+		aria-label="Illustration of a sunnypilot device with pairing signals around it"
 	>
-		<Smartphone size={44} aria-hidden="true" />
+		{@html pairDeviceIllustration}
 	</div>
 
 	<h1

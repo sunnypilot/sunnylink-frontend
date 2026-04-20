@@ -68,10 +68,30 @@
 			: false
 	);
 
-	let offlineSince = $derived.by(() => {
+	let offlineSinceTs = $derived.by(() => {
 		if (!selectedDevice || !isOffline) return null;
-		const ts = deviceState.lastSeenOnline[selectedDevice.device_id];
-		return ts ? formatRelativeTime(ts) : null;
+		return deviceState.lastSeenOnline[selectedDevice.device_id] ?? null;
+	});
+
+	let offlineSince = $derived(offlineSinceTs ? formatRelativeTime(offlineSinceTs) : null);
+
+	// Duration-tiered subtitle — pattern from Ring / Nest / Find My.
+	// <30m: parking-is-likely; 30m-24h: neutral; >24h: warn-ish; >7d: pairing hint.
+	let offlineSubtitle = $derived.by(() => {
+		if (!offlineSinceTs) {
+			return 'Settings you change here will sync when the device reconnects.';
+		}
+		const hoursAgo = (Date.now() - offlineSinceTs * 1000) / 3_600_000;
+		if (hoursAgo < 0.5) {
+			return 'Likely parked. Settings you change here will sync when it reconnects.';
+		}
+		if (hoursAgo < 24) {
+			return 'Settings you change here will sync when the device reconnects.';
+		}
+		if (hoursAgo < 24 * 7) {
+			return `Not seen in ${Math.round(hoursAgo / 24)} day(s). Changes will still queue.`;
+		}
+		return 'Not seen in over a week. Make sure the device is still paired.';
 	});
 
 	async function handleRefreshStatus() {
@@ -238,7 +258,7 @@
 								Device offline{offlineSince ? ` — last seen ${offlineSince}` : ''}
 							</p>
 							<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-								Settings you change here will sync when the device reconnects.
+								{offlineSubtitle}
 							</p>
 						</div>
 						<button
