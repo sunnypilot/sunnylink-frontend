@@ -218,6 +218,19 @@
 	// See the longer note above the loadingValues declaration for rationale.
 	let showValueSkeleton = $derived(loadingValues || (!deviceVerified && !isDeviceOfflineOrError));
 
+	// Legacy devices need V1 /v1/settings/{deviceId} to populate the param
+	// list before any cards can render — explicit defs without a per-key
+	// `value` get filtered out. Hold the Connecting state while we still
+	// expect that response. lastStatusCheck flips once checkDeviceStatus
+	// finishes (success OR failure), so this never deadlocks.
+	let legacyAwaitingSettings = $derived(
+		!!deviceId &&
+			!useSchema &&
+			!schemaLoading &&
+			!settings &&
+			!deviceState.lastStatusCheck[deviceId]
+	);
+
 	// True when values are actively being fetched or a global refresh is in-flight.
 	// valuesStale = layout's global prefetch running (manual refresh / version change).
 	// revalidatingValues = this page's own fetch running.
@@ -646,14 +659,16 @@
 				</div>
 			</div>
 		{/await}
-	{:else if !isDeviceOfflineOrError && (deviceOnlineStatus === undefined || isDeviceLoading || schemaLoading)}
-		<!-- Connecting only covers the device handshake + schema decision.
-		     Once we know the device is online and we know whether or not it has
-		     a schema, fall through to the appropriate rendering branch — even
-		     if the values fetch is still pending. The downstream branches show
-		     skeleton placeholders for individual widgets via showValueSkeleton,
-		     which is much less jarring than an open-ended "Connecting..."
-		     spinner that depends on settings/categorySettings populating. -->
+	{:else if !isDeviceOfflineOrError && (deviceOnlineStatus === undefined || isDeviceLoading || schemaLoading || legacyAwaitingSettings)}
+		<!-- Connecting covers the device handshake, schema decision, AND the
+		     legacy V1 settings phase. Without the legacy gate the page would
+		     fall through to the legacy branch with categorySettings consisting
+		     of section markers only (the explicit defs filter out until V1
+		     populates each setting's `value`). Result: writableSettings.length
+		     is 0, the conditional `{#if writableSettings.length > 0}` guard
+		     fails, and the entire content area renders nothing — a blank
+		     screen between "Connecting..." disappearing and the V1 response
+		     arriving a couple seconds later. -->
 		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 			<div
 				class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
