@@ -1,9 +1,4 @@
-import {
-	Athenav1Client,
-	v0Client,
-	ATHENA_BASE_URL,
-	customFetch
-} from '$lib/api/client';
+import { Athenav1Client, v0Client, ATHENA_BASE_URL,	customFetch } from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
