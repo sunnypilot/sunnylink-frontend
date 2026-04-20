@@ -337,12 +337,13 @@ export async function fetchAllSettings(
 	}
 
 	// 3. Fetch missing values in chunks. Each chunk is one async-fetch session
-	// (1 init request + N polls until ready), so larger chunks = fewer total
-	// round-trips and CORS preflights. 50 keys per chunk yields a URL of
-	// ~1.8KB which is comfortably under the 8KB browser/server limit, and
-	// keeps a single chunk's failure blast-radius bounded. For ~200 settings
-	// this is 4 chunks instead of 20.
-	const CHUNK_SIZE = 50;
+	// (1 init request + N polls + 1 CORS preflight), so larger chunks = fewer
+	// round-trips. 150 keys yields a URL of ~5.4KB — under the 8KB browser/
+	// Kestrel limit with margin. For ~200 settings this is 1-2 chunks instead
+	// of 20. Cost-driven: 100k users × ~6M page-loads/month at AWS HTTP API
+	// $1/M, this swing is the difference between $120/mo and $40/mo on the
+	// values endpoint alone.
+	const CHUNK_SIZE = 150;
 	const newValues = { ...currentValues };
 	const chunkedKeys: string[][] = [];
 	for (let i = 0; i < missingKeys.length; i += CHUNK_SIZE) {
@@ -354,7 +355,9 @@ export async function fetchAllSettings(
 	let successCount = 0;
 	const failedKeys: UnavailableSetting[] = [];
 
-	const CONCURRENCY = 3;
+	// Up from 3. Backend handles parallel async sessions fine and chunks are
+	// few enough now (1-2 typical) that this rarely matters; bump is harmless.
+	const CONCURRENCY = 6;
 	const MAX_RETRIES = 1;
 
 	async function fetchChunk(chunk: string[]): Promise<void> {

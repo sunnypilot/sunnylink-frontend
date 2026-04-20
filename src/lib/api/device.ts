@@ -194,7 +194,10 @@ export async function fetchSettingsAsync(
 ): Promise<AsyncFetchResult> {
 	const {
 		maxPollTimeMs = 30000,
-		initialPollDelayMs = 500,
+		// Most async values resolve fast device-side. 500ms was conservative;
+		// 200ms catches the common case in one fewer poll round-trip without
+		// noticeably increasing 404-not-ready noise.
+		initialPollDelayMs = 200,
 		maxPollDelayMs = 1000,
 		signal
 	} = options;
