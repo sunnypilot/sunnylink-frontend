@@ -1,25 +1,63 @@
 /**
  * Svelte action: lock body scroll while a modal/overlay is open.
  *
- * Uses the iOS-safe pattern (`position: fixed` + preserved scrollY)
- * instead of `overflow: hidden` alone, since iOS Safari ignores the
- * latter on the body. Reference-counted so nested modals unlock only
- * when the last one closes.
+ * iOS Safari is the hard case. `overflow: hidden` on body alone is
+ * ignored once the user touches; the layout viewport also lets the
+ * browser chrome (URL bar) animate in/out during touch drags, which
+ * looks like "the page is scrolling" even when nothing moves in the
+ * document. The combination below is the known-good recipe:
+ *
+ *   - body `position: fixed` + saved scrollY so the content freezes
+ *   - html + body `overflow: hidden` to block fallback scroll paths
+ *   - html `overscroll-behavior: none` to kill rubber-band chaining
+ *   - `touchmove` listener that preventDefault's any gesture outside
+ *     a truly scrollable descendant (lets internal lists still scroll)
+ *
+ * Reference-counted so nested modals unlock only when the last one
+ * closes.
  */
 
 let lockCount = 0;
 let savedScrollY = 0;
+let touchMoveHandler: ((e: TouchEvent) => void) | null = null;
+
+function findScrollableAncestor(start: EventTarget | null): HTMLElement | null {
+	let el = start as HTMLElement | null;
+	while (el && el !== document.body && el !== document.documentElement) {
+		const style = window.getComputedStyle(el);
+		const oy = style.overflowY;
+		if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
+			return el;
+		}
+		el = el.parentElement;
+	}
+	return null;
+}
 
 function lockScroll() {
 	if (lockCount === 0) {
 		savedScrollY = window.scrollY;
 		const b = document.body.style;
+		const h = document.documentElement.style;
 		b.position = 'fixed';
 		b.top = `-${savedScrollY}px`;
 		b.left = '0';
 		b.right = '0';
 		b.width = '100%';
 		b.overflow = 'hidden';
+		h.overflow = 'hidden';
+		h.overscrollBehavior = 'none';
+
+		// Swallow touchmove outside scrollable descendants. iOS still
+		// rubber-bands otherwise, which makes the whole viewport appear
+		// to drift even though `position: fixed` freezes layout.
+		touchMoveHandler = (e: TouchEvent) => {
+			if (e.touches.length !== 1) return;
+			const scroller = findScrollableAncestor(e.target);
+			if (scroller) return; // let the inner list scroll naturally
+			if (e.cancelable) e.preventDefault();
+		};
+		document.addEventListener('touchmove', touchMoveHandler, { passive: false });
 	}
 	lockCount++;
 }
@@ -28,12 +66,19 @@ function unlockScroll() {
 	lockCount = Math.max(0, lockCount - 1);
 	if (lockCount === 0) {
 		const b = document.body.style;
+		const h = document.documentElement.style;
 		b.position = '';
 		b.top = '';
 		b.left = '';
 		b.right = '';
 		b.width = '';
 		b.overflow = '';
+		h.overflow = '';
+		h.overscrollBehavior = '';
+		if (touchMoveHandler) {
+			document.removeEventListener('touchmove', touchMoveHandler);
+			touchMoveHandler = null;
+		}
 		window.scrollTo(0, savedScrollY);
 	}
 }

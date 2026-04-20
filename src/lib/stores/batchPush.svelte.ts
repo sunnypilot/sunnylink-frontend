@@ -61,12 +61,13 @@ class BatchPushStore {
 		const existing = this.queues[deviceId][key];
 		const originalValue = existing ? existing.previousValue : previousValue;
 
-		// Net-change detection: user reverted to original → cancel the key
+		// Net-change detection: user reverted to original → drop the key.
+		// `cancel()` handles timer teardown when the queue becomes empty; if
+		// other keys are still queued we intentionally do NOT reset the timer
+		// so their original debounce window continues — otherwise reverting
+		// one key would silently delay the push of every other pending key.
 		if (this.valuesEqual(newValue, originalValue)) {
 			this.cancel(deviceId, key);
-			const remaining = Object.keys(this.queues[deviceId] ?? {}).length;
-			if (remaining === 0) this.clearTimer(deviceId);
-			else this.resetTimer(deviceId);
 			return;
 		}
 
@@ -377,14 +378,34 @@ class BatchPushStore {
 		return state === 'pending' || state === 'syncing';
 	}
 
-	/** Remove a key from the pending batch before it flushes. */
+	/** Remove a key from the pending batch before it flushes.
+	 *  Uses spread + reassignment so the $state proxy always observes the
+	 *  change — `delete queue[key]` alone doesn't guarantee reactive updates
+	 *  on nested $state objects, which would leave the key in the queue and
+	 *  the debounce timer would still fire and push a reverted value. */
 	cancel(deviceId: string, key: string): void {
 		const queue = this.queues[deviceId];
-		if (queue) {
-			delete queue[key];
-			if (Object.keys(queue).length === 0) this.clearTimer(deviceId);
+		if (queue && key in queue) {
+			const next = { ...queue };
+			delete next[key];
+			this.queues[deviceId] = next;
+			if (Object.keys(next).length === 0) this.clearTimer(deviceId);
 		}
 		this.clearKeyState(deviceId, key);
+		pushStateStore.endPush(deviceId, key);
+	}
+
+	/** Revert a pending (not yet flushed) change: restore the original device
+	 *  value into deviceValues and cancel the queued batch entry so the
+	 *  debounce does not fire. Mirrors `pendingChanges.revert()` for the
+	 *  offline path — SchemaItemRenderer calls both, whichever holds the
+	 *  change for this key. Returns true if an entry existed and was reverted. */
+	revert(deviceId: string, key: string, deviceValues: Record<string, unknown> | undefined): boolean {
+		const entry = this.queues[deviceId]?.[key];
+		if (!entry) return false;
+		if (deviceValues) deviceValues[key] = entry.previousValue;
+		this.cancel(deviceId, key);
+		return true;
 	}
 
 	/** Clean up timers when switching devices. */

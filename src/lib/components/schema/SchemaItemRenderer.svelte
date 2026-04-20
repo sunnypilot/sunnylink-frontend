@@ -191,7 +191,13 @@
 	let isDeviceOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 
 	function handleRevert() {
-		pendingChanges.revert(deviceId, item.key, deviceState.deviceValues[deviceId]);
+		const values = deviceState.deviceValues[deviceId];
+		// Online path: cancel the debounced batch push and restore the
+		// original value. Offline path: drop the queued pendingChange.
+		// Online and offline can't hold the same key at once, but calling
+		// both is safe — each no-ops if the key isn't in its queue.
+		batchPush.revert(deviceId, item.key, values);
+		pendingChanges.revert(deviceId, item.key, values);
 	}
 
 	// Drift state for this specific item
