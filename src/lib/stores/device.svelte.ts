@@ -42,7 +42,6 @@ export const deviceState = $state({
 	/** Whether the device list has been fetched from the API this session */
 	pairedDevicesLoaded: false,
 	aliases: {} as Record<string, string>,
-	aliasOverrides: {} as Record<string, string>,
 	stagedChanges: {} as Record<string, Record<string, unknown>>,
 	/** Device-level flag: true after values have been fetched from device this page session.
 	 *  Shared across all settings pages — once verified, navigating between pages is instant. */
@@ -124,27 +123,6 @@ export const deviceState = $state({
 	updateAlias(deviceId: string, alias: string) {
 		this.aliases = { ...this.aliases, [deviceId]: alias };
 		this.version++;
-	},
-
-	// Helper to set alias override
-	setAliasOverride(deviceId: string, alias: string, originalAlias: string) {
-		if (alias === originalAlias) {
-			const newOverrides = { ...this.aliasOverrides };
-			delete newOverrides[deviceId];
-			this.aliasOverrides = newOverrides;
-		} else {
-			this.aliasOverrides = { ...this.aliasOverrides, [deviceId]: alias };
-		}
-	},
-
-	// Helper to clear alias overrides
-	clearAliasOverrides() {
-		this.aliasOverrides = {};
-	},
-
-	// Helper to remove a specific alias override
-	removeAliasOverride(deviceId: string) {
-		delete this.aliasOverrides[deviceId];
 	},
 
 	// Migration State

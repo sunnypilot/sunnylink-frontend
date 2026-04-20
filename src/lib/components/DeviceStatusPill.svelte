@@ -70,7 +70,7 @@
 	// Device name: check unsaved overrides → persisted aliases → raw ID
 	let deviceName = $derived.by(() => {
 		if (!deviceId) return '';
-		return deviceState.aliasOverrides[deviceId] ?? deviceState.aliases[deviceId] ?? deviceId;
+		return deviceState.aliases[deviceId] ?? deviceId;
 	});
 
 	// Software version from GitCommit (short hash)

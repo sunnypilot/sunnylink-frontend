@@ -19,7 +19,7 @@
 	};
 
 	let alias = $derived(
-		deviceState.aliasOverrides[deviceId] ?? deviceState.aliases[deviceId] ?? deviceId
+		deviceState.aliases[deviceId] ?? deviceId
 	);
 	let onlineStatus = $derived(deviceState.onlineStatuses[deviceId]);
 	let offroadStatus = $derived(deviceState.offroadStatuses[deviceId]);

@@ -2,30 +2,31 @@
 	import { goto } from '$app/navigation';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceRowMenu from '$lib/components/DeviceRowMenu.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { Save, Plus, Loader2, ChevronDown, Pencil } from 'lucide-svelte';
+	import { Plus, Loader2, ChevronDown, Pencil } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { v1Client } from '$lib/api/client';
-	import { pendingChanges as pendingChangesStore } from '$lib/stores/pendingChanges.svelte';
+	import { v0Client, v1Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
 
-	let updateAliasModalOpen = $state(false);
 	let deregisterModalOpen = $state(false);
 	let deviceToDeregister = $state<string | null>(null);
 	let deviceToDeregisterAlias = $state<string>('');
 	let deviceToDeregisterPairedAt = $state<number>(0);
 	let deviceToDeregisterIsOnline = $state<boolean>(false);
 	let renamingDeviceId = $state<string | null>(null);
+	let renameValue = $state('');
+	let renameOriginal = $state('');
+	let savingAliasFor = $state<string | null>(null);
 	let offlineSectionOpen = $state(false);
 
 	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
@@ -154,28 +155,44 @@
 
 	function getAlias(device: any) {
 		return (
-			deviceState.aliasOverrides[device.device_id] ??
-			deviceState.aliases[device.device_id] ??
-			device.alias ??
-			device.device_id
+			deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id
 		);
 	}
 
-	function handleAliasChange(device: any, newAlias: string) {
-		if (!newAlias.trim()) return;
-		const originalAlias = deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
-		deviceState.setAliasOverride(device.device_id, newAlias, originalAlias);
+	async function commitRename() {
+		const deviceId = renamingDeviceId;
+		if (!deviceId) return;
+		const trimmed = renameValue.trim();
+		renamingDeviceId = null;
+		if (!trimmed || trimmed === renameOriginal) return;
+
+		savingAliasFor = deviceId;
+		try {
+			const token = await logtoClient?.getIdToken();
+			if (!token) throw new Error('Not authenticated');
+			const response = await v0Client.PATCH('/device/{deviceId}', {
+				params: { path: { deviceId } },
+				body: { alias: trimmed },
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			if ((response as any).error) {
+				const err = (response as any).error;
+				const msg =
+					typeof err === 'object' && err !== null ? err.detail || 'Unknown error' : 'Unknown error';
+				throw new Error(msg);
+			}
+			deviceState.updateAlias(deviceId, trimmed);
+			toast.success(`Renamed to "${trimmed}"`);
+		} catch (e: any) {
+			console.error('Rename failed', e);
+			toast.error(e.message || 'Failed to rename device');
+		} finally {
+			savingAliasFor = null;
+		}
 	}
 
-	function getPendingChanges(devices: any[]) {
-		return Object.entries(deviceState.aliasOverrides)
-			.map(([deviceId, newAlias]) => {
-				const device = devices.find((d) => d.device_id === deviceId);
-				const oldAlias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
-				if (newAlias === oldAlias) return null;
-				return { deviceId, oldAlias, newAlias };
-			})
-			.filter((c) => c !== null) as Array<{ deviceId: string; oldAlias: string; newAlias: string }>;
+	function cancelRename() {
+		renamingDeviceId = null;
 	}
 
 	function formatDateShort(timestamp: number | undefined) {
@@ -196,6 +213,10 @@
 	}
 
 	function startRename(did: string) {
+		const device = devices.find((d: any) => d.device_id === did);
+		const current = deviceState.aliases[did] ?? device?.alias ?? did;
+		renameOriginal = current;
+		renameValue = current;
 		requestAnimationFrame(() => {
 			renamingDeviceId = did;
 			setTimeout(() => {
@@ -349,7 +370,6 @@
 		return deviceState.sortDevices(list);
 	});
 
-	let pendingChanges = $derived(getPendingChanges(devices));
 </script>
 
 {#if authState.loading}
@@ -464,16 +484,17 @@
 											<input
 												id="alias-{device.device_id}"
 												type="text"
-												value={getAlias(device)}
-												oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-												onblur={() => {
-													renamingDeviceId = null;
-												}}
+												bind:value={renameValue}
+												onblur={commitRename}
 												onkeydown={(e) => {
 													e.stopPropagation();
-													if (e.key === 'Enter' || e.key === 'Escape') {
+													if (e.key === 'Enter') {
 														e.preventDefault();
-														renamingDeviceId = null;
+														e.currentTarget.blur();
+													} else if (e.key === 'Escape') {
+														e.preventDefault();
+														renameValue = renameOriginal;
+														cancelRename();
 													}
 												}}
 												onclick={(e) => e.stopPropagation()}
@@ -496,7 +517,13 @@
 												<Pencil size={12} />
 											</button>
 										{/if}
-										{#if isLoading}
+										{#if savingAliasFor === device.device_id}
+											<Loader2
+												size={12}
+												class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+												aria-label="Saving alias"
+											/>
+										{:else if isLoading}
 											<Loader2
 												size={12}
 												class="shrink-0 animate-spin text-[var(--sl-text-3)]"
@@ -612,16 +639,17 @@
 														<input
 															id="alias-{device.device_id}"
 															type="text"
-															value={getAlias(device)}
-															oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-															onblur={() => {
-																renamingDeviceId = null;
-															}}
+															bind:value={renameValue}
+															onblur={commitRename}
 															onkeydown={(e) => {
 																e.stopPropagation();
-																if (e.key === 'Enter' || e.key === 'Escape') {
+																if (e.key === 'Enter') {
 																	e.preventDefault();
-																	renamingDeviceId = null;
+																	e.currentTarget.blur();
+																} else if (e.key === 'Escape') {
+																	e.preventDefault();
+																	renameValue = renameOriginal;
+																	cancelRename();
 																}
 															}}
 															onclick={(e) => e.stopPropagation()}
@@ -704,39 +732,6 @@
 					Pair New Device
 				</p>
 			</button>
-		{/if}
-
-		{#if pendingChanges.length > 0}
-			<div
-				class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-xl -translate-x-1/2 px-4 duration-300"
-			>
-				<div
-					class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/95 p-4 shadow-2xl backdrop-blur-md"
-				>
-					<div class="flex items-center gap-3">
-						<Save size={18} class="text-primary" />
-						<div>
-							<p class="text-sm font-medium text-[var(--sl-text-1)]">Unsaved Changes</p>
-							<p class="text-xs text-[var(--sl-text-3)]">
-								{pendingChanges.length} alias{pendingChanges.length === 1 ? '' : 'es'} modified
-							</p>
-						</div>
-					</div>
-					<div class="flex items-center gap-2">
-						<button
-							class="btn text-[var(--sl-text-3)] btn-ghost btn-sm hover:text-[var(--sl-text-1)]"
-							onclick={() => deviceState.clearAliasOverrides()}
-						>
-							Discard
-						</button>
-						<button class="btn btn-sm btn-primary" onclick={() => (updateAliasModalOpen = true)}>
-							Save
-						</button>
-					</div>
-				</div>
-			</div>
-
-			<UpdateAliasModal bind:open={updateAliasModalOpen} changes={pendingChanges} />
 		{/if}
 
 		{#if deviceToDeregister}
