@@ -367,10 +367,12 @@
 				const token = await client!.getIdToken();
 				if (!token) return;
 
-				// Chunk into batches of 10 (matching existing pattern)
+				// Chunk into batches of 150 (URL ~5.4KB, under 8KB limit). Each
+				// chunk = 1 init + N polls + 1 CORS preflight, so bigger = fewer
+				// round-trips.
 				const chunks: string[][] = [];
-				for (let i = 0; i < uniqueKeys.length; i += 10) {
-					chunks.push(uniqueKeys.slice(i, i + 10));
+				for (let i = 0; i < uniqueKeys.length; i += 150) {
+					chunks.push(uniqueKeys.slice(i, i + 150));
 				}
 
 				const freshValues: Record<string, unknown> = {};

@@ -342,7 +342,7 @@
 				deviceState.deviceValues[did] = {};
 			}
 
-			const chunks = chunkArray(keysToFetch, 10);
+			const chunks = chunkArray(keysToFetch, 150);
 			await Promise.all(
 				chunks.map(async (chunk) => {
 					if (signal?.aborted) return;
@@ -430,7 +430,7 @@
 			}
 
 			// Parallel chunk fetching
-			const chunks = chunkArray(keysToFetch, 10);
+			const chunks = chunkArray(keysToFetch, 150);
 			await Promise.all(
 				chunks.map(async (chunk) => {
 					if (signal?.aborted) return;
