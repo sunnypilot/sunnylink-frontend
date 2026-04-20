@@ -492,10 +492,11 @@
 		deviceState.valuesStale[deviceId] = true;
 		logtoClient.getIdToken().then((token) => {
 			if (!token || !deviceId) return;
-			// Refresh capabilities immediately (fast, single RPC) — updates
-			// enablement/visibility rules without waiting for full status check.
-			schemaState.refreshCapabilities(deviceId, token);
-			// Full status check in parallel — re-fetches schema, offroad status, etc.
+			// checkDeviceStatus already calls fetchParamsMetadata internally and
+			// pipes the result into schemaState.schemas (capabilities included),
+			// so a separate refreshCapabilities() call here would be a duplicate
+			// paramsMetadata round-trip on top of the same one inside the status
+			// check. Keep this to a single status-check call.
 			checkDeviceStatus(deviceId, token, true, false);
 		});
 	}

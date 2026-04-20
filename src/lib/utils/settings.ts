@@ -336,11 +336,17 @@ export async function fetchAllSettings(
 		return { settings: currentValues, failedKeys: [] };
 	}
 
-	// 3. Fetch missing values in chunks
+	// 3. Fetch missing values in chunks. Each chunk is one async-fetch session
+	// (1 init request + N polls until ready), so larger chunks = fewer total
+	// round-trips and CORS preflights. 50 keys per chunk yields a URL of
+	// ~1.8KB which is comfortably under the 8KB browser/server limit, and
+	// keeps a single chunk's failure blast-radius bounded. For ~200 settings
+	// this is 4 chunks instead of 20.
+	const CHUNK_SIZE = 50;
 	const newValues = { ...currentValues };
 	const chunkedKeys: string[][] = [];
-	for (let i = 0; i < missingKeys.length; i += 10) {
-		chunkedKeys.push(missingKeys.slice(i, i + 10));
+	for (let i = 0; i < missingKeys.length; i += CHUNK_SIZE) {
+		chunkedKeys.push(missingKeys.slice(i, i + CHUNK_SIZE));
 	}
 
 	let processedCount = 0;
