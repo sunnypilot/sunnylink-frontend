@@ -192,16 +192,15 @@
 	let isDeviceOfflineOrError = $derived(
 		deviceOnlineStatus === 'offline' || deviceOnlineStatus === 'error'
 	);
-	// Legacy devices (schemaUnavailable) are considered verified once deviceSettings arrives,
-	// since the layout prefetch requires schema panels and won't run for legacy devices.
-	let legacyVerified = $derived(
-		deviceId ? !!schemaState.schemaUnavailable[deviceId] && !!settings : false
-	);
+	// Legacy and schema devices both verify only once a values fetch has actually
+	// populated deviceValues (valuesVerifiedThisSession). Earlier code marked legacy
+	// "verified" as soon as deviceSettings arrived, but that array is just the
+	// metadata list — current values still come from a separate fetch. Trusting it
+	// caused the legacy effect below to skip fetchCurrentValues on first load,
+	// leaving every toggle on its default-off state until the user pressed refresh.
 	let deviceVerified = $derived(
 		deviceId
-			? isDeviceOfflineOrError ||
-					!!deviceState.valuesVerifiedThisSession[deviceId] ||
-					legacyVerified
+			? isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId]
 			: false
 	);
 
@@ -408,6 +407,9 @@
 				loadingValues = false;
 				revalidatingValues = false;
 				deviceState.valuesVerifiedThisSession[did] = true;
+				// Defensive: also clear valuesStale here so the SyncStatusIndicator
+				// can stop spinning even if the layout prefetch silently fails.
+				deviceState.valuesStale[did] = false;
 				statusPolling.confirmReachable(did);
 			}
 		}
@@ -469,7 +471,16 @@
 			if ((e as any)?.name === 'AbortError') return;
 			console.error('Failed to fetch current values:', e);
 		} finally {
-			if (!signal?.aborted) loadingValues = false;
+			if (!signal?.aborted) {
+				loadingValues = false;
+				revalidatingValues = false;
+				deviceState.valuesVerifiedThisSession[did] = true;
+				// Layout prefetch never runs for legacy devices (no schema), so it
+				// can't clear valuesStale. Do it here instead — otherwise the
+				// SyncStatusIndicator spinner spins forever after a manual refresh.
+				deviceState.valuesStale[did] = false;
+				statusPolling.confirmReachable(did);
+			}
 		}
 	}
 
@@ -499,6 +510,12 @@
 			// paramsMetadata round-trip on top of the same one inside the status
 			// check. Keep this to a single status-check call.
 			checkDeviceStatus(deviceId, token, true, false);
+			// For legacy devices the layout prefetch is a no-op (it gates on
+			// schemaState.hasSchema). Kick the per-page values fetch directly so
+			// the user sees fresh values + the spinner has something to wait on.
+			if (!useSchema && categorySettings.length > 0) {
+				fetchCurrentValues();
+			}
 		});
 	}
 

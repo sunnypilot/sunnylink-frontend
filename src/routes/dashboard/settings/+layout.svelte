@@ -370,6 +370,7 @@
 			try {
 				token = await client!.getIdToken();
 				if (!token) return;
+				const t: string = token;
 
 				// Chunk into batches of 150 (URL ~5.4KB, under 8KB limit). Each
 				// chunk = 1 init + N polls + 1 CORS preflight, so bigger = fewer
@@ -383,7 +384,7 @@
 				await Promise.all(
 					chunks.map(async (chunk) => {
 						try {
-							const response = await fetchSettingsAsync(did, chunk, token);
+							const response = await fetchSettingsAsync(did, chunk, t);
 							if (response.items) {
 								const vals = (deviceState.deviceValues[did] ??= {});
 								for (const item of response.items) {
