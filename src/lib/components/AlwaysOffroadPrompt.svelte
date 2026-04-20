@@ -31,12 +31,10 @@
 			aria-hidden="true"
 		/>
 		<div class="min-w-0 flex-1">
-			<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">
-				Car is Onroad
-			</p>
+			<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">Car is Onroad</p>
 			<p class="mt-0.5 text-[0.75rem] leading-snug text-[var(--sl-text-2)]">
-				Some settings require Always Offroad to take effect. Switch the device
-				to Always Offroad if you need to edit them now.
+				Some settings require Always Offroad to take effect. Switch the device to Always Offroad if
+				you need to edit them now.
 			</p>
 		</div>
 		<button

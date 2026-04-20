@@ -147,7 +147,8 @@
 		use:portal
 		transition:scale={{ start: 0.96, duration: 120, opacity: 0 }}
 		class="fixed z-[9999] w-max rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.8125rem] leading-relaxed font-normal text-[var(--sl-text-2)] shadow-md"
-		style="left: {posX}px; top: {posY}px; max-width: min(400px, calc(100vw - {VIEWPORT_MARGIN * 2}px)); visibility: {positioned ? 'visible' : 'hidden'};"
+		style="left: {posX}px; top: {posY}px; max-width: min(400px, calc(100vw - {VIEWPORT_MARGIN *
+			2}px)); visibility: {positioned ? 'visible' : 'hidden'};"
 		role="tooltip"
 		data-placement={placeAbove ? 'above' : 'below'}
 	>

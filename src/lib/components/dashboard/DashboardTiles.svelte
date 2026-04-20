@@ -27,7 +27,7 @@
 </script>
 
 <nav aria-label="Device features">
-	<ul class="grid grid-cols-3 gap-3 list-none p-0">
+	<ul class="grid list-none grid-cols-3 gap-3 p-0">
 		{#each TILES as tile}
 			{@const Icon = tile.icon}
 			<li>
@@ -40,9 +40,7 @@
 						class="text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
 						aria-hidden="true"
 					/>
-					<span
-						class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 						{tile.label}
 					</span>
 				</a>

@@ -408,7 +408,9 @@
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
 							<span class="flex min-w-0 items-center gap-1.5">
 								{#if copiedField === 'branch'}
-									<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+									<span
+										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+									>
 										<Check size={12} class="shrink-0" />
 										Copied
 									</span>
@@ -428,7 +430,10 @@
 											{/if}
 										</span>
 									</span>
-									<Copy size={11} class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]" />
+									<Copy
+										size={11}
+										class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
+									/>
 								{/if}
 							</span>
 						</button>
@@ -442,13 +447,18 @@
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
 							<span class="flex items-center gap-1.5">
 								{#if copiedField === 'version'}
-									<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+									<span
+										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+									>
 										<Check size={12} class="shrink-0" />
 										Copied
 									</span>
 								{:else}
 									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{softwareVersion}</span>
-									<Copy size={11} class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]" />
+									<Copy
+										size={11}
+										class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
+									/>
 								{/if}
 							</span>
 						</button>
@@ -462,13 +472,18 @@
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
 							<span class="flex items-center gap-1.5">
 								{#if copiedField === 'commit'}
-									<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+									<span
+										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+									>
 										<Check size={12} class="shrink-0" />
 										Copied
 									</span>
 								{:else}
 									<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commitHash}</span>
-									<Copy size={11} class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]" />
+									<Copy
+										size={11}
+										class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
+									/>
 								{/if}
 							</span>
 						</button>
@@ -511,10 +526,13 @@
 							aria-hidden="true"
 							class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors {isForceOffroad
 								? 'bg-amber-500'
-								: 'bg-[var(--sl-bg-input)] border border-[var(--sl-border)]'}"
+								: 'border border-[var(--sl-border)] bg-[var(--sl-bg-input)]'}"
 						>
 							{#if stoppingForce}
-								<Loader2 size={12} class="absolute left-1/2 -translate-x-1/2 animate-spin text-[var(--sl-text-2)]" />
+								<Loader2
+									size={12}
+									class="absolute left-1/2 -translate-x-1/2 animate-spin text-[var(--sl-text-2)]"
+								/>
 							{:else}
 								<span
 									class="absolute top-1/2 left-0.5 h-5 w-5 -translate-y-1/2 transform rounded-full bg-white shadow-sm transition-transform {isForceOffroad
@@ -538,9 +556,12 @@
 						class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
 						aria-label="Copy sunnylink device ID {deviceId}"
 					>
-						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span>
+						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span
+						>
 						{#if copiedId}
-							<span class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400">
+							<span
+								class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+							>
 								<Check size={12} class="shrink-0" />
 								Copied
 							</span>

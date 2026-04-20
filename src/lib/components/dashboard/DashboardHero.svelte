@@ -14,9 +14,7 @@
 		pc: 'PC'
 	};
 
-	let alias = $derived(
-		deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id
-	);
+	let alias = $derived(deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id);
 
 	let onlineStatus = $derived(deviceState.onlineStatuses[device.device_id]);
 	let offroadStatus = $derived(deviceState.offroadStatuses[device.device_id]);
@@ -27,9 +25,7 @@
 
 	let version = $derived((values?.['Version'] as string | undefined) ?? null);
 	let branch = $derived((values?.['GitBranch'] as string | undefined) ?? null);
-	let commit = $derived(
-		(values?.['GitCommit'] as string | undefined)?.slice(0, 8) ?? null
-	);
+	let commit = $derived((values?.['GitCommit'] as string | undefined)?.slice(0, 8) ?? null);
 
 	let statusLabel = $derived.by(() => {
 		if (isLoading) return 'Checking…';
@@ -97,9 +93,7 @@
 				</a>
 			</div>
 			<div class="mt-1 flex items-center gap-1.5">
-				<span
-					class="block h-2 w-2 shrink-0 rounded-full {statusDotClass}"
-					aria-hidden="true"
+				<span class="block h-2 w-2 shrink-0 rounded-full {statusDotClass}" aria-hidden="true"
 				></span>
 				<span class="text-[0.8125rem] text-[var(--sl-text-2)]">{statusLabel}</span>
 				{#if isLoading}
@@ -114,7 +108,9 @@
 				{#key statusPolling.tickCounter}
 					<p class="mt-0.5 truncate text-[0.75rem] text-[var(--sl-text-3)]">
 						{#if deviceType}{deviceType}{/if}
-						{#if deviceType && lastSeen} · {/if}
+						{#if deviceType && lastSeen}
+							·
+						{/if}
 						{#if lastSeen}Last seen {lastSeen}{/if}
 					</p>
 				{/key}
@@ -127,34 +123,28 @@
 		aria-label="Device build info"
 	>
 		<div class="min-w-0">
-			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">
-				Version
-			</dt>
-			<dd
-				class="mt-0.5 truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-			>
+			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Version</dt>
+			<dd class="mt-0.5 truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{version ?? '—'}
 			</dd>
 		</div>
 		<div class="min-w-0">
-			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">
-				Branch
-			</dt>
+			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Branch</dt>
 			<dd class="mt-0.5 min-w-0 text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{#if branch}
-					<MarqueeText text={branch} mono className="text-[0.8125rem] font-medium text-[var(--sl-text-1)]" />
+					<MarqueeText
+						text={branch}
+						mono
+						className="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					/>
 				{:else}
 					—
 				{/if}
 			</dd>
 		</div>
 		<div class="min-w-0">
-			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">
-				Commit
-			</dt>
-			<dd
-				class="mt-0.5 truncate font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-			>
+			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Commit</dt>
+			<dd class="mt-0.5 truncate font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{commit ?? '—'}
 			</dd>
 		</div>

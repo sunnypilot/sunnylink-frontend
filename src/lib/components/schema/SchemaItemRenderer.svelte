@@ -64,9 +64,7 @@
 	let isAdvanced = $derived(
 		isAdvancedSetting(item.enablement) || isAdvancedSetting(item.visibility)
 	);
-	let isAdvancedGated = $derived(
-		isAdvanced && !ruleContext.paramValues.ShowAdvancedControls
-	);
+	let isAdvancedGated = $derived(isAdvanced && !ruleContext.paramValues.ShowAdvancedControls);
 	let advancedTooltip = $derived(
 		isAdvancedGated
 			? 'Advanced setting. Enable "Show Advanced Controls" in Developer to access.'
@@ -440,7 +438,7 @@
 					<Loader2 size={16} class="animate-spin text-[var(--sl-text-2)]" />
 				{:else if isOn}
 					<button
-						class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-500 active:bg-amber-500/30 active:scale-[0.98] dark:text-amber-400"
+						class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-500 active:scale-[0.98] active:bg-amber-500/30 dark:text-amber-400"
 						disabled={!enabled}
 						onclick={() => handleChange(false)}
 					>
@@ -448,7 +446,7 @@
 					</button>
 				{:else}
 					<button
-						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 focus-visible:outline-2 focus-visible:outline-red-500 active:bg-red-500/35 active:scale-[0.98] dark:text-red-400"
+						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 focus-visible:outline-2 focus-visible:outline-red-500 active:scale-[0.98] active:bg-red-500/35 dark:text-red-400"
 						disabled={!enabled}
 						onclick={() => (offroadConfirmOpen = true)}
 					>
@@ -1142,8 +1140,7 @@
 									? 'px-1.5 text-[0.8125rem] tracking-tight'
 									: 'px-2.5 text-sm'}"
 								class:text-white={isSelected && optEnabled && enabled}
-								class:text-[var(--sl-text-2)]={(!isSelected && optEnabled && enabled) ||
-									!enabled}
+								class:text-[var(--sl-text-2)]={(!isSelected && optEnabled && enabled) || !enabled}
 								class:hover:text-[var(--sl-text-1)]={!isSelected &&
 									enabled &&
 									optEnabled &&

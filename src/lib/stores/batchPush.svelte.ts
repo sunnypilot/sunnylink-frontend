@@ -85,7 +85,9 @@ class BatchPushStore {
 		// own post-confirm updates), re-check the queue for conflicts. Self-
 		// confirming updates are harmless: baseline[key] will equal queued
 		// desiredValue so no conflict is raised.
-		driftStore.setBaselineUpdateListener((deviceId) => this.checkConflictsAgainstBaseline(deviceId));
+		driftStore.setBaselineUpdateListener((deviceId) =>
+			this.checkConflictsAgainstBaseline(deviceId)
+		);
 	}
 
 	/** Add or update a change in the device batch. Resets the debounce timer.
@@ -276,13 +278,11 @@ class BatchPushStore {
 			// Background reconciliation: read back via the fast v1 async API and,
 			// if any key diverges, downgrade to a conflict toast + UI rollback.
 			// Non-blocking — the user already sees success.
-			void this.verifyWrite(deviceId, keys, entries, baselineAtPushTime, token).then(
-				(result) => {
-					if (result.conflicts.length > 0) {
-						this.handleConflicts(deviceId, result.conflicts, entries);
-					}
+			void this.verifyWrite(deviceId, keys, entries, baselineAtPushTime, token).then((result) => {
+				if (result.conflicts.length > 0) {
+					this.handleConflicts(deviceId, result.conflicts, entries);
 				}
-			);
+			});
 		} catch {
 			// Token error or unexpected — confirm optimistically
 			this.confirmKeys(deviceId, keys, entries);
@@ -689,7 +689,11 @@ class BatchPushStore {
 	 *  debounce does not fire. Mirrors `pendingChanges.revert()` for the
 	 *  offline path — SchemaItemRenderer calls both, whichever holds the
 	 *  change for this key. Returns true if an entry existed and was reverted. */
-	revert(deviceId: string, key: string, deviceValues: Record<string, unknown> | undefined): boolean {
+	revert(
+		deviceId: string,
+		key: string,
+		deviceValues: Record<string, unknown> | undefined
+	): boolean {
 		const entry = this.queues[deviceId]?.[key];
 		if (!entry) return false;
 		if (deviceValues) deviceValues[key] = entry.previousValue;

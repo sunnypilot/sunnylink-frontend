@@ -9,7 +9,9 @@ function loadHistory(): string[] {
 		const raw = localStorage.getItem(HISTORY_KEY);
 		if (!raw) return [];
 		const parsed = JSON.parse(raw);
-		return Array.isArray(parsed) ? parsed.filter((s) => typeof s === 'string').slice(0, HISTORY_MAX) : [];
+		return Array.isArray(parsed)
+			? parsed.filter((s) => typeof s === 'string').slice(0, HISTORY_MAX)
+			: [];
 	} catch {
 		return [];
 	}

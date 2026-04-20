@@ -26,13 +26,10 @@
 		Pair your first device
 	</h1>
 	<p class="mt-2 text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]">
-		Manage sunnypilot settings, push models, and keep your build in sync from
-		anywhere.
+		Manage sunnypilot settings, push models, and keep your build in sync from anywhere.
 	</p>
 
-	<ol
-		class="mt-6 flex w-full flex-col gap-3 text-left text-[0.875rem] text-[var(--sl-text-2)]"
-	>
+	<ol class="mt-6 flex w-full flex-col gap-3 text-left text-[0.875rem] text-[var(--sl-text-2)]">
 		<li class="flex items-start gap-3">
 			<span
 				class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sl-bg-elevated)] text-[0.75rem] font-semibold text-[var(--sl-text-1)]"
@@ -57,7 +54,7 @@
 	</ol>
 
 	<button
-		class="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[0.9375rem] font-semibold text-[var(--sl-bg-page)] transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+		class="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[0.9375rem] font-semibold text-[var(--sl-bg-page)] transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 		type="button"
 		onclick={() => deviceState.openPairingModal()}
 	>
@@ -80,10 +77,9 @@
 			id="empty-help"
 			class="mt-3 max-w-[22rem] text-[0.8125rem] leading-relaxed text-[var(--sl-text-2)]"
 		>
-			Pairing links your sunnypilot device to this account over sunnylink so
-			you can remotely view its status, tweak settings, and push model
-			bundles. You can unpair anytime from your device's Account screen or
-			here under My Devices.
+			Pairing links your sunnypilot device to this account over sunnylink so you can remotely view
+			its status, tweak settings, and push model bundles. You can unpair anytime from your device's
+			Account screen or here under My Devices.
 		</p>
 	{/if}
 </section>

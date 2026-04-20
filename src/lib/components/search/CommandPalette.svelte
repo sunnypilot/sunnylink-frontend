@@ -23,9 +23,7 @@
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 	let searchable = $derived(
-		getAllSettings(settings, true, false).filter(
-			(s) => !s.hidden || MODEL_SETTINGS.includes(s.key)
-		)
+		getAllSettings(settings, true, false).filter((s) => !s.hidden || MODEL_SETTINGS.includes(s.key))
 	);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 
@@ -154,9 +152,7 @@
 
 	function scrollActiveIntoView() {
 		queueMicrotask(() => {
-			const el = listRef?.querySelector(
-				`[data-result-idx="${activeIdx}"]`
-			) as HTMLElement | null;
+			const el = listRef?.querySelector(`[data-result-idx="${activeIdx}"]`) as HTMLElement | null;
 			el?.scrollIntoView({ block: 'nearest' });
 		});
 	}
@@ -300,12 +296,7 @@
 						>".
 					</div>
 				{:else if searchState.query.trim()}
-					<ul
-						id="command-palette-list"
-						role="listbox"
-						class="py-1"
-						aria-label="Search results"
-					>
+					<ul id="command-palette-list" role="listbox" class="py-1" aria-label="Search results">
 						{#each results as result, i (result.setting.key)}
 							{@const active = i === activeIdx}
 							<li role="option" aria-selected={active}>
@@ -319,9 +310,7 @@
 									onmouseenter={() => (activeIdx = i)}
 								>
 									<span class="flex items-center justify-between gap-3">
-										<span
-											class="truncate text-[0.875rem] font-medium text-[var(--sl-text-1)]"
-										>
+										<span class="truncate text-[0.875rem] font-medium text-[var(--sl-text-1)]">
 											{@html highlight(titleOf(result), 'title', result.matches)}
 										</span>
 										<span

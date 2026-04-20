@@ -109,7 +109,6 @@
 			day: 'numeric'
 		});
 	}
-
 </script>
 
 {#if open}
@@ -159,13 +158,14 @@
 						<div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
 							<p class="font-bold text-red-600 dark:text-red-400">WARNING: IRREVERSIBLE ACTION</p>
 							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-								Deregistration <span class="font-bold text-[var(--sl-text-1)]">must only be done after performing a full factory reset</span> on
-								your device. Deregistering without a factory reset will leave your device in a
-								broken state that cannot be fixed remotely.
+								Deregistration <span class="font-bold text-[var(--sl-text-1)]"
+									>must only be done after performing a full factory reset</span
+								> on your device. Deregistering without a factory reset will leave your device in a broken
+								state that cannot be fixed remotely.
 							</p>
 							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-								All historical data and backups associated with this device ID will be
-								permanently inaccessible.
+								All historical data and backups associated with this device ID will be permanently
+								inaccessible.
 								<span class="font-bold text-[var(--sl-text-1)]">This action cannot be undone.</span>
 							</p>
 							<p class="mt-2 text-sm font-semibold text-red-600 dark:text-red-400">
@@ -216,7 +216,9 @@
 								>
 									I understand this action <span class="font-bold text-[var(--sl-text-1)]"
 										>cannot be undone</span
-									> and is <span class="font-bold text-[var(--sl-text-1)]">NOT a troubleshooting step</span>.
+									>
+									and is
+									<span class="font-bold text-[var(--sl-text-1)]">NOT a troubleshooting step</span>.
 								</span>
 							</label>
 							<label class="group flex cursor-pointer items-start gap-3">
@@ -228,14 +230,18 @@
 								<span
 									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
 								>
-									I have already performed a <span class="font-bold text-[var(--sl-text-1)]">full factory reset</span> on this device.
+									I have already performed a <span class="font-bold text-[var(--sl-text-1)]"
+										>full factory reset</span
+									> on this device.
 								</span>
 							</label>
 						</div>
 
 						<div class="space-y-2 pt-2">
 							<label for="confirmation" class="text-sm font-medium text-[var(--sl-text-2)]">
-								Type <span class="font-mono font-bold text-red-600 dark:text-red-400">{CONFIRMATION_PHRASE}</span> to confirm:
+								Type <span class="font-mono font-bold text-red-600 dark:text-red-400"
+									>{CONFIRMATION_PHRASE}</span
+								> to confirm:
 							</label>
 
 							<input
@@ -260,7 +266,9 @@
 							</button>
 							<button
 								class="btn border-none bg-red-600 text-[var(--sl-text-1)] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={confirmationInput !== CONFIRMATION_PHRASE || !checkedUndone || !checkedFactoryReset}
+								disabled={confirmationInput !== CONFIRMATION_PHRASE ||
+									!checkedUndone ||
+									!checkedFactoryReset}
 								onclick={handleFirstConfirmation}
 							>
 								Next

@@ -296,9 +296,7 @@
 						<Menu size={20} />
 					</label>
 
-					<div
-						class="hidden flex-1 items-center justify-between gap-3 lg:flex"
-					>
+					<div class="hidden flex-1 items-center justify-between gap-3 lg:flex">
 						<div class="flex flex-1 justify-center px-6">
 							{#if deviceState.selectedDeviceId}
 								<div class="w-full max-w-md">
@@ -347,7 +345,9 @@
 		{/if}
 
 		<main
-			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}"
+			class="flex-1 {isLandingPage
+				? ''
+				: 'overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}"
 		>
 			{#if !isLandingPage && deviceState.selectedDeviceId}
 				<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
@@ -553,7 +553,7 @@
 		title="Install sunnylink"
 		body="Add to your Home Screen for fullscreen access and offline use."
 		shareLabel="Tap the Share button in Safari's toolbar"
-		addLabel='Choose "Add to Home Screen"'
+		addLabel={'Choose "Add to Home Screen"'}
 		dismissLabel="Not now"
 		promptOnVisit={1}
 		timesToShow={3}

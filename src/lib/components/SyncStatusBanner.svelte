@@ -44,9 +44,7 @@
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 	let conflictCount = $derived(batchPush.getConflictCount(deviceId));
 	let conflicts = $derived(batchPush.getConflicts(deviceId));
-	let conflictEntries = $derived(
-		Object.entries(conflicts).map(([key, c]) => ({ key, ...c }))
-	);
+	let conflictEntries = $derived(Object.entries(conflicts).map(([key, c]) => ({ key, ...c })));
 	let conflictExpanded = $state(true);
 
 	// Toast on new conflict (0 → >0). Banner is sticky-top; toast nudges
@@ -114,11 +112,7 @@
 
 	// Only show for actionable states: failed (retry), drift (review), or actively syncing.
 	let showBanner = $derived(
-		failedCount > 0 ||
-			blockedCount > 0 ||
-			isFlushing ||
-			driftCount > 0 ||
-			conflictCount > 0
+		failedCount > 0 || blockedCount > 0 || isFlushing || driftCount > 0 || conflictCount > 0
 	);
 
 	function handleDismissFailed() {
@@ -258,7 +252,8 @@
 			{#if driftCount > 0}
 				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
 					<RefreshCw size={14} />
-					{driftCount} {driftCount === 1 ? 'setting' : 'settings'} modified on device
+					{driftCount}
+					{driftCount === 1 ? 'setting' : 'settings'} modified on device
 				</span>
 				<button
 					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"

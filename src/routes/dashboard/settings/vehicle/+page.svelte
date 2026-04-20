@@ -218,11 +218,7 @@
 					{/if}
 				</div>
 				<div class="mt-3">
-					<SchemaPanel
-						{deviceId}
-						panel={brandPanel}
-						loadingValues={loadingBrandValues}
-					/>
+					<SchemaPanel {deviceId} panel={brandPanel} loadingValues={loadingBrandValues} />
 				</div>
 			</div>
 		{/if}

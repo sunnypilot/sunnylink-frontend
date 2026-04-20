@@ -35,9 +35,7 @@
 			.map((d) => ({
 				id: d.device_id,
 				score:
-					deviceState.lastSeenOnline[d.device_id] ??
-					deviceState.lastStatusCheck[d.device_id] ??
-					0
+					deviceState.lastSeenOnline[d.device_id] ?? deviceState.lastStatusCheck[d.device_id] ?? 0
 			}))
 			.sort((a, b) => b.score - a.score);
 		return scored[0]?.id ?? null;
@@ -56,16 +54,12 @@
 		autoSelectRan = true;
 		deviceState.setSelectedDevice(id);
 		const alias =
-			deviceState.aliases[id] ??
-			devices.find((d: any) => d.device_id === id)?.alias ??
-			id;
+			deviceState.aliases[id] ?? devices.find((d: any) => d.device_id === id)?.alias ?? id;
 		announceSelection = `Showing ${alias}`;
 	});
 
 	let isOffline = $derived(
-		selectedDevice
-			? deviceState.onlineStatuses[selectedDevice.device_id] === 'offline'
-			: false
+		selectedDevice ? deviceState.onlineStatuses[selectedDevice.device_id] === 'offline' : false
 	);
 
 	let offlineSinceTs = $derived.by(() => {

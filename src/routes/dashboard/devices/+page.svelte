@@ -154,9 +154,7 @@
 	});
 
 	function getAlias(device: any) {
-		return (
-			deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id
-		);
+		return deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
 	}
 
 	async function commitRename() {
@@ -369,7 +367,6 @@
 		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
 		return deviceState.sortDevices(list);
 	});
-
 </script>
 
 {#if authState.loading}
@@ -425,7 +422,7 @@
 								{#if marquee}
 									<MarqueeText
 										text={value}
-										mono={mono}
+										{mono}
 										className="value-fade-in text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 									/>
 								{:else}
@@ -555,9 +552,7 @@
 								</div>
 							</div>
 
-							<div
-								class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5"
-							>
+							<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
 								{@render labelValueRow('Version', getVersion(device), false, true)}
 								{@render labelValueRow('Branch', getBranch(device), true, true, true)}
 								{#key statusPolling.tickCounter}

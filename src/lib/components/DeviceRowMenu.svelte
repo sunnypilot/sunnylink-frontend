@@ -128,8 +128,7 @@
 				aria-label="Copy sunnylink Device ID {deviceId}"
 			>
 				<span class="min-w-0 flex-1">
-					<span
-						class="block text-[0.6875rem] tracking-wide text-[var(--sl-text-3)] uppercase"
+					<span class="block text-[0.6875rem] tracking-wide text-[var(--sl-text-3)] uppercase"
 						>sunnylink</span
 					>
 					<span
@@ -155,8 +154,7 @@
 					aria-label="Copy comma Dongle ID {dongleId}"
 				>
 					<span class="min-w-0 flex-1">
-						<span
-							class="block text-[0.6875rem] tracking-wide text-[var(--sl-text-3)] uppercase"
+						<span class="block text-[0.6875rem] tracking-wide text-[var(--sl-text-3)] uppercase"
 							>comma dongle</span
 						>
 						<span

@@ -22,9 +22,7 @@
 	);
 	let notFound = $derived(deviceState.pairedDevicesLoaded && !device);
 
-	let alias = $derived(
-		(id && deviceState.aliases[id]) || device?.alias || id || ''
-	);
+	let alias = $derived((id && deviceState.aliases[id]) || device?.alias || id || '');
 	let onlineStatus = $derived(id ? deviceState.onlineStatuses[id] : undefined);
 	let offroadStatus = $derived(id ? deviceState.offroadStatuses[id] : undefined);
 	let telemetry = $derived(id ? deviceState.deviceTelemetry[id] : undefined);
@@ -124,11 +122,16 @@
 		</div>
 	{/if}
 
-	<dl class="mt-6 divide-y divide-[var(--sl-border)] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+	<dl
+		class="mt-6 divide-y divide-[var(--sl-border)] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+	>
 		{@render row('Status', statusText)}
 		{@render row('Device type', deviceTypeName)}
 		{@render row('Network', networkType)}
-		{@render row('Last seen', lastSeen ? (statusPolling.tickCounter, formatRelativeTime(lastSeen)) : null)}
+		{@render row(
+			'Last seen',
+			lastSeen ? (statusPolling.tickCounter, formatRelativeTime(lastSeen)) : null
+		)}
 		{@render row('Paired date', pairedDate)}
 		{@render row('Version', version)}
 		{@render row('Branch', branch, true)}
@@ -148,7 +151,9 @@
 	<div class="flex items-center justify-between gap-4 px-4 py-3">
 		<dt class="text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
 		<dd
-			class="truncate text-right text-[0.8125rem] font-medium text-[var(--sl-text-1)] {mono ? 'font-mono' : ''}"
+			class="truncate text-right text-[0.8125rem] font-medium text-[var(--sl-text-1)] {mono
+				? 'font-mono'
+				: ''}"
 		>
 			{value ?? '—'}
 		</dd>

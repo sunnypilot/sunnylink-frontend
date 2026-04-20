@@ -450,26 +450,20 @@ export async function checkDeviceStatus(
 		// Phase 1: getMessage + getParamsMetadata + OffroadMode in parallel.
 		// Also pull selfdriveState + selfdriveStateSP so the rule evaluator
 		// can resolve `not_engaged` rules without an extra round-trip.
-		const [
-			messageResult,
-			metadataResult,
-			forceOffroadResult,
-			selfdriveResult,
-			selfdriveSpResult
-		] = await Promise.allSettled([
-			fetchDeviceMessage(deviceId, token),
-			fetchParamsMetadata(deviceId, token),
-			fetchForceOffroadStatus(deviceId, token),
-			fetchCerealService(deviceId, token, 'selfdriveState'),
-			fetchCerealService(deviceId, token, 'selfdriveStateSP')
-		]);
+		const [messageResult, metadataResult, forceOffroadResult, selfdriveResult, selfdriveSpResult] =
+			await Promise.allSettled([
+				fetchDeviceMessage(deviceId, token),
+				fetchParamsMetadata(deviceId, token),
+				fetchForceOffroadStatus(deviceId, token),
+				fetchCerealService(deviceId, token, 'selfdriveState'),
+				fetchCerealService(deviceId, token, 'selfdriveStateSP')
+			]);
 
 		const deviceMessage = messageResult.status === 'fulfilled' ? messageResult.value : null;
 		const compressedSettings = metadataResult.status === 'fulfilled' ? metadataResult.value : null;
 		const forceOffroad =
 			forceOffroadResult.status === 'fulfilled' ? forceOffroadResult.value : null;
-		const selfdriveState =
-			selfdriveResult.status === 'fulfilled' ? selfdriveResult.value : null;
+		const selfdriveState = selfdriveResult.status === 'fulfilled' ? selfdriveResult.value : null;
 		const selfdriveStateSP =
 			selfdriveSpResult.status === 'fulfilled' ? selfdriveSpResult.value : null;
 

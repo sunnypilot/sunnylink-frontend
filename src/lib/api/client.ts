@@ -24,11 +24,7 @@ function rewriteIfAthena(input: RequestInfo | URL): RequestInfo | URL {
 		const apiHost = new URL(API_BASE_URL).host;
 		const athenaHost = new URL(ATHENA_BASE_URL).host;
 		const rawUrl =
-			typeof input === 'string'
-				? input
-				: input instanceof URL
-					? input.toString()
-					: input.url;
+			typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 		const parsed = new URL(rawUrl);
 		if (parsed.host !== apiHost) return input;
 		if (!ATHENA_PATH_RE.test(parsed.pathname)) return input;
@@ -47,7 +43,10 @@ export const customFetch: typeof fetch = async (input, init) => {
 	// Skip the global timeout if the caller already provides an AbortSignal
 	// (e.g., setDeviceParams with its own 20s timeout). Avoids double-abort conflicts.
 	// Helper: retry a 401/403 with a fresh token (always with a timeout)
-	async function retryWithFreshToken(input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
+	async function retryWithFreshToken(
+		input: RequestInfo | URL,
+		init?: RequestInit
+	): Promise<Response | null> {
 		if (!browser || !logtoClient) return null;
 		try {
 			const refreshed = await authState.refreshSession();
@@ -57,7 +56,10 @@ export const customFetch: typeof fetch = async (input, init) => {
 			const newHeaders = new Headers(init?.headers);
 			newHeaders.set('Authorization', `Bearer ${newToken}`);
 			const retryController = new AbortController();
-			const retryTimeout = setTimeout(() => retryController.abort('API retry timeout'), API_TIMEOUT_MS);
+			const retryTimeout = setTimeout(
+				() => retryController.abort('API retry timeout'),
+				API_TIMEOUT_MS
+			);
 			try {
 				return await fetch(input, { ...init, signal: retryController.signal, headers: newHeaders });
 			} finally {

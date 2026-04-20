@@ -121,8 +121,8 @@
 						WARNING: This action will immediately stop the vehicle from engaging.
 					</p>
 					<p>
-						Enabling Always Offroad while driving is extremely dangerous and will cause sunnypilot to
-						disengage immediately.
+						Enabling Always Offroad while driving is extremely dangerous and will cause sunnypilot
+						to disengage immediately.
 					</p>
 					<p>
 						Only proceed if the vehicle is parked and you need to keep the device in offroad mode
@@ -146,7 +146,8 @@
 							bind:checked={confirmed}
 							class="checkbox h-6 w-6 checkbox-error"
 						/>
-						<span class="label-text pr-1 text-sm leading-relaxed whitespace-normal break-words text-[var(--sl-text-1)]"
+						<span
+							class="label-text pr-1 text-sm leading-relaxed break-words whitespace-normal text-[var(--sl-text-1)]"
 							>I understand the risks and want to proceed</span
 						>
 					</label>
@@ -157,7 +158,7 @@
 				class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6"
 			>
 				<button
-					class="btn text-[var(--sl-text-2)] transition-transform btn-ghost hover:text-[var(--sl-text-1)] active:scale-[0.98]"
+					class="btn text-[var(--sl-text-2)] btn-ghost transition-transform hover:text-[var(--sl-text-1)] active:scale-[0.98]"
 					onclick={() => (open = false)}
 					disabled={pushing}
 				>

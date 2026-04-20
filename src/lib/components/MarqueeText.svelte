@@ -35,11 +35,7 @@
 	});
 </script>
 
-<span
-	bind:this={containerEl}
-	class="marquee-container {className}"
-	class:overflows
->
+<span bind:this={containerEl} class="marquee-container {className}" class:overflows>
 	<span class="marquee-track whitespace-nowrap {mono ? 'font-mono' : ''}">
 		<span>{text}</span>
 		{#if overflows}

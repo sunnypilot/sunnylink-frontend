@@ -166,7 +166,9 @@
 								class:setting-dimmed={!sectionEnabled}
 							>
 								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-									<p class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]">
+									<p
+										class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]"
+									>
 										{section.title}
 									</p>
 									{#if !sectionEnabled && sectionReasons.length > 0}
@@ -257,7 +259,9 @@
 				<div class:mt-8={gi > 0 && group.label} class:mt-3={gi > 0 && !group.label}>
 					{#if group.label}
 						<div class="px-4">
-							<p class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]">
+							<p
+								class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]"
+							>
 								{group.label}
 							</p>
 						</div>

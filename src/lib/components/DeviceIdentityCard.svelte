@@ -17,9 +17,7 @@
 		pc: 'PC'
 	};
 
-	let alias = $derived(
-		deviceState.aliases[deviceId] ?? deviceId
-	);
+	let alias = $derived(deviceState.aliases[deviceId] ?? deviceId);
 	let onlineStatus = $derived(deviceState.onlineStatuses[deviceId]);
 	let offroadStatus = $derived(deviceState.offroadStatuses[deviceId]);
 	let telemetry = $derived(deviceState.deviceTelemetry[deviceId]);
@@ -64,15 +62,13 @@
 
 	let statusText = $derived.by(() => {
 		if (!onlineStatus || onlineStatus === 'loading') return 'Checking...';
-		if (onlineStatus === 'error')
-			return deviceState.lastErrorMessages[deviceId] ?? 'Error';
+		if (onlineStatus === 'error') return deviceState.lastErrorMessages[deviceId] ?? 'Error';
 		if (onlineStatus === 'offline') return 'Offline';
 		return drivingState ? `Online · ${drivingState}` : 'Online';
 	});
 
 	let statusDot = $derived.by(() => {
-		if (!onlineStatus || onlineStatus === 'loading')
-			return 'bg-[var(--sl-text-3)] animate-pulse';
+		if (!onlineStatus || onlineStatus === 'loading') return 'bg-[var(--sl-text-3)] animate-pulse';
 		if (onlineStatus === 'error') return 'bg-red-400';
 		if (onlineStatus === 'offline') return 'bg-[var(--sl-text-3)]/50';
 		if (offroadStatus?.forceOffroad) return 'bg-amber-400';
@@ -81,8 +77,7 @@
 	});
 
 	let stripColor = $derived.by(() => {
-		if (!onlineStatus || onlineStatus === 'loading')
-			return 'border-l-[var(--sl-text-3)]/40';
+		if (!onlineStatus || onlineStatus === 'loading') return 'border-l-[var(--sl-text-3)]/40';
 		if (onlineStatus === 'error') return 'border-l-red-400';
 		if (onlineStatus === 'offline') return 'border-l-[var(--sl-text-3)]/20';
 		if (offroadStatus?.forceOffroad) return 'border-l-amber-400';
@@ -163,8 +158,7 @@
 						class="group flex min-h-[28px] flex-1 items-center justify-between gap-2 rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
 						aria-label="Copy device ID {deviceId}"
 					>
-						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]"
-							>{deviceId}</span
+						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span
 						>
 						{#if copied}
 							<span
