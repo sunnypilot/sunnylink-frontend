@@ -356,7 +356,7 @@
 		{#if popoverOpen}
 			<div
 				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
-				class="absolute top-full right-0 z-[100] mt-2 w-72 origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+				class="absolute top-full right-0 z-[100] mt-2 w-[min(18rem,calc(100vw-1rem))] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
 				role="dialog"
 				aria-label="Device status details"
 			>

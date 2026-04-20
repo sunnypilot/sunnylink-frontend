@@ -301,21 +301,18 @@
 			>
 				<ForceOffroadBanner />
 				<div class="flex items-center justify-between gap-3">
-					<div class="flex items-center gap-3 lg:hidden">
-						<label
-							for="main-drawer"
-							aria-label="open sidebar"
-							class="btn btn-square text-[var(--sl-text-1)] btn-ghost btn-sm"
-						>
-							<Menu size={20} />
-						</label>
-						{#if deviceState.selectedDeviceId}
-							<DeviceStatusPill />
-						{/if}
-					</div>
+					<label
+						for="main-drawer"
+						aria-label="open sidebar"
+						class="btn btn-square text-[var(--sl-text-1)] btn-ghost btn-sm lg:hidden"
+					>
+						<Menu size={20} />
+					</label>
 
-					<div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-						<div class="hidden flex-1 justify-center px-6 lg:flex">
+					<div
+						class="hidden flex-1 items-center justify-between gap-3 lg:flex"
+					>
+						<div class="flex flex-1 justify-center px-6">
 							{#if deviceState.selectedDeviceId}
 								<div class="w-full max-w-md">
 									<SearchTrigger />
@@ -323,7 +320,7 @@
 							{/if}
 						</div>
 
-						<div class="hidden items-center gap-3 lg:flex">
+						<div class="flex items-center gap-3">
 							<DeviceStatusPill />
 							{#await data.streamed.deviceResult then result}
 								{#if result.error === 'auth_expired'}
@@ -346,6 +343,12 @@
 							{/await}
 						</div>
 					</div>
+
+					{#if deviceState.selectedDeviceId}
+						<div class="lg:hidden">
+							<DeviceStatusPill />
+						</div>
+					{/if}
 				</div>
 
 				{#if deviceState.selectedDeviceId}
