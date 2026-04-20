@@ -1,4 +1,4 @@
-import type { paths as v0Paths } from './v0/schema';
+import type { paths as APIv0Paths } from './v0/schema_api';
 
 export type DeviceAuthResponseModel =
-	v0Paths['/device/{deviceId}']['get']['responses']['200']['content']['application/json'];
+	APIv0Paths['/device/{deviceId}']['get']['responses']['200']['content']['application/json'];
