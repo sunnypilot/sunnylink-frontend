@@ -361,10 +361,14 @@
 		// Use the persistent drift baseline (survives layout unmount).
 		const prefetchCachedSnapshot = driftStore.getBaseline(did);
 
-		// Background fetch — always fetch all keys for global drift detection
+		// Background fetch — always fetch all keys for global drift detection.
+		// Flag updates live in finally{} so the spinner stops even when the
+		// fetch returns early (no token), throws inside drift detection, or the
+		// abort path skips the inner clears.
 		(async () => {
+			let token: string | null | undefined;
 			try {
-				const token = await client!.getIdToken();
+				token = await client!.getIdToken();
 				if (!token) return;
 
 				// Chunk into batches of 150 (URL ~5.4KB, under 8KB limit). Each
@@ -505,13 +509,18 @@
 					if (resolvedKeys.length > 0) driftStore.resolveKeys(did, resolvedKeys);
 				}
 
+			} catch {
+				// Errors are non-fatal — flags still cleared in finally so the UI
+				// recovers from spinner-stuck state even on partial failure.
+			} finally {
 				prefetchDone[did] = true;
 				deviceState.valuesStale[did] = false;
 				deviceState.valuesVerifiedThisSession[did] = true;
-				// Settings fetch succeeded — device is reachable.
-				// Use confirmReachable to update status + reset poll timer atomically.
-				statusPolling.confirmReachable(did);
-			} catch {}
+				// Mark the device reachable only when the fetch actually got a token.
+				// confirmReachable resets onlineStatuses to 'online' which would mask
+				// a real auth failure if we ran it on the early-return-no-token path.
+				if (token) statusPolling.confirmReachable(did);
+			}
 		})();
 	});
 
