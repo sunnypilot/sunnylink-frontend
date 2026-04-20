@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { v0Client } from '$lib/api/client';
+	import { APIv0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { Loader2, ArrowRight, AlertCircle } from 'lucide-svelte';
@@ -37,7 +37,7 @@
 
 			// Process updates sequentially
 			for (const change of changes) {
-				const response = await v0Client.PATCH('/device/{deviceId}', {
+				const response = await APIv0Client.PATCH('/device/{deviceId}', {
 					params: {
 						path: { deviceId: change.deviceId }
 					},

@@ -28,7 +28,7 @@
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { v1Client } from '$lib/api/client';
+	import { Athenav1Client } from '$lib/api/client';
 
 	let { data } = $props();
 
@@ -63,7 +63,7 @@
 
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				currentValues,
 				(progress, status) => {
@@ -129,7 +129,7 @@
 
 			const result = await fetchAllSettings(
 				deviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				previousSettings,
 				(progress, status) => {

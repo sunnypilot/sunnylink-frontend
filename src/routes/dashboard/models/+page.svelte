@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import { v0Client } from '$lib/api/client';
+	import { Athenav0Client } from '$lib/api/client';
 	import { checkDeviceStatus, fetchSettingsAsync, fetchDeviceMessage } from '$lib/api/device';
 	import { isModelManifest, type ModelBundle } from '$lib/types/models';
 	import {
@@ -408,7 +408,7 @@
 			const token = await logtoClient.getIdToken();
 
 			// 1. Clear the last update time to force a refresh
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId
@@ -499,7 +499,7 @@
 				});
 			}
 
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId
@@ -549,7 +549,7 @@
 
 		try {
 			clearingCache = true;
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId
@@ -597,7 +597,7 @@
 
 		try {
 			updatingFavShortName = bundle.short_name;
-			await v0Client.POST('/settings/{deviceId}', {
+			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: deviceState.selectedDeviceId

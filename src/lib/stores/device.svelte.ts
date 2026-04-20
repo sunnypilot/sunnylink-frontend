@@ -1,6 +1,6 @@
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import type { UnavailableSetting } from '$lib/utils/settings';
-import { v1Client } from '$lib/api/client';
+import { Athenav1Client } from '$lib/api/client';
 import { fetchAllSettings } from '$lib/utils/settings';
 
 export const deviceState = $state({
@@ -203,7 +203,7 @@ export const deviceState = $state({
 			const currentValues = this.deviceValues[this.migrationState.sourceDeviceId] || {};
 			const result = await fetchAllSettings(
 				this.migrationState.sourceDeviceId,
-				v1Client,
+				Athenav1Client,
 				token,
 				currentValues,
 				(progress, status) => {
