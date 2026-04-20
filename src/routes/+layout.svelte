@@ -341,10 +341,10 @@
 		{/if}
 
 		<main
-			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-8'}"
+			class="flex-1 {isLandingPage ? '' : 'overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}"
 		>
 			{#if !isLandingPage && deviceState.selectedDeviceId}
-				<div class="mx-auto mb-4 w-full max-w-2xl xl:max-w-3xl">
+				<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
 				</div>
 			{/if}

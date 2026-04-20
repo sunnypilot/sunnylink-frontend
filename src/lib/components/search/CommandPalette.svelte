@@ -8,6 +8,7 @@
 	import { searchSettings, type SearchResult } from '$lib/utils/search';
 	import { MODEL_SETTINGS } from '$lib/types/settings';
 	import { modalLock } from '$lib/utils/modalLock';
+	import { portal } from '$lib/utils/portal';
 	import { goto } from '$app/navigation';
 	import type { FuseResultMatch } from 'fuse.js';
 
@@ -64,35 +65,18 @@
 		});
 	}
 
-	// Mobile keyboard squishes the visual viewport but `100dvh` doesn't
-	// always react on iOS, so the list ends up extending behind the keyboard
-	// with the bottom rows unreachable. Track both `visualViewport.height`
-	// AND `offsetTop` — on iOS Safari PWA, the visual viewport can scroll
-	// inside the layout viewport when the keyboard animates, which leaves
-	// a `position: fixed` palette drifting outside the visible area. Syncing
-	// `top` to `offsetTop` keeps it pinned to the actual visible rectangle —
-	// the Linear/Slack command-bar approach.
+	// Mobile keyboard squishes the visual viewport. Only track the height
+	// so the list stays scrollable above the keyboard; do NOT touch the
+	// `top` of the palette — offsetTop tracking drifted on iOS PWA and
+	// rendered the palette as a blank rectangle because the containing
+	// block math fought the backdrop. `use:portal` handles containing-block
+	// issues by reparenting to document.body.
 	let viewportHeight = $state<number | null>(null);
-	let viewportTop = $state(0);
-	let isMobile = $state(false);
-
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-		const mql = window.matchMedia('(max-width: 767px)');
-		isMobile = mql.matches;
-		const h = (e: MediaQueryListEvent) => (isMobile = e.matches);
-		mql.addEventListener('change', h);
-		return () => mql.removeEventListener('change', h);
-	});
-
 	$effect(() => {
 		if (!searchState.isOpen || typeof window === 'undefined') return;
 		const vv = window.visualViewport;
 		if (!vv) return;
-		const update = () => {
-			viewportHeight = vv.height;
-			viewportTop = vv.offsetTop;
-		};
+		const update = () => (viewportHeight = vv.height);
 		update();
 		vv.addEventListener('resize', update);
 		vv.addEventListener('scroll', update);
@@ -100,7 +84,6 @@
 			vv.removeEventListener('resize', update);
 			vv.removeEventListener('scroll', update);
 			viewportHeight = null;
-			viewportTop = 0;
 		};
 	});
 
@@ -243,6 +226,7 @@
 		onclick={() => searchState.close()}
 		transition:fade={{ duration: reducedMotion ? 0 : 150 }}
 		aria-hidden="true"
+		use:portal
 		use:modalLock
 	></div>
 
@@ -254,7 +238,7 @@
 		aria-label="Search settings"
 		tabindex="-1"
 		onkeydown={handleTab}
-		style={isMobile && viewportHeight !== null ? `top: ${viewportTop}px;` : ''}
+		use:portal
 		transition:fly={{
 			y: reducedMotion ? 0 : -8,
 			duration: reducedMotion ? 0 : 200,
