@@ -185,6 +185,15 @@
 	let revalidatingValues = $state(false);
 	let valuesFetchFailed = $state(false);
 
+	// Show skeleton placeholders for individual setting widgets whenever values
+	// haven't been fetched yet this session — even if our local loadingValues
+	// flag hasn't flipped on yet (for example, between schema landing and the
+	// fetchSchemaValues effect actually firing). Without this the page would
+	// briefly render every toggle in its default-off state, which the user
+	// reads as "blank" once the connecting spinner disappears.
+	// Skip the skeleton for offline devices — those should render cached
+	// values (or empty defaults) without pretending a fetch is in flight.
+
 	// Device-level verification: shared across all settings pages.
 	// Once any page successfully fetches values, all pages are instantly "Up to Date".
 	// Offline/error devices are considered verified immediately (nothing to fetch).
@@ -203,6 +212,11 @@
 			? isDeviceOfflineOrError || !!deviceState.valuesVerifiedThisSession[deviceId]
 			: false
 	);
+
+	// Skeleton flag for individual setting widgets — covers both the explicit
+	// loadingValues window and the gap before the first values fetch fires.
+	// See the longer note above the loadingValues declaration for rationale.
+	let showValueSkeleton = $derived(loadingValues || (!deviceVerified && !isDeviceOfflineOrError));
 
 	// True when values are actively being fetched or a global refresh is in-flight.
 	// valuesStale = layout's global prefetch running (manual refresh / version change).
@@ -632,12 +646,14 @@
 				</div>
 			</div>
 		{/await}
-	{:else if !isDeviceOfflineOrError && (schemaLoading || (!useSchema && !settings && !categorySettings.length))}
-		<!-- Hold the rendering branch until the schema fetch resolves one way or
-		     the other. Otherwise the page momentarily renders the legacy branch
-		     (no description, tight title→card gap) before the schema arrives and
-		     the layout snaps to the wider schema branch — visible jank on fresh
-		     loads. Same reasoning when settings are still in-flight. -->
+	{:else if !isDeviceOfflineOrError && (deviceOnlineStatus === undefined || isDeviceLoading || schemaLoading)}
+		<!-- Connecting only covers the device handshake + schema decision.
+		     Once we know the device is online and we know whether or not it has
+		     a schema, fall through to the appropriate rendering branch — even
+		     if the values fetch is still pending. The downstream branches show
+		     skeleton placeholders for individual widgets via showValueSkeleton,
+		     which is much less jarring than an open-ended "Connecting..."
+		     spinner that depends on settings/categorySettings populating. -->
 		<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 			<div
 				class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
@@ -663,7 +679,7 @@
 								<SchemaItemRenderer
 									{deviceId}
 									{item}
-									{loadingValues}
+									loadingValues={showValueSkeleton}
 									isLast={i === activeSubPanel.items.length - 1}
 								/>
 							{/each}
@@ -672,7 +688,7 @@
 						<SchemaPanel
 							{deviceId}
 							panel={schemaPanel}
-							{loadingValues}
+							loadingValues={showValueSkeleton}
 							onSubPanelOpen={openSubPanel}
 						/>
 					{/if}
@@ -696,7 +712,7 @@
 							<SchemaItemRenderer
 								{deviceId}
 								item={settingToSchemaItem(setting)}
-								{loadingValues}
+								loadingValues={showValueSkeleton}
 								isLast={i === group.settings.length - 1}
 							/>
 						{/each}
@@ -725,7 +741,7 @@
 							<SchemaItemRenderer
 								{deviceId}
 								item={settingToSchemaItem(setting)}
-								{loadingValues}
+								loadingValues={showValueSkeleton}
 								isLast={i === group.settings.length - 1}
 							/>
 						{/each}
@@ -771,7 +787,7 @@
 									<SchemaItemRenderer
 										{deviceId}
 										item={settingToSchemaItem(setting)}
-										{loadingValues}
+										loadingValues={showValueSkeleton}
 										isLast={i === group.settings.length - 1}
 										readonly={true}
 									/>
