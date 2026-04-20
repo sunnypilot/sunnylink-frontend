@@ -1,4 +1,4 @@
-import { APIv1Client, v0Client } from '$lib/api/client';
+import { APIv1Client, APIv0Client } from '$lib/api/client';
 import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
@@ -45,7 +45,7 @@ export const load: LayoutLoad = async ({ url }) => {
 		// Parallelize the detail fetches
 		const detailPromises = items.map(async (device) => {
 			const fetchDetail = async (t: string) => {
-				return await v0Client.GET('/device/{deviceId}', {
+				return await APIv0Client.GET('/device/{deviceId}', {
 					params: { path: { deviceId: device.device_id ?? '' } },
 					headers: { Authorization: `Bearer ${t}` }
 				});

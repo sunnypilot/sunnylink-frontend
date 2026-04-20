@@ -1,7 +1,8 @@
 import createClient from 'openapi-fetch';
 import type { paths as APIv1Paths } from '../../sunnylink/v1/schema_api';
 import type { paths as Athenav1Paths } from '../../sunnylink/v1/schema_athena';
-import type { paths as v0Paths } from '../../sunnylink/v0/schema';
+import type { paths as APIv0Paths } from '../../sunnylink/v0/schema_api';
+import type { paths as Athenav0Paths } from '../../sunnylink/v0/schema_athena';
 import { browser } from '$app/environment';
 import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
 
@@ -48,7 +49,12 @@ export const Athenav1Client = createClient<Athenav1Paths>({
 	fetch: customFetch
 });
 
-export const v0Client = createClient<v0Paths>({
+export const APIv0Client = createClient<APIv0Paths>({
 	baseUrl: API_BASE_URL + '/',
+	fetch: customFetch
+});
+
+export const Athenav0Client = createClient<Athenav0Paths>({
+	baseUrl: ATHENA_BASE_URL + '/',
 	fetch: customFetch
 });

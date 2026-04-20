@@ -1,4 +1,10 @@
-import { Athenav1Client, v0Client, ATHENA_BASE_URL,	customFetch } from '$lib/api/client';
+import {
+	Athenav1Client,
+	APIv0Client,
+	Athenav0Client,
+	ATHENA_BASE_URL,
+	customFetch
+} from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
@@ -353,7 +359,7 @@ export async function checkDeviceStatus(deviceId: string, token: string) {
 
 export async function deregisterDevice(deviceId: string, token: string) {
 	// Real implementation:
-	return await v0Client.DELETE('/device/{deviceId}', {
+	return await APIv0Client.DELETE('/device/{deviceId}', {
 		params: {
 			path: { deviceId }
 		},
@@ -362,7 +368,7 @@ export async function deregisterDevice(deviceId: string, token: string) {
 }
 
 export async function removeUserFromDevice(deviceId: string, userId: string, token: string) {
-	return await v0Client.DELETE('/device/{deviceId}/users/{userId}', {
+	return await APIv0Client.DELETE('/device/{deviceId}/users/{userId}', {
 		params: {
 			path: { deviceId, userId }
 		},
@@ -405,7 +411,7 @@ export async function setDeviceParams(
 	const timeoutId = setTimeout(() => controller.abort('Timeout'), timeoutMs);
 
 	try {
-		const res = await v0Client.POST('/settings/{deviceId}', {
+		const res = await Athenav0Client.POST('/settings/{deviceId}', {
 			params: {
 				path: { deviceId }
 			},

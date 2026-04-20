@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { v0Client } from '$lib/api/client';
+	import { Athenav0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
@@ -112,7 +112,7 @@
 				};
 			});
 
-			const response = await v0Client.POST('/settings/{deviceId}', {
+			const response = await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: { deviceId }
 				},
