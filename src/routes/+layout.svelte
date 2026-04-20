@@ -248,21 +248,26 @@
 	// Session-expired modal: only on auth-required routes (/dashboard/*). Landing
 	// is public and the OAuth callback is transitional, so the modal would block
 	// the user from browsing or race the sign-in code exchange respectively.
-	// Also gated on !authState.loading so it doesn't flash during the init /
-	// refresh-grant window when the SDK is still resolving stale tokens.
+	// Triggers when EITHER the initial load reported auth_expired (refresh-on-
+	// land case) OR a mid-use API call detected the session died (proactive
+	// 401-on-action case via authState.markSessionExpired). Also gated on
+	// !authState.loading so it doesn't flash during the init / refresh-grant
+	// window when the SDK is still resolving stale tokens.
 	let isAuthRequiredRoute = $derived(pathname.startsWith('/dashboard'));
 	let showSessionExpiredModal = $derived(
 		isAuthRequiredRoute &&
 			!authState.loading &&
-			!authState.isAuthenticated &&
-			deviceFetchError === 'auth_expired'
+			(authState.sessionExpired ||
+				(!authState.isAuthenticated && deviceFetchError === 'auth_expired'))
 	);
 
 	function dismissSessionExpired() {
-		// Clear the error so the modal stays gone if the user navigates back to
-		// /dashboard without re-authing (it'll re-trigger naturally once
-		// invalidate('app:devices') re-runs and still gets auth_expired).
+		// Clear both signals so the modal stays gone after dismissal. If the
+		// user later navigates back to /dashboard without re-authing, the
+		// modal naturally re-triggers via the next invalidate('app:devices')
+		// returning auth_expired, or the next API click marking expired again.
 		deviceFetchError = null;
+		authState.sessionExpired = false;
 		goto('/');
 	}
 
@@ -275,6 +280,27 @@
 		};
 		window.addEventListener('keydown', handler);
 		return () => window.removeEventListener('keydown', handler);
+	});
+
+	// Tab-visibility session revalidation — when the user returns to a tab left
+	// open for hours, ping the SDK to catch sessions that died on the server
+	// (rotated secrets, admin revoke, etc.) before they click something and
+	// see a broken UI. Throttled to once per 60s to keep request volume low
+	// at the 100k-user scale (would be ~1.6k checks/min at constant focus
+	// flipping — still fine, but no need to be aggressive).
+	let lastVisibilityValidationAt = 0;
+	const VISIBILITY_REVALIDATE_MS = 60_000;
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		const handler = () => {
+			if (document.visibilityState !== 'visible') return;
+			if (!authState.isAuthenticated) return;
+			if (Date.now() - lastVisibilityValidationAt < VISIBILITY_REVALIDATE_MS) return;
+			lastVisibilityValidationAt = Date.now();
+			authState.validateSessionQuiet();
+		};
+		document.addEventListener('visibilitychange', handler);
+		return () => document.removeEventListener('visibilitychange', handler);
 	});
 
 	$effect(() => {

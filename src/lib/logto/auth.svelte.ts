@@ -61,6 +61,12 @@ class AuthState {
 	 *  or the SDK call throws before redirect (we then reset). Drives in-button
 	 *  spinners so the UI doesn't appear dead during PKCE setup + nav lag. */
 	isSigningIn = $state(false);
+	/** Set when we detect that a previously-valid session has died mid-use —
+	 *  either an API call returned 401/403 even after a refresh-retry, or the
+	 *  tab-focus revalidation found the refresh grant invalid. Drives the
+	 *  session-expired modal so the UI doesn't keep accepting clicks that
+	 *  silently fail. Cleared by the modal's dismiss / sign-in handlers. */
+	sessionExpired = $state(false);
 
 	/** Cached in-flight init() promise. Ensures concurrent callers share one init pass
 	 *  instead of racing `loading`/`isAuthenticated` writes (constructor auto-init vs
@@ -159,11 +165,47 @@ class AuthState {
 	async signIn(redirectUri: string): Promise<void> {
 		if (!logtoClient || this.isSigningIn) return;
 		this.isSigningIn = true;
+		// Clear the expired flag pre-emptively — the user is acting on the
+		// modal's "Sign in" CTA, so we shouldn't keep showing it.
+		this.sessionExpired = false;
 		try {
 			await logtoClient.signIn(redirectUri);
 		} catch (e) {
 			console.error('Sign-in failed:', e);
 			this.isSigningIn = false;
+		}
+	}
+
+	/**
+	 * Mark the current session as dead. Called from customFetch when a 401/403
+	 * persists after a refresh-retry, or from the visibility-change check when
+	 * the SDK reports the refresh grant invalid. Idempotent — won't fire if we
+	 * never thought we were authed in the first place.
+	 */
+	markSessionExpired() {
+		if (!this.isAuthenticated) return;
+		this.isAuthenticated = false;
+		this.sessionExpired = true;
+	}
+
+	/**
+	 * Lightweight session check used on tab-visibility change. The SDK's
+	 * getAccessToken auto-refreshes via the refresh-token grant if the cached
+	 * token is expired; if the grant itself is invalid (session truly dead),
+	 * it throws LogtoRequestError and we surface that as expired. Network
+	 * errors are swallowed as transient — the next real API call's 401 path
+	 * (customFetch) is the authoritative detector.
+	 */
+	async validateSessionQuiet(): Promise<void> {
+		if (!logtoClient || !this.isAuthenticated) return;
+		try {
+			await logtoClient.getAccessToken();
+		} catch (e) {
+			if (e instanceof LogtoRequestError) {
+				console.warn('Session validation: refresh grant invalid, marking expired');
+				this.markSessionExpired();
+			}
+			// transient network/CORS — ignore
 		}
 	}
 

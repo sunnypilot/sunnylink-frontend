@@ -73,12 +73,26 @@ export const customFetch: typeof fetch = async (input, init) => {
 		}
 	}
 
+	// Helper: handle a 401/403 by retrying once with a fresh token. If the
+	// retry still fails (or couldn't even attempt), declare the session dead so
+	// the UI can surface a session-expired modal — without this, the user
+	// keeps clicking buttons that silently 401, which is the worst UX.
+	async function handleAuthFailure(
+		original: Response,
+		input: RequestInfo | URL,
+		init?: RequestInit
+	): Promise<Response> {
+		const retried = await retryWithFreshToken(input, init);
+		const stillBad = !retried || retried.status === 401 || retried.status === 403;
+		if (stillBad && browser) authState.markSessionExpired();
+		return retried ?? original;
+	}
+
 	if (init?.signal) {
 		const response = await fetch(input, init);
 
 		if (response.status === 401 || response.status === 403) {
-			const retried = await retryWithFreshToken(input, init);
-			if (retried) return retried;
+			return handleAuthFailure(response, input, init);
 		}
 
 		return response;
@@ -96,8 +110,7 @@ export const customFetch: typeof fetch = async (input, init) => {
 		});
 
 		if (response.status === 401 || response.status === 403) {
-			const retried = await retryWithFreshToken(input, init);
-			if (retried) return retried;
+			return handleAuthFailure(response, input, init);
 		}
 
 		return response;

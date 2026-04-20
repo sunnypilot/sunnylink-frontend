@@ -24,6 +24,20 @@
 
 	let isMenuOpen = false;
 
+	// Authenticated visitors land on /dashboard, not the marketing page.
+	// Pattern matches Linear (linear.app/login → redirects), GitHub (auth-aware
+	// homepage). We hold a "Verifying" splash while authState resolves so the
+	// user never sees the landing flash before being whisked away.
+	$effect(() => {
+		if (!browser) return;
+		if (authState.loading) return;
+		if (authState.isAuthenticated) goto('/dashboard');
+	});
+
+	let showAuthSplash = $derived(
+		browser && (authState.loading || authState.isAuthenticated)
+	);
+
 	const handleMainAction = async () => {
 		if (authState.isAuthenticated) {
 			goto('/dashboard');
@@ -47,6 +61,34 @@
 	}
 </script>
 
+{#if showAuthSplash}
+	<!-- Authenticated visitor (or auth still resolving): hold a verifying
+	     splash so we don't flash marketing copy before redirecting to
+	     /dashboard. Matches the /auth/callback page styling for continuity. -->
+	<div
+		class="flex min-h-screen flex-col items-center justify-center bg-[var(--sl-bg-page)] px-6"
+		role="status"
+		aria-live="polite"
+		in:fade={{ duration: 200 }}
+	>
+		<p
+			class="font-audiowide text-[1.5rem] font-semibold tracking-[0.20em] text-[var(--sl-text-1)] uppercase"
+		>
+			sunnylink
+		</p>
+		<span
+			class="loading mt-8 loading-spinner text-primary"
+			style="width: 24px; height: 24px;"
+			aria-hidden="true"
+		></span>
+		<p class="mt-4 text-[0.875rem] text-[var(--sl-text-2)]">
+			{authState.loading ? 'Verifying your identity' : 'Loading your dashboard'}…
+		</p>
+		<span class="sr-only">
+			{authState.loading ? 'Verifying your identity' : 'Loading your dashboard'}
+		</span>
+	</div>
+{:else}
 <div
 	class="min-h-screen overflow-x-hidden bg-[#0f1726] font-sans text-white selection:bg-[#594AE2]/30"
 >
@@ -371,6 +413,7 @@
 		</div>
 	</footer>
 </div>
+{/if}
 
 <style>
 	:global(html) {
