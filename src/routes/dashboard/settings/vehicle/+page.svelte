@@ -25,7 +25,8 @@
 			deviceId &&
 			logtoClient &&
 			!schemaState.schemas[deviceId] &&
-			!schemaState.loading[deviceId]
+			!schemaState.loading[deviceId] &&
+			!schemaState.schemaUnavailable[deviceId]
 		) {
 			loadSchema();
 		}

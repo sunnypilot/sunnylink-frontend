@@ -62,6 +62,12 @@ class AuthState {
 	 *  auth/callback's explicit init). */
 	#initPromise: Promise<void> | null = null;
 
+	/** Tracks whether the first init has completed. Subsequent inits (e.g. silent
+	 *  refresh after a 401) must not toggle `loading` back to true — that would
+	 *  cause every `{#if authState.loading}` skeleton branch to remount, flashing
+	 *  content out and back in for visible UI. */
+	#initialized = false;
+
 	constructor() {
 		if (browser && logtoClient) {
 			this.init();
@@ -83,7 +89,9 @@ class AuthState {
 
 	async #doInit(): Promise<void> {
 		if (!logtoClient) return;
-		this.loading = true;
+		// Only flip loading=true on the first init. Re-inits triggered by silent
+		// session refresh keep the existing UI rendered to avoid flashing skeletons.
+		if (!this.#initialized) this.loading = true;
 
 		// Compute the final auth result locally and commit to reactive state ONCE at the end.
 		// Writing `isAuthenticated = true` before confirming fetchUserInfo succeeds caused a
@@ -133,6 +141,7 @@ class AuthState {
 			this.isAuthenticated = finalAuthed;
 			this.profile = finalProfile;
 			this.loading = false;
+			this.#initialized = true;
 		}
 	}
 
