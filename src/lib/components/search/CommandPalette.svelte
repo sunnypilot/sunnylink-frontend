@@ -27,9 +27,11 @@
 	);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 
+	const MIN_QUERY_LENGTH = 3;
+
 	let results: SearchResult[] = $derived.by(() => {
 		const q = searchState.query.trim();
-		if (!q) return [];
+		if (q.length < MIN_QUERY_LENGTH) return [];
 		return searchSettings(q, searchable, deviceValues).slice(0, 20);
 	});
 
@@ -87,6 +89,23 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		// Global hotkey: Cmd/Ctrl+K toggles. `/` opens when no text field has focus
+		// (matches GitHub, Notion, Linear behavior). Registered here (always mounted)
+		// rather than on SearchTrigger, which renders twice (desktop + mobile) and
+		// would double-fire toggle().
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+			e.preventDefault();
+			searchState.toggle();
+			return;
+		}
+		if (e.key === '/' && !searchState.isOpen) {
+			const el = document.activeElement as HTMLElement | null;
+			const tag = el?.tagName;
+			if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return;
+			e.preventDefault();
+			searchState.open();
+			return;
+		}
 		if (!searchState.isOpen) return;
 		switch (e.key) {
 			case 'Escape':
@@ -251,7 +270,11 @@
 			</div>
 
 			<div bind:this={listRef} class="flex-1 overflow-y-auto">
-				{#if searchState.query.trim() && results.length === 0}
+				{#if searchState.query.trim() && searchState.query.trim().length < MIN_QUERY_LENGTH}
+					<div class="px-4 py-10 text-center text-sm text-[var(--sl-text-2)]">
+						Keep typing — at least {MIN_QUERY_LENGTH} characters.
+					</div>
+				{:else if searchState.query.trim() && results.length === 0}
 					<div class="px-4 py-10 text-center text-sm text-[var(--sl-text-2)]">
 						No settings match "<span class="font-medium text-[var(--sl-text-1)]"
 							>{searchState.query}</span

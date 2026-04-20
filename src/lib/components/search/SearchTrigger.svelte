@@ -6,26 +6,7 @@
 	if (typeof navigator !== 'undefined') {
 		isMac = /mac|iphone|ipad|ipod/i.test(navigator.platform || navigator.userAgent);
 	}
-
-	// Global hotkey: Cmd/Ctrl+K toggles. `/` opens when no text field has focus
-	// (matches GitHub, Notion, Linear behavior).
-	function handleKeydown(e: KeyboardEvent) {
-		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-			e.preventDefault();
-			searchState.toggle();
-			return;
-		}
-		if (e.key === '/' && !searchState.isOpen) {
-			const el = document.activeElement as HTMLElement | null;
-			const tag = el?.tagName;
-			if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return;
-			e.preventDefault();
-			searchState.open();
-		}
-	}
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <button
 	class="flex w-full items-center gap-2.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3.5 py-2 text-left text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:border-[var(--sl-text-2)] hover:text-[var(--sl-text-2)]"
