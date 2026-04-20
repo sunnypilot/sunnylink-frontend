@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { v0Client, Athenav1Client } from '$lib/api/client';
+	import { v0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';

@@ -1,9 +1,15 @@
-import { Athenav1Client, v0Client, API_BASE_URL, customFetch } from '$lib/api/client';
+import {
+	Athenav1Client,
+	v0Client,
+	API_BASE_URL,
+	ATHENA_BASE_URL,
+	customFetch
+} from '$lib/api/client';
 import { deviceState } from '$lib/stores/device.svelte';
 import type { ExtendedDeviceParamKey } from '$lib/types/settings';
 import { decodeParamValue } from '$lib/utils/device';
 import { decodeCompressedJson } from '$lib/utils/compression';
-import type { components } from '../../sunnylink/v1/schema';
+import type { components } from '../../sunnylink/v1/schema_athena';
 
 type DeviceParam = components['schemas']['DeviceParam'];
 type ParamType = components['schemas']['ParamType'];
@@ -144,7 +150,7 @@ export async function fetchParamsMetadata(
 	token: string
 ): Promise<ExtendedDeviceParamKey[] | null> {
 	const response = await customFetch(
-		`${API_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
+		`${ATHENA_BASE_URL}/v1/settings/${encodeURIComponent(deviceId)}/paramsMetadata`,
 		{
 			headers: { Authorization: `Bearer ${token}` }
 		}
