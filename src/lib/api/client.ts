@@ -13,7 +13,37 @@ import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
  */
 const API_TIMEOUT_MS = 30_000; // 30s max for any single API call
 
+// Paths matching ws/settings/navigation (with or without v{N} prefix) are served
+// by the Athena HTTP gateway at athena.sunnylink.ai. All other paths stay on the
+// sunnylink main API. Backend is deprecating the CloudFront proxy that currently
+// forwards these paths from stg.api.sunnypilot.ai → athena.sunnylink.ai.
+const ATHENA_PATH_RE = /^\/(?:v\d+\/)?(?:ws|settings|navigation)(?:\/|$)/;
+
+function rewriteIfAthena(input: RequestInfo | URL): RequestInfo | URL {
+	try {
+		const apiHost = new URL(API_BASE_URL).host;
+		const athenaHost = new URL(ATHENA_BASE_URL).host;
+		const rawUrl =
+			typeof input === 'string'
+				? input
+				: input instanceof URL
+					? input.toString()
+					: input.url;
+		const parsed = new URL(rawUrl);
+		if (parsed.host !== apiHost) return input;
+		if (!ATHENA_PATH_RE.test(parsed.pathname)) return input;
+		parsed.host = athenaHost;
+		parsed.protocol = new URL(ATHENA_BASE_URL).protocol;
+		if (typeof input === 'string') return parsed.toString();
+		if (input instanceof URL) return parsed;
+		return new Request(parsed, input);
+	} catch {
+		return input;
+	}
+}
+
 export const customFetch: typeof fetch = async (input, init) => {
+	input = rewriteIfAthena(input);
 	// Skip the global timeout if the caller already provides an AbortSignal
 	// (e.g., setDeviceParams with its own 20s timeout). Avoids double-abort conflicts.
 	// Helper: retry a 401/403 with a fresh token (always with a timeout)
@@ -73,6 +103,7 @@ export const customFetch: typeof fetch = async (input, init) => {
 };
 
 export const API_BASE_URL = 'https://stg.api.sunnypilot.ai';
+export const ATHENA_BASE_URL = 'https://athena.sunnylink.ai';
 
 export const v1Client = createClient<v1Paths>({
 	baseUrl: API_BASE_URL + '/',
