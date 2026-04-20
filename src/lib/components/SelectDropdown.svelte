@@ -2,6 +2,7 @@
 	import { ChevronDown, ChevronUp, Check } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { tick } from 'svelte';
+	import { fade, scale } from 'svelte/transition';
 
 	interface Option {
 		value: string | number;
@@ -227,6 +228,7 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="fixed inset-0 z-[9998]"
+			transition:fade={{ duration: 120 }}
 			onmousedown={(e) => {
 				e.preventDefault();
 				e.stopPropagation();
@@ -246,6 +248,7 @@
 		></div>
 		<div
 			bind:this={menuEl}
+			transition:scale={{ start: 0.96, duration: 150, opacity: 0 }}
 			class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-sm"
 			style={menuStyle}
 			role="listbox"

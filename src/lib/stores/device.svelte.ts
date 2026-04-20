@@ -34,16 +34,10 @@ export const deviceState = $state({
 			deviceType: string;
 		}
 	>,
-	/** Cached list of paired devices from the API. Persisted to localStorage for instant Dashboard rendering on refresh. */
-	pairedDevices: (typeof localStorage !== 'undefined'
-		? (() => {
-				try {
-					return JSON.parse(localStorage.getItem('sunnylink_paired_devices') || '[]');
-				} catch {
-					return [];
-				}
-			})()
-		: []) as any[],
+	/** In-memory list of paired devices from the API. Not persisted: live status
+	 *  (onlineStatuses, telemetry) is also session-scoped, so caching the device
+	 *  list to localStorage would render a stale list with no live data on refresh. */
+	pairedDevices: [] as any[],
 	/** Whether the device list has been fetched from the API this session */
 	pairedDevicesLoaded: false,
 	aliases: {} as Record<string, string>,

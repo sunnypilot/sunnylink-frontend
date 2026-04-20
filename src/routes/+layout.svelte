@@ -44,6 +44,7 @@
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { onMount } from 'svelte';
+	import { fade, scale } from 'svelte/transition';
 
 	let { children, data } = $props();
 
@@ -167,17 +168,11 @@
 	let devices = $state<any[]>([]);
 	let deviceFetchError = $state<import('./+layout').DeviceFetchError>(null);
 
-	async function checkAllDevicesStatus(devices: any[]) {
+	async function checkSelectedDeviceStatus(deviceId: string) {
 		if (!logtoClient) return;
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
-		await Promise.all(
-			devices.map((device) => {
-				if (device.device_id) {
-					return checkDeviceStatus(device.device_id, token);
-				}
-			})
-		);
+		await checkDeviceStatus(deviceId, token);
 	}
 
 	let authRetried = false;
@@ -199,27 +194,41 @@
 				// Session truly expired — header shows "Session expired — Sign in"
 			}
 
-			if (result.devices.length > 0) {
-				devices = result.devices;
-				deviceState.pairedDevices = result.devices;
+			if (result.pairedList.length > 0) {
+				// Merge the rich selected-device detail back into the lightweight
+				// list so consumers that only need device_id / created_at can read
+				// from pairedDevices uniformly. /dashboard/devices hydrates the
+				// rest with their own detail fetches when visited.
+				const detailById = new Map(
+					result.devices.filter((d: any) => d.device_id).map((d: any) => [d.device_id, d])
+				);
+				const merged = result.pairedList.map((item: any) => {
+					if (item.device_id && detailById.has(item.device_id)) {
+						return { ...item, ...detailById.get(item.device_id) };
+					}
+					return item;
+				});
+				devices = merged;
+				deviceState.pairedDevices = merged;
 				deviceState.pairedDevicesLoaded = true;
-				try {
-					localStorage.setItem('sunnylink_paired_devices', JSON.stringify(result.devices));
-				} catch {
-					/* quota */
-				}
-				// Hydrate aliases from API so all components (DeviceStatusPill, etc.) can resolve names
-				for (const d of result.devices) {
+				// Hydrate aliases from any device that has one (only selected so far on root)
+				for (const d of merged) {
 					if (d.device_id && d.alias && !deviceState.aliases[d.device_id]) {
 						deviceState.aliases = { ...deviceState.aliases, [d.device_id]: d.alias };
 					}
 				}
-				// Only run the initial status check once. Subsequent invalidate()
-				// calls (e.g. from auth re-check) re-hydrate device list but skip
-				// the status check — statusPolling handles ongoing updates.
-				if (!statusCheckStarted) {
+				// Resolve selectedDeviceId. If the persisted selection is stale (device
+				// removed) or unset, fall back to the first paired device.
+				const ids = merged.map((d: any) => d.device_id).filter(Boolean);
+				if (!deviceState.selectedDeviceId || !ids.includes(deviceState.selectedDeviceId)) {
+					if (ids.length > 0) deviceState.setSelectedDevice(ids[0]);
+				}
+				// Only run the initial status check once. Per the device-fetch policy,
+				// the root layout polls only the selected device — /dashboard/devices
+				// page kicks off all-devices status checks when visited.
+				if (!statusCheckStarted && deviceState.selectedDeviceId) {
 					statusCheckStarted = true;
-					checkAllDevicesStatus(result.devices).then(() => {
+					checkSelectedDeviceStatus(deviceState.selectedDeviceId).then(() => {
 						statusPolling.markChecked();
 						statusPolling.start();
 					});
@@ -314,6 +323,16 @@
 						</div>
 
 						<div class="flex items-center gap-3">
+							{#if deviceState.selectedDeviceId}
+								<a
+									href="/dashboard/devices"
+									class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+									aria-label="Change selected device"
+								>
+									<ArrowLeftRight size={14} aria-hidden="true" />
+									<span>Change device</span>
+								</a>
+							{/if}
 							<DeviceStatusPill />
 							{#if authState.loading}
 								<span
@@ -337,7 +356,14 @@
 					</div>
 
 					{#if deviceState.selectedDeviceId}
-						<div class="lg:hidden">
+						<div class="flex items-center gap-2 lg:hidden">
+							<a
+								href="/dashboard/devices"
+								class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+								aria-label="Change selected device"
+							>
+								<ArrowLeftRight size={16} aria-hidden="true" />
+							</a>
 							<DeviceStatusPill />
 						</div>
 					{/if}
@@ -351,11 +377,7 @@
 			</header>
 		{/if}
 
-		<main
-			class="flex-1 {isLandingPage
-				? ''
-				: 'overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}"
-		>
+		<main class="flex-1 {isLandingPage ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
 			{#if !isLandingPage && deviceState.selectedDeviceId}
 				<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
@@ -628,9 +650,11 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="session-expired-title"
+		transition:fade={{ duration: 200 }}
 	>
 		<div
 			class="w-full max-w-sm rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6 shadow-xl"
+			transition:scale={{ start: 0.96, duration: 200, opacity: 0 }}
 		>
 			<h2 id="session-expired-title" class="text-[1.0625rem] font-semibold text-[var(--sl-text-1)]">
 				Session expired

@@ -518,10 +518,12 @@
 						disabled={stoppingForce}
 						role="switch"
 						aria-checked={isForceOffroad}
-						aria-label="Always Offroad"
+						aria-label="Always Offroad Mode"
 						class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:bg-[var(--sl-bg-subtle)] disabled:opacity-50"
 					>
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Always Offroad</span>
+						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+							>Always Offroad Mode</span
+						>
 						<span
 							aria-hidden="true"
 							class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors {isForceOffroad

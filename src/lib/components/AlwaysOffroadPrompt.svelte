@@ -33,8 +33,8 @@
 		<div class="min-w-0 flex-1">
 			<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">Car is Onroad</p>
 			<p class="mt-0.5 text-[0.75rem] leading-snug text-[var(--sl-text-2)]">
-				Some settings require Always Offroad to take effect. Switch the device to Always Offroad if
-				you need to edit them now.
+				Some settings require Always Offroad Mode to take effect. Switch the device to Always
+				Offroad Mode if you need to edit them now.
 			</p>
 		</div>
 		<button
@@ -42,7 +42,7 @@
 			class="shrink-0 rounded-md border border-amber-500/40 bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/10 focus-visible:outline-2 focus-visible:outline-amber-500 dark:text-amber-400"
 			onclick={() => (modalOpen = true)}
 		>
-			Enable Always Offroad
+			Enable Always Offroad Mode
 		</button>
 	</div>
 {/if}

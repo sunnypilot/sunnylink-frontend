@@ -267,14 +267,32 @@ code,
 	animation: value-fade-in var(--dur-fast) var(--ease-out) both;
 }
 
-/* SPA nav uses the View Transitions API when available — slide the whole root,
-   not each individual element, so unrelated chrome does not flicker.
-   Elements that opt into shared-element morphing (e.g. the active device card)
-   set their own `view-transition-name` inline. */
-::view-transition-old(root),
+/* SPA nav uses the View Transitions API when available — Notion-style crossfade
+   with a subtle upward translate on the incoming snapshot. The pseudo-elements
+   are browser-managed overlays, so transforms on them do NOT create containing
+   blocks for the real DOM's fixed children. Elements that opt into
+   shared-element morphing set their own `view-transition-name` inline. */
+::view-transition-old(root) {
+	animation: 200ms var(--ease-out) both view-fade-out;
+}
 ::view-transition-new(root) {
-	animation-duration: 220ms;
-	animation-timing-function: var(--ease-out);
+	animation: 280ms var(--ease-out) both view-slide-in;
+}
+
+@keyframes view-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes view-slide-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

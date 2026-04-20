@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { checkDeviceStatus } from '$lib/api/device';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
 	import DeviceRowMenu from '$lib/components/DeviceRowMenu.svelte';
@@ -151,6 +152,51 @@
 		if (!authState.loading && !authState.isAuthenticated) {
 			goto('/');
 		}
+	});
+
+	// Fetch detail + status for every paired device when this page mounts.
+	// The root layout only hydrates the selected device to keep the rest of
+	// the app cheap; this page is the one place where all devices need rich
+	// data (alias, comma_dongle_id, paired date) and live status for the
+	// list rendering. Runs once per mount; statusPolling continues polling
+	// whatever is in onlineStatuses afterward.
+	let allDevicesHydrated = false;
+	$effect(() => {
+		if (allDevicesHydrated) return;
+		if (!deviceState.pairedDevicesLoaded) return;
+		if (deviceState.pairedDevices.length === 0) return;
+		allDevicesHydrated = true;
+
+		(async () => {
+			const token = await logtoClient?.getIdToken();
+			if (!token) return;
+			const list = deviceState.pairedDevices.slice();
+			const detailTasks = list
+				.filter((d: any) => d.device_id && !d.alias)
+				.map(async (d: any) => {
+					const r = await v0Client.GET('/device/{deviceId}', {
+						params: { path: { deviceId: d.device_id } },
+						headers: { Authorization: `Bearer ${token}` }
+					});
+					const detail = r.data;
+					if (detail && detail.device_id) {
+						deviceState.pairedDevices = deviceState.pairedDevices.map((x: any) =>
+							x.device_id === detail.device_id ? { ...x, ...detail } : x
+						);
+						if (detail.alias && !deviceState.aliases[detail.device_id]) {
+							deviceState.aliases = {
+								...deviceState.aliases,
+								[detail.device_id]: detail.alias
+							};
+						}
+					}
+				});
+			const statusTasks = list.map((d: any) => {
+				if (d.device_id) return checkDeviceStatus(d.device_id, token);
+			});
+			await Promise.allSettled([...detailTasks, ...statusTasks]);
+			statusPolling.markChecked();
+		})();
 	});
 
 	function getAlias(device: any) {

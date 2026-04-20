@@ -121,8 +121,8 @@
 						WARNING: This action will immediately stop the vehicle from engaging.
 					</p>
 					<p>
-						Enabling Always Offroad while driving is extremely dangerous and will cause sunnypilot
-						to disengage immediately.
+						Enabling Always Offroad Mode while driving is extremely dangerous and will cause
+						sunnypilot to disengage immediately.
 					</p>
 					<p>
 						Only proceed if the vehicle is parked and you need to keep the device in offroad mode
@@ -173,7 +173,7 @@
 						<Loader2 size={18} class="mr-2 animate-spin" />
 						Enabling...
 					{:else}
-						Enable Always Offroad
+						Enable Always Offroad Mode
 					{/if}
 				</button>
 			</div>

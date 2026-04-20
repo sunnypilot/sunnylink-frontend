@@ -4,9 +4,56 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
+	import { logtoClient } from '$lib/logto/auth.svelte';
+	import { checkDeviceStatus } from '$lib/api/device';
+	import { v0Client } from '$lib/api/client';
 	import { ChevronLeft, Copy, Check } from 'lucide-svelte';
 
 	let id = $derived(page.params.id);
+
+	// Root layout only fetches detail + status for the selected device. If the
+	// user lands here for a non-selected device (e.g. direct URL or from the
+	// My Devices list), kick off one-shot fetches for both so the page can
+	// render alias, comma_dongle_id, paired date and live status.
+	let hydratedFor = $state<string | null>(null);
+	$effect(() => {
+		if (!id || hydratedFor === id) return;
+		hydratedFor = id;
+
+		(async () => {
+			const token = await logtoClient?.getIdToken();
+			if (!token) return;
+
+			const tasks: Promise<unknown>[] = [];
+			if (deviceState.onlineStatuses[id] === undefined) {
+				tasks.push(checkDeviceStatus(id, token));
+			}
+			const existing = deviceState.pairedDevices.find((d: any) => d.device_id === id);
+			if (!existing || !existing.alias) {
+				tasks.push(
+					(async () => {
+						const r = await v0Client.GET('/device/{deviceId}', {
+							params: { path: { deviceId: id } },
+							headers: { Authorization: `Bearer ${token}` }
+						});
+						const detail = r.data;
+						if (detail && detail.device_id) {
+							deviceState.pairedDevices = deviceState.pairedDevices.map((d: any) =>
+								d.device_id === detail.device_id ? { ...d, ...detail } : d
+							);
+							if (detail.alias && !deviceState.aliases[detail.device_id]) {
+								deviceState.aliases = {
+									...deviceState.aliases,
+									[detail.device_id]: detail.alias
+								};
+							}
+						}
+					})()
+				);
+			}
+			await Promise.allSettled(tasks);
+		})();
+	});
 
 	const DEVICE_TYPE_NAMES: Record<string, string> = {
 		tizi: 'comma 3X',
