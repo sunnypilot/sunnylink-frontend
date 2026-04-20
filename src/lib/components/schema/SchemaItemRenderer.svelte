@@ -1054,8 +1054,12 @@
 						class:pointer-events-none={isPushing || !enabled}
 					>
 						{#if selectedIdx >= 0}
+							<!-- Disabled: neutral fill (toggle-off token). bg-primary at 40% parent dim
+							     still reads as saturated purple, undercutting the "unavailable" signal. -->
 							<div
-								class="absolute top-1 bottom-1 rounded-md bg-primary shadow-sm transition-transform duration-350 ease-out"
+								class="absolute top-1 bottom-1 rounded-md shadow-sm transition-transform duration-350 ease-out {enabled
+									? 'bg-primary'
+									: 'bg-[var(--sl-toggle-off)]'}"
 								style="width: calc((100% - 0.5rem) / {optCount}); transform: translateX(calc({selectedIdx} * 100%));"
 							></div>
 						{/if}
@@ -1067,12 +1071,13 @@
 									? 'px-1.5 text-[0.8125rem] tracking-tight'
 									: 'px-2.5 text-sm'}"
 								class:text-white={isSelected && optEnabled && enabled}
-								class:text-[var(--sl-text-2)]={!isSelected && optEnabled && enabled}
+								class:text-[var(--sl-text-2)]={(!isSelected && optEnabled && enabled) ||
+									!enabled}
 								class:hover:text-[var(--sl-text-1)]={!isSelected &&
 									enabled &&
 									optEnabled &&
 									!isPushing}
-								class:opacity-30={!optEnabled || !enabled}
+								class:opacity-30={!optEnabled && enabled}
 								class:cursor-not-allowed={!optEnabled || !enabled}
 								class:pointer-events-none={isPushing || !enabled}
 								disabled={!enabled || isPushing || !optEnabled}
