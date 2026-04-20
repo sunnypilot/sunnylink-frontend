@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { AlertTriangle } from 'lucide-svelte';
@@ -57,6 +59,76 @@
 			deviceState.aliases[id] ?? devices.find((d: any) => d.device_id === id)?.alias ?? id;
 		announceSelection = `Showing ${alias}`;
 	});
+
+	// Fresh sign-in routing: when the user just completed OAuth (flag set by
+	// /auth/callback), check the resolved selected device's online status. If
+	// it's offline (or there's no usable selection), route to /dashboard/devices
+	// so the user can pick a live device instead of landing on a dead one.
+	// We hold the dashboard skeleton until this resolves to avoid a "flash of
+	// offline device" before the redirect.
+	// Consume the flag on read so a page refresh after sign-in doesn't re-trigger
+	// the redirect (which would override navigation the user just made manually).
+	let justSignedIn = $state(
+		browser &&
+			(() => {
+				const v = sessionStorage.getItem('justSignedIn') === '1';
+				if (v) {
+					try {
+						sessionStorage.removeItem('justSignedIn');
+					} catch {
+						// ignore
+					}
+				}
+				return v;
+			})()
+	);
+	let signInRouteResolved = $state(false);
+
+	function clearJustSignedIn() {
+		signInRouteResolved = true;
+		justSignedIn = false;
+	}
+
+	$effect(() => {
+		if (!justSignedIn || signInRouteResolved) return;
+		if (!deviceState.pairedDevicesLoaded) return;
+
+		// No devices paired — let the empty state render on Home, no routing needed.
+		if (devices.length === 0) {
+			clearJustSignedIn();
+			return;
+		}
+
+		const sel = deviceState.selectedDeviceId;
+		// autoSelect should have committed a selection by now if devices exist;
+		// if not, route to picker rather than gambling on a default.
+		if (!sel) {
+			clearJustSignedIn();
+			toast.message('Pick a device to continue', { duration: 3_000 });
+			goto('/dashboard/devices');
+			return;
+		}
+
+		// Wait for the selected device's status check to resolve. statusPolling
+		// kicks off in /+layout.svelte after deviceResult resolves, so this fills
+		// in within a few seconds.
+		const status = deviceState.onlineStatuses[sel];
+		if (!status || status === 'loading') return;
+
+		if (status === 'offline') {
+			const alias =
+				deviceState.aliases[sel] ?? devices.find((d: any) => d.device_id === sel)?.alias ?? sel;
+			toast.message(`${alias} is offline — pick another device`, { duration: 4_000 });
+			clearJustSignedIn();
+			goto('/dashboard/devices');
+			return;
+		}
+
+		// online or error: stay on Home and render normally.
+		clearJustSignedIn();
+	});
+
+	let waitingForSignInRoute = $derived(justSignedIn && !signInRouteResolved);
 
 	let isOffline = $derived(
 		selectedDevice ? deviceState.onlineStatuses[selectedDevice.device_id] === 'offline' : false
@@ -222,6 +294,11 @@
 {:else if !authState.isAuthenticated}
 	<!-- Guard $effect above handles goto('/'); render nothing while redirect is in flight -->
 {:else if devices.length === 0 && !deviceState.pairedDevicesLoaded}
+	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+{:else if waitingForSignInRoute}
+	<!-- Fresh sign-in: hold the skeleton until smart-routing $effect decides
+	     whether to stay or redirect to /dashboard/devices. Avoids flashing
+	     an offline device before the redirect. -->
 	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 {:else if devices.length === 0}
 	<main class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl">

@@ -14,6 +14,7 @@
 		Car,
 		Github,
 		Twitter,
+		Loader2,
 		Menu,
 		X
 	} from 'lucide-svelte';
@@ -28,7 +29,7 @@
 			goto('/dashboard');
 		} else {
 			if (!browser || !logtoClient) return;
-			await logtoClient.signIn(`${window.location.origin}/auth/callback`);
+			await authState.signIn(`${window.location.origin}/auth/callback`);
 		}
 	};
 
@@ -94,9 +95,15 @@
 			<div class="hidden items-center gap-4 lg:flex">
 				<button
 					onclick={handleMainAction}
-					class="rounded-full bg-[#594AE2] px-5 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#4839cf] hover:shadow-[0_0_20px_-5px_#594AE2] active:scale-95"
+					disabled={authState.isSigningIn}
+					class="inline-flex items-center gap-2 rounded-full bg-[#594AE2] px-5 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#4839cf] hover:shadow-[0_0_20px_-5px_#594AE2] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
 				>
-					{authState.isAuthenticated ? 'Home' : 'Sign In'}
+					{#if authState.isSigningIn}
+						<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+						<span>Signing in…</span>
+					{:else}
+						{authState.isAuthenticated ? 'Home' : 'Sign In'}
+					{/if}
 				</button>
 			</div>
 		</div>
@@ -127,9 +134,15 @@
 					<div class="my-1 h-px bg-white/5"></div>
 					<button
 						onclick={handleMainAction}
-						class="w-full rounded-lg bg-[#594AE2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4839cf]"
+						disabled={authState.isSigningIn}
+						class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#594AE2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4839cf] disabled:cursor-not-allowed disabled:opacity-70"
 					>
-						{authState.isAuthenticated ? 'Home' : 'Sign In'}
+						{#if authState.isSigningIn}
+							<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+							<span>Signing in…</span>
+						{:else}
+							{authState.isAuthenticated ? 'Home' : 'Sign In'}
+						{/if}
 					</button>
 				</div>
 			</div>
@@ -169,10 +182,16 @@
 					<div class="flex flex-col gap-4 sm:flex-row">
 						<button
 							onclick={handleMainAction}
-							class="group flex items-center justify-center gap-2 rounded-xl bg-[#594AE2] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#594AE2]/20 transition-all hover:-translate-y-1 hover:bg-[#4839cf] hover:shadow-xl hover:shadow-[#594AE2]/30"
+							disabled={authState.isSigningIn}
+							class="group flex items-center justify-center gap-2 rounded-xl bg-[#594AE2] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#594AE2]/20 transition-all hover:-translate-y-1 hover:bg-[#4839cf] hover:shadow-xl hover:shadow-[#594AE2]/30 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
 						>
-							{authState.isAuthenticated ? 'Go to sunnylink Home' : 'Sign in via sunnylink'}
-							<ArrowRight class="h-5 w-5 transition-transform group-hover:translate-x-1" />
+							{#if authState.isSigningIn}
+								<Loader2 class="h-5 w-5 animate-spin" aria-hidden="true" />
+								Signing in…
+							{:else}
+								{authState.isAuthenticated ? 'Go to sunnylink Home' : 'Sign in via sunnylink'}
+								<ArrowRight class="h-5 w-5 transition-transform group-hover:translate-x-1" />
+							{/if}
 						</button>
 						<a
 							href="https://community.sunnypilot.ai"

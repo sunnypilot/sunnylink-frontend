@@ -14,6 +14,7 @@
 		HardDrive,
 		House,
 		LogIn,
+		Loader2,
 		Map as MapIcon,
 		Menu,
 		Monitor,
@@ -278,6 +279,10 @@
 	});
 
 	let isLandingPage = $derived(pathname === '/');
+	// Hide app chrome (sidebar/header/PWA prompt) on full-screen transitional
+	// pages — landing and the OAuth callback. Avoids flashing an unauthed
+	// sidebar during the sign-in round-trip.
+	let isChromeless = $derived(isLandingPage || pathname === '/auth/callback');
 </script>
 
 <svelte:head>
@@ -286,20 +291,20 @@
 </svelte:head>
 
 <div
-	class="drawer min-h-screen bg-[var(--sl-bg-page)] {!isLandingPage
+	class="drawer min-h-screen bg-[var(--sl-bg-page)] {!isChromeless
 		? 'lg:drawer-open'
 		: 'h-auto overflow-visible'}"
 >
 	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 
 	<div
-		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isLandingPage
+		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isChromeless
 			? 'h-auto overflow-visible'
 			: ''}"
 	>
 		<GlobalStatusBanner />
 
-		{#if !isLandingPage}
+		{#if !isChromeless}
 			<header
 				class="sticky top-0 z-50 w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
 			>
@@ -377,8 +382,8 @@
 			</header>
 		{/if}
 
-		<main class="flex-1 {isLandingPage ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
-			{#if !isLandingPage && deviceState.selectedDeviceId}
+		<main class="flex-1 {isChromeless ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
+			{#if !isChromeless && deviceState.selectedDeviceId}
 				<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
 				</div>
@@ -391,7 +396,7 @@
 		</main>
 	</div>
 
-	{#if !isLandingPage}
+	{#if !isChromeless}
 		<div class="drawer-side z-[51]">
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<aside
@@ -596,20 +601,29 @@
 					{:else}
 						<button
 							type="button"
+							disabled={authState.isSigningIn}
 							onclick={async () => {
-								await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
 								closeDrawerOnMobile();
+								await authState.signIn(`${window.location.origin}/auth/callback`);
 							}}
 							class={[
-								'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--sl-bg-subtle)]',
+								'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
 								drawerOpen ? 'justify-start' : 'justify-center',
 								'lg:justify-start'
 							]}
 						>
-							<LogIn
-								size={18}
-								class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
-							/>
+							{#if authState.isSigningIn}
+								<Loader2
+									size={18}
+									class="animate-spin text-[var(--sl-text-2)]"
+									aria-hidden="true"
+								/>
+							{:else}
+								<LogIn
+									size={18}
+									class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+								/>
+							{/if}
 							<span
 								class={[
 									'text-[0.8125rem] font-medium text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]',
@@ -617,7 +631,7 @@
 									'lg:block'
 								]}
 							>
-								Login
+								{authState.isSigningIn ? 'Signing in…' : 'Login'}
 							</span>
 						</button>
 					{/if}
@@ -664,17 +678,21 @@
 			</p>
 			<button
 				type="button"
-				class="mt-5 inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-				onclick={async () => {
-					await logtoClient?.signIn(`${window.location.origin}/auth/callback`);
-				}}
+				disabled={authState.isSigningIn}
+				class="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:opacity-70"
+				onclick={() => authState.signIn(`${window.location.origin}/auth/callback`)}
 			>
-				Sign in
+				{#if authState.isSigningIn}
+					<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+					<span>Signing in…</span>
+				{:else}
+					Sign in
+				{/if}
 			</button>
 		</div>
 	</div>
 {/if}
-{#if isIOS && !isLandingPage}
+{#if isIOS && !isChromeless}
 	<PWAInstallPrompt
 		title="Install sunnylink"
 		body="Add to your Home Screen for fullscreen access and offline use."

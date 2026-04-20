@@ -56,6 +56,11 @@ class AuthState {
 	loading = $state(true);
 	isAuthenticated = $state(false);
 	profile = $state<UserInfoResponse | undefined>(undefined);
+	/** True from the moment the user clicks any "Sign in" button until either
+	 *  the OAuth redirect happens (resolves never — full page nav cancels JS)
+	 *  or the SDK call throws before redirect (we then reset). Drives in-button
+	 *  spinners so the UI doesn't appear dead during PKCE setup + nav lag. */
+	isSigningIn = $state(false);
 
 	/** Cached in-flight init() promise. Ensures concurrent callers share one init pass
 	 *  instead of racing `loading`/`isAuthenticated` writes (constructor auto-init vs
@@ -142,6 +147,23 @@ class AuthState {
 			this.profile = finalProfile;
 			this.loading = false;
 			this.#initialized = true;
+		}
+	}
+
+	/**
+	 * Begin the OAuth sign-in flow. Idempotent — concurrent clicks share one
+	 * call. The SDK does PKCE setup then full-page nav; this method only
+	 * returns if the SDK throws before redirecting (in which case we reset
+	 * isSigningIn so the button re-enables).
+	 */
+	async signIn(redirectUri: string): Promise<void> {
+		if (!logtoClient || this.isSigningIn) return;
+		this.isSigningIn = true;
+		try {
+			await logtoClient.signIn(redirectUri);
+		} catch (e) {
+			console.error('Sign-in failed:', e);
+			this.isSigningIn = false;
 		}
 	}
 
