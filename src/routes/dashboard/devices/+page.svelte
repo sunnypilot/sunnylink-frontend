@@ -395,10 +395,23 @@
 	// Use cached devices from deviceState for instant rendering; update when API returns
 	let devices = $derived(deviceState.pairedDevices);
 
+	// Pin the currently-selected device to the top of the page, hoisted out of
+	// either status section. Mirrors the "current account" pattern from Vercel /
+	// Stripe / AWS — your active context should be visible without scrolling.
+	let pinnedDevice = $derived.by(() => {
+		deviceState.version;
+		if (!devices) return null;
+		const sel = deviceState.selectedDeviceId;
+		if (!sel) return null;
+		return devices.find((d) => d.device_id === sel) ?? null;
+	});
+
 	let onlineDevices = $derived.by(() => {
 		deviceState.version;
 		if (!devices) return [];
+		const pinId = pinnedDevice?.device_id;
 		const list = devices.filter((d) => {
+			if (pinId && d.device_id === pinId) return false;
 			const status = deviceState.onlineStatuses[d.device_id];
 			return (
 				status === 'online' || status === 'loading' || status === 'error' || status === undefined
@@ -410,7 +423,11 @@
 	let offlineDevices = $derived.by(() => {
 		deviceState.version;
 		if (!devices) return [];
-		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
+		const pinId = pinnedDevice?.device_id;
+		const list = devices.filter((d) => {
+			if (pinId && d.device_id === pinId) return false;
+			return deviceState.onlineStatuses[d.device_id] === 'offline';
+		});
 		return deviceState.sortDevices(list);
 	});
 </script>
@@ -488,133 +505,145 @@
 				</div>
 			{/snippet}
 
-			<div class="flex flex-col gap-3" role="list" aria-label="Device list">
-				{#each onlineDevices as device (device.device_id)}
-					{@const isLoading =
-						!deviceState.onlineStatuses[device.device_id] ||
-						deviceState.onlineStatuses[device.device_id] === 'loading'}
-					{@const isUnregistered =
-						device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
-					{@const isRenaming = renamingDeviceId === device.device_id}
-					{@const isSelected = deviceState.selectedDeviceId === device.device_id}
+			{#snippet deviceCard(device: any)}
+				{@const isLoading =
+					!deviceState.onlineStatuses[device.device_id] ||
+					deviceState.onlineStatuses[device.device_id] === 'loading'}
+				{@const isOffline = deviceState.onlineStatuses[device.device_id] === 'offline'}
+				{@const isUnregistered =
+					device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
+				{@const isRenaming = renamingDeviceId === device.device_id}
+				{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
-					<article
-						class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
-							? 'border-2 border-primary'
-							: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-						onclick={() => selectAndOpen(device)}
-						onkeydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
-								e.preventDefault();
-								selectAndOpen(device);
-							}
-						}}
-						role="listitem"
-						tabindex="0"
-						aria-label="{getAlias(device)} - {getStatusText(device)}"
-						aria-busy={isLoading ? 'true' : undefined}
-					>
-						<div class="px-4 py-3.5">
-							<div class="flex items-start gap-3">
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-2">
-										<span
-											class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
-											class:animate-pulse={isLoading}
-											aria-hidden="true"
-										></span>
-										{#if isRenaming}
-											<input
-												id="alias-{device.device_id}"
-												type="text"
-												bind:value={renameValue}
-												onblur={commitRename}
-												onkeydown={(e) => {
-													e.stopPropagation();
-													if (e.key === 'Enter') {
-														e.preventDefault();
-														e.currentTarget.blur();
-													} else if (e.key === 'Escape') {
-														e.preventDefault();
-														renameValue = renameOriginal;
-														cancelRename();
-													}
-												}}
-												onclick={(e) => e.stopPropagation()}
-												class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-											/>
-										{:else}
-											<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-												{getAlias(device)}
-											</span>
-											<button
-												type="button"
-												class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-												onclick={(e) => {
-													e.stopPropagation();
-													startRename(device.device_id);
-												}}
-												onkeydown={(e) => e.stopPropagation()}
-												aria-label="Rename {getAlias(device)}"
-											>
-												<Pencil size={12} />
-											</button>
-										{/if}
-										{#if savingAliasFor === device.device_id}
-											<Loader2
-												size={12}
-												class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-												aria-label="Saving alias"
-											/>
-										{:else if isLoading}
-											<Loader2
-												size={12}
-												class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-												aria-label="Checking status"
-											/>
-										{/if}
-									</div>
-
-									<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
-										{getSubtitle(device) || getStatusText(device)}
-									</p>
+				<article
+					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+						? 'border-2 border-primary'
+						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
+					onclick={() => selectAndOpen(device)}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							selectAndOpen(device);
+						}
+					}}
+					role="listitem"
+					tabindex="0"
+					aria-label="{getAlias(device)} - {isOffline ? 'Offline' : getStatusText(device)}"
+					aria-busy={isLoading ? 'true' : undefined}
+				>
+					<div class="px-4 py-3.5">
+						<div class="flex items-start gap-3">
+							<div class="min-w-0 flex-1">
+								<div class="flex items-center gap-2">
+									<span
+										class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
+										class:animate-pulse={isLoading}
+										aria-hidden="true"
+									></span>
+									{#if isRenaming}
+										<input
+											id="alias-{device.device_id}"
+											type="text"
+											bind:value={renameValue}
+											onblur={commitRename}
+											onkeydown={(e) => {
+												e.stopPropagation();
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													e.currentTarget.blur();
+												} else if (e.key === 'Escape') {
+													e.preventDefault();
+													renameValue = renameOriginal;
+													cancelRename();
+												}
+											}}
+											onclick={(e) => e.stopPropagation()}
+											class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+										/>
+									{:else}
+										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
+											{getAlias(device)}
+										</span>
+										<button
+											type="button"
+											class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+											onclick={(e) => {
+												e.stopPropagation();
+												startRename(device.device_id);
+											}}
+											onkeydown={(e) => e.stopPropagation()}
+											aria-label="Rename {getAlias(device)}"
+										>
+											<Pencil size={12} />
+										</button>
+									{/if}
+									{#if savingAliasFor === device.device_id}
+										<Loader2
+											size={12}
+											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+											aria-label="Saving alias"
+										/>
+									{:else if isLoading}
+										<Loader2
+											size={12}
+											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+											aria-label="Checking status"
+										/>
+									{/if}
 								</div>
 
-								<div
-									class="shrink-0"
-									onclick={(e) => e.stopPropagation()}
-									onkeydown={(e) => e.stopPropagation()}
-								>
-									<DeviceRowMenu
-										deviceId={device.device_id}
-										dongleId={isUnregistered ? undefined : device.comma_dongle_id}
-										pairedAt={device.created_at}
-										isDownloading={deviceState.backupState.isDownloading &&
-											deviceState.backupState.deviceId === device.device_id}
-										onRename={() => startRename(device.device_id)}
-										onDownloadBackup={() => handleDownloadBackup(device.device_id)}
-										onDeregister={() => openDeregisterModal(device)}
-									/>
-								</div>
+								<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
+									{isOffline ? 'Offline' : getSubtitle(device) || getStatusText(device)}
+								</p>
 							</div>
 
-							<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
-								{@render labelValueRow('Version', getVersion(device), false, true)}
-								{@render labelValueRow('Branch', getBranch(device), true, true, true)}
-								{#key statusPolling.tickCounter}
-									{@render labelValueRow(
-										'Last seen',
-										formatLastSeenShort(device, statusPolling.tickCounter),
-										false,
-										true
-									)}
-								{/key}
-								{@render labelValueRow('Device', getDeviceTypeName(device), false, true)}
-								{@render labelValueRow('Network', getNetworkType(device), false, true)}
-								{@render labelValueRow('Commit', getCommit(device), true, true)}
+							<div
+								class="shrink-0"
+								onclick={(e) => e.stopPropagation()}
+								onkeydown={(e) => e.stopPropagation()}
+							>
+								<DeviceRowMenu
+									deviceId={device.device_id}
+									dongleId={isUnregistered ? undefined : device.comma_dongle_id}
+									pairedAt={device.created_at}
+									isDownloading={!isOffline &&
+										deviceState.backupState.isDownloading &&
+										deviceState.backupState.deviceId === device.device_id}
+									onRename={() => startRename(device.device_id)}
+									onDownloadBackup={isOffline
+										? undefined
+										: () => handleDownloadBackup(device.device_id)}
+									onDeregister={() => openDeregisterModal(device)}
+								/>
 							</div>
 						</div>
-					</article>
+
+						<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
+							{@render labelValueRow('Version', getVersion(device), false, !isOffline)}
+							{@render labelValueRow('Branch', getBranch(device), true, !isOffline, true)}
+							{#key statusPolling.tickCounter}
+								{@render labelValueRow(
+									'Last seen',
+									formatLastSeenShort(device, statusPolling.tickCounter),
+									false,
+									!isOffline
+								)}
+							{/key}
+							{@render labelValueRow('Device', getDeviceTypeName(device), false, !isOffline)}
+							{@render labelValueRow('Network', getNetworkType(device), false, !isOffline)}
+							{@render labelValueRow('Commit', getCommit(device), true, !isOffline)}
+						</div>
+					</div>
+				</article>
+			{/snippet}
+
+			<div class="flex flex-col gap-3" role="list" aria-label="Device list">
+				{#if pinnedDevice}
+					{@render deviceCard(pinnedDevice)}
+				{/if}
+
+				{#each onlineDevices as device (device.device_id)}
+					{@render deviceCard(device)}
 				{/each}
 
 				{#if offlineDevices.length > 0}
@@ -648,110 +677,7 @@
 							transition:slide={{ duration: 150 }}
 						>
 							{#each offlineDevices as device (device.device_id)}
-								{@const isUnregistered =
-									device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
-								{@const isRenaming = renamingDeviceId === device.device_id}
-								{@const isSelected = deviceState.selectedDeviceId === device.device_id}
-
-								<article
-									class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
-										? 'border-2 border-primary'
-										: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-									onclick={() => selectAndOpen(device)}
-									onkeydown={(e) => {
-										if (e.key === 'Enter' || e.key === ' ') {
-											e.preventDefault();
-											selectAndOpen(device);
-										}
-									}}
-									role="listitem"
-									tabindex="0"
-									aria-label="{getAlias(device)} - Offline"
-								>
-									<div class="px-4 py-3.5">
-										<div class="flex items-start gap-3">
-											<div class="min-w-0 flex-1">
-												<div class="flex items-center gap-2">
-													<span
-														class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
-														aria-hidden="true"
-													></span>
-													{#if isRenaming}
-														<input
-															id="alias-{device.device_id}"
-															type="text"
-															bind:value={renameValue}
-															onblur={commitRename}
-															onkeydown={(e) => {
-																e.stopPropagation();
-																if (e.key === 'Enter') {
-																	e.preventDefault();
-																	e.currentTarget.blur();
-																} else if (e.key === 'Escape') {
-																	e.preventDefault();
-																	renameValue = renameOriginal;
-																	cancelRename();
-																}
-															}}
-															onclick={(e) => e.stopPropagation()}
-															class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-														/>
-													{:else}
-														<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-															{getAlias(device)}
-														</span>
-														<button
-															type="button"
-															class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-															onclick={(e) => {
-																e.stopPropagation();
-																startRename(device.device_id);
-															}}
-															onkeydown={(e) => e.stopPropagation()}
-															aria-label="Rename {getAlias(device)}"
-														>
-															<Pencil size={12} />
-														</button>
-													{/if}
-												</div>
-
-												<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">Offline</p>
-											</div>
-
-											<div
-												class="shrink-0"
-												onclick={(e) => e.stopPropagation()}
-												onkeydown={(e) => e.stopPropagation()}
-											>
-												<DeviceRowMenu
-													deviceId={device.device_id}
-													dongleId={isUnregistered ? undefined : device.comma_dongle_id}
-													pairedAt={device.created_at}
-													onRename={() => startRename(device.device_id)}
-													onDeregister={() => openDeregisterModal(device)}
-												/>
-											</div>
-										</div>
-
-										<div
-											class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5"
-										>
-											{@render labelValueRow('Version', getVersion(device), false, false)}
-											{@render labelValueRow('Branch', getBranch(device), true, false, true)}
-											{#key statusPolling.tickCounter}
-												{@render labelValueRow(
-													'Last seen',
-													formatLastSeenShort(device, statusPolling.tickCounter),
-													false,
-													false
-												)}
-											{/key}
-											{@render labelValueRow('Device', getDeviceTypeName(device), false, false)}
-											{@render labelValueRow('Network', getNetworkType(device), false, false)}
-											{@render labelValueRow('Commit', getCommit(device), true, false)}
-										</div>
-									</div>
-								</article>
+								{@render deviceCard(device)}
 							{/each}
 						</div>
 					{/if}
