@@ -20,6 +20,24 @@ export const load: LayoutLoad = async ({ depends }) => {
 	// re-runs the load on every route change, causing redundant device list fetches.
 	depends('app:devices');
 
+	// Skip the device fetch on the OAuth callback route. The callback page owns
+	// the sign-in flow (handleSignInCallback runs in its onMount); racing
+	// authState.init() here would falsely report auth_expired before the code
+	// exchange completes, surfacing as a "Session expired" modal flash on top
+	// of the chromeless callback page. Reading window.location directly (not
+	// the SvelteKit `url` param) avoids registering a dependency.
+	if (typeof window !== 'undefined' && window.location.pathname === '/auth/callback') {
+		return {
+			streamed: {
+				deviceResult: Promise.resolve<DeviceFetchResult>({
+					devices: [],
+					pairedList: [],
+					error: null
+				})
+			}
+		};
+	}
+
 	const fetchAllDeviceData = async (): Promise<DeviceFetchResult> => {
 		if (!logtoClient) {
 			return { devices: [], pairedList: [], error: 'auth_expired' };

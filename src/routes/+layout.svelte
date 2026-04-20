@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
-	import { invalidate, onNavigate } from '$app/navigation';
+	import { goto, invalidate, onNavigate } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -25,7 +25,8 @@
 		Wind,
 		Wrench,
 		ArrowLeftRight,
-		Smartphone
+		Smartphone,
+		X
 	} from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import SearchTrigger from '$lib/components/search/SearchTrigger.svelte';
@@ -244,13 +245,37 @@
 		isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
 	});
 
-	// Session-expired modal: shown only after auth init has fully completed AND
-	// the post-init isAuthenticated is false AND the load reported auth_expired.
-	// Gating on `!authState.loading` prevents the modal from flashing during the
-	// init/refresh-grant window when the SDK is still resolving stale tokens.
+	// Session-expired modal: only on auth-required routes (/dashboard/*). Landing
+	// is public and the OAuth callback is transitional, so the modal would block
+	// the user from browsing or race the sign-in code exchange respectively.
+	// Also gated on !authState.loading so it doesn't flash during the init /
+	// refresh-grant window when the SDK is still resolving stale tokens.
+	let isAuthRequiredRoute = $derived(pathname.startsWith('/dashboard'));
 	let showSessionExpiredModal = $derived(
-		!authState.loading && !authState.isAuthenticated && deviceFetchError === 'auth_expired'
+		isAuthRequiredRoute &&
+			!authState.loading &&
+			!authState.isAuthenticated &&
+			deviceFetchError === 'auth_expired'
 	);
+
+	function dismissSessionExpired() {
+		// Clear the error so the modal stays gone if the user navigates back to
+		// /dashboard without re-authing (it'll re-trigger naturally once
+		// invalidate('app:devices') re-runs and still gets auth_expired).
+		deviceFetchError = null;
+		goto('/');
+	}
+
+	// Esc-to-dismiss for the session-expired modal. Listener attaches only while
+	// the modal is open so we don't leak handlers.
+	$effect(() => {
+		if (!showSessionExpiredModal) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') dismissSessionExpired();
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	});
 
 	$effect(() => {
 		if (authState.isAuthenticated) {
@@ -659,22 +684,38 @@
 <CommandPalette />
 
 {#if showSessionExpiredModal}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="session-expired-title"
 		transition:fade={{ duration: 200 }}
+		onclick={(e) => {
+			if (e.target === e.currentTarget) dismissSessionExpired();
+		}}
 	>
 		<div
-			class="w-full max-w-sm rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6 shadow-xl"
+			class="relative w-full max-w-sm rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6 shadow-xl"
 			transition:scale={{ start: 0.96, duration: 200, opacity: 0 }}
 		>
-			<h2 id="session-expired-title" class="text-[1.0625rem] font-semibold text-[var(--sl-text-1)]">
+			<button
+				type="button"
+				class="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				onclick={dismissSessionExpired}
+				aria-label="Dismiss and return home"
+			>
+				<X size={16} />
+			</button>
+			<h2
+				id="session-expired-title"
+				class="pr-8 text-[1.0625rem] font-semibold text-[var(--sl-text-1)]"
+			>
 				Session expired
 			</h2>
 			<p class="mt-2 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
-				Your sign-in has expired. Sign in again to continue.
+				Sign in again to continue, or close this to browse the home page.
 			</p>
 			<button
 				type="button"
@@ -688,6 +729,13 @@
 				{:else}
 					Sign in
 				{/if}
+			</button>
+			<button
+				type="button"
+				class="mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg px-4 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				onclick={dismissSessionExpired}
+			>
+				Maybe later
 			</button>
 		</div>
 	</div>
