@@ -25,7 +25,10 @@
 
 	let version = $derived((values?.['Version'] as string | undefined) ?? null);
 	let branch = $derived((values?.['GitBranch'] as string | undefined) ?? null);
-	let commit = $derived((values?.['GitCommit'] as string | undefined)?.slice(0, 8) ?? null);
+	let commit = $derived((values?.['GitCommit'] as string | undefined)?.slice(0, 7) ?? null);
+	// Skeleton/value/dash gating: skeleton until the device's info-keys fetch
+	// resolves (success or failure), then show the value or "—" if missing.
+	let infoLoaded = $derived(deviceState.infoFetchComplete[device.device_id] === true);
 
 	let statusLabel = $derived.by(() => {
 		if (isLoading) return 'Checking…';
@@ -125,13 +128,27 @@
 		<div class="min-w-0">
 			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Version</dt>
 			<dd class="mt-0.5 truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-				{version ?? '—'}
+				{#if !infoLoaded}
+					<span
+						class="inline-block h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]/80"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Loading version</span>
+				{:else}
+					{version ?? '—'}
+				{/if}
 			</dd>
 		</div>
 		<div class="min-w-0">
 			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Branch</dt>
 			<dd class="mt-0.5 min-w-0 text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-				{#if branch}
+				{#if !infoLoaded}
+					<span
+						class="inline-block h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]/80"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Loading branch</span>
+				{:else if branch}
 					<MarqueeText
 						text={branch}
 						mono
@@ -145,7 +162,15 @@
 		<div class="min-w-0">
 			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Commit</dt>
 			<dd class="mt-0.5 truncate font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-				{commit ?? '—'}
+				{#if !infoLoaded}
+					<span
+						class="inline-block h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]/80"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Loading commit</span>
+				{:else}
+					{commit ?? '—'}
+				{/if}
 			</dd>
 		</div>
 	</dl>

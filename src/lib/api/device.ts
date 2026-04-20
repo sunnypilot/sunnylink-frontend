@@ -579,6 +579,13 @@ export async function checkDeviceStatus(
 				})
 				.catch(() => {
 					/* non-critical — silent fail */
+				})
+				.finally(() => {
+					// Flip the loaded flag whether the fetch succeeded, returned no
+					// items, or rejected — the UI uses this to swap from skeleton
+					// placeholders to actual values (or "—" if the device didn't
+					// return that key).
+					deviceState.infoFetchComplete[deviceId] = true;
 				});
 		}
 

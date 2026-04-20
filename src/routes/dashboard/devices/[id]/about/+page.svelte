@@ -28,6 +28,14 @@
 	let telemetry = $derived(id ? deviceState.deviceTelemetry[id] : undefined);
 	let values = $derived(id ? deviceState.deviceValues[id] : undefined);
 
+	// Loaded flags — used to render skeleton placeholders while a fetch is in
+	// flight, falling back to "—" only after the fetch completes (success or
+	// failure) so we never claim a value is missing while it's still arriving.
+	let statusLoaded = $derived(
+		!!onlineStatus && onlineStatus !== 'loading' && (!!telemetry || onlineStatus !== 'online')
+	);
+	let infoLoaded = $derived(!!id && deviceState.infoFetchComplete[id] === true);
+
 	let deviceTypeName = $derived.by(() => {
 		const t = telemetry?.deviceType;
 		if (!t || t === 'unknown') return null;
@@ -161,16 +169,18 @@
 		class="mt-6 divide-y divide-[var(--sl-border)] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
 	>
 		{@render statusRow()}
-		{@render row('Device type', deviceTypeName)}
-		{@render row('Network', networkType)}
+		{@render row('Device type', deviceTypeName, false, statusLoaded)}
+		{@render row('Network', networkType, false, statusLoaded)}
 		{@render row(
 			'Last seen',
-			lastSeen ? (statusPolling.tickCounter, formatRelativeTime(lastSeen)) : null
+			lastSeen ? (statusPolling.tickCounter, formatRelativeTime(lastSeen)) : null,
+			false,
+			statusLoaded
 		)}
 		{@render row('Paired date', pairedDate)}
-		{@render row('Version', version)}
-		{@render row('Date', commitDateLabel)}
-		{@render scrollRow('Branch', branch)}
+		{@render row('Version', version, false, infoLoaded)}
+		{@render row('Date', commitDateLabel, false, infoLoaded)}
+		{@render scrollRow('Branch', branch, infoLoaded)}
 		{@render commitRow()}
 		{@render copyRow('sunnylink Device ID', id ?? null, 'sunnylink')}
 		{@render copyRow('comma Dongle ID', device?.comma_dongle_id ?? null, 'dongle')}
@@ -183,7 +193,7 @@
 	{/if}
 </div>
 
-{#snippet row(label: string, value: string | null, mono = false)}
+{#snippet row(label: string, value: string | null, mono = false, loaded = true)}
 	<div class="flex items-center justify-between gap-4 px-4 py-3">
 		<dt class="text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
 		<dd
@@ -191,7 +201,15 @@
 				? 'font-mono'
 				: ''}"
 		>
-			{value ?? '—'}
+			{#if !loaded}
+				<span
+					class="inline-block h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+					aria-hidden="true"
+				></span>
+				<span class="sr-only">Loading {label}</span>
+			{:else}
+				{value ?? '—'}
+			{/if}
 		</dd>
 	</div>
 {/snippet}
@@ -218,13 +236,21 @@
 	</div>
 {/snippet}
 
-{#snippet scrollRow(label: string, value: string | null)}
+{#snippet scrollRow(label: string, value: string | null, loaded = true)}
 	<div class="flex items-center justify-between gap-4 px-4 py-3">
 		<dt class="shrink-0 text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
 		<dd class="min-w-0 flex-1 overflow-x-auto text-right whitespace-nowrap">
-			<span class="font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-				{value ?? '—'}
-			</span>
+			{#if !loaded}
+				<span
+					class="inline-block h-3 w-32 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+					aria-hidden="true"
+				></span>
+				<span class="sr-only">Loading {label}</span>
+			{:else}
+				<span class="font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+					{value ?? '—'}
+				</span>
+			{/if}
 		</dd>
 	</div>
 {/snippet}
@@ -233,12 +259,20 @@
 	<div class="flex items-center justify-between gap-4 px-4 py-3">
 		<dt class="shrink-0 text-[0.8125rem] text-[var(--sl-text-3)]">Commit</dt>
 		<dd class="flex min-w-0 flex-1 items-center justify-end gap-2">
-			<span
-				class="overflow-x-auto font-mono text-[0.8125rem] font-medium whitespace-nowrap text-[var(--sl-text-1)]"
-				title={commit ?? ''}
-			>
-				{commitShort ?? '—'}
-			</span>
+			{#if !infoLoaded}
+				<span
+					class="inline-block h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+					aria-hidden="true"
+				></span>
+				<span class="sr-only">Loading commit hash</span>
+			{:else}
+				<span
+					class="overflow-x-auto font-mono text-[0.8125rem] font-medium whitespace-nowrap text-[var(--sl-text-1)]"
+					title={commit ?? ''}
+				>
+					{commitShort ?? '—'}
+				</span>
+			{/if}
 			{#if commit}
 				<button
 					type="button"

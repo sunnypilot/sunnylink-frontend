@@ -9,6 +9,11 @@ export const deviceState = $state({
 		: undefined) as string | undefined,
 	deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
 	deviceValues: {} as Record<string, Record<string, unknown>>,
+	/** Per-device flag: true once the GitBranch/GitCommit/GitCommitDate/Version
+	 *  info-keys fetch has resolved (success or failure). Lets the UI show
+	 *  skeleton placeholders while the fetch is in flight and only fall back
+	 *  to "—" once we know the device truly didn't return a value. */
+	infoFetchComplete: {} as Record<string, boolean>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
 	lastStatusCheck: {} as Record<string, number>,
 	/** Timestamp of the last time the device was confirmed online. Persists across polls —
