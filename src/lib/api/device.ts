@@ -1,7 +1,6 @@
 import {
 	Athenav1Client,
 	v0Client,
-	API_BASE_URL,
 	ATHENA_BASE_URL,
 	customFetch
 } from '$lib/api/client';
@@ -195,7 +194,7 @@ export async function fetchDeviceMessage(
 	token: string
 ): Promise<Record<string, unknown> | null> {
 	const response = await customFetch(
-		`${API_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
+		`${ATHENA_BASE_URL}/ws/${encodeURIComponent(deviceId)}/message?service=deviceState`,
 		{
 			headers: { Authorization: `Bearer ${token}` }
 		}
