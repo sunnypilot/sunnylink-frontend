@@ -121,7 +121,7 @@
 						WARNING: This action will immediately stop the vehicle from engaging.
 					</p>
 					<p>
-						Enabling Always Offroad while driving is extremely dangerous and will cause openpilot to
+						Enabling Always Offroad while driving is extremely dangerous and will cause sunnypilot to
 						disengage immediately.
 					</p>
 					<p>
@@ -157,14 +157,14 @@
 				class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6"
 			>
 				<button
-					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+					class="btn text-[var(--sl-text-2)] transition-transform btn-ghost hover:text-[var(--sl-text-1)] active:scale-[0.98]"
 					onclick={() => (open = false)}
 					disabled={pushing}
 				>
 					Cancel
 				</button>
 				<button
-					class="btn min-w-[140px] btn-error"
+					class="btn min-w-[140px] transition-transform btn-error active:scale-[0.98] active:brightness-90"
 					onclick={handleForceOffroad}
 					disabled={!confirmed || pushing}
 				>

@@ -59,18 +59,20 @@
 
 				<div class="mt-5 flex items-center justify-center gap-3">
 					<button
-						class="rounded-full border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-5 py-2 text-[13px] font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-input)] disabled:opacity-50"
+						class="rounded-full border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-5 py-2 text-[13px] font-medium text-[var(--sl-text-1)] transition-all hover:bg-[var(--sl-bg-input)] active:scale-[0.98] active:bg-[var(--sl-bg-subtle)] disabled:opacity-50"
 						onclick={close}
 						disabled={isProcessing}
 					>
 						{cancelText}
 					</button>
 					<button
-						class="flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-medium text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
 						class:bg-red-600={variant === 'danger'}
 						class:hover:bg-red-700={variant === 'danger'}
+						class:active:bg-red-800={variant === 'danger'}
 						class:bg-primary={variant === 'primary'}
 						class:hover:opacity-90={variant === 'primary'}
+						class:active:opacity-80={variant === 'primary'}
 						onclick={onConfirm}
 						disabled={isProcessing}
 					>

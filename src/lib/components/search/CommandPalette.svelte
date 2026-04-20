@@ -256,7 +256,7 @@
 					autocapitalize="off"
 					autocorrect="off"
 					spellcheck="false"
-					class="min-w-0 flex-1 bg-transparent text-[0.9375rem] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:outline-none"
+					class="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:outline-none md:text-[0.9375rem]"
 					role="combobox"
 					aria-expanded={results.length > 0}
 					aria-controls="command-palette-list"

@@ -16,7 +16,7 @@
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import type { SchemaItem, SchemaOption } from '$lib/types/schema';
-	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
+	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import { Loader2 } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
@@ -363,7 +363,7 @@
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
 				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-					{item.title || 'Always Offroad Mode'}
+					Always Offroad Mode
 				</span>
 				{#if isOn}
 					<p
@@ -384,7 +384,7 @@
 					<Loader2 size={16} class="animate-spin text-[var(--sl-text-2)]" />
 				{:else if isOn}
 					<button
-						class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-400"
+						class="rounded-full bg-amber-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-500 active:bg-amber-500/30 active:scale-[0.98] dark:text-amber-400"
 						disabled={!enabled}
 						onclick={() => handleChange(false)}
 					>
@@ -392,7 +392,7 @@
 					</button>
 				{:else}
 					<button
-						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 dark:text-red-400"
+						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 focus-visible:outline-2 focus-visible:outline-red-500 active:bg-red-500/35 active:scale-[0.98] dark:text-red-400"
 						disabled={!enabled}
 						onclick={() => (offroadConfirmOpen = true)}
 					>
@@ -402,16 +402,14 @@
 			</div>
 		</div>
 
-		<ConfirmationModal
+		<ForceOffroadModal
 			bind:open={offroadConfirmOpen}
-			title="Enable Always Offroad?"
-			message="This will immediately prevent the vehicle from engaging. Only use this when the vehicle is parked and you need to keep the device in offroad mode for maintenance."
-			confirmText="Enable"
-			variant="danger"
-			isProcessing={isPushing}
-			onConfirm={() => {
-				offroadConfirmOpen = false;
-				handleChange(true);
+			onSuccess={async () => {
+				// Re-sync device status so offroadStatuses reflects the truth.
+				const { logtoClient } = await import('$lib/logto/auth.svelte');
+				const { checkDeviceStatus } = await import('$lib/api/device');
+				const token = await logtoClient?.getIdToken();
+				if (token) await checkDeviceStatus(deviceId, token, true);
 			}}
 		/>
 	{:else if item.widget === 'toggle'}
