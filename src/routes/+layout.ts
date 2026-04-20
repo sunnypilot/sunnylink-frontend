@@ -1,4 +1,4 @@
-import { v1Client, v0Client } from '$lib/api/client';
+import { APIv1Client, v0Client } from '$lib/api/client';
 import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
@@ -23,7 +23,7 @@ export const load: LayoutLoad = async ({ url }) => {
 
 		// Helper to fetch list
 		const fetchList = async (t: string) => {
-			return await v1Client.GET('/v1/users/{userId}/devices', {
+			return await APIv1Client.GET('/v1/users/{userId}/devices', {
 				params: { path: { userId: 'self' } },
 				headers: { Authorization: `Bearer ${t}` }
 			});

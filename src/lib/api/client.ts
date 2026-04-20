@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch';
-import type { paths as v1Paths } from '../../sunnylink/v1/schema';
+import type { paths as APIv1Paths } from '../../sunnylink/v1/schema_api';
+import type { paths as Athenav1Paths } from '../../sunnylink/v1/schema_athena';
 import type { paths as v0Paths } from '../../sunnylink/v0/schema';
 import { browser } from '$app/environment';
 import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
@@ -35,9 +36,15 @@ export const customFetch: typeof fetch = async (input, init) => {
 };
 
 export const API_BASE_URL = 'https://stg.api.sunnypilot.ai';
+export const ATHENA_BASE_URL = 'https://athena.sunnylink.ai';
 
-export const v1Client = createClient<v1Paths>({
+export const APIv1Client = createClient<APIv1Paths>({
 	baseUrl: API_BASE_URL + '/',
+	fetch: customFetch
+});
+
+export const Athenav1Client = createClient<Athenav1Paths>({
+	baseUrl: ATHENA_BASE_URL + '/',
 	fetch: customFetch
 });
 
