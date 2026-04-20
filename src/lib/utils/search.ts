@@ -1,81 +1,85 @@
+import Fuse, { type IFuseOptions, type FuseResultMatch } from 'fuse.js';
 import type { RenderableSetting } from '$lib/types/settings';
 
 export interface SearchResult {
 	setting: RenderableSetting;
 	score: number;
+	matches?: readonly FuseResultMatch[];
+}
+
+interface SearchRecord {
+	setting: RenderableSetting;
+	title: string;
+	key: string;
+	description: string;
+	category: string;
+}
+
+const FUSE_OPTIONS: IFuseOptions<SearchRecord> = {
+	keys: [
+		{ name: 'title', weight: 0.5 },
+		{ name: 'key', weight: 0.3 },
+		{ name: 'description', weight: 0.15 },
+		{ name: 'category', weight: 0.05 }
+	],
+	threshold: 0.4,
+	ignoreLocation: true,
+	minMatchCharLength: 2,
+	includeScore: true,
+	includeMatches: true
+};
+
+// Cache Fuse instances keyed by the source array identity. `$derived` returns a
+// stable reference across re-renders while dependencies are unchanged, so the
+// keystroke-driven search avoids re-indexing on every call.
+const fuseCache = new WeakMap<readonly RenderableSetting[], Fuse<SearchRecord>>();
+
+function getFuse(settings: readonly RenderableSetting[]): Fuse<SearchRecord> {
+	let fuse = fuseCache.get(settings);
+	if (!fuse) {
+		const records: SearchRecord[] = settings.map((s) => ({
+			setting: s,
+			title: s._extra?.title || s.label,
+			key: s.key,
+			description: s._extra?.description || s.description,
+			category: s.category
+		}));
+		fuse = new Fuse(records, FUSE_OPTIONS);
+		fuseCache.set(settings, fuse);
+	}
+	return fuse;
 }
 
 export function searchSettings(
 	query: string,
-	settings: RenderableSetting[],
+	settings: readonly RenderableSetting[],
 	values?: Record<string, unknown>
 ): SearchResult[] {
-	if (!query || !query.trim()) {
-		return [];
-	}
+	const q = query.trim();
+	if (!q) return [];
 
-	const normalizedQuery = query.toLowerCase().trim();
-	const results: SearchResult[] = [];
+	const hits = getFuse(settings).search(q);
+	const normalized = q.toLowerCase();
 
-	for (const setting of settings) {
-		let score = 0;
+	return hits
+		.map((hit): SearchResult => {
+			// Fuse score: 0 = perfect, 1 = miss. Invert to 0..100 so a value-match
+			// bonus can stack without re-ranking against a reversed axis.
+			const baseScore = (1 - (hit.score ?? 1)) * 100;
 
-		const key = setting.key.toLowerCase();
-		const title = (setting._extra?.title || setting.label).toLowerCase();
-		const description = (setting._extra?.description || setting.description).toLowerCase();
-		const category = setting.category.toLowerCase();
+			// Value bonus preserves pre-fuzzy behavior — typing "aggressive" still
+			// surfaces DrivingPersonality when its current/default value stringifies
+			// to that label.
+			const setting = hit.item.setting;
+			const raw = values?.[setting.key] ?? setting.value?.default_value;
+			const valueStr = raw !== undefined && raw !== null ? String(raw).toLowerCase() : '';
+			const valueBonus = valueStr && valueStr.includes(normalized) ? 5 : 0;
 
-		// Value matching
-		let valueStr = '';
-		const currentValue = values?.[setting.key];
-
-		if (currentValue !== undefined && currentValue !== null) {
-			valueStr = String(currentValue).toLowerCase();
-		} else if (
-			setting.value?.default_value !== undefined &&
-			setting.value?.default_value !== null
-		) {
-			// Try to use default value if current value is not available
-			valueStr = String(setting.value.default_value).toLowerCase();
-		}
-
-		// 1. Internal param name (Key) - Highest priority
-		if (key === normalizedQuery) {
-			score += 100;
-		} else if (key.startsWith(normalizedQuery)) {
-			score += 80;
-		} else if (key.includes(normalizedQuery)) {
-			score += 60;
-		}
-
-		// 2. The title of the param
-		if (title === normalizedQuery) {
-			score += 90;
-		} else if (title.startsWith(normalizedQuery)) {
-			score += 70;
-		} else if (title.includes(normalizedQuery)) {
-			score += 50;
-		}
-
-		// 3. The description of the param
-		if (description.includes(normalizedQuery)) {
-			score += 30;
-		}
-
-		// 4. The value of the param
-		if (valueStr && valueStr.includes(normalizedQuery)) {
-			score += 20;
-		}
-
-		// 5. The category of the param
-		if (category.includes(normalizedQuery)) {
-			score += 10;
-		}
-
-		if (score > 0) {
-			results.push({ setting, score });
-		}
-	}
-
-	return results.sort((a, b) => b.score - a.score);
+			return {
+				setting,
+				score: baseScore + valueBonus,
+				matches: hit.matches
+			};
+		})
+		.sort((a, b) => b.score - a.score);
 }
