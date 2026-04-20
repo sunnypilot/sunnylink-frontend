@@ -103,9 +103,14 @@
 		}
 	});
 
-	// Home is the standalone top-level item (not a setting)
-	let dashboardItem: NavItem | null = $derived(
-		authState.isAuthenticated ? { icon: House, label: 'Home', href: '/dashboard' } : null
+	// Top-level items (Home, My Devices) — standalone, above any settings section
+	let topLevelItems: NavItem[] = $derived(
+		authState.isAuthenticated
+			? [
+					{ icon: House, label: 'Home', href: '/dashboard' },
+					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' }
+				]
+			: []
 	);
 
 	let navSections = $derived<NavSection[]>(
@@ -433,10 +438,12 @@
 				</button>
 
 				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
-					<!-- Dashboard (standalone, above settings sections) -->
-					{#if dashboardItem}
+					<!-- Top-level items (standalone, above settings sections) -->
+					{#if topLevelItems.length > 0}
 						<ul class="mb-2 flex flex-col gap-0.5">
-							{@render navItemSnippet(dashboardItem)}
+							{#each topLevelItems as item}
+								{@render navItemSnippet(item)}
+							{/each}
 						</ul>
 					{/if}
 
