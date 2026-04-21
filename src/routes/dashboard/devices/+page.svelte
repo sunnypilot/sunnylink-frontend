@@ -215,18 +215,21 @@
 		const isOffline = deviceState.onlineStatuses[sel] === 'offline';
 		if (isOffline) offlineSectionOpen = true;
 
-		// Defer scroll until the offline section (if opened) has rendered + the
-		// card has an ID to find.
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				const el = document.querySelector(`[data-device-id="${sel}"]`);
-				if (el)
-					el.scrollIntoView({
-						behavior: 'smooth',
-						block: 'center'
-					});
-			});
-		});
+		// Defer past the offline section's slide transition (~150ms) before
+		// querying the DOM — querying inside two rAFs (~32ms) found the card
+		// before the slide had finished mounting it. Retry once at 600ms in
+		// case the card is rendered behind a still-animating section.
+		const findAndScroll = () => {
+			const el = document.querySelector(`[data-device-id="${sel}"]`);
+			if (el) {
+				el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				return true;
+			}
+			return false;
+		};
+		setTimeout(() => {
+			if (!findAndScroll()) setTimeout(findAndScroll, 350);
+		}, 250);
 	});
 </script>
 
@@ -380,7 +383,9 @@
 						</div>
 
 						{#if hasBadges}
-							<div class="mt-2 flex flex-wrap gap-1.5">
+							<!-- Indented to start under the alias text (dot 10px + gap-3 12px = 22px),
+							     so badges read as a continuation of the device's identity column. -->
+							<div class="mt-2 flex flex-wrap gap-1.5 pl-[22px]">
 								<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
 							</div>
 						{/if}

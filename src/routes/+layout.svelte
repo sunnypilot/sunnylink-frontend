@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
-	import { goto, invalidate } from '$app/navigation';
+	import { afterNavigate, goto, invalidate } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -66,6 +66,18 @@
 	// iOS PWA standalone WebKits occasionally no-op the API outright. A
 	// per-pathname remount with a tiny Svelte fade is the cheapest universal
 	// solution.
+
+	// Reset window scroll on every internal navigation. SvelteKit's default
+	// scroll-restoration leaves us at the previous page's scrollY when arriving
+	// fresh — Home from a half-scrolled My Devices was landing the user mid-page
+	// instead of at the hero. Pages with their own scroll-into-view logic (e.g.
+	// /dashboard/devices auto-revealing the selected card on mount) run their
+	// own setTimeout after this resets so the override still wins.
+	afterNavigate((nav) => {
+		if (typeof window === 'undefined') return;
+		if (nav.type === 'popstate') return;
+		window.scrollTo(0, 0);
+	});
 
 	// Collapsible section state
 	let settingsOpen = $state(true);
