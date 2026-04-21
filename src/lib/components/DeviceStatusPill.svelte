@@ -526,20 +526,21 @@
 						>
 						<span
 							aria-hidden="true"
-							class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors {isForceOffroad
+							class="relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full {isForceOffroad
 								? 'bg-amber-500'
-								: 'border border-[var(--sl-border)] bg-[var(--sl-bg-input)]'}"
+								: 'bg-[var(--sl-toggle-off)]'}"
+							style="transition: background-color var(--dur-instant) var(--ease-out);"
 						>
 							{#if stoppingForce}
 								<Loader2
 									size={12}
-									class="absolute left-1/2 -translate-x-1/2 animate-spin text-[var(--sl-text-2)]"
+									class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-spin text-[var(--sl-text-2)]"
 								/>
 							{:else}
 								<span
-									class="absolute top-1/2 left-0.5 h-5 w-5 -translate-y-1/2 transform rounded-full bg-white shadow-sm transition-transform {isForceOffroad
-										? 'translate-x-4'
-										: ''}"
+									class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
+									class:translate-x-[18px]={isForceOffroad}
+									style="transition: transform var(--dur-instant) var(--ease-spring);"
 								></span>
 							{/if}
 						</span>
