@@ -287,8 +287,11 @@
 	//   Compact (13px, px-1.5=12px pad, tracking-tight): if labels fit → compact segments
 	//   Otherwise → dropdown
 	// Container: card px-4 (32px) + segment wrapper p-1 (8px) = 40px overhead.
-	const MOBILE_CONTAINER_PX = 390 - 40;
-	const DESKTOP_CONTAINER_PX = 672 - 40;
+	// Right-aligned segmented control budget (Apple HIG iOS Settings pattern).
+	// Title takes the left ~40-50%, segmented control sits in remaining right space.
+	// When labels don't fit this budget, segmentMode falls through to 'dropdown'.
+	const MOBILE_CONTAINER_PX = 200;
+	const DESKTOP_CONTAINER_PX = 280;
 	const NORMAL_PAD_PX = 20;
 	const COMPACT_PAD_PX = 12;
 
@@ -1020,88 +1023,89 @@
 			</span>
 		</div>
 	{:else if item.widget === 'multiple_button'}
-		<!-- ── Segmented Button Row ────────────────────────────────────── -->
-		<div class="px-4 py-4">
-			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
-				{#if isQueued || pushState === 'pending'}
-					<Tooltip text="Changes queued — will sync to device when pushed.">
-						<span
-							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
-							>Pending</span
+		<!-- ── Multi-choice Row (right-aligned: compact segmented if labels fit, dropdown otherwise) ── -->
+		<div class="flex items-start justify-between gap-4 px-4 py-3.5">
+			<div class="min-w-0 flex-1">
+				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+					{#if isQueued || pushState === 'pending'}
+						<Tooltip text="Changes queued — will sync to device when pushed.">
+							<span
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Pending</span
+							>
+						</Tooltip>
+					{:else if isPushing}
+						<span class="loading loading-xs loading-spinner text-primary"></span>
+					{:else if pushState === 'success'}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg
 						>
-					</Tooltip>
-				{:else if isPushing}
-					<span class="loading loading-xs loading-spinner text-primary"></span>
-				{:else if pushState === 'success'}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="12"
-						height="12"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2.5"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						class="text-emerald-500"><path d="M20 6 9 17l-5-5" /></svg
-					>
-				{:else if hasDrift}
-					<Tooltip
-						text="Value was changed directly on the device and differs from what was last synced."
-					>
-						<span
-							class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
-							>Changed on device</span
+					{:else if hasDrift}
+						<Tooltip
+							text="Value was changed directly on the device and differs from what was last synced."
 						>
-					</Tooltip>
-				{/if}
-				{#if isAdvanced}
-					<Tooltip text={advancedTooltip}>
-						<span
-							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
-							>Advanced</span
+							<span
+								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								>Changed on device</span
+							>
+						</Tooltip>
+					{/if}
+					{#if isAdvanced}
+						<Tooltip text={advancedTooltip}>
+							<span
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								>Advanced</span
+							>
+						</Tooltip>
+					{/if}
+					{#if needsOffroad && !ruleContext.isOffroad}
+						<Tooltip text="Requires Always Offroad or the car powered off.">
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Offroad</span
+							>
+						</Tooltip>
+					{/if}
+					{#if disabledReasons.length > 0}
+						<Tooltip text={disabledReasons.join('. ')}>
+							<span
+								class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								>Unavailable</span
+							>
+						</Tooltip>
+					{/if}
+					{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
+						<Tooltip
+							text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
 						>
-					</Tooltip>
-				{/if}
-				{#if needsOffroad && !ruleContext.isOffroad}
-					<Tooltip text="Requires Always Offroad or the car powered off.">
-						<span
-							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
-							>Offroad</span
-						>
-					</Tooltip>
-				{/if}
-				{#if disabledReasons.length > 0}
-					<Tooltip text={disabledReasons.join('. ')}>
-						<span
-							class="bright-badge rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
-							>Unavailable</span
-						>
-					</Tooltip>
-				{/if}
-				{#if item.needs_onroad_cycle && enabled && !isDeviceOnly}
-					<Tooltip
-						text="Takes effect after the next device reboot. If your car is on, you'll need to disengage and reboot the device."
-					>
-						<span
-							class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
-							>Reboot to apply</span
-						>
-					</Tooltip>
+							<span
+								class="bright-badge rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-orange-700 uppercase dark:text-orange-400"
+								>Reboot to apply</span
+							>
+						</Tooltip>
+					{/if}
+				</div>
+				{#if item.description}
+					<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
+						{@html sanitizeDescription(item.description)}
+					</p>
 				{/if}
 			</div>
-			{#if item.description}
-				<p class="mt-0.5 text-[0.75rem] leading-snug font-[450] text-[var(--sl-text-3)]">
-					{@html sanitizeDescription(item.description)}
-				</p>
-			{/if}
-
-			<div class="mt-2.5">
+			<div class="shrink-0">
 				{#if isLoading}
-					<div class="skeleton-shimmer h-8 w-full rounded-lg"></div>
+					<div class="skeleton-shimmer h-9 w-32 rounded-lg"></div>
 				{:else if item.options && useDropdownForSegments}
-					<!-- Dropdown fallback for many options on narrow screens -->
+					<!-- Dropdown fallback when too many / too long options for compact segmented -->
 					<SelectDropdown
 						options={item.options}
 						value={displayValue}
@@ -1118,7 +1122,7 @@
 					)}
 					{@const optCount = item.options.length}
 					<div
-						class="relative flex rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200"
+						class="relative flex min-w-[140px] rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200"
 						class:opacity-50={isPushing}
 						class:pointer-events-none={isPushing || !enabled}
 					>
@@ -1136,9 +1140,9 @@
 							{@const isSelected = oi === selectedIdx}
 							{@const optEnabled = isOptionEnabled(option)}
 							<button
-								class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2.5 font-medium transition-colors duration-350 {useCompactSegments
-									? 'px-1.5 text-[0.8125rem] tracking-tight'
-									: 'px-2.5 text-sm'}"
+								class="relative z-10 min-w-0 flex-1 truncate rounded-md py-2 font-medium transition-colors duration-350 {useCompactSegments
+									? 'px-2 text-[0.8125rem] tracking-tight'
+									: 'px-3 text-sm'}"
 								class:text-white={isSelected && optEnabled && enabled}
 								class:text-[var(--sl-text-2)]={(!isSelected && optEnabled && enabled) || !enabled}
 								class:hover:text-[var(--sl-text-1)]={!isSelected &&
