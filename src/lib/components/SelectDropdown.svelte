@@ -247,8 +247,8 @@
 	<div
 		use:portal
 		use:modalLock
-		class="fixed inset-0 z-[9998]"
-		transition:fade={{ duration: 120 }}
+		class="fixed inset-0 z-[9998] {useBottomSheet ? 'bg-black/40 backdrop-blur-sm' : ''}"
+		transition:fade={{ duration: useBottomSheet ? 200 : 120 }}
 		onclick={(e) => {
 			e.stopPropagation();
 			close();
@@ -262,7 +262,7 @@
 		<div
 			use:portal
 			bind:this={menuEl}
-			transition:fly={{ y: 400, duration: 250 }}
+			transition:fly={{ y: 400, duration: 280, opacity: 1 }}
 			class="fixed inset-x-0 bottom-0 z-[9999] flex max-h-[75vh] flex-col overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl"
 			role="listbox"
 			style="padding-bottom: env(safe-area-inset-bottom);"
