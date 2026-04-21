@@ -114,6 +114,32 @@
 		}
 	});
 
+	// Lock body scroll while the mobile drawer is open. iOS Safari rubber-bands the
+	// document body even when an inner scroll container declares overscroll-contain,
+	// so we pin the body in place via position:fixed and restore scrollY on close.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		if (!drawerOpen) return;
+		if (!window.matchMedia('(max-width: 1023px)').matches) return;
+
+		const scrollY = window.scrollY;
+		const body = document.body;
+		body.style.position = 'fixed';
+		body.style.top = `-${scrollY}px`;
+		body.style.left = '0';
+		body.style.right = '0';
+		body.style.width = '100%';
+
+		return () => {
+			body.style.position = '';
+			body.style.top = '';
+			body.style.left = '';
+			body.style.right = '';
+			body.style.width = '';
+			window.scrollTo(0, scrollY);
+		};
+	});
+
 	// Top-level items (Home, My Devices) — standalone, above any settings section
 	let topLevelItems: NavItem[] = $derived(
 		authState.isAuthenticated
