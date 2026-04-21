@@ -85,6 +85,55 @@
 		window.scrollTo(0, 0);
 	});
 
+	// iOS-style rubber-band is enabled on the main viewport *only* when the
+	// current page actually overflows — short pages stay frozen (no bounce on
+	// empty viewport), tall pages feel native. Measured with a 20px buffer so
+	// content that sits right at the viewport boundary doesn't flicker
+	// bounce-on / bounce-off as minor layout shifts happen.
+	//
+	// The drawer's own lock effect (below) owns `overscroll-behavior` while
+	// the mobile drawer is open (forces `contain` so body gestures don't
+	// leak); this effect holds off during that window and snaps back on
+	// close.
+	const SCROLLABLE_THRESHOLD = 20;
+	let contentScrollable = $state(false);
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+
+		let rafId = 0;
+		function measure() {
+			rafId = 0;
+			const scrollable =
+				document.documentElement.scrollHeight > window.innerHeight + SCROLLABLE_THRESHOLD;
+			if (scrollable !== contentScrollable) contentScrollable = scrollable;
+		}
+		function schedule() {
+			if (rafId) return;
+			rafId = requestAnimationFrame(measure);
+		}
+
+		const ro = new ResizeObserver(schedule);
+		ro.observe(document.body);
+		window.addEventListener('resize', schedule, { passive: true });
+		measure();
+
+		return () => {
+			ro.disconnect();
+			window.removeEventListener('resize', schedule);
+			if (rafId) cancelAnimationFrame(rafId);
+		};
+	});
+
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		// Mobile drawer lock takes priority: its $effect writes `contain` and
+		// cleans up on close. Skip writing here so we don't clobber it.
+		if (drawerOpen && window.innerWidth < 1024) return;
+		const mode = contentScrollable ? 'auto' : 'none';
+		document.documentElement.style.overscrollBehavior = mode;
+		document.body.style.overscrollBehavior = mode;
+	});
+
 	// Collapsible section state
 	let settingsOpen = $state(true);
 
@@ -512,9 +561,12 @@
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<aside
 				class={[
-					'flex h-[100dvh] flex-col overflow-hidden border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)] transition-[width] duration-300',
-					drawerOpen ? 'w-72' : 'w-16',
-					'lg:w-[18rem]'
+					'flex h-[100dvh] flex-col overflow-hidden border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)]',
+					// Fixed width on mobile (w-72) — the closed state is already
+					// off-screen via drawer translate, so animating width here was
+					// layout-thrashing work in parallel with the slide for no visible
+					// payoff. Desktop keeps its wider fixed size.
+					'w-72 lg:w-[18rem]'
 				]}
 			>
 				<!-- Brand wordmark (non-interactive) -->
@@ -531,7 +583,7 @@
 				</div>
 
 				<nav
-					class="flex-1 overflow-y-auto overscroll-none px-3 py-3 lg:px-4"
+					class="flex-1 overflow-y-auto overscroll-contain bg-[var(--sl-bg-surface)] px-3 py-3 lg:px-4"
 					style="min-height: 0;"
 				>
 					<!-- Auth init in flight — show skeleton rows so the sidebar doesn't

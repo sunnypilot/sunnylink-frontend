@@ -246,12 +246,25 @@ code,
 .drawer-side > aside {
 	transition:
 		translate var(--dur-moderate) var(--ease-out),
-		width 0.3s ease,
 		filter 0.3s ease;
 }
 
 .drawer-toggle:checked ~ .drawer-side > aside {
 	translate: 0;
+}
+
+/* Overlay dim: opacity transition (GPU-composited) instead of daisyUI's
+   default background-color transition. Shorter than the slide (200ms vs
+   300ms) so on close the dim always resolves before the aside finishes
+   leaving — no "dim over empty viewport" artifact. */
+.drawer-side > .drawer-overlay {
+	background-color: rgb(0 0 0 / 0.5);
+	opacity: 0;
+	transition: opacity 200ms var(--ease-out);
+}
+
+.drawer-toggle:checked ~ .drawer-side > .drawer-overlay {
+	opacity: 1;
 }
 
 .skeleton-shimmer {
