@@ -33,7 +33,7 @@
 			<li>
 				<a
 					href={tile.href}
-					class="group flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2 py-3 text-center transition-colors hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary sm:gap-2.5"
+					class="group flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2 py-3 text-center transition-all duration-100 hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97] active:bg-[var(--sl-bg-subtle)] sm:gap-2.5"
 				>
 					<Icon
 						size={26}

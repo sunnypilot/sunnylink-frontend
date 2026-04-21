@@ -130,7 +130,7 @@
 		>
 			<button
 				type="button"
-				class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+				class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)] disabled:opacity-50 disabled:active:scale-100"
 				onclick={close}
 				disabled={isProcessing}
 				aria-label="Dismiss"
@@ -167,7 +167,7 @@
 					href={FORUM_BUG_REPORT}
 					target="_blank"
 					rel="noopener"
-					class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+					class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-all duration-100 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] active:opacity-85"
 				>
 					<span>Report an issue on the forum</span>
 					<ExternalLink size={14} aria-hidden="true" />
@@ -175,7 +175,7 @@
 				<button
 					type="button"
 					onclick={continueAnyway}
-					class="mt-2 inline-flex h-11 w-full items-center justify-center rounded-lg border border-[var(--sl-border)] bg-transparent px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+					class="mt-2 inline-flex h-11 w-full items-center justify-center rounded-lg border border-[var(--sl-border)] bg-transparent px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.98] active:bg-[var(--sl-bg-subtle)]"
 				>
 					Continue anyway
 				</button>
@@ -185,7 +185,7 @@
 						type="button"
 						onclick={backToStage1}
 						disabled={isProcessing}
-						class="-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+						class="-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)] disabled:opacity-50 disabled:active:scale-100"
 						aria-label="Back"
 					>
 						<ChevronLeft size={16} />
@@ -280,7 +280,7 @@
 					type="button"
 					onclick={handleDeregister}
 					disabled={!canDeregister || isProcessing || fatalError}
-					class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-red-600 px-4 text-[0.875rem] font-medium text-white transition-colors hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:bg-red-600/50 dark:bg-red-500 dark:hover:bg-red-600"
+					class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-red-600 px-4 text-[0.875rem] font-medium text-white transition-all duration-100 hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 active:scale-[0.98] active:bg-red-800 disabled:cursor-not-allowed disabled:bg-red-600/50 disabled:active:scale-100 dark:bg-red-500 dark:hover:bg-red-600"
 				>
 					{#if isProcessing}
 						<Loader2 size={14} class="animate-spin" aria-hidden="true" />

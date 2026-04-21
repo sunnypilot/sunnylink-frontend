@@ -306,56 +306,12 @@ code,
 	animation: value-fade-in var(--dur-fast) var(--ease-out) both;
 }
 
-/* SPA nav uses the View Transitions API when available. Pure opacity crossfade —
-   no transform on the root snapshots. Mixing translateY with SvelteKit's scroll
-   reset makes the incoming page appear to "move up then down" because the old
-   snapshot is captured at the pre-nav scroll while the new root starts at 0. */
-::view-transition-old(root) {
-	animation: 180ms var(--ease-out) both view-fade-out;
-}
-::view-transition-new(root) {
-	animation: 220ms var(--ease-out) both view-fade-in;
-}
-
-@keyframes view-fade-out {
-	to {
-		opacity: 0;
-	}
-}
-@keyframes view-fade-in {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
-
 @media (prefers-reduced-motion: reduce) {
 	.skeleton-shimmer,
 	.skeleton-bar,
 	.value-fade-in {
 		animation: none !important;
 	}
-	::view-transition-old(root),
-	::view-transition-new(root) {
-		animation: none !important;
-	}
-}
-
-/* NOTE: Do NOT use transform here — it creates a containing block for fixed-positioned
-   descendants (modals, dialogs), breaking their viewport-relative positioning. */
-@keyframes page-enter {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
-
-.animate-page-enter {
-	animation: page-enter var(--dur-moderate) var(--ease-out) both;
 }
 
 @keyframes card-enter {

@@ -418,7 +418,7 @@
 						{#if isSelected}
 							<button
 								type="button"
-								class="mt-3 flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-[0.8125rem] font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary"
+								class="mt-3 flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-[0.8125rem] font-medium text-primary transition-all duration-100 hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.99] active:bg-primary/25"
 								in:slide={{ duration: 180 }}
 								onclick={(e) => {
 									e.stopPropagation();
@@ -445,7 +445,7 @@
 
 				{#if otherOfflineDevices.length > 0}
 					<button
-						class="group flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3 text-left transition-colors hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-none"
+						class="group flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3 text-left transition-all duration-100 hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-none active:scale-[0.99] active:bg-[var(--sl-bg-subtle)]"
 						onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
 						aria-expanded={offlineSectionOpen}
 						aria-controls="offline-devices-section"
@@ -482,7 +482,7 @@
 			</div>
 
 			<button
-				class="group mt-4 flex w-full items-center gap-4 rounded-xl border border-dashed border-[var(--sl-border)] px-4 py-3.5 text-left transition-colors hover:border-[var(--sl-text-3)]/50 hover:bg-[var(--sl-bg-surface)]/50"
+				class="group mt-4 flex w-full items-center gap-4 rounded-xl border border-dashed border-[var(--sl-border)] px-4 py-3.5 text-left transition-all duration-100 hover:border-[var(--sl-text-3)]/50 hover:bg-[var(--sl-bg-surface)]/50 active:scale-[0.99] active:bg-[var(--sl-bg-elevated)]"
 				onclick={() => deviceState.openPairingModal()}
 			>
 				<div

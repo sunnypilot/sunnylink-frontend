@@ -43,7 +43,7 @@
 		</span>
 		<button
 			type="button"
-			class="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] disabled:cursor-not-allowed disabled:opacity-50"
+			class="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
 			onclick={handleRefresh}
 			disabled={statusPolling.isRefreshing}
 			aria-disabled={statusPolling.isRefreshing}

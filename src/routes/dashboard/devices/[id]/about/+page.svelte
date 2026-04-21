@@ -284,7 +284,7 @@
 	<button
 		type="button"
 		onclick={() => goto('/dashboard')}
-		class="mb-4 inline-flex items-center gap-1 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)]"
+		class="mb-4 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
 	>
 		<ChevronLeft size={14} aria-hidden="true" />
 		Back to Home
@@ -316,7 +316,7 @@
 			<p class="truncate text-[0.875rem] text-[var(--sl-text-2)]">{alias}</p>
 			<button
 				type="button"
-				class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 				onclick={startRename}
 				aria-label="Rename device"
 				disabled={saving}
@@ -383,7 +383,7 @@
 				type="button"
 				onclick={() => handleBackupClick(false)}
 				disabled={!id || deviceState.backupState.isDownloading}
-				class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-4 text-[0.8125rem] font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-subtle)] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+				class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-4 text-[0.8125rem] font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
 			>
 				{#if deviceState.backupState.isDownloading && deviceState.backupState.deviceId === id}
 					<Loader2 size={14} class="animate-spin" aria-hidden="true" />
@@ -400,7 +400,7 @@
 		<button
 			type="button"
 			onclick={() => (advancedOpen = !advancedOpen)}
-			class="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+			class="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left transition-all duration-100 focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.995] active:bg-[var(--sl-bg-elevated)]"
 			aria-expanded={advancedOpen}
 			aria-controls="advanced-section"
 		>
@@ -438,7 +438,7 @@
 						type="button"
 						onclick={openDeregister}
 						disabled={!id || !device}
-						class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 text-[0.8125rem] font-medium text-red-700 transition-colors hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400"
+						class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 text-[0.8125rem] font-medium text-red-700 transition-all duration-100 hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-red-500 active:scale-[0.97] active:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 dark:text-red-400"
 					>
 						<Trash2 size={14} aria-hidden="true" />
 						<span>Deregister</span>
@@ -558,7 +558,7 @@
 				<button
 					type="button"
 					onclick={() => copyValue('commit', commit)}
-					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 					aria-label="Copy commit hash"
 				>
 					{#if copiedField === 'commit'}
@@ -585,7 +585,7 @@
 				<button
 					type="button"
 					onclick={() => copyValue(field, value)}
-					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 					aria-label="Copy {label}"
 				>
 					{#if copiedField === field}

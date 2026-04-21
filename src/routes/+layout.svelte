@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
-	import { goto, invalidate, onNavigate } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -57,28 +57,14 @@
 	let drawerOpen = $state(false);
 	const pathname = $derived(page.url.pathname);
 
-	// Smooth SPA transitions via the View Transitions API on browsers that support it.
-	// SvelteKit's onNavigate fires before the new page mounts; wrapping navigation.complete
-	// in startViewTransition lets the browser diff the DOM and crossfade. Skip entirely when
-	// the user prefers reduced motion or the API is unavailable — nav proceeds instantly.
-	onNavigate((navigation) => {
-		if (typeof document === 'undefined') return;
-		if (!('startViewTransition' in document)) return;
-		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-		return new Promise((resolve) => {
-			(document as any).startViewTransition(async () => {
-				resolve();
-				await navigation.complete;
-				// View Transitions API snapshots DOM state for crossfade; SvelteKit's own
-				// scroll-to-top is suppressed inside the transition. Restore it here so the
-				// new page renders at top. Skip popstate so back/forward keeps remembered scroll.
-				if (navigation.type !== 'popstate') {
-					window.scrollTo({ top: 0 });
-				}
-			});
-		});
-	});
+	// Page transitions are driven by Svelte's {#key pathname} + in:fade below so
+	// they render identically on every engine — iOS Safari, iOS PWA standalone,
+	// Chrome Mobile (which is WebKit on iOS), desktop. The View Transitions API
+	// path we used earlier fired fine on capable browsers, but a pure opacity
+	// crossfade over a largely-shared top bar + sidebar was imperceptible, and
+	// iOS PWA standalone WebKits occasionally no-op the API outright. A
+	// per-pathname remount with a tiny Svelte fade is the cheapest universal
+	// solution.
 
 	// Collapsible section state
 	let settingsOpen = $state(true);
@@ -219,12 +205,12 @@
 
 	const navItemClasses = (active: boolean) =>
 		[
-			'group relative flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150',
+			'group relative flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-all duration-100 active:scale-[0.98]',
 			drawerOpen ? 'justify-start' : 'justify-center',
 			'lg:justify-start',
 			active
-				? 'bg-[var(--sl-accent-muted)] text-[var(--sl-text-1)] font-medium'
-				: 'text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]'
+				? 'bg-[var(--sl-accent-muted)] text-[var(--sl-text-1)] font-medium active:bg-[var(--sl-accent-muted)]/80'
+				: 'text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:bg-[var(--sl-bg-elevated)]'
 		].join(' ');
 
 	let devices = $state<any[]>([]);
@@ -447,7 +433,7 @@
 								{#if deviceState.selectedDeviceId}
 									<a
 										href="/dashboard/devices"
-										class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+										class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
 										aria-label="Change selected device"
 									>
 										<ArrowLeftRight size={14} aria-hidden="true" />
@@ -480,7 +466,7 @@
 							<div class="flex items-center gap-2 lg:hidden">
 								<a
 									href="/dashboard/devices"
-									class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+									class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)]"
 									aria-label="Change selected device"
 								>
 									<ArrowLeftRight size={16} aria-hidden="true" />
@@ -505,7 +491,11 @@
 					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
 				</div>
 			{/if}
-			{@render children()}
+			{#key pathname}
+				<div in:fade={{ duration: 180 }}>
+					{@render children()}
+				</div>
+			{/key}
 		</main>
 	</div>
 
