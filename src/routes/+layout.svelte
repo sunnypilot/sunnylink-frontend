@@ -385,12 +385,15 @@
 	<div
 		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isChromeless
 			? 'h-auto overflow-visible'
-			: ''}"
+			: ''} {drawerOpen && !isChromeless ? 'h-screen! overflow-hidden! lg:overflow-visible!' : ''}"
 	>
 		<GlobalStatusBanner />
 
 		{#if !isChromeless}
-			<div class="sticky top-0 z-50">
+			<div
+				class="sticky top-0 z-50 bg-[var(--sl-bg-page)]"
+				style="padding-top: env(safe-area-inset-top);"
+			>
 				<ForceOffroadBanner />
 				<header
 					class="w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
