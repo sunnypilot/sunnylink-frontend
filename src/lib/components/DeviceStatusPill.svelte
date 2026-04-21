@@ -463,7 +463,7 @@
 
 			{#if deviceId && schemaState.schemaUnavailable[deviceId]}
 				<div class="px-1.5 pb-1.5">
-					<LegacyDeviceBadge {deviceId} variant="banner" />
+					<LegacyDeviceBadge {deviceId} variant="banner" onBeforeOpen={closePopover} />
 				</div>
 			{/if}
 

@@ -5,7 +5,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
-	import { Sparkles, X, ArrowRight, Loader2 } from 'lucide-svelte';
+	import { X, ArrowRight, Loader2 } from 'lucide-svelte';
 
 	const DISMISS_KEY = 'sunnylink_welcome_dismissed_2_0';
 	const PROXY_PREFIX = '/api/discourse';
@@ -100,7 +100,7 @@
 	<div
 		use:portal
 		use:modalLock
-		class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="welcome-modal-title"
@@ -115,22 +115,16 @@
 		>
 			<button
 				type="button"
-				class="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
 				onclick={dismiss}
 				aria-label="Dismiss"
 			>
 				<X size={16} />
 			</button>
 
-			<div
-				class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
-			>
-				<Sparkles size={18} aria-hidden="true" />
-			</div>
-
 			<h2
 				id="welcome-modal-title"
-				class="pr-8 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+				class="pr-10 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 			>
 				Welcome to the new sunnylink
 			</h2>
@@ -140,31 +134,24 @@
 			</p>
 
 			{#if loadingPreview}
-				<div
-					class="mt-4 flex items-center gap-2 rounded-xl border border-[var(--sl-border-muted)] bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5 text-[var(--sl-text-3)]"
-				>
-					<Loader2 size={14} class="animate-spin" aria-hidden="true" />
-					<span class="text-[0.8125rem]">Loading latest update…</span>
-				</div>
+				<p class="mt-3 inline-flex items-center gap-2 text-[0.8125rem] text-[var(--sl-text-3)]">
+					<Loader2 size={12} class="animate-spin" aria-hidden="true" />
+					<span>Loading latest update…</span>
+				</p>
 			{:else if latestTopic}
-				<a
-					href="/dashboard/whats-new"
-					onclick={(e) => {
-						e.preventDefault();
-						readMore();
-					}}
-					class="mt-4 flex items-start gap-2.5 rounded-xl border border-[var(--sl-border-muted)] bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-				>
-					<Sparkles size={14} class="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-					<div class="min-w-0 flex-1">
-						<p class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">
-							Latest update
-						</p>
-						<p class="mt-0.5 line-clamp-2 text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-							{latestTopic.title}
-						</p>
-					</div>
-				</a>
+				<p class="mt-3 text-[0.8125rem] text-[var(--sl-text-3)]">
+					Latest:
+					<a
+						href="/dashboard/whats-new"
+						onclick={(e) => {
+							e.preventDefault();
+							readMore();
+						}}
+						class="font-medium text-[var(--sl-text-2)] underline underline-offset-2 hover:text-[var(--sl-text-1)]"
+					>
+						{latestTopic.title}
+					</a>
+				</p>
 			{/if}
 
 			<button

@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
-	import { Sparkles, X, ArrowRight } from 'lucide-svelte';
+	import { X, ArrowRight } from 'lucide-svelte';
 
 	interface Props {
 		open: boolean;
@@ -39,7 +39,7 @@
 	<div
 		use:portal
 		use:modalLock
-		class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="legacy-modal-title"
@@ -54,51 +54,37 @@
 		>
 			<button
 				type="button"
-				class="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
 				onclick={dismiss}
 				aria-label="Dismiss"
 			>
 				<X size={16} />
 			</button>
 
-			<div
-				class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
-			>
-				<Sparkles size={18} aria-hidden="true" />
-			</div>
-
 			<h2
 				id="legacy-modal-title"
-				class="pr-8 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+				class="pr-10 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 			>
 				A newer sunnypilot pairs better with sunnylink 2.0
 			</h2>
 			<p class="mt-2 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
-				It's recommended to update to a version of sunnypilot that includes the changes to work
-				alongside sunnylink 2.0.
+				Recommended: update sunnypilot for the changes that work alongside sunnylink 2.0. You'll
+				get:
 			</p>
-
-			<div class="mt-4 rounded-xl bg-[var(--sl-bg-elevated)]/60 px-4 py-3">
-				<p
-					class="mb-2 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
-				>
-					What you'd get with the update
-				</p>
-				<ul class="space-y-1.5 text-[0.8125rem] text-[var(--sl-text-2)]">
-					<li class="flex gap-2">
-						<span class="text-primary">•</span>
-						<span>The latest settings + toggles</span>
-					</li>
-					<li class="flex gap-2">
-						<span class="text-primary">•</span>
-						<span>Live vehicle data + capability refresh</span>
-					</li>
-					<li class="flex gap-2">
-						<span class="text-primary">•</span>
-						<span>The full sunnylink 2.0 experience</span>
-					</li>
-				</ul>
-			</div>
+			<ul class="mt-3 space-y-1.5 text-[0.8125rem] text-[var(--sl-text-2)]">
+				<li class="flex gap-2">
+					<span class="text-primary">•</span>
+					<span>The latest settings + toggles</span>
+				</li>
+				<li class="flex gap-2">
+					<span class="text-primary">•</span>
+					<span>Live vehicle data + capability refresh</span>
+				</li>
+				<li class="flex gap-2">
+					<span class="text-primary">•</span>
+					<span>The full sunnylink 2.0 experience</span>
+				</li>
+			</ul>
 
 			<button
 				type="button"
