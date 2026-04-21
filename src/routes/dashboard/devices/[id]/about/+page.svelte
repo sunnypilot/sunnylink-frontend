@@ -7,21 +7,13 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { APIv0Client } from '$lib/api/client';
-	import {
-		ChevronLeft,
-		Copy,
-		Check,
-		Pencil,
-		Loader2,
-		Download,
-		ChevronDown,
-		Trash2
-	} from 'lucide-svelte';
+	import { Copy, Check, Pencil, Loader2, Download, ChevronDown, Trash2 } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
 	import { startBackup, retryFailedBackup } from '$lib/utils/backup';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 
 	let id = $derived(page.params.id);
 
@@ -281,57 +273,49 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-	<button
-		type="button"
-		onclick={() => goto('/dashboard')}
-		class="mb-4 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
-	>
-		<ChevronLeft size={14} aria-hidden="true" />
-		Back to Home
-	</button>
-
-	<h1 class="text-[1.5rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]">
-		About this device
-	</h1>
-	<div class="mt-1 flex items-center gap-1.5">
-		{#if isRenaming}
-			<input
-				id="alias-rename-input"
-				type="text"
-				bind:value={renameValue}
-				onblur={commitRename}
-				onkeydown={(e) => {
-					if (e.key === 'Enter') {
-						e.preventDefault();
-						e.currentTarget.blur();
-					} else if (e.key === 'Escape') {
-						e.preventDefault();
-						cancelRename();
-					}
-				}}
-				class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-[0.875rem] font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-				aria-label="Device alias"
-			/>
-		{:else}
-			<p class="truncate text-[0.875rem] text-[var(--sl-text-2)]">{alias}</p>
-			<button
-				type="button"
-				class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
-				onclick={startRename}
-				aria-label="Rename device"
-				disabled={saving}
-			>
-				<Pencil size={12} />
-			</button>
-			{#if saving}
-				<Loader2
-					size={12}
-					class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-					aria-label="Saving alias"
-				/>
-			{/if}
-		{/if}
-	</div>
+	<PageHeader title="About this device" backHref="/dashboard" backLabel="Back to Home">
+		{#snippet subtitleSnippet()}
+			<div class="flex items-center gap-1.5">
+				{#if isRenaming}
+					<input
+						id="alias-rename-input"
+						type="text"
+						bind:value={renameValue}
+						onblur={commitRename}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								e.currentTarget.blur();
+							} else if (e.key === 'Escape') {
+								e.preventDefault();
+								cancelRename();
+							}
+						}}
+						class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-[0.875rem] font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+						aria-label="Device alias"
+					/>
+				{:else}
+					<p class="truncate text-[0.875rem] text-[var(--sl-text-2)]">{alias}</p>
+					<button
+						type="button"
+						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
+						onclick={startRename}
+						aria-label="Rename device"
+						disabled={saving}
+					>
+						<Pencil size={12} />
+					</button>
+					{#if saving}
+						<Loader2
+							size={12}
+							class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+							aria-label="Saving alias"
+						/>
+					{/if}
+				{/if}
+			</div>
+		{/snippet}
+	</PageHeader>
 
 	{#if notFound}
 		<div
@@ -366,7 +350,7 @@
 	<section class="mt-8" aria-labelledby="actions-heading">
 		<h2
 			id="actions-heading"
-			class="px-1 text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]"
+			class="px-4 text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]"
 		>
 			Actions
 		</h2>
@@ -400,7 +384,7 @@
 		<button
 			type="button"
 			onclick={() => (advancedOpen = !advancedOpen)}
-			class="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left transition-all duration-100 focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.995] active:bg-[var(--sl-bg-elevated)]"
+			class="flex w-full items-center justify-between rounded-lg px-4 py-1 text-left transition-all duration-100 focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.995] active:bg-[var(--sl-bg-elevated)]"
 			aria-expanded={advancedOpen}
 			aria-controls="advanced-section"
 		>
