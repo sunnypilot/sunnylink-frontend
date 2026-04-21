@@ -303,19 +303,27 @@
 		aria-modal={useBottomSheet ? 'true' : undefined}
 		aria-label={useBottomSheet ? title || 'Choose an option' : undefined}
 	>
-		<!-- Backdrop: CSS opacity transition. modalLock fires on mount, unlocks
-		     on unmount (controlled by outer {#if mounted}). -->
-		<button
-			type="button"
-			use:modalLock
-			class="pointer-events-auto absolute inset-0 transition-opacity duration-200 ease-out {useBottomSheet
-				? 'bg-black/40 backdrop-blur-sm'
-				: ''}"
-			class:opacity-100={open}
-			class:opacity-0={!open}
-			onclick={close}
-			aria-label="Close"
-		></button>
+		<!-- Backdrop: Svelte transition:fade gates the dim + blur on open/close
+		     so they fade with the sheet instead of snapping in. The earlier
+		     CSS opacity-class toggle wasn't firing because the element was
+		     inserted and its opacity class changed in near-consecutive frames
+		     — the browser consolidated and skipped the from-state paint, so
+		     the transition never ran. transition:fade applies inline opacity
+		     via a tweened style, which sidesteps the timing issue entirely
+		     and also gates modalLock's destroy (scroll unlock) on fade
+		     completion. -->
+		{#if open}
+			<button
+				type="button"
+				use:modalLock
+				transition:fade={{ duration: 200, easing: cubicOut }}
+				class="pointer-events-auto absolute inset-0 {useBottomSheet
+					? 'bg-black/40 backdrop-blur-sm'
+					: ''}"
+				onclick={close}
+				aria-label="Close"
+			></button>
+		{/if}
 		{#if useBottomSheet}
 			<!-- ── Bottom-sheet variant (mobile, > 10 options) ──────────────────── -->
 			<div
