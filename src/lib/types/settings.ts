@@ -72,7 +72,8 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'OffroadMode',
 		label: 'Always Offroad Mode',
-		description: 'Keeps sunnypilot in offroad mode so vehicle engagement is disabled.',
+		description:
+			'Force the device to behave as if the car is off. Useful for editing settings that need an offroad/onroad cycle to apply, preventing recording while charging (Tesla/EV cars keep the ignition signal on), or debugging without driving. Toggle off when ready to drive — sunnypilot will not engage or record while this is on.',
 		category: 'device'
 	},
 	{
@@ -1496,7 +1497,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'IsReleaseSpBranch',
 		label: 'SP Release Branch',
-		description: 'On Sunnypilot release branch',
+		description: 'On sunnypilot release branch',
 		category: 'developer',
 		readonly: true,
 		hidden: true
@@ -1504,7 +1505,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'CarParamsSPCache',
 		label: 'SP Car Params Cache',
-		description: 'Cached Sunnypilot car params',
+		description: 'Cached sunnypilot car params',
 		category: 'developer',
 		readonly: true,
 		hidden: true
@@ -1512,7 +1513,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'CarParamsSP',
 		label: 'SP Car Params',
-		description: 'Sunnypilot vehicle parameters',
+		description: 'sunnypilot vehicle parameters',
 		category: 'developer',
 		readonly: true,
 		hidden: true

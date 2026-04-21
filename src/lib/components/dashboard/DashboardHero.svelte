@@ -78,7 +78,7 @@
 			<Smartphone size={22} aria-hidden="true" />
 		</div>
 		<div class="min-w-0 flex-1">
-			<div class="flex items-start justify-between gap-2">
+			<div class="flex items-center justify-between gap-2">
 				<h1
 					id="hero-alias"
 					class="truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"

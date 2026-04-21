@@ -134,7 +134,7 @@
 		>
 			<!-- Header -->
 			<div class="border-b border-red-500/10 bg-red-500/5 p-6">
-				<div class="flex items-start justify-between">
+				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3 text-red-600 dark:text-red-400">
 						<div class="rounded-full bg-red-500/10 p-2">
 							<AlertTriangle size={24} />
@@ -296,7 +296,7 @@
 								{/if}
 
 								<div class="flex items-center justify-between">
-									<span class="text-[var(--sl-text-2)]">Sunnylink ID</span>
+									<span class="text-[var(--sl-text-2)]">sunnylink ID</span>
 									<span
 										class="rounded bg-[var(--sl-bg-input)] px-3 py-1.5 font-mono text-[var(--sl-text-1)]"
 										>{deviceId}</span

@@ -257,7 +257,7 @@
 
 							<img
 								src="/landing-dashboard.png"
-								alt="Sunnylink Dashboard Interface"
+								alt="sunnylink dashboard interface"
 								class="w-full rounded-lg shadow-inner"
 							/>
 						</div>

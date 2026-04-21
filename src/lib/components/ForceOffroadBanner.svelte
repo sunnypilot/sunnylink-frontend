@@ -90,10 +90,10 @@
 					aria-hidden="true"
 				/>
 				<p class="text-[0.8125rem] leading-snug text-amber-700 dark:text-amber-300">
-					<span class="font-medium">Sunnypilot disabled on this car</span>
-					<span class="hidden text-amber-700/70 sm:inline dark:text-amber-300/70"
-						>· driving assist won't engage</span
-					>
+					<span class="font-medium">Always Offroad Mode Active</span>
+					<span class="text-amber-700/80 dark:text-amber-300/80">
+						• sunnypilot will not engage or enable dashcam recording
+					</span>
 				</p>
 			</div>
 			<button
@@ -101,7 +101,7 @@
 				onclick={stopForcing}
 				disabled={stopping}
 				class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/15 px-3 text-[0.75rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
-				aria-label="Disable Always Offroad mode"
+				aria-label="Disable Always Offroad Mode"
 			>
 				{#if stopping}
 					<Loader2 size={12} class="animate-spin" aria-hidden="true" />
