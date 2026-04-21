@@ -12,6 +12,7 @@
 	import { APIv0Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
+	import { schemaState } from '$lib/stores/schema.svelte';
 
 	let { data } = $props();
 
@@ -270,7 +271,7 @@
 				<p class="text-sm text-[var(--sl-text-2)]">No devices connected</p>
 				<p class="mt-1 text-xs text-[var(--sl-text-3)]">Pair a sunnypilot device to get started.</p>
 				<button
-					class="btn mt-6 gap-2 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] btn-sm transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.97] active:bg-[var(--sl-bg-elevated)]"
+					class="btn mt-6 gap-2 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] transition-all duration-100 btn-sm hover:bg-[var(--sl-bg-subtle)] active:scale-[0.97] active:bg-[var(--sl-bg-elevated)]"
 					onclick={() => deviceState.openPairingModal()}
 				>
 					<Plus size={16} />
@@ -336,6 +337,8 @@
 				{@const isPolling = statusPolling.isRefreshing && !isLoading}
 				{@const infoLoaded =
 					isOffline || isError || deviceState.infoFetchComplete[device.device_id] === true}
+				{@const isLegacy = schemaState.schemaUnavailable[device.device_id] === true}
+				{@const hasBadges = isLegacy}
 
 				<article
 					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
@@ -384,7 +387,6 @@
 											aria-label="Checking status"
 										/>
 									{/if}
-									<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
 								</div>
 
 								{#key statusPolling.tickCounter}
@@ -392,6 +394,12 @@
 										{getSubtitle(device, statusPolling.tickCounter) || getStatusText(device)}
 									</p>
 								{/key}
+
+								{#if hasBadges}
+									<div class="mt-1.5 flex flex-wrap gap-1.5">
+										<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
+									</div>
+								{/if}
 							</div>
 
 							{#if isSelected}
