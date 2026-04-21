@@ -44,9 +44,12 @@
 		const handler = () => alignMenu();
 		window.addEventListener('resize', handler);
 		window.addEventListener('scroll', handler, true);
+		const ro = new ResizeObserver(handler);
+		ro.observe(document.body);
 		return () => {
 			window.removeEventListener('resize', handler);
 			window.removeEventListener('scroll', handler, true);
+			ro.disconnect();
 		};
 	});
 

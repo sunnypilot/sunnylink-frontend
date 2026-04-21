@@ -59,6 +59,12 @@
 		return deviceState.lastSeenOnline[deviceId];
 	});
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
+	// Show skeleton placeholders when status hasn't resolved yet OR device confirmed
+	// online but param fetch still in flight. Avoids rows popping in one by one.
+	let mayBeOnline = $derived(
+		onlineStatus === 'online' || onlineStatus === 'loading' || onlineStatus === undefined
+	);
+	let valuesLoading = $derived(mayBeOnline && deviceValues === undefined);
 	let isForceOffroad = $derived.by(() => {
 		const fromStatus = offroadStatus?.forceOffroad;
 		const raw = deviceValues?.['OffroadMode'];
@@ -122,9 +128,15 @@
 		const handler = () => alignMenu();
 		window.addEventListener('resize', handler);
 		window.addEventListener('scroll', handler, true);
+		// Layout shifts (e.g., ForceOffroadBanner mount/unmount changes header
+		// height → pill button moves) must re-anchor the popover; ResizeObserver
+		// on body fires whenever the document height changes.
+		const ro = new ResizeObserver(handler);
+		ro.observe(document.body);
 		return () => {
 			window.removeEventListener('resize', handler);
 			window.removeEventListener('scroll', handler, true);
+			ro.disconnect();
 		};
 	});
 
@@ -422,26 +434,33 @@
 				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
 				<div class="space-y-0.5 px-1">
-					{#if isOnline && telemetry}
-						<div class="flex items-center justify-between rounded-md px-1.5 py-1">
+					{#if mayBeOnline}
+						<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Network</span>
-							<span class="text-[0.75rem] text-[var(--sl-text-2)]">
-								{formatNetworkType(telemetry.networkType)}
-								{#if telemetry.networkMetered}
-									<span class="text-amber-700 dark:text-amber-400">(metered)</span>
-								{/if}
-							</span>
+							{#if telemetry}
+								<span class="text-[0.75rem] text-[var(--sl-text-2)]">
+									{formatNetworkType(telemetry.networkType)}
+									{#if telemetry.networkMetered}
+										<span class="text-amber-700 dark:text-amber-400">(metered)</span>
+									{/if}
+								</span>
+							{:else}
+								<span class="h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+							{/if}
 						</div>
 					{/if}
-					{#if branchName}
+					{#if branchName || valuesLoading}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => copyField('branch', branchName)}
-							aria-label="Copy branch {branchName}"
+							class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+							onclick={() => branchName && copyField('branch', branchName)}
+							disabled={!branchName}
+							aria-label={branchName ? `Copy branch ${branchName}` : 'Loading branch'}
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
-							<span class="flex min-w-0 items-center gap-1.5">
-								{#if copiedField === 'branch'}
+							<span class="flex min-w-[140px] items-center justify-end gap-1.5">
+								{#if !branchName}
+									<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+								{:else if copiedField === 'branch'}
 									<span
 										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
 									>
@@ -472,15 +491,18 @@
 							</span>
 						</button>
 					{/if}
-					{#if softwareVersion}
+					{#if softwareVersion || valuesLoading}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => copyField('version', softwareVersion)}
-							aria-label="Copy version {softwareVersion}"
+							class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+							onclick={() => softwareVersion && copyField('version', softwareVersion)}
+							disabled={!softwareVersion}
+							aria-label={softwareVersion ? `Copy version ${softwareVersion}` : 'Loading version'}
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
-							<span class="flex items-center gap-1.5">
-								{#if copiedField === 'version'}
+							<span class="flex min-w-[140px] items-center justify-end gap-1.5">
+								{#if !softwareVersion}
+									<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+								{:else if copiedField === 'version'}
 									<span
 										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
 									>
@@ -497,15 +519,18 @@
 							</span>
 						</button>
 					{/if}
-					{#if commitHash}
+					{#if commitHash || valuesLoading}
 						<button
-							class="group relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => copyField('commit', commitHash)}
-							aria-label="Copy commit {commitHash}"
+							class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+							onclick={() => commitHash && copyField('commit', commitHash)}
+							disabled={!commitHash}
+							aria-label={commitHash ? `Copy commit ${commitHash}` : 'Loading commit'}
 						>
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
-							<span class="flex items-center gap-1.5">
-								{#if copiedField === 'commit'}
+							<span class="flex min-w-[140px] items-center justify-end gap-1.5">
+								{#if !commitHash}
+									<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+								{:else if copiedField === 'commit'}
 									<span
 										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
 									>
@@ -522,15 +547,19 @@
 							</span>
 						</button>
 					{/if}
-					{#if lastSeen}
-						<div class="flex items-center justify-between rounded-md px-1.5 py-1">
+					{#if lastSeen || mayBeOnline}
+						<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
 							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Last seen</span>
-							<!-- Force re-render every 10s via statusPolling tick -->
-							{#key statusPolling.tickCounter}
-								<span class="text-[0.75rem] text-[var(--sl-text-2)]">
-									{formatRelativeTime(lastSeen)}
-								</span>
-							{/key}
+							{#if lastSeen}
+								<!-- Force re-render every 10s via statusPolling tick -->
+								{#key statusPolling.tickCounter}
+									<span class="text-[0.75rem] text-[var(--sl-text-2)]">
+										{formatRelativeTime(lastSeen)}
+									</span>
+								{/key}
+							{:else}
+								<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+							{/if}
 						</div>
 					{/if}
 					{#if onlineStatus === 'error' && errorMessage}
