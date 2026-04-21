@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
+	import { afterNavigate } from '$app/navigation';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -121,6 +122,13 @@
 		const top = rect.bottom + 8;
 		menuStyle = `position:fixed;top:${top}px;right:${right}px;width:min(18rem,calc(100vw - 1rem));`;
 	}
+
+	// Close on route change. The component is layout-mounted and persists across
+	// navigations, so popoverOpen would otherwise stay true after the user clicks
+	// a sidebar/in-page link. afterNavigate runs after every successful nav.
+	afterNavigate(() => {
+		popoverOpen = false;
+	});
 
 	$effect(() => {
 		if (!popoverOpen || typeof window === 'undefined') return;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
+	import { afterNavigate } from '$app/navigation';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
 	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
@@ -22,6 +23,11 @@
 		const bottom = Math.max(8, window.innerHeight - rect.top + 6);
 		menuStyle = `position:fixed;bottom:${bottom}px;left:${rect.left}px;width:${rect.width}px;`;
 	}
+
+	// Layout-mounted component persists across navigations; close menu on nav.
+	afterNavigate(() => {
+		open = false;
+	});
 
 	$effect(() => {
 		if (!open || typeof window === 'undefined') return;
