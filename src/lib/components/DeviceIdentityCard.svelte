@@ -122,7 +122,7 @@
 				<div class="ml-auto shrink-0">
 					<a
 						href="/dashboard/devices"
-						class="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						class="flex items-center gap-1 rounded-md px-2 py-1 text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
 						aria-label="Change selected device"
 					>
 						<span>Change device</span>
@@ -155,7 +155,7 @@
 					<span class="w-16 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Device ID</span>
 					<button
 						onclick={copyDeviceId}
-						class="group flex min-h-[28px] flex-1 items-center justify-between gap-2 rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						class="group flex min-h-[28px] flex-1 items-center justify-between gap-2 rounded-md px-1 py-0.5 transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.98] active:bg-[var(--sl-bg-subtle)]"
 						aria-label="Copy device ID {deviceId}"
 					>
 						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span

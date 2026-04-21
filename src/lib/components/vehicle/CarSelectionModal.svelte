@@ -92,7 +92,7 @@
 			<div class="flex items-center justify-between border-b border-[var(--sl-border)] px-5 py-4">
 				<h2 class="text-[15px] font-semibold text-[var(--sl-text-1)]">Select a Vehicle</h2>
 				<button
-					class="rounded-md p-1 text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-surface)] hover:text-[var(--sl-text-1)]"
+					class="rounded-md p-1 text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-surface)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => (open = false)}
 				>
 					<X size={16} />
@@ -139,7 +139,7 @@
 								<div class="divide-y divide-[var(--sl-border-muted)]">
 									{#each group.cars as car (car.id)}
 										<button
-											class="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[var(--sl-bg-subtle)]"
+											class="flex w-full items-center justify-between px-4 py-3 text-left transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.99] active:bg-[var(--sl-bg-elevated)]"
 											onclick={() => handleSelect(car)}
 										>
 											<div class="flex items-center gap-3">

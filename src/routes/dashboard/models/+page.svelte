@@ -949,7 +949,7 @@
 					</div>
 				{/if}
 				<button
-					class="btn shrink-0 btn-ghost btn-xs {isError
+					class="btn shrink-0 btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
 						? 'text-orange-700 dark:text-orange-400'
 						: 'text-yellow-700 dark:text-yellow-400'}"
 					disabled={retrying}
@@ -1045,7 +1045,7 @@
 					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
 						{#if currentModelShortName !== undefined}
 							<button
-								class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] disabled:opacity-40"
+								class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100"
 								onclick={() => (resetModalOpen = true)}
 								disabled={sendingModel}
 								title={!isOffroad ? 'Device must be offroad' : undefined}
@@ -1055,7 +1055,7 @@
 							<span class="text-[var(--sl-border)]">|</span>
 						{/if}
 						<button
-							class="text-[0.75rem] text-[var(--sl-text-2)] transition-colors hover:text-red-600 disabled:opacity-40 dark:hover:text-red-400"
+							class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
 							onclick={() => (clearCacheModalOpen = true)}
 							disabled={clearingCache}
 							title={!isOffroad ? 'Device must be offroad' : undefined}
@@ -1087,7 +1087,7 @@
 						{#if searchQuery}
 							<button
 								type="button"
-								class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+								class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.88] active:opacity-80"
 								onclick={() => {
 									searchQuery = '';
 								}}

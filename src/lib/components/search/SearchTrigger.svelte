@@ -9,7 +9,7 @@
 </script>
 
 <button
-	class="flex w-full items-center gap-2.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3.5 py-2 text-left text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:border-[var(--sl-text-2)] hover:text-[var(--sl-text-2)]"
+	class="flex w-full items-center gap-2.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3.5 py-2 text-left text-[0.8125rem] text-[var(--sl-text-3)] transition-all duration-100 hover:border-[var(--sl-text-2)] hover:text-[var(--sl-text-2)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
 	aria-label="Open search (press Cmd+K or Ctrl+K)"
 	onclick={() => searchState.open()}
 >

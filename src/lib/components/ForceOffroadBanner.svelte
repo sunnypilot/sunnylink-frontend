@@ -100,7 +100,7 @@
 				type="button"
 				onclick={stopForcing}
 				disabled={stopping}
-				class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/15 px-3 text-[0.75rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
+				class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/15 px-3 text-[0.75rem] font-medium text-amber-700 transition-all duration-100 hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-600 active:scale-[0.96] active:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
 				aria-label="Disable Always Offroad Mode"
 			>
 				{#if stopping}

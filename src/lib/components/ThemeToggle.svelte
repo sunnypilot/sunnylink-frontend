@@ -14,7 +14,7 @@
 		{@const isActive = themeState.preference === opt.value}
 		<button
 			type="button"
-			class="flex items-center justify-center rounded-md px-2.5 py-1.5 transition-all duration-150"
+			class="flex items-center justify-center rounded-md px-2.5 py-1.5 transition-all duration-150 active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 			class:bg-[var(--sl-bg-surface)]={isActive}
 			class:shadow-sm={isActive}
 			class:text-[var(--sl-text-1)]={isActive}

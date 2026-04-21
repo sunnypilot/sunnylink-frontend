@@ -571,7 +571,7 @@
 				</div>
 				<p class="flex-1 text-sm font-medium text-[var(--sl-text-1)]">Device Connection Required</p>
 				<button
-					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs"
+					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => dismissHelp(false)}
 				>
 					Dismiss
@@ -595,7 +595,7 @@
 			<div class="flex justify-end border-t border-[var(--sl-border)] px-4 py-2.5">
 				<button
 					type="button"
-					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs"
+					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => dismissHelp(true)}
 				>
 					Don't show again
@@ -646,7 +646,7 @@
 				</div>
 			{/if}
 			<button
-				class="btn shrink-0 btn-ghost btn-xs {isError
+				class="btn shrink-0 btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
 					? 'text-orange-700 dark:text-orange-400'
 					: 'text-yellow-700 dark:text-yellow-400'}"
 				disabled={retrying}

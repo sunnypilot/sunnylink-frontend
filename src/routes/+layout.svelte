@@ -102,54 +102,38 @@
 		}
 	});
 
-	// Lock body scroll while the mobile drawer is open. iOS Safari rubber-bands the
-	// document body even when an inner scroll container declares overscroll-contain,
-	// so we pin the body in place via position:fixed and restore scrollY on close.
-	// Belt-and-suspenders: also lock html overflow + height for stubborn iOS PWA cases.
+	// Lock body scroll while the mobile drawer is open. The previous approach
+	// pinned body with `position: fixed; top: -scrollY`, which broke the
+	// sticky top bar — sticky needs a scrolling ancestor, so when body went
+	// fixed the top bar snapped from viewport-0 to document-0, producing the
+	// "top bar jumps up" symptom on open. Using overflow:hidden alone keeps
+	// the sticky context intact and still halts body scroll on iOS 16+
+	// (overscroll-behavior: contain handles the rubber-band that originally
+	// motivated the fixed-position hack).
 	$effect(() => {
 		if (typeof window === 'undefined') return;
 		if (!drawerOpen) return;
 		if (!window.matchMedia('(max-width: 1023px)').matches) return;
 
-		const scrollY = window.scrollY;
 		const html = document.documentElement;
 		const body = document.body;
 		const prev = {
 			htmlOverflow: html.style.overflow,
-			htmlHeight: html.style.height,
 			htmlOverscroll: html.style.overscrollBehavior,
-			bodyPosition: body.style.position,
-			bodyTop: body.style.top,
-			bodyLeft: body.style.left,
-			bodyRight: body.style.right,
-			bodyWidth: body.style.width,
 			bodyOverflow: body.style.overflow,
 			bodyOverscroll: body.style.overscrollBehavior
 		};
 
 		html.style.overflow = 'hidden';
-		html.style.height = '100%';
-		html.style.overscrollBehavior = 'none';
-		body.style.position = 'fixed';
-		body.style.top = `-${scrollY}px`;
-		body.style.left = '0';
-		body.style.right = '0';
-		body.style.width = '100%';
+		html.style.overscrollBehavior = 'contain';
 		body.style.overflow = 'hidden';
-		body.style.overscrollBehavior = 'none';
+		body.style.overscrollBehavior = 'contain';
 
 		return () => {
 			html.style.overflow = prev.htmlOverflow;
-			html.style.height = prev.htmlHeight;
 			html.style.overscrollBehavior = prev.htmlOverscroll;
-			body.style.position = prev.bodyPosition;
-			body.style.top = prev.bodyTop;
-			body.style.left = prev.bodyLeft;
-			body.style.right = prev.bodyRight;
-			body.style.width = prev.bodyWidth;
 			body.style.overflow = prev.bodyOverflow;
 			body.style.overscrollBehavior = prev.bodyOverscroll;
-			window.scrollTo(0, scrollY);
 		};
 	});
 
@@ -415,7 +399,7 @@
 						<label
 							for="main-drawer"
 							aria-label="open sidebar"
-							class="btn btn-square text-[var(--sl-text-1)] btn-ghost btn-sm lg:hidden"
+							class="btn btn-square text-[var(--sl-text-1)] btn-ghost transition-all duration-100 btn-sm active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] lg:hidden"
 						>
 							<Menu size={20} />
 						</label>
@@ -433,7 +417,7 @@
 								{#if deviceState.selectedDeviceId}
 									<a
 										href="/dashboard/devices"
-										class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
+										class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
 										aria-label="Change selected device"
 									>
 										<ArrowLeftRight size={14} aria-hidden="true" />
@@ -451,7 +435,7 @@
 									{#await data.streamed.deviceResult then result}
 										{#if result.error === 'api_error'}
 											<button
-												class="btn text-error btn-ghost btn-sm"
+												class="btn text-error btn-ghost transition-all duration-100 btn-sm active:scale-[0.97] active:bg-red-500/10"
 												onclick={() => invalidate('app:devices')}
 											>
 												Failed to load — Retry
@@ -593,7 +577,7 @@
 
 							{#if section.collapsible}
 								<button
-									class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-colors hover:text-[var(--sl-text-2)]"
+									class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.98] active:opacity-80"
 									onclick={() => (settingsOpen = !settingsOpen)}
 								>
 									<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
@@ -713,7 +697,7 @@
 								await authState.signIn(`${window.location.origin}/auth/callback`);
 							}}
 							class={[
-								'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
+								'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.98] active:bg-[var(--sl-bg-elevated)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent disabled:active:scale-100',
 								drawerOpen ? 'justify-start' : 'justify-center',
 								'lg:justify-start'
 							]}
@@ -783,7 +767,7 @@
 		>
 			<button
 				type="button"
-				class="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				class="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 				onclick={dismissSessionExpired}
 				aria-label="Dismiss and return home"
 			>
@@ -801,7 +785,7 @@
 			<button
 				type="button"
 				disabled={authState.isSigningIn}
-				class="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:opacity-70"
+				class="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-all duration-100 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] active:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:opacity-70 disabled:active:scale-100"
 				onclick={() => authState.signIn(`${window.location.origin}/auth/callback`)}
 			>
 				{#if authState.isSigningIn}
@@ -813,7 +797,7 @@
 			</button>
 			<button
 				type="button"
-				class="mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg px-4 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				class="mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg px-4 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.98] active:bg-[var(--sl-bg-subtle)]"
 				onclick={dismissSessionExpired}
 			>
 				Maybe later

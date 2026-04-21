@@ -234,7 +234,7 @@
 						</div>
 						<button
 							type="button"
-							class="shrink-0 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary"
+							class="shrink-0 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
 							onclick={handleRefreshStatus}
 							aria-label="Refresh device status"
 						>

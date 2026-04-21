@@ -270,7 +270,7 @@
 <button
 	bind:this={triggerEl}
 	type="button"
-	class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-text-3)] focus:outline-none"
+	class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-1)] transition-all duration-100 hover:border-[var(--sl-text-3)] focus:outline-none active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
 	class:opacity-50={disabled}
 	class:pointer-events-none={disabled}
 	{disabled}
@@ -342,7 +342,7 @@
 						<button
 							type="button"
 							onclick={close}
-							class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+							class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 							aria-label="Close"
 						>
 							<X size={16} />

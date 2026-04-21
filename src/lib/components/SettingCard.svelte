@@ -83,7 +83,7 @@
 
 {#if isBool}
 	<button
-		class="relative flex w-full cursor-default flex-col justify-between rounded-xl border bg-[var(--sl-bg-surface)] p-4 text-left transition-all duration-200 sm:p-6"
+		class="relative flex w-full cursor-default flex-col justify-between rounded-xl border bg-[var(--sl-bg-surface)] p-4 text-left transition-all duration-200 active:scale-[0.99] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 sm:p-6"
 		class:border-primary={hasStaged}
 		class:border-[var(--sl-border)]={!hasStaged}
 		class:opacity-50={setting.readonly}
@@ -164,12 +164,12 @@
 					class:bg-primary={displayValue === true}
 					class:bg-[var(--sl-toggle-off)]={displayValue !== true && !setting.readonly}
 					class:bg-[var(--sl-toggle-off-disabled)]={displayValue !== true && setting.readonly}
-					style="transition: background-color var(--dur-instant) var(--ease-out);"
+					style="transition: background-color var(--dur-normal) var(--ease-out);"
 				>
 					<span
 						class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm"
 						class:translate-x-[20px]={displayValue === true}
-						style="transition: transform var(--dur-instant) var(--ease-spring);"
+						style="transition: transform var(--dur-normal) var(--ease-spring);"
 					></span>
 				</div>
 			{/if}
@@ -255,7 +255,7 @@
 				/>
 			{:else if isJson}
 				<button
-					class="btn w-full text-[var(--sl-text-2)] btn-outline hover:border-primary hover:text-primary"
+					class="btn w-full text-[var(--sl-text-2)] transition-all duration-100 btn-outline hover:border-primary hover:text-primary active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => onJsonClick?.(setting.label, displayValue)}
 				>
 					View JSON
@@ -282,7 +282,7 @@
 						</div>
 						<div class="flex items-center gap-4">
 							<button
-								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 								aria-label="Decrease value"
 								onclick={() => {
 									let current =
@@ -321,7 +321,7 @@
 								}}
 							/>
 							<button
-								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 								aria-label="Increase value"
 								onclick={() => {
 									let current =

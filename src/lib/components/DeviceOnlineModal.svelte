@@ -93,7 +93,12 @@
 					<span class="text-sm text-[var(--sl-text-2)]">Don't remind me again on this browser</span>
 				</label>
 
-				<button class="btn min-w-[100px] btn-primary" onclick={handleClose}> Got it </button>
+				<button
+					class="btn min-w-[100px] btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80"
+					onclick={handleClose}
+				>
+					Got it
+				</button>
 			</div>
 		</div>
 	</div>

@@ -418,7 +418,7 @@
 			{#if !isLoadingValues}
 				{#if mode === 'manual'}
 					<button
-						class="rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-red-400 transition-colors hover:bg-red-500/10"
+						class="rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-red-400 transition-all duration-100 hover:bg-red-500/10 active:scale-[0.96] active:bg-red-500/30"
 						onclick={(e) => {
 							e.stopPropagation();
 							requestClear();
@@ -428,7 +428,7 @@
 					</button>
 				{/if}
 				<button
-					class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+					class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
 					onclick={handleOpen}
 				>
 					{mode === 'manual' ? 'Change' : 'Select'}
@@ -441,7 +441,7 @@
 	{#if !isLoadingValues && (carFingerprint || carPlatformBundle)}
 		<div class="border-t border-[var(--sl-border-muted)]">
 			<button
-				class="flex w-full items-center gap-2 px-4 py-2.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)]"
+				class="flex w-full items-center gap-2 px-4 py-2.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:scale-[0.99] active:bg-[var(--sl-bg-subtle)]"
 				onclick={() => (detailsOpen = !detailsOpen)}
 			>
 				<ChevronDown size={14} class="transition-transform {detailsOpen ? '' : '-rotate-90'}" />
@@ -507,7 +507,7 @@
 
 					<div class="mt-3">
 						<button
-							class="flex cursor-pointer items-center gap-1.5 font-mono text-xs text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+							class="flex cursor-pointer items-center gap-1.5 font-mono text-xs text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.96] active:opacity-80"
 							onclick={() => (rawOpen = !rawOpen)}
 						>
 							<ChevronDown size={12} class="transition-transform {rawOpen ? '' : '-rotate-90'}" />

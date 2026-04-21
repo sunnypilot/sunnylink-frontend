@@ -107,7 +107,7 @@
 		{id}
 		bind:this={triggerEl}
 		type="button"
-		class="flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-3 text-left text-sm text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-border-emphasis)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+		class="flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-3 text-left text-sm text-[var(--sl-text-1)] transition-all duration-100 hover:border-[var(--sl-border-emphasis)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none active:scale-[0.98] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
 		onclick={toggle}
 		{disabled}
 	>

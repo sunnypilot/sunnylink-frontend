@@ -54,7 +54,7 @@
 	</ol>
 
 	<button
-		class="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[0.9375rem] font-semibold text-[var(--sl-bg-page)] transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+		class="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[0.9375rem] font-semibold text-[var(--sl-bg-page)] transition-all duration-100 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] active:bg-primary/80"
 		type="button"
 		onclick={() => deviceState.openPairingModal()}
 	>
@@ -64,7 +64,7 @@
 
 	<button
 		type="button"
-		class="mt-3 text-[0.8125rem] text-[var(--sl-text-3)] underline decoration-[var(--sl-text-3)]/30 underline-offset-2 hover:text-[var(--sl-text-2)] hover:decoration-[var(--sl-text-2)]/50"
+		class="mt-3 text-[0.8125rem] text-[var(--sl-text-3)] underline decoration-[var(--sl-text-3)]/30 underline-offset-2 transition-all duration-100 hover:text-[var(--sl-text-2)] hover:decoration-[var(--sl-text-2)]/50 active:scale-[0.96] active:opacity-80"
 		onclick={() => (helpOpen = !helpOpen)}
 		aria-expanded={helpOpen}
 		aria-controls="empty-help"

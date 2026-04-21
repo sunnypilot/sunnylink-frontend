@@ -579,7 +579,7 @@
 				{#if activeSubPanel}
 					<div class="px-4">
 						<button
-							class="row-press mb-1 flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
+							class="row-press mb-1 flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
 							onclick={closeSubPanel}
 						>
 							<svg
@@ -649,7 +649,7 @@
 					{#if devs.length > 0}
 						<a
 							href="/dashboard/devices"
-							class="inline-flex items-center gap-2 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary"
+							class="inline-flex items-center gap-2 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 						>
 							Go to My Devices
 						</a>

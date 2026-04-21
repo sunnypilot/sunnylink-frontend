@@ -217,7 +217,7 @@
 				</span>
 				{#if onRetryFailed}
 					<button
-						class="text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+						class="text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 transition-all duration-100 hover:no-underline active:scale-[0.94] active:opacity-80"
 						onclick={onRetryFailed}
 					>
 						Retry
@@ -237,7 +237,7 @@
 					{conflictCount} pending {conflictCount === 1 ? 'change' : 'changes'} need review
 				</span>
 				<button
-					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 transition-all duration-100 hover:no-underline active:scale-[0.94] active:opacity-80"
 					onclick={() => (conflictExpanded = !conflictExpanded)}
 				>
 					{conflictExpanded ? 'Hide' : 'Review'}
@@ -256,7 +256,7 @@
 					{driftCount === 1 ? 'setting' : 'settings'} modified on device
 				</span>
 				<button
-					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 transition-all duration-100 hover:no-underline active:scale-[0.94] active:opacity-80"
 					onclick={() => (driftExpanded = !driftExpanded)}
 				>
 					{driftExpanded ? 'Hide' : 'Review'}
@@ -272,7 +272,7 @@
 			{#if failedCount > 0 || driftCount > 0}
 				<span class="ml-auto"></span>
 				<button
-					class="flex h-11 w-11 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-2)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none"
+					class="flex h-11 w-11 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-2)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-elevated)]"
 					onclick={() => {
 						if (failedCount > 0) handleDismissFailed();
 						if (driftCount > 0) handleDismissDrift();
@@ -295,13 +295,13 @@
 					</span>
 					<div class="flex shrink-0 gap-2">
 						<button
-							class="rounded-md px-2 py-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+							class="rounded-md px-2 py-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 transition-all duration-100 hover:no-underline active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 							onclick={() => batchPush.resolveApplyAll(deviceId)}
 						>
 							Apply all yours
 						</button>
 						<button
-							class="rounded-md px-2 py-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 hover:no-underline"
+							class="rounded-md px-2 py-1 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 transition-all duration-100 hover:no-underline active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 							onclick={() => batchPush.resolveKeepAll(deviceId)}
 						>
 							Keep all device
@@ -331,13 +331,13 @@
 						</div>
 						<div class="flex shrink-0 flex-wrap gap-1.5">
 							<button
-								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-subtle)]"
+								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
 								onclick={() => batchPush.resolveApply(deviceId, entry.key)}
 							>
 								Apply yours
 							</button>
 							<button
-								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] hover:bg-[var(--sl-bg-subtle)]"
+								class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-xs font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
 								onclick={() => batchPush.resolveKeep(deviceId, entry.key)}
 							>
 								Keep device

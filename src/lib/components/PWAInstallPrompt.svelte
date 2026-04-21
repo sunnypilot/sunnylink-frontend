@@ -148,7 +148,7 @@
 					<button
 						type="button"
 						onclick={dismiss}
-						class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 						aria-label={dismissLabel}
 					>
 						<X size={16} />
@@ -203,7 +203,7 @@
 					<button
 						type="button"
 						onclick={dismiss}
-						class="flex min-h-[44px] w-full items-center justify-center rounded-lg text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						class="flex min-h-[44px] w-full items-center justify-center rounded-lg text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.98] active:bg-[var(--sl-bg-subtle)]"
 					>
 						{dismissLabel}
 					</button>

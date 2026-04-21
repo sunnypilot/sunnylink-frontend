@@ -88,7 +88,7 @@
 				</h1>
 				<a
 					href="/dashboard/devices"
-					class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
+					class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
 					aria-label="Change selected device"
 				>
 					<ArrowLeftRight size={12} aria-hidden="true" />

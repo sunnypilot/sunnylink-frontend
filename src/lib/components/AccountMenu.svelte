@@ -93,7 +93,7 @@
 	<button
 		type="button"
 		bind:this={triggerEl}
-		class="group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)]"
+		class="group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all duration-150 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.98] active:bg-[var(--sl-bg-elevated)]"
 		onclick={() => (open = !open)}
 		aria-expanded={open}
 		aria-haspopup="true"
@@ -183,7 +183,7 @@
 						{@const isActive = themeState.preference === opt.value}
 						<button
 							type="button"
-							class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs transition-all duration-150"
+							class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs transition-all duration-150 active:scale-[0.94] active:bg-[var(--sl-bg-elevated)]"
 							class:bg-[var(--sl-bg-surface)]={isActive}
 							class:shadow-sm={isActive}
 							class:text-[var(--sl-text-1)]={isActive}
@@ -206,7 +206,7 @@
 			<div class="space-y-0.5">
 				<a
 					href="/dashboard/preferences"
-					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.98] active:bg-[var(--sl-bg-elevated)]"
 					role="menuitem"
 					onclick={() => {
 						open = false;
@@ -220,7 +220,7 @@
 					href="https://community.sunnypilot.ai/c/bug-reports/8"
 					target="_blank"
 					rel="noopener"
-					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+					class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.98] active:bg-[var(--sl-bg-elevated)]"
 					role="menuitem"
 					onclick={() => (open = false)}
 				>
@@ -233,7 +233,7 @@
 
 			<button
 				type="button"
-				class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-red-400"
+				class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-subtle)] hover:text-red-400 active:scale-[0.98] active:bg-red-500/10"
 				role="menuitem"
 				onclick={handleLogout}
 			>

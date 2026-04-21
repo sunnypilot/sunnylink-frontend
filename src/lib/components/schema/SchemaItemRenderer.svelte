@@ -492,7 +492,7 @@
 							>
 						</Tooltip>
 						<button
-							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 							onclick={handleRevert}>Revert</button
 						>
 					{:else if isQueued || pushState === 'pending'}
@@ -587,7 +587,7 @@
 							: 'bg-[var(--sl-toggle-off)]'}
 					<button
 						class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full {toggleTrackClass} transition-opacity duration-200"
-						style="transition: background-color var(--dur-instant) var(--ease-out);"
+						style="transition: background-color var(--dur-normal) var(--ease-out);"
 						class:opacity-50={isPushing}
 						class:cursor-not-allowed={!enabled || isPushing}
 						class:pointer-events-none={isPushing || !enabled}
@@ -602,7 +602,7 @@
 						<span
 							class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
 							class:translate-x-[18px]={isOn}
-							style="transition: transform var(--dur-instant) var(--ease-spring);"
+							style="transition: transform var(--dur-normal) var(--ease-spring);"
 						></span>
 					</button>
 				{/if}
@@ -624,7 +624,7 @@
 							>
 						</Tooltip>
 						<button
-							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 							onclick={handleRevert}>Revert</button
 						>
 					{:else if isQueued || pushState === 'pending'}
@@ -830,7 +830,7 @@
 							class:pointer-events-none={isPushing || !enabled}
 						>
 							<button
-								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 								disabled={!enabled || isPushing}
 								onclick={() => {
 									const current =
@@ -888,7 +888,7 @@
 								}}
 							/>
 							<button
-								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 								disabled={!enabled || isPushing}
 								onclick={() => {
 									const current =
@@ -930,7 +930,7 @@
 							>
 						</Tooltip>
 						<button
-							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 							onclick={handleRevert}>Revert</button
 						>
 					{:else if isQueued || pushState === 'pending'}

@@ -39,7 +39,7 @@
 		</div>
 		<button
 			type="button"
-			class="shrink-0 rounded-md border border-amber-500/40 bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/10 focus-visible:outline-2 focus-visible:outline-amber-500 dark:text-amber-400"
+			class="shrink-0 rounded-md border border-amber-500/40 bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-amber-700 transition-all duration-100 hover:bg-amber-500/10 focus-visible:outline-2 focus-visible:outline-amber-500 active:scale-[0.96] active:bg-amber-500/30 dark:text-amber-400"
 			onclick={() => (modalOpen = true)}
 		>
 			Enable Always Offroad Mode

@@ -362,7 +362,7 @@
 									href={status.link}
 									target="_blank"
 									rel="noreferrer"
-									class="flex w-fit items-center gap-1 rounded text-xs font-semibold underline underline-offset-2 opacity-90 transition-opacity hover:opacity-100 sm:text-sm"
+									class="flex w-fit items-center gap-1 rounded text-xs font-semibold underline underline-offset-2 opacity-90 transition-all duration-100 hover:opacity-100 active:scale-[0.96] active:opacity-80 sm:text-sm"
 								>
 									{status.linkText || 'Learn more'}
 									<ExternalLink size={12} />
@@ -374,7 +374,7 @@
 					{#if status.dismissible}
 						<button
 							onclick={() => dismiss(status.id)}
-							class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:ring-2 focus:ring-white/20 focus:outline-none"
+							class="-mr-2 rounded-lg p-2 opacity-60 transition-all duration-100 hover:bg-white/10 hover:opacity-100 focus:ring-2 focus:ring-white/20 focus:outline-none active:scale-[0.88] active:bg-white/20"
 							aria-label="Dismiss"
 						>
 							<X size={18} />

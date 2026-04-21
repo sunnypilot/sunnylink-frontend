@@ -392,7 +392,7 @@
 	<button
 		bind:this={triggerEl}
 		onclick={togglePopover}
-		class="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors duration-[var(--dur-fast)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none {pillState.bgClass} {pillState.borderClass}"
+		class="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 transition-all duration-100 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none active:scale-[0.92] active:brightness-95 {pillState.bgClass} {pillState.borderClass}"
 		aria-label="Device status: {pillState.label}, click to view details"
 		aria-expanded={popoverOpen}
 		aria-haspopup="dialog"
@@ -443,7 +443,7 @@
 					<button
 						onclick={refreshStatus}
 						disabled={refreshing}
-						class="flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none disabled:opacity-50"
+						class="flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:opacity-50 disabled:active:scale-100"
 						aria-label="Refresh status"
 					>
 						<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
@@ -496,7 +496,7 @@
 				{/if}
 				{#if branchName || valuesLoading}
 					<button
-						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 						onclick={() => branchName && copyField('branch', branchName)}
 						disabled={!branchName}
 						aria-label={branchName ? `Copy branch ${branchName}` : 'Loading branch'}
@@ -538,7 +538,7 @@
 				{/if}
 				{#if softwareVersion || valuesLoading}
 					<button
-						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 						onclick={() => softwareVersion && copyField('version', softwareVersion)}
 						disabled={!softwareVersion}
 						aria-label={softwareVersion ? `Copy version ${softwareVersion}` : 'Loading version'}
@@ -566,7 +566,7 @@
 				{/if}
 				{#if commitHash || valuesLoading}
 					<button
-						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 						onclick={() => commitHash && copyField('commit', commitHash)}
 						disabled={!commitHash}
 						aria-label={commitHash ? `Copy commit ${commitHash}` : 'Loading commit'}
@@ -629,7 +629,7 @@
 					role="switch"
 					aria-checked={isForceOffroad}
 					aria-label="Always Offroad Mode"
-					class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:bg-[var(--sl-bg-subtle)] disabled:opacity-50"
+					class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
 				>
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 						>Always Offroad Mode</span
@@ -639,7 +639,7 @@
 						class="relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full {isForceOffroad
 							? 'bg-amber-500'
 							: 'bg-[var(--sl-toggle-off)]'}"
-						style="transition: background-color var(--dur-instant) var(--ease-out);"
+						style="transition: background-color var(--dur-normal) var(--ease-out);"
 					>
 						{#if stoppingForce}
 							<Loader2
@@ -650,7 +650,7 @@
 							<span
 								class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
 								class:translate-x-[18px]={isForceOffroad}
-								style="transition: transform var(--dur-instant) var(--ease-spring);"
+								style="transition: transform var(--dur-normal) var(--ease-spring);"
 							></span>
 						{/if}
 					</span>
@@ -666,7 +666,7 @@
 				</div>
 				<button
 					onclick={copyDeviceId}
-					class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+					class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.98] active:bg-[var(--sl-bg-subtle)]"
 					aria-label="Copy sunnylink device ID {deviceId}"
 				>
 					<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span>

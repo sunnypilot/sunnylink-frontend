@@ -270,7 +270,7 @@
 				<p class="text-sm text-[var(--sl-text-2)]">No devices connected</p>
 				<p class="mt-1 text-xs text-[var(--sl-text-3)]">Pair a sunnypilot device to get started.</p>
 				<button
-					class="btn mt-6 gap-2 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] btn-sm hover:bg-[var(--sl-bg-subtle)]"
+					class="btn mt-6 gap-2 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] btn-sm transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.97] active:bg-[var(--sl-bg-elevated)]"
 					onclick={() => deviceState.openPairingModal()}
 				>
 					<Plus size={16} />

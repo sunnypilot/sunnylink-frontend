@@ -265,7 +265,7 @@
 				/>
 				{#if searchState.query}
 					<button
-						class="flex h-7 w-7 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)]"
+						class="flex h-7 w-7 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 						aria-label="Clear query"
 						onclick={() => {
 							searchState.clear();
@@ -276,7 +276,7 @@
 					</button>
 				{/if}
 				<button
-					class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 text-[0.6875rem] font-medium text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)]"
+					class="rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 text-[0.6875rem] font-medium text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
 					aria-label="Close"
 					onclick={() => searchState.close()}
 				>
@@ -344,7 +344,7 @@
 						<div class="mt-2 flex flex-wrap gap-2">
 							{#each SUGGESTED_QUERIES as q}
 								<button
-									class="rounded-full border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-3 py-1 text-[0.8125rem] text-[var(--sl-text-2)] transition-colors hover:border-[var(--sl-text-3)] hover:text-[var(--sl-text-1)]"
+									class="rounded-full border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-3 py-1 text-[0.8125rem] text-[var(--sl-text-2)] transition-all duration-100 hover:border-[var(--sl-text-3)] hover:text-[var(--sl-text-1)] active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 									onclick={() => handleSuggested(q)}
 								>
 									{q}
@@ -362,7 +362,7 @@
 									Recent
 								</div>
 								<button
-									class="text-[0.6875rem] text-[var(--sl-text-3)] hover:text-[var(--sl-text-1)]"
+									class="text-[0.6875rem] text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.94] active:opacity-80"
 									onclick={() => searchState.clearHistory()}
 								>
 									Clear

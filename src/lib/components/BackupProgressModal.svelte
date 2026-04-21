@@ -107,7 +107,7 @@
 						{#if deviceState.backupState.isDownloading && !showConfirmStop}
 							<button
 								onclick={handleClose}
-								class="rounded-lg p-1 text-[var(--sl-text-2)] transition-colors hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+								class="rounded-lg p-1 text-[var(--sl-text-2)] transition-all duration-100 hover:bg-white/5 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-white/10"
 								title="Minimize to background"
 							>
 								<Minimize2 size={20} />
@@ -115,7 +115,7 @@
 						{:else if !deviceState.backupState.isDownloading}
 							<button
 								onclick={handleClose}
-								class="rounded-lg p-1 text-[var(--sl-text-2)] transition-colors hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+								class="rounded-lg p-1 text-[var(--sl-text-2)] transition-all duration-100 hover:bg-white/5 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-white/10"
 								title="Close"
 							>
 								<X size={20} />
@@ -133,13 +133,13 @@
 						</p>
 						<div class="flex gap-4">
 							<button
-								class="rounded-lg bg-[var(--sl-bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-slate-600"
+								class="rounded-lg bg-[var(--sl-bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-slate-600 active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 								onclick={cancelStop}
 							>
 								Cancel
 							</button>
 							<button
-								class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-red-600"
+								class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-red-600 active:scale-[0.97] active:bg-red-700"
 								onclick={confirmStop}
 							>
 								Stop Backup
@@ -173,7 +173,7 @@
 						{/if}
 
 						<button
-							class="text-left text-xs text-[var(--sl-text-2)] hover:text-[var(--sl-text-2)]"
+							class="text-left text-xs text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.96] active:opacity-80"
 							aria-expanded={showFailedDetails}
 							onclick={() => (showFailedDetails = !showFailedDetails)}
 						>
@@ -201,7 +201,7 @@
 							<div class="flex justify-center gap-3">
 								{#if onRetry}
 									<button
-										class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
+										class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 transition-all duration-100 hover:bg-blue-500/20 active:scale-[0.97] active:bg-blue-500/30"
 										onclick={handleRetryFailed}
 									>
 										<RefreshCw size={16} />
@@ -209,7 +209,7 @@
 									</button>
 								{/if}
 								<button
-									class="flex items-center gap-2 rounded-lg bg-[var(--sl-border)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[#475569]"
+									class="flex items-center gap-2 rounded-lg bg-[var(--sl-border)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[#475569] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 									onclick={handleDownloadPartial}
 								>
 									<Download size={16} />
@@ -218,7 +218,7 @@
 							</div>
 							{#if onFullBackup}
 								<button
-									class="mt-1 text-xs text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
+									class="mt-1 text-xs text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.96] active:opacity-80"
 									onclick={handleFullBackup}
 								>
 									Start new full backup
@@ -248,7 +248,7 @@
 					<div class="mt-6 flex justify-center gap-4">
 						{#if deviceState.backupState.isDownloading}
 							<button
-								class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
+								class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-500 transition-all duration-100 hover:bg-red-500/20 active:scale-[0.97] active:bg-red-500/30"
 								onclick={handleStop}
 							>
 								<Square size={16} class="fill-current" />
@@ -256,7 +256,7 @@
 							</button>
 						{:else}
 							<button
-								class="rounded-lg bg-[var(--sl-border)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[#475569]"
+								class="rounded-lg bg-[var(--sl-border)] px-4 py-2 text-sm font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[#475569] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 								onclick={handleClose}
 							>
 								Close

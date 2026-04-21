@@ -225,13 +225,17 @@
 				class="flex justify-end gap-3 border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6"
 			>
 				<button
-					class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+					class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => (open = false)}
 					disabled={pushing || fetchingLatest}
 				>
 					Cancel
 				</button>
-				<button class="btn min-w-[120px] btn-primary" onclick={handlePush} disabled={pushing}>
+				<button
+					class="btn min-w-[120px] btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
+					onclick={handlePush}
+					disabled={pushing}
+				>
 					{#if pushing}
 						<Loader2 size={18} class="mr-2 animate-spin" />
 						Pushing...

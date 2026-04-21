@@ -22,7 +22,7 @@
 			</div>
 			<button
 				onclick={handleOpen}
-				class="rounded-lg p-1 text-[var(--sl-text-2)] transition-colors hover:bg-white/5 hover:text-[var(--sl-text-1)]"
+				class="rounded-lg p-1 text-[var(--sl-text-2)] transition-all duration-100 hover:bg-white/5 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-white/10"
 				title="Maximize"
 			>
 				<Maximize2 size={16} />

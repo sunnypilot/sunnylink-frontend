@@ -499,7 +499,7 @@
 					<div class="flex items-center gap-1">
 						{#if ms.isFetching}
 							<button
-								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-elevated)]"
 								onclick={minimize}
 								title="Minimize"
 							>
@@ -507,7 +507,7 @@
 							</button>
 						{/if}
 						<button
-							class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
+							class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-elevated)]"
 							onclick={close}
 							aria-label="Close"
 						>
@@ -602,7 +602,7 @@
 												Choose an online device to copy settings from.
 											</p>
 											<button
-												class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
+												class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary transition-all duration-100 hover:bg-primary/10 active:scale-[0.94] active:bg-primary/20"
 												onclick={handleRecheckStatus}
 												disabled={isCheckingStatus}
 											>
@@ -671,7 +671,7 @@
 												</div>
 												<div class="flex justify-center pt-2">
 													<button
-														class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
+														class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-500 transition-all duration-100 hover:bg-red-500/20 active:scale-[0.97] active:bg-red-500/30"
 														onclick={cancelFetch}
 													>
 														<Square size={16} class="fill-current" />
@@ -681,7 +681,7 @@
 											</div>
 										{:else}
 											<button
-												class="btn w-full btn-primary"
+												class="btn w-full btn-primary transition-all duration-100 active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
 												disabled={!ms.sourceDeviceId || ms.isFetching}
 												onclick={handleSourceSelection}
 											>
@@ -705,7 +705,9 @@
 										</p>
 									</div>
 
-									<label class="btn relative btn-primary">
+									<label
+										class="btn relative btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80"
+									>
 										Choose File
 										<input
 											type="file"
@@ -727,7 +729,7 @@
 
 							<div class="flex justify-start pt-4">
 								<button
-									class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+									class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 									onclick={() => goToStep(1)}
 								>
 									Back
@@ -809,14 +811,14 @@
 
 									<div class="grid gap-3 sm:grid-cols-2">
 										<button
-											class="btn border border-[var(--sl-border)] text-[var(--sl-text-2)] btn-ghost hover:border-white hover:bg-white/10 hover:text-[var(--sl-text-1)]"
+											class="btn border border-[var(--sl-border)] text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:border-white hover:bg-white/10 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 											onclick={handleDownloadFetchedBackup}
 										>
 											<Download size={18} class="mr-2" />
 											Download & Finish Later
 										</button>
 										<button
-											class="btn btn-primary"
+											class="btn btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
 											disabled={!ms.targetDeviceId}
 											onclick={handleTargetSelection}
 										>
@@ -836,7 +838,7 @@
 												Choose an online device to apply settings to.
 											</p>
 											<button
-												class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
+												class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary transition-all duration-100 hover:bg-primary/10 active:scale-[0.94] active:bg-primary/20"
 												onclick={handleRecheckStatus}
 											>
 												<RefreshCw size={12} />
@@ -881,7 +883,7 @@
 										</div>
 
 										<button
-											class="btn w-full btn-primary"
+											class="btn w-full btn-primary transition-all duration-100 active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
 											disabled={!ms.targetDeviceId}
 											onclick={handleTargetSelection}
 										>
@@ -893,7 +895,7 @@
 
 							<div class="flex justify-start pt-4">
 								<button
-									class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+									class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 									onclick={() => goToStep(2)}
 								>
 									Back
@@ -1068,7 +1070,7 @@
 										Back
 									</button>
 									<button
-										class="btn btn-primary"
+										class="btn btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
 										disabled={ms.comparison.length === 0}
 										onclick={applyChanges}
 									>
