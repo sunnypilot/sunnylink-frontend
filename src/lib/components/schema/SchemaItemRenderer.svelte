@@ -716,6 +716,7 @@
 						value={displayValue}
 						disabled={!enabled || isPushing}
 						disabledValues={disabledOptionValues}
+						title={displayTitle}
 						onchange={(val) => {
 							const numVal = Number(val);
 							handleChange(isNaN(numVal) ? val : numVal);
@@ -1111,6 +1112,7 @@
 						value={displayValue}
 						disabled={!enabled || isPushing}
 						disabledValues={disabledOptionValues}
+						title={displayTitle}
 						onchange={(val) => {
 							const numVal = Number(val);
 							handleChange(isNaN(numVal) ? val : numVal);

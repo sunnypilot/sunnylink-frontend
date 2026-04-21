@@ -243,6 +243,7 @@
 				<SelectDropdown
 					{options}
 					value={displayValue}
+					{title}
 					onchange={(val) => {
 						let newValue: string | number = val;
 						if (setting.value?.type === 'Int')

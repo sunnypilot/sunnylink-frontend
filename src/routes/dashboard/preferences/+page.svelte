@@ -135,6 +135,7 @@
 			<SelectDropdown
 				options={landingPageOptions}
 				value={preferences.defaultLandingPage}
+				title="Default Landing Page"
 				onchange={(v) => {
 					preferences.defaultLandingPage = String(v) as typeof preferences.defaultLandingPage;
 				}}

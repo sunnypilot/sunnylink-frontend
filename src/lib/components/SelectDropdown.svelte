@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, ChevronUp, Check } from 'lucide-svelte';
+	import { ChevronDown, ChevronUp, Check, X } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
 	import { tick } from 'svelte';
@@ -16,9 +16,19 @@
 		disabled?: boolean;
 		disabledValues?: Set<string | number>;
 		onchange: (value: string | number) => void;
+		/** Setting name shown in the bottom-sheet header so the user knows what
+		 *  they're choosing (the trigger row gets covered when the sheet opens). */
+		title?: string;
 	}
 
-	let { options, value, disabled = false, disabledValues, onchange }: Props = $props();
+	let {
+		options,
+		value,
+		disabled = false,
+		disabledValues,
+		onchange,
+		title = ''
+	}: Props = $props();
 
 	const BOTTOM_SHEET_THRESHOLD = 10;
 
@@ -262,15 +272,38 @@
 		<div
 			use:portal
 			bind:this={menuEl}
-			transition:fly={{ y: 400, duration: 280, opacity: 1 }}
+			transition:fly={{ y: 400, duration: 280 }}
 			class="fixed inset-x-0 bottom-0 z-[9999] flex max-h-[75vh] flex-col overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl"
-			role="listbox"
+			role="dialog"
+			aria-modal="true"
+			aria-label={title || 'Choose an option'}
 			style="padding-bottom: env(safe-area-inset-bottom);"
 		>
 			<!-- Drag handle (visual affordance, not draggable) -->
 			<div class="flex shrink-0 items-center justify-center pt-2.5 pb-1.5">
 				<div class="h-1 w-10 rounded-full bg-[var(--sl-border-emphasis)]"></div>
 			</div>
+			{#if title}
+				<!-- Title bar: tells user what setting they're choosing. The trigger
+				     row underneath is covered by the sheet, so without this the user
+				     can lose track. iOS HIG / Material modal sheet pattern. -->
+				<div
+					class="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--sl-border-muted)] px-4 pt-1 pb-3"
+				>
+					<h3 class="truncate text-[0.9375rem] font-semibold text-[var(--sl-text-1)]">
+						{title}
+					</h3>
+					<button
+						type="button"
+						onclick={close}
+						class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+						aria-label="Close"
+					>
+						<X size={16} />
+					</button>
+				</div>
+			{/if}
+			<div role="listbox" aria-label={title || 'Options'} class="contents">
 			<div
 				bind:this={scrollEl}
 				class="flex-1 overflow-y-auto"
@@ -302,6 +335,7 @@
 					{/each}
 				</div>
 			</div>
+		</div>
 		</div>
 	{:else}
 		<!-- ── Anchored popover variant (default) ──────────────────────────── -->
