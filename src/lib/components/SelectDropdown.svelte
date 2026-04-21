@@ -36,7 +36,7 @@
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let menuEl = $state<HTMLDivElement | null>(null);
 	let scrollEl = $state<HTMLDivElement | null>(null);
-	let menuStyle = $state('position:fixed;visibility:hidden;');
+	let menuStyle = $state('position:fixed;');
 
 	let menuRight = 0;
 	let menuMinWidth = 0;
@@ -65,7 +65,16 @@
 			close();
 			return;
 		}
-		menuStyle = 'position:fixed;visibility:hidden;';
+		// Pre-position from the trigger rect synchronously so the popover renders
+		// at the right spot from frame 1 — visibility:hidden hid the entire scale
+		// transition because alignMenu only revealed the element mid-animation.
+		// alignMenu still runs after mount to refine for selected-option centering.
+		if (!useBottomSheet && triggerEl) {
+			const r = triggerEl.getBoundingClientRect();
+			const right = Math.max(8, document.documentElement.clientWidth - r.right);
+			const minWidth = Math.max(r.width, 120);
+			menuStyle = `position:fixed;top:${r.bottom + 4}px;right:${right}px;min-width:${minWidth}px;`;
+		}
 		open = true;
 		await tick();
 		await new Promise<void>((r) => requestAnimationFrame(() => r()));
