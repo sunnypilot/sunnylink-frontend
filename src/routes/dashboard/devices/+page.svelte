@@ -249,7 +249,7 @@
 	<!-- Cold start: no cached devices, API hasn't returned yet — show skeleton -->
 	<MyDevicesSkeleton />
 {:else}
-	<div class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl">
+	<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 		{#if devices.length === 0}
 			<!-- API returned but no devices — true empty state -->
 			<div class="flex flex-col items-center justify-center py-16 text-center">

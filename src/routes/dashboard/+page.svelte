@@ -201,14 +201,14 @@
 	     an offline device before the redirect. -->
 	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 {:else if devices.length === 0}
-	<main class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl">
+	<main class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 		<DashboardEmptyState />
 	</main>
 {:else if !selectedDevice}
 	<!-- Devices exist but MRU auto-select is in flight; render skeleton briefly -->
 	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 {:else}
-	<main class="mx-auto w-full max-w-2xl pb-24 xl:max-w-3xl">
+	<main class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 		<div class="flex flex-col gap-4 sm:gap-5">
 			<DashboardHero device={selectedDevice} />
 

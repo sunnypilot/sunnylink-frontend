@@ -163,6 +163,23 @@ body {
 	/* Defense in depth: even though body can't scroll, deny any overscroll
 	   behaviors so a stray gesture can't propagate to the viewport. */
 	overscroll-behavior: none;
+	/* `pan-x pan-y` excludes `pinch-zoom` — blocks two-finger zoom while
+	   keeping scroll/swipe intact. Applied to html+body because `touch-action`
+	   does not inherit; descendants default `auto` and would otherwise allow
+	   pinch on their own hit-test area. Paired with iOS Safari's non-standard
+	   `gesturestart` preventDefault in +layout.svelte (touch-action alone is
+	   unreliable on iOS WebKit when accessibility "allow zoom" is forced). */
+	touch-action: pan-x pan-y;
+}
+
+/* Block pinch-zoom and double-tap-zoom on every descendant. `touch-action`
+   does not inherit, so without this rule the scroll container (.drawer-content)
+   and everything below would default to `auto` and accept pinch gestures —
+   which is what started happening after we moved scroll off the document to
+   block iOS pull-to-refresh. `pan-x pan-y` keeps scroll/swipe intact.
+   Elements that need different touch behavior (SelectDropdown's pan-y-only
+   list) still override via inline style (higher specificity than `*`). */
+* {
 	touch-action: pan-x pan-y;
 }
 

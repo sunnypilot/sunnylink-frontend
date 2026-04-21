@@ -359,6 +359,26 @@
 	onMount(() => {
 		const ua = window.navigator.userAgent;
 		isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+
+		// Block pinch-zoom across the app (Linear parity). Viewport meta
+		// `user-scalable=no, maximum-scale=1` is the declarative hint, but iOS
+		// Safari respects the user's Accessibility > Zoom override and lets
+		// pinch through anyway. The non-standard `gesturestart/change/end`
+		// events are iOS WebKit's authoritative hook — preventDefault here
+		// stops the zoom gesture before it starts. Other platforms ignore
+		// these events (no-op), so the handler is safe to attach globally.
+		// Double-tap zoom is already blocked via body `touch-action: pan-x
+		// pan-y` (excludes pinch-zoom and double-tap-zoom semantics).
+		const blockGesture = (e: Event) => e.preventDefault();
+		document.addEventListener('gesturestart', blockGesture);
+		document.addEventListener('gesturechange', blockGesture);
+		document.addEventListener('gestureend', blockGesture);
+
+		return () => {
+			document.removeEventListener('gesturestart', blockGesture);
+			document.removeEventListener('gesturechange', blockGesture);
+			document.removeEventListener('gestureend', blockGesture);
+		};
 	});
 
 	// Session-expired modal: only on auth-required routes (/dashboard/*). Landing
@@ -564,7 +584,11 @@
 				</div>
 			{/if}
 
-			<main class="flex-1 {isChromeless ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
+			<main
+				class="flex-1 {isChromeless
+					? ''
+					: 'px-4 pt-4 pb-40 sm:px-6 sm:pt-6 sm:pb-48 lg:px-10 lg:pt-8 lg:pb-56'}"
+			>
 				{#if !isChromeless && deviceState.selectedDeviceId}
 					<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 						<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
