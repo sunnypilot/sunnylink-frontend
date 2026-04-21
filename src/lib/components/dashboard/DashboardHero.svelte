@@ -4,6 +4,7 @@
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { Smartphone, Loader2, ChevronRight, ArrowLeftRight } from 'lucide-svelte';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
+	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
 
 	let { device } = $props<{ device: any }>();
 
@@ -174,6 +175,8 @@
 			</dd>
 		</div>
 	</dl>
+
+	<LegacyDeviceBadge deviceId={device.device_id} variant="banner" className="mt-3" />
 
 	<a
 		href="/dashboard/devices/{device.device_id}/about"

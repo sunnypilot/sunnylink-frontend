@@ -15,6 +15,7 @@
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
 	import { APIv0Client, Athenav1Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
+	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
@@ -593,6 +594,7 @@
 											aria-label="Checking status"
 										/>
 									{/if}
+									<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
 								</div>
 
 								<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">

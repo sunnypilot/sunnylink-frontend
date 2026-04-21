@@ -11,6 +11,8 @@
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
+	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
+	import { schemaState } from '$lib/stores/schema.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import {
 		RefreshCw,
@@ -400,6 +402,7 @@
 		<span class="text-[0.75rem] leading-none font-medium {pillState.textClass}">
 			{pillState.label}
 		</span>
+		<LegacyDeviceBadge {deviceId} variant="dot" className="ml-0.5" />
 		<ChevronDown
 			size={12}
 			class="shrink-0 transition-transform duration-150 {pillState.textClass} opacity-70 {popoverOpen
@@ -457,6 +460,12 @@
 					{/if}
 				</div>
 			</div>
+
+			{#if deviceId && schemaState.schemaUnavailable[deviceId]}
+				<div class="px-1.5 pb-1.5">
+					<LegacyDeviceBadge {deviceId} variant="banner" />
+				</div>
+			{/if}
 
 			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
 
