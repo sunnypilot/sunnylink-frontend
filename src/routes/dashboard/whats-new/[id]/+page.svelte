@@ -39,8 +39,12 @@
 		return t.excerpt.replace(/&hellip;\s*$/i, '…').replace(/\s+$/g, '');
 	}
 
-	function openOnForum(t: DiscourseTopic) {
+	function openOnForum(e: MouseEvent, t: DiscourseTopic) {
+		// iOS standalone PWAs ignore `target="_blank"` and navigate in-place.
+		// Force a new tab via window.open + preventDefault.
+		e.preventDefault();
 		whatsNewStore.markRead(t.id);
+		window.open(forumTopicUrl(t), '_blank', 'noopener,noreferrer');
 	}
 
 	onMount(() => {
@@ -164,8 +168,8 @@
 				<a
 					href={forumTopicUrl(topic)}
 					target="_blank"
-					rel="noopener"
-					onclick={() => openOnForum(topic)}
+					rel="noopener noreferrer"
+					onclick={(e) => openOnForum(e, topic)}
 					class="relative mt-6 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
 				>
 					<span>Read on forum</span>

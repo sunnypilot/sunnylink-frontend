@@ -26,8 +26,14 @@
 		expandedId = expandedId === id ? null : id;
 	}
 
-	function openOnForum(topic: DiscourseTopic) {
+	function openOnForum(e: MouseEvent, topic: DiscourseTopic) {
+		// iOS standalone PWAs ignore `target="_blank"` and navigate in-place.
+		// Force a new tab via window.open + preventDefault so forum trips
+		// always leave sunnylink intact. Middle-click fires `auxclick` (not
+		// `click`), so this path only runs for primary-button activation.
+		e.preventDefault();
 		whatsNewStore.markRead(topic.id);
+		window.open(forumTopicUrl(topic), '_blank', 'noopener,noreferrer');
 	}
 
 	let sentinelObserver: IntersectionObserver | null = null;
@@ -177,8 +183,8 @@
 								<a
 									href={forumTopicUrl(topic)}
 									target="_blank"
-									rel="noopener"
-									onclick={() => openOnForum(topic)}
+									rel="noopener noreferrer"
+									onclick={(e) => openOnForum(e, topic)}
 									class="relative mt-4 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
 								>
 									<span>Read on forum</span>
