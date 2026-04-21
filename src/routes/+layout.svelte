@@ -513,13 +513,13 @@
 			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 			<aside
 				class={[
-					'flex min-h-full flex-col border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)] transition-[width] duration-300',
+					'flex h-[100dvh] flex-col overflow-hidden border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)] transition-[width] duration-300',
 					drawerOpen ? 'w-72' : 'w-16',
 					'lg:w-[18rem]'
 				]}
 			>
 				<!-- Brand wordmark (non-interactive) -->
-				<div class="flex h-14 w-full items-center px-4 lg:px-5">
+				<div class="flex h-14 w-full shrink-0 items-center px-4 lg:px-5">
 					<p
 						class={[
 							'font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-2)] uppercase',
@@ -531,7 +531,10 @@
 					</p>
 				</div>
 
-				<nav class="flex-1 overflow-y-auto overscroll-contain px-3 py-3 lg:px-4" style="min-height: 0;">
+				<nav
+					class="flex-1 overflow-y-auto overscroll-contain px-3 py-3 lg:px-4 [&::-webkit-scrollbar]:hidden"
+					style="min-height: 0; scrollbar-width: none;"
+				>
 					<!-- Auth init in flight — show skeleton rows so the sidebar doesn't
 						 flash empty or flip to the logged-out view during the refresh
 						 grant window. -->
@@ -691,7 +694,7 @@
 					</li>
 				{/snippet}
 
-				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
+				<div class="shrink-0 border-t border-[var(--sl-border-muted)] px-4 py-3">
 					{#if authState.loading}
 						<!-- Skeleton row matching account/login footer height -->
 						<div class="flex items-center gap-2.5 rounded-lg px-3 py-2" aria-hidden="true">
