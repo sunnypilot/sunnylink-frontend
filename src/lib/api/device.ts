@@ -620,6 +620,8 @@ export async function checkDeviceStatus(
 					capability_labels: compressedSettings.capability_labels
 				};
 			}
+			// Got new metadata schema — device is on a sunnylink-2.0-ready sunnypilot
+			schemaState.schemaUnavailable[deviceId] = false;
 			deviceState.markStatusChecked(deviceId);
 			return;
 		}
@@ -636,7 +638,12 @@ export async function checkDeviceStatus(
 			);
 		}
 
-		// Phase 2: Fallback to legacy V1 (old device without getParamsMetadata)
+		// Phase 2: Fallback to legacy V1 (old device without getParamsMetadata).
+		// Mark schema unavailable here so legacy-device badges (DeviceStatusPill,
+		// DashboardHero, My Devices chip) light up on Home + My Devices without
+		// requiring a Settings-page visit (which is what previously triggered
+		// schemaState.loadSchema() and was the only path that set this flag).
+		schemaState.schemaUnavailable[deviceId] = true;
 		const settingsRes = await Athenav1Client.GET('/v1/settings/{deviceId}', {
 			params: { path: { deviceId } },
 			headers: { Authorization: `Bearer ${token}` }
