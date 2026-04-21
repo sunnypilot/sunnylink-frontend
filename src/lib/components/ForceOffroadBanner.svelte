@@ -77,7 +77,7 @@
 	<div
 		role="status"
 		aria-live="polite"
-		class="w-full border-b border-amber-500/30 bg-amber-500/10"
+		class="w-full border-b border-amber-500/20 bg-amber-500/8 dark:bg-amber-500/10"
 		transition:slide={{ duration: 200 }}
 	>
 		<div
@@ -89,9 +89,9 @@
 					class="shrink-0 text-amber-600 dark:text-amber-400"
 					aria-hidden="true"
 				/>
-				<p class="text-[0.8125rem] leading-snug text-[var(--sl-text-1)]">
+				<p class="text-[0.8125rem] leading-snug text-amber-700 dark:text-amber-300">
 					<span class="font-medium">Sunnypilot disabled on this car</span>
-					<span class="hidden text-[var(--sl-text-2)] sm:inline"
+					<span class="hidden text-amber-700/70 sm:inline dark:text-amber-300/70"
 						>· driving assist won't engage</span
 					>
 				</p>
@@ -100,7 +100,7 @@
 				type="button"
 				onclick={stopForcing}
 				disabled={stopping}
-				class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/15 px-3 text-[0.75rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:text-amber-300 dark:hover:bg-amber-500/20"
+				class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/15 px-3 text-[0.75rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
 				aria-label="Disable Always Offroad mode"
 			>
 				{#if stopping}

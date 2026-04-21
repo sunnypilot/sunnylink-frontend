@@ -39,17 +39,29 @@
 	}
 
 	$effect(() => {
-		if (!isOpen || typeof window === 'undefined') return;
+		if (!isOpen || typeof window === 'undefined' || !triggerEl) return;
 		alignMenu();
 		const handler = () => alignMenu();
 		window.addEventListener('resize', handler);
 		window.addEventListener('scroll', handler, true);
-		const ro = new ResizeObserver(handler);
-		ro.observe(document.body);
+		let lastTop = triggerEl.getBoundingClientRect().top;
+		let lastLeft = triggerEl.getBoundingClientRect().left;
+		let rafId = 0;
+		function tick() {
+			if (!triggerEl) return;
+			const r = triggerEl.getBoundingClientRect();
+			if (r.top !== lastTop || r.left !== lastLeft) {
+				lastTop = r.top;
+				lastLeft = r.left;
+				alignMenu();
+			}
+			rafId = requestAnimationFrame(tick);
+		}
+		rafId = requestAnimationFrame(tick);
 		return () => {
 			window.removeEventListener('resize', handler);
 			window.removeEventListener('scroll', handler, true);
-			ro.disconnect();
+			cancelAnimationFrame(rafId);
 		};
 	});
 

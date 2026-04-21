@@ -30,17 +30,31 @@
 	});
 
 	$effect(() => {
-		if (!open || typeof window === 'undefined') return;
+		if (!open || typeof window === 'undefined' || !triggerEl) return;
 		alignMenu();
 		const handler = () => alignMenu();
 		window.addEventListener('resize', handler);
 		window.addEventListener('scroll', handler, true);
-		const ro = new ResizeObserver(handler);
-		ro.observe(document.body);
+		// rAF poll — see DeviceStatusPill for rationale (min-h-screen prevents
+		// ResizeObserver from firing on layout shifts).
+		let lastTop = triggerEl.getBoundingClientRect().top;
+		let lastLeft = triggerEl.getBoundingClientRect().left;
+		let rafId = 0;
+		function tick() {
+			if (!triggerEl) return;
+			const r = triggerEl.getBoundingClientRect();
+			if (r.top !== lastTop || r.left !== lastLeft) {
+				lastTop = r.top;
+				lastLeft = r.left;
+				alignMenu();
+			}
+			rafId = requestAnimationFrame(tick);
+		}
+		rafId = requestAnimationFrame(tick);
 		return () => {
 			window.removeEventListener('resize', handler);
 			window.removeEventListener('scroll', handler, true);
-			ro.disconnect();
+			cancelAnimationFrame(rafId);
 		};
 	});
 

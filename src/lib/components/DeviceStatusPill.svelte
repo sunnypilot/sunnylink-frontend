@@ -131,20 +131,34 @@
 	});
 
 	$effect(() => {
-		if (!popoverOpen || typeof window === 'undefined') return;
+		if (!popoverOpen || typeof window === 'undefined' || !triggerEl) return;
 		alignMenu();
 		const handler = () => alignMenu();
 		window.addEventListener('resize', handler);
 		window.addEventListener('scroll', handler, true);
-		// Layout shifts (e.g., ForceOffroadBanner mount/unmount changes header
-		// height → pill button moves) must re-anchor the popover; ResizeObserver
-		// on body fires whenever the document height changes.
-		const ro = new ResizeObserver(handler);
-		ro.observe(document.body);
+		// Pages where main content fits within 100vh keep drawer-content (and thus
+		// body height) constant via min-h-screen, so ResizeObserver on body misses
+		// header-height changes from ForceOffroadBanner mount/unmount. Poll the
+		// trigger's bounding rect every animation frame instead — cheap, ~60fps,
+		// catches every layout shift regardless of which ancestor changes.
+		let lastTop = triggerEl.getBoundingClientRect().top;
+		let lastRight = triggerEl.getBoundingClientRect().right;
+		let rafId = 0;
+		function tick() {
+			if (!triggerEl) return;
+			const r = triggerEl.getBoundingClientRect();
+			if (r.top !== lastTop || r.right !== lastRight) {
+				lastTop = r.top;
+				lastRight = r.right;
+				alignMenu();
+			}
+			rafId = requestAnimationFrame(tick);
+		}
+		rafId = requestAnimationFrame(tick);
 		return () => {
 			window.removeEventListener('resize', handler);
 			window.removeEventListener('scroll', handler, true);
-			ro.disconnect();
+			cancelAnimationFrame(rafId);
 		};
 	});
 
@@ -444,7 +458,7 @@
 				<div class="space-y-0.5 px-1">
 					{#if mayBeOnline}
 						<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Network</span>
+							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Network</span>
 							{#if telemetry}
 								<span class="text-[0.75rem] text-[var(--sl-text-2)]">
 									{formatNetworkType(telemetry.networkType)}
@@ -464,8 +478,8 @@
 							disabled={!branchName}
 							aria-label={branchName ? `Copy branch ${branchName}` : 'Loading branch'}
 						>
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Branch</span>
-							<span class="flex min-w-[140px] items-center justify-end gap-1.5">
+							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Branch</span>
+							<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
 								{#if !branchName}
 									<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
 								{:else if copiedField === 'branch'}
@@ -506,8 +520,8 @@
 							disabled={!softwareVersion}
 							aria-label={softwareVersion ? `Copy version ${softwareVersion}` : 'Loading version'}
 						>
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Version</span>
-							<span class="flex min-w-[140px] items-center justify-end gap-1.5">
+							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Version</span>
+							<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
 								{#if !softwareVersion}
 									<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
 								{:else if copiedField === 'version'}
@@ -534,8 +548,8 @@
 							disabled={!commitHash}
 							aria-label={commitHash ? `Copy commit ${commitHash}` : 'Loading commit'}
 						>
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Commit</span>
-							<span class="flex min-w-[140px] items-center justify-end gap-1.5">
+							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Commit</span>
+							<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
 								{#if !commitHash}
 									<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
 								{:else if copiedField === 'commit'}
@@ -557,7 +571,7 @@
 					{/if}
 					{#if lastSeen || mayBeOnline}
 						<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Last seen</span>
+							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Last seen</span>
 							{#if lastSeen}
 								<!-- Force re-render every 10s via statusPolling tick -->
 								{#key statusPolling.tickCounter}
@@ -577,7 +591,7 @@
 						</div>
 					{:else if onlineStatus === 'offline' && !lastSeen}
 						<div>
-							<span class="text-[0.75rem] text-[var(--sl-text-3)]">Device is not connected</span>
+							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Device is not connected</span>
 						</div>
 					{/if}
 				</div>
