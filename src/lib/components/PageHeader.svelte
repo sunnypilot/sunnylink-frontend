@@ -24,8 +24,10 @@
 		<!-- BackLink sits outside the px-4 title block so the chevron lands at
 		     the max-w-2xl content edge (= card outer edge), matching Linear's
 		     breadcrumb alignment. The label inside BackLink (`gap-0.5` + size
-		     14 chevron) lines up at 16px = the title's px-4 indent. -->
-		<BackLink label={backLabel} fallback={backHref} class="mb-4" />
+		     14 chevron) lines up at 16px = the title's px-4 indent. Vertical
+		     spacing to the title is baked into BackLink itself (`mb-5`) so
+		     every consumer gets the same rhythm. -->
+		<BackLink label={backLabel} fallback={backHref} />
 	{/if}
 	<div class="px-4">
 		<h1 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">

@@ -578,7 +578,7 @@
 				out:fly={{ x: subPanelDirection === 'forward' ? -30 : 30, duration: 120 }}
 			>
 				{#if activeSubPanel}
-					<BackLink label={schemaPanel?.label ?? category} fallback={closeSubPanel} class="mb-1" />
+					<BackLink label={schemaPanel?.label ?? category} fallback={closeSubPanel} />
 					<div class="px-4">
 						<h2
 							class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"

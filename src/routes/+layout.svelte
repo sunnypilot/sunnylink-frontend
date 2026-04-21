@@ -130,7 +130,13 @@
 		// Mobile drawer lock takes priority: its $effect writes `contain` and
 		// cleans up on close. Skip writing here so we don't clobber it.
 		if (drawerOpen && window.innerWidth < 1024) return;
-		const mode = contentScrollable ? 'auto' : 'none';
+		// `contain` (not `auto`) when scrollable: preserves iOS rubber-band
+		// bounce at the top/bottom of the content, but blocks the browser's
+		// pull-to-refresh gesture — matches Linear's mobile behavior where a
+		// hard pull past the top can't accidentally reload the app. `none`
+		// on short pages keeps them fully frozen (no bounce on empty
+		// viewport).
+		const mode = contentScrollable ? 'contain' : 'none';
 		document.documentElement.style.overscrollBehavior = mode;
 		document.body.style.overscrollBehavior = mode;
 	});
