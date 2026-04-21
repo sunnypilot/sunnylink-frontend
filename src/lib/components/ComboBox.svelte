@@ -29,6 +29,26 @@
 	let searchQuery = $state('');
 	let inputElement = $state<HTMLInputElement | undefined>();
 	let containerElement = $state<HTMLDivElement | undefined>();
+	let triggerEl = $state<HTMLButtonElement | null>(null);
+	let menuStyle = $state('position:fixed;visibility:hidden;');
+
+	function alignMenu() {
+		if (!triggerEl) return;
+		const rect = triggerEl.getBoundingClientRect();
+		menuStyle = `position:fixed;top:${rect.bottom + 8}px;left:${rect.left}px;width:${rect.width}px;`;
+	}
+
+	$effect(() => {
+		if (!isOpen || typeof window === 'undefined') return;
+		alignMenu();
+		const handler = () => alignMenu();
+		window.addEventListener('resize', handler);
+		window.addEventListener('scroll', handler, true);
+		return () => {
+			window.removeEventListener('resize', handler);
+			window.removeEventListener('scroll', handler, true);
+		};
+	});
 
 	// Outside-click handled by portaled backdrop (use:modalLock).
 
@@ -70,6 +90,7 @@
 
 	<button
 		{id}
+		bind:this={triggerEl}
 		type="button"
 		class="flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-3 text-left text-sm text-[var(--sl-text-1)] transition-colors hover:border-[var(--sl-border-emphasis)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 		onclick={toggle}
@@ -100,7 +121,9 @@
 			}}
 		></div>
 		<div
-			class="absolute z-[9999] mt-2 w-full overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
+			use:portal
+			class="z-[9999] overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
+			style={menuStyle}
 			transition:fly={{ y: 10, duration: 200 }}
 		>
 			<!-- Search Input -->

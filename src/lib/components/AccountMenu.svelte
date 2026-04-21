@@ -13,6 +13,27 @@
 	let { onNavigate }: Props = $props();
 
 	let open = $state(false);
+	let triggerEl = $state<HTMLButtonElement | null>(null);
+	let menuStyle = $state('position:fixed;visibility:hidden;');
+
+	function alignMenu() {
+		if (!triggerEl) return;
+		const rect = triggerEl.getBoundingClientRect();
+		const bottom = Math.max(8, window.innerHeight - rect.top + 6);
+		menuStyle = `position:fixed;bottom:${bottom}px;left:${rect.left}px;width:${rect.width}px;`;
+	}
+
+	$effect(() => {
+		if (!open || typeof window === 'undefined') return;
+		alignMenu();
+		const handler = () => alignMenu();
+		window.addEventListener('resize', handler);
+		window.addEventListener('scroll', handler, true);
+		return () => {
+			window.removeEventListener('resize', handler);
+			window.removeEventListener('scroll', handler, true);
+		};
+	});
 
 	const themeOptions: { value: ThemePreference; icon: typeof Sun; label: string }[] = [
 		{ value: 'light', icon: Sun, label: 'Light' },
@@ -45,9 +66,10 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="relative" data-account-menu>
+<div data-account-menu>
 	<button
 		type="button"
+		bind:this={triggerEl}
 		class="group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors duration-150 hover:bg-[var(--sl-bg-subtle)]"
 		onclick={() => (open = !open)}
 		aria-expanded={open}
@@ -94,7 +116,9 @@
 			}}
 		></div>
 		<div
-			class="absolute right-0 bottom-full left-0 z-[9999] mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
+			use:portal
+			class="z-[9999] origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
+			style={menuStyle}
 			role="menu"
 			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 		>

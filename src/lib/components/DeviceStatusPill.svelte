@@ -99,13 +99,34 @@
 
 	// Popover state
 	let popoverOpen = $state(false);
-	let pillRef = $state<HTMLElement | null>(null);
+	let triggerEl = $state<HTMLButtonElement | null>(null);
+	let menuStyle = $state('position:fixed;visibility:hidden;');
 	let refreshing = $state(false);
 	let stoppingForce = $state(false);
 	let forceModalOpen = $state(false);
 	let copiedId = $state(false);
 	let copiedField = $state<string | null>(null);
 	let marqueeEl = $state<HTMLElement | undefined>();
+
+	function alignMenu() {
+		if (!triggerEl) return;
+		const rect = triggerEl.getBoundingClientRect();
+		const right = Math.max(8, document.documentElement.clientWidth - rect.right);
+		const top = rect.bottom + 8;
+		menuStyle = `position:fixed;top:${top}px;right:${right}px;width:min(18rem,calc(100vw - 1rem));`;
+	}
+
+	$effect(() => {
+		if (!popoverOpen || typeof window === 'undefined') return;
+		alignMenu();
+		const handler = () => alignMenu();
+		window.addEventListener('resize', handler);
+		window.addEventListener('scroll', handler, true);
+		return () => {
+			window.removeEventListener('resize', handler);
+			window.removeEventListener('scroll', handler, true);
+		};
+	});
 
 	let marqueeOverflows = $state(false);
 
@@ -325,8 +346,8 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if deviceId}
-	<div class="relative" bind:this={pillRef}>
-		<button
+	<button
+		bind:this={triggerEl}
 			onclick={togglePopover}
 			class="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors duration-[var(--dur-fast)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none {pillState.bgClass} {pillState.borderClass}"
 			aria-label="Device status: {pillState.label}, click to view details"
@@ -363,8 +384,10 @@
 				}}
 			></div>
 			<div
+				use:portal
 				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
-				class="absolute top-full right-0 z-[9999] mt-2 w-[min(18rem,calc(100vw-1rem))] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+				class="z-[9999] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+				style={menuStyle}
 				role="dialog"
 				aria-label="Device status details"
 			>
@@ -589,7 +612,6 @@
 				</div>
 			</div>
 		{/if}
-	</div>
 
 	<ForceOffroadModal bind:open={forceModalOpen} onSuccess={onForceOffroadSuccess} />
 {/if}
