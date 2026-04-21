@@ -256,7 +256,7 @@
 										/>
 									{/if}
 									<h3
-										class="line-clamp-2 text-[0.9375rem] leading-snug {isUnread
+										class="line-clamp-3 text-[0.9375rem] leading-snug {isUnread
 											? 'font-semibold text-[var(--sl-text-1)]'
 											: 'font-medium text-[var(--sl-text-2)]'}"
 									>
