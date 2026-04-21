@@ -16,39 +16,55 @@
 	let panelPos = $state({ top: 0, right: 0 });
 
 	let rafId: number | null = null;
+	let lastTop = 0;
+	let lastRight = 0;
 
 	// Matches the CSS `w-[min(22rem,calc(100vw-1rem))]` so we can clamp the
 	// panel's right-offset such that its left edge stays ≥8px on screen.
 	const MAX_PANEL_WIDTH_PX = 352;
 	const EDGE_MARGIN = 8;
 
-	function computePos() {
-		if (!triggerEl) return;
+	function measurePos() {
+		if (!triggerEl) return null;
 		const rect = triggerEl.getBoundingClientRect();
 		const vw = window.innerWidth;
 		const panelWidth = Math.min(MAX_PANEL_WIDTH_PX, vw - EDGE_MARGIN * 2);
 		const alignedRight = Math.max(vw - rect.right, EDGE_MARGIN);
-		// Pin right-offset so panel's left edge never goes off-screen. If the
-		// trigger sits close to the left edge the computed alignedRight would
-		// push the panel past the viewport — clamp to leave EDGE_MARGIN on the
-		// left. If the viewport is smaller than panelWidth+margins entirely,
-		// the `max` floor keeps us at EDGE_MARGIN.
+		// Pin right-offset so panel's left edge never goes off-screen.
 		const maxRight = Math.max(vw - panelWidth - EDGE_MARGIN, EDGE_MARGIN);
-		panelPos = {
+		return {
 			top: rect.bottom + 8,
 			right: Math.min(alignedRight, maxRight)
 		};
 	}
 
+	function applyPosIfChanged() {
+		const next = measurePos();
+		if (!next) return;
+		// Only write state when the trigger actually moved. Unconditional writes
+		// during the open animation re-emit the style attributes every frame,
+		// which reads as a "wiggle" on top of the scale transition.
+		if (next.top !== lastTop || next.right !== lastRight) {
+			lastTop = next.top;
+			lastRight = next.right;
+			panelPos = next;
+		}
+	}
+
 	function trackPosition() {
 		if (!open) return;
-		computePos();
+		applyPosIfChanged();
 		rafId = requestAnimationFrame(trackPosition);
 	}
 
 	$effect(() => {
 		if (open) {
-			computePos();
+			const initial = measurePos();
+			if (initial) {
+				lastTop = initial.top;
+				lastRight = initial.right;
+				panelPos = initial;
+			}
 			rafId = requestAnimationFrame(trackPosition);
 		}
 		return () => {

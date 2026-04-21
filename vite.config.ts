@@ -11,6 +11,18 @@ export default defineConfig({
 	define: {
 		__APP_VERSION__: JSON.stringify(pkgVersion)
 	},
+	// Netlify handles /api/discourse/* in production via netlify.toml; in dev we
+	// need Vite to perform the same pass-through so the What's new feed works
+	// against the live Discourse forum without CORS.
+	server: {
+		proxy: {
+			'/api/discourse': {
+				target: 'https://community.sunnypilot.ai',
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/api\/discourse/, '')
+			}
+		}
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit(),
