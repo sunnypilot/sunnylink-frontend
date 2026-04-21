@@ -587,7 +587,7 @@
 			<main
 				class="flex-1 {isChromeless
 					? ''
-					: 'px-4 pt-4 pb-40 sm:px-6 sm:pt-6 sm:pb-48 lg:px-10 lg:pt-8 lg:pb-56'}"
+					: 'px-4 pt-4 pb-20 sm:px-6 sm:pt-6 sm:pb-24 lg:px-10 lg:pt-8 lg:pb-32'}"
 			>
 				{#if !isChromeless && deviceState.selectedDeviceId}
 					<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
