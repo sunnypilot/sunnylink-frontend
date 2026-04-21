@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { afterNavigate } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import {
 		Check,
 		ChevronDown,
@@ -10,7 +11,6 @@
 		Mail,
 		MailOpen,
 		Pin,
-		Sparkles,
 		X
 	} from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
@@ -23,12 +23,12 @@
 	let selectMode = $state(false);
 	let selectedIds = $state<Set<number>>(new Set());
 	const selectedCount = $derived(selectedIds.size);
-	const allSelectedRead = $derived(
-		selectedCount > 0 && [...selectedIds].every((id) => !whatsNewStore.isUnread(id))
+	const selectedUnreadCount = $derived(
+		[...selectedIds].reduce((n, id) => n + (whatsNewStore.isUnread(id) ? 1 : 0), 0)
 	);
-	const allSelectedUnread = $derived(
-		selectedCount > 0 && [...selectedIds].every((id) => whatsNewStore.isUnread(id))
-	);
+	const selectedReadCount = $derived(selectedCount - selectedUnreadCount);
+	const allSelectedRead = $derived(selectedCount > 0 && selectedUnreadCount === 0);
+	const allSelectedUnread = $derived(selectedCount > 0 && selectedReadCount === 0);
 
 	function formatDate(iso: string): string {
 		try {
@@ -71,35 +71,54 @@
 		selectedIds = new Set(whatsNewStore.topics.map((t) => t.id));
 	}
 
+	type PriorState = { id: number; wasUnread: boolean };
+
+	function snapshotSelection(): PriorState[] {
+		return [...selectedIds].map((id) => ({ id, wasUnread: whatsNewStore.isUnread(id) }));
+	}
+
 	function bulkMarkRead() {
-		whatsNewStore.markReadMany([...selectedIds]);
+		const prior = snapshotSelection();
+		const ids = prior.map((p) => p.id);
+		whatsNewStore.markReadMany(ids);
+		const count = ids.length;
 		exitSelectMode();
+		toast.success(`${count} marked as read`, {
+			duration: 5000,
+			action: {
+				label: 'Undo',
+				onClick: () => {
+					const restore = prior.filter((p) => p.wasUnread).map((p) => p.id);
+					if (restore.length > 0) whatsNewStore.markUnreadMany(restore);
+				}
+			}
+		});
 	}
 
 	function bulkMarkUnread() {
-		whatsNewStore.markUnreadMany([...selectedIds]);
+		const prior = snapshotSelection();
+		const ids = prior.map((p) => p.id);
+		whatsNewStore.markUnreadMany(ids);
+		const count = ids.length;
 		exitSelectMode();
-	}
-
-	function toggleReadState(topic: DiscourseTopic) {
-		if (whatsNewStore.isUnread(topic.id)) {
-			whatsNewStore.markRead(topic.id);
-		} else {
-			whatsNewStore.markUnread(topic.id);
-		}
+		toast.success(`${count} marked as unread`, {
+			duration: 5000,
+			action: {
+				label: 'Undo',
+				onClick: () => {
+					const restore = prior.filter((p) => !p.wasUnread).map((p) => p.id);
+					if (restore.length > 0) whatsNewStore.markReadMany(restore);
+				}
+			}
+		});
 	}
 
 	function openOnForum(e: MouseEvent, topic: DiscourseTopic) {
-		// iOS standalone PWAs ignore `target="_blank"` — force new tab via
-		// window.open + preventDefault so the dashboard stays on screen.
 		e.preventDefault();
 		whatsNewStore.markRead(topic.id);
 		window.open(forumTopicUrl(topic), '_blank', 'noopener,noreferrer');
 	}
 
-	// Clear selection when the user navigates away. Research shows persisting
-	// selection across routes causes confusion (stuck-checkboxes bug in
-	// Discourse). Reset on navigate-in keeps the feed predictable.
 	afterNavigate(() => {
 		exitSelectMode();
 	});
@@ -142,30 +161,21 @@
 </svelte:head>
 
 <div class="mx-auto w-full max-w-3xl {selectMode && selectedCount > 0 ? 'pb-24' : ''}">
-	<header class="mb-6 flex items-center justify-between gap-3">
-		<div class="flex min-w-0 items-center gap-3">
-			<div
-				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-			>
-				<Sparkles size={18} aria-hidden="true" />
-			</div>
-			<div class="min-w-0">
-				<h1
-					class="text-[1.375rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
-				>
-					What's new
-				</h1>
-				<p class="mt-0.5 text-[0.8125rem] text-[var(--sl-text-3)]">
-					Latest announcements from the sunnypilot team
-				</p>
-			</div>
+	<div class="mb-6 flex items-start justify-between gap-3 px-4">
+		<div class="min-w-0">
+			<h2 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
+				What's new
+			</h2>
+			<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+				Latest announcements from the sunnypilot team
+			</p>
 		</div>
 		{#if whatsNewStore.topics.length > 0}
 			{#if selectMode}
 				<button
 					type="button"
 					onclick={exitSelectMode}
-					class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
+					class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
 				>
 					Cancel
 				</button>
@@ -173,13 +183,13 @@
 				<button
 					type="button"
 					onclick={enterSelectMode}
-					class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
+					class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
 				>
 					Select
 				</button>
 			{/if}
 		{/if}
-	</header>
+	</div>
 
 	{#if whatsNewStore.initialLoading && whatsNewStore.topics.length === 0}
 		<div class="flex items-center justify-center py-16 text-[var(--sl-text-3)]">
@@ -187,7 +197,7 @@
 		</div>
 	{:else if whatsNewStore.topics.length === 0}
 		<div
-			class="rounded-xl border border-dashed border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-6 py-12 text-center"
+			class="mx-4 rounded-xl border border-dashed border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-6 py-12 text-center"
 		>
 			<p class="text-[0.875rem] font-medium text-[var(--sl-text-2)]">No announcements yet</p>
 			<p class="mt-1 text-[0.8125rem] text-[var(--sl-text-3)]">
@@ -195,7 +205,7 @@
 			</p>
 		</div>
 	{:else}
-		<ul class="flex flex-col gap-3">
+		<ul class="flex flex-col gap-3 px-4">
 			{#each whatsNewStore.topics as topic (topic.id)}
 				{@const isOpen = !selectMode && expandedId === topic.id}
 				{@const isUnread = whatsNewStore.isUnread(topic.id)}
@@ -213,13 +223,13 @@
 						<button
 							type="button"
 							onclick={() => toggleExpand(topic.id)}
-							class="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/40"
+							class="flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/40 sm:min-h-[112px]"
 							aria-expanded={isOpen}
 							aria-pressed={selectMode ? isSelected : undefined}
 						>
 							{#if selectMode}
 								<span
-									class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors {isSelected
+									class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors {isSelected
 										? 'border-primary bg-primary text-white'
 										: 'border-[var(--sl-border)] bg-[var(--sl-bg-page)]'}"
 									aria-hidden="true"
@@ -231,12 +241,12 @@
 							{/if}
 							{#if cover}
 								<div
-									class="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-[var(--sl-bg-elevated)] sm:h-20 sm:w-32"
+									class="relative h-16 w-24 shrink-0 self-center overflow-hidden rounded-lg bg-[var(--sl-bg-elevated)] sm:h-20 sm:w-32"
 								>
 									<img src={cover} alt="" loading="lazy" class="h-full w-full object-cover" />
 								</div>
 							{/if}
-							<div class="flex min-w-0 flex-1 flex-col gap-1">
+							<div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
 								<div class="flex items-start gap-2">
 									{#if topic.pinned}
 										<Pin
@@ -245,13 +255,13 @@
 											aria-label="Pinned"
 										/>
 									{/if}
-									<h2
-										class="text-[0.9375rem] leading-snug {isUnread
+									<h3
+										class="line-clamp-2 text-[0.9375rem] leading-snug {isUnread
 											? 'font-semibold text-[var(--sl-text-1)]'
 											: 'font-medium text-[var(--sl-text-2)]'}"
 									>
 										{topic.title}
-									</h2>
+									</h3>
 								</div>
 								<p class="text-[0.75rem] text-[var(--sl-text-3)]">
 									{formatDate(topic.created_at)}
@@ -260,7 +270,7 @@
 							{#if !selectMode}
 								<ChevronDown
 									size={16}
-									class="mt-1 shrink-0 text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
+									class="shrink-0 self-center text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
 										? 'rotate-180'
 										: ''}"
 									aria-hidden="true"
@@ -274,7 +284,7 @@
 								transition:slide={{ duration: 180 }}
 							>
 								{#if excerpt}
-									<p class="text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
+									<p class="line-clamp-3 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
 										{excerpt}
 									</p>
 								{:else}
@@ -282,7 +292,7 @@
 										No preview available — read the full post on the community forum.
 									</p>
 								{/if}
-								<div class="mt-4 flex flex-wrap items-center gap-2">
+								<div class="mt-4 flex justify-end">
 									<a
 										href={forumTopicUrl(topic)}
 										target="_blank"
@@ -299,20 +309,6 @@
 											></span>
 										{/if}
 									</a>
-									<button
-										type="button"
-										onclick={() => toggleReadState(topic)}
-										class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
-										aria-label={isUnread ? 'Mark as read' : 'Mark as unread'}
-									>
-										{#if isUnread}
-											<MailOpen size={13} aria-hidden="true" />
-											<span>Mark as read</span>
-										{:else}
-											<Mail size={13} aria-hidden="true" />
-											<span>Mark as unread</span>
-										{/if}
-									</button>
 								</div>
 							</div>
 						{/if}
@@ -351,14 +347,21 @@
 			>
 				<X size={16} aria-hidden="true" />
 			</button>
-			<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
-				{selectedCount} selected
-			</span>
+			<div class="flex min-w-0 flex-col">
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+					{selectedCount} selected
+				</span>
+				{#if selectedUnreadCount > 0 && selectedReadCount > 0}
+					<span class="text-[0.6875rem] text-[var(--sl-text-3)]">
+						{selectedUnreadCount} unread · {selectedReadCount} read
+					</span>
+				{/if}
+			</div>
 			<button
 				type="button"
 				onclick={selectAll}
 				disabled={selectedCount === whatsNewStore.topics.length}
-				class="inline-flex h-9 items-center rounded-lg px-2.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40 disabled:cursor-not-allowed"
+				class="ml-1 inline-flex h-9 items-center rounded-lg px-2.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				Select all
 			</button>
@@ -367,7 +370,8 @@
 					type="button"
 					onclick={bulkMarkRead}
 					disabled={allSelectedRead}
-					class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+					title={`Sets all ${selectedCount} to read`}
+					class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
 				>
 					<MailOpen size={13} aria-hidden="true" />
 					<span class="hidden sm:inline">Mark as read</span>
@@ -377,7 +381,8 @@
 					type="button"
 					onclick={bulkMarkUnread}
 					disabled={allSelectedUnread}
-					class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+					title={`Sets all ${selectedCount} to unread`}
+					class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
 				>
 					<Mail size={13} aria-hidden="true" />
 					<span class="hidden sm:inline">Mark as unread</span>
