@@ -37,7 +37,7 @@
 		<button
 			type="button"
 			onclick={activate}
-			class="flex w-full items-center gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-2.5 text-left text-[0.8125rem] text-amber-700 transition-colors hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-amber-600 dark:bg-amber-500/10 dark:text-amber-300 {className}"
+			class="flex w-full items-center gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-2.5 text-left text-[0.8125rem] text-amber-700 transition-all duration-100 hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-amber-600 active:scale-[0.98] active:bg-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300 {className}"
 			aria-label="Legacy sunnylink on this device"
 		>
 			<Info size={16} class="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
@@ -48,7 +48,7 @@
 		<button
 			type="button"
 			onclick={activate}
-			class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[0.6875rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-2 focus-visible:outline-amber-600 dark:text-amber-300 {className}"
+			class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[0.6875rem] font-medium text-amber-700 transition-all duration-100 hover:bg-amber-500/20 focus-visible:outline-2 focus-visible:outline-amber-600 active:scale-[0.92] active:bg-amber-500/30 dark:text-amber-300 {className}"
 			aria-label="Legacy sunnylink on this device"
 		>
 			<Info size={10} aria-hidden="true" />
