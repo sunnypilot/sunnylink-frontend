@@ -112,12 +112,18 @@ export interface CategoryListResponse {
 }
 
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response | null> {
+	// `cache: no-store` forces a network trip every time. Discourse sets
+	// Cache-Control headers on category/topic JSON that the browser will
+	// otherwise honour — meaning a topic tagged `sunnylink-feed` after the
+	// first empty fetch won't surface until the cache entry expires. Our own
+	// 5-min localStorage cache already throttles actual server hits.
+	const mergedInit: RequestInit = { cache: 'no-store', ...(init ?? {}) };
 	const delays = [0, ...RETRY_DELAYS_MS];
 	let res: Response | null = null;
 	for (const delay of delays) {
 		if (delay > 0) await new Promise((r) => setTimeout(r, delay));
 		try {
-			res = await fetch(url, init);
+			res = await fetch(url, mergedInit);
 			if (res.status !== 429) return res;
 		} catch {
 			res = null;
