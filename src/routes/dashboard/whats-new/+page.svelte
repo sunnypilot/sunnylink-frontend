@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ExternalLink, Loader2, Pin, Sparkles } from 'lucide-svelte';
+	import { slide } from 'svelte/transition';
+	import { ChevronDown, ExternalLink, Loader2, Pin, Sparkles } from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { forumTopicUrl, type DiscourseTopic } from '$lib/api/discourse';
 
+	let expandedId = $state<number | null>(null);
 	let sentinelEl = $state<HTMLDivElement | null>(null);
 
 	function formatDate(iso: string): string {
@@ -18,9 +20,13 @@
 		}
 	}
 
+	function toggleExpand(id: number) {
+		// Expanding alone does not mark-read. The user has to click the forum
+		// CTA below for the red dot to clear, matching the Top Heroes pattern.
+		expandedId = expandedId === id ? null : id;
+	}
+
 	function openOnForum(topic: DiscourseTopic) {
-		// Explicit user intent to read the post on the forum — mark it read in
-		// the local store and let the browser open the link in a new tab.
 		whatsNewStore.markRead(topic.id);
 	}
 
@@ -96,14 +102,22 @@
 	{:else}
 		<ul class="flex flex-col gap-3">
 			{#each whatsNewStore.topics as topic (topic.id)}
+				{@const isOpen = expandedId === topic.id}
 				{@const isUnread = whatsNewStore.isUnread(topic.id)}
 				{@const cover = coverUrl(topic)}
 				{@const excerpt = topicExcerpt(topic)}
 				<li data-topic-id={topic.id}>
 					<article
-						class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+						class="overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isOpen
+							? 'border-primary/40'
+							: 'border-[var(--sl-border)]'}"
 					>
-						<div class="flex items-start gap-3 px-4 py-3.5">
+						<button
+							type="button"
+							onclick={() => toggleExpand(topic.id)}
+							class="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/40"
+							aria-expanded={isOpen}
+						>
 							{#if cover}
 								<div
 									class="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-[var(--sl-bg-elevated)] sm:h-20 sm:w-32"
@@ -116,7 +130,7 @@
 									/>
 								</div>
 							{/if}
-							<div class="flex min-w-0 flex-1 flex-col gap-1.5">
+							<div class="flex min-w-0 flex-1 flex-col gap-1">
 								<div class="flex items-start gap-2">
 									{#if topic.pinned}
 										<Pin
@@ -133,36 +147,51 @@
 										{topic.title}
 									</h2>
 								</div>
-								<div class="flex items-center gap-2 text-[0.75rem] text-[var(--sl-text-3)]">
-									<span>{formatDate(topic.created_at)}</span>
-								</div>
+								<p class="text-[0.75rem] text-[var(--sl-text-3)]">
+									{formatDate(topic.created_at)}
+								</p>
+							</div>
+							<ChevronDown
+								size={16}
+								class="mt-1 shrink-0 text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
+									? 'rotate-180'
+									: ''}"
+								aria-hidden="true"
+							/>
+						</button>
+
+						{#if isOpen}
+							<div
+								class="border-t border-[var(--sl-border-muted)] px-4 py-4"
+								transition:slide={{ duration: 180 }}
+							>
 								{#if excerpt}
-									<p
-										class="line-clamp-3 text-[0.8125rem] leading-relaxed text-[var(--sl-text-3)]"
-									>
+									<p class="text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
 										{excerpt}
 									</p>
+								{:else}
+									<p class="text-[0.8125rem] text-[var(--sl-text-3)]">
+										No preview available — read the full post on the community forum.
+									</p>
 								{/if}
+								<a
+									href={forumTopicUrl(topic)}
+									target="_blank"
+									rel="noopener"
+									onclick={() => openOnForum(topic)}
+									class="relative mt-4 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
+								>
+									<span>Read on forum</span>
+									<ExternalLink size={12} aria-hidden="true" />
+									{#if isUnread}
+										<span
+											class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
+											aria-label="Unread announcement"
+										></span>
+									{/if}
+								</a>
 							</div>
-						</div>
-						<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
-							<a
-								href={forumTopicUrl(topic)}
-								target="_blank"
-								rel="noopener"
-								onclick={() => openOnForum(topic)}
-								class="relative inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
-							>
-								<span>Read on forum</span>
-								<ExternalLink size={12} aria-hidden="true" />
-								{#if isUnread}
-									<span
-										class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
-										aria-label="Unread announcement"
-									></span>
-								{/if}
-							</a>
-						</div>
+						{/if}
 					</article>
 				</li>
 			{/each}

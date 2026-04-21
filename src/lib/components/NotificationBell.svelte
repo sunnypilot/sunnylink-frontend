@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate, goto } from '$app/navigation';
-	import { Bell, CheckCheck, Sparkles } from 'lucide-svelte';
+	import { Bell, Sparkles } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { paintBadge } from '$lib/utils/favicon';
@@ -159,22 +159,10 @@
 		transition:fly={{ y: -4, duration: 150, easing: cubicOut, opacity: 0 }}
 	>
 		<header
-			class="flex items-center justify-between border-b border-[var(--sl-border-muted)] px-4 py-3"
+			class="flex items-center gap-2 border-b border-[var(--sl-border-muted)] px-4 py-3"
 		>
-			<div class="flex items-center gap-2">
-				<Sparkles size={14} class="text-primary" aria-hidden="true" />
-				<span class="text-[0.8125rem] font-semibold text-[var(--sl-text-1)]">What's new</span>
-			</div>
-			{#if unreadCount > 0}
-				<button
-					type="button"
-					onclick={() => whatsNewStore.markAllRead()}
-					class="inline-flex items-center gap-1 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
-				>
-					<CheckCheck size={12} aria-hidden="true" />
-					Mark all read
-				</button>
-			{/if}
+			<Sparkles size={14} class="text-primary" aria-hidden="true" />
+			<span class="text-[0.8125rem] font-semibold text-[var(--sl-text-1)]">What's new</span>
 		</header>
 
 		{#if unread.length === 0}

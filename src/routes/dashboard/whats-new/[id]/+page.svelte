@@ -5,7 +5,6 @@
 	import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import {
-		avatarUrl,
 		fetchTopicDetail,
 		forumTopicUrl,
 		hasRequiredTag,
@@ -21,7 +20,7 @@
 	const topic = $derived(
 		whatsNewStore.topics.find((t) => t.id === topicId) ?? fallbackTopic ?? null
 	);
-	const cached = $derived(topic ? whatsNewStore.bodies[topic.id] : undefined);
+	const isUnread = $derived(topic ? whatsNewStore.isUnread(topic.id) : false);
 
 	function formatDate(iso: string): string {
 		try {
@@ -35,26 +34,29 @@
 		}
 	}
 
+	function topicExcerpt(t: DiscourseTopic): string {
+		if (!t.excerpt) return '';
+		return t.excerpt.replace(/&hellip;\s*$/i, '…').replace(/\s+$/g, '');
+	}
+
+	function openOnForum(t: DiscourseTopic) {
+		whatsNewStore.markRead(t.id);
+	}
+
 	onMount(() => {
 		void whatsNewStore.init();
 	});
 
-	// Body loader + fallback topic fetch for deep-link cold starts where the
-	// store hasn't loaded the feed yet (direct URL paste, refresh on detail).
+	// Deep-link cold start: if the feed hasn't loaded yet, fetch this topic
+	// directly so we can render its preview. Does NOT mark-read — only the
+	// "Read on forum" button click clears the unread state.
 	$effect(() => {
 		if (!topicId) return;
-		const known = whatsNewStore.topics.find((t) => t.id === topicId);
-		if (known) {
-			void whatsNewStore.ensureBody(known, { trackView: true });
-			whatsNewStore.markRead(known.id);
-			return;
-		}
+		if (whatsNewStore.topics.find((t) => t.id === topicId)) return;
 		if (fallbackTopic || fallbackLoading || fallbackFailed) return;
 		fallbackLoading = true;
 		(async () => {
-			// We don't have a slug yet — use id-only path; Discourse redirects to
-			// the slugged URL but the JSON endpoint accepts id alone via /t/{id}.
-			const detail = await fetchTopicDetail(topicId, String(topicId), { trackView: true });
+			const detail = await fetchTopicDetail(topicId, String(topicId));
 			if (!detail) {
 				fallbackFailed = true;
 				fallbackLoading = false;
@@ -78,31 +80,23 @@
 				views: detail.views,
 				like_count: detail.like_count,
 				tags: detail.tags,
-				category_id: detail.category_id
+				category_id: detail.category_id,
+				excerpt:
+					(detail.post_stream?.posts?.[0]?.cooked ?? '')
+						.replace(/<[^>]+>/g, ' ')
+						.replace(/\s+/g, ' ')
+						.trim()
+						.slice(0, 400) + '…'
 			};
 			if (!hasRequiredTag(topicShape)) {
-				// The topic exists but isn't on the sunnylink feed — bounce to the
-				// list rather than surfacing an off-topic forum post.
 				goto('/dashboard/whats-new', { replaceState: true });
 				return;
 			}
 			fallbackTopic = topicShape;
-			const post0 = detail.post_stream?.posts?.[0];
-			whatsNewStore.bodies[topicShape.id] = {
-				cooked: post0?.cooked ?? '',
-				views: detail.views,
-				likeCount: detail.like_count,
-				replyCount: detail.reply_count,
-				authorUsername: post0?.username,
-				authorAvatarTemplate: post0?.avatar_template,
-				fetchedAt: Date.now()
-			};
-			whatsNewStore.markRead(topicShape.id);
 			fallbackLoading = false;
 		})();
 	});
 
-	const avatarSrc = $derived(avatarUrl(cached?.authorAvatarTemplate, 64));
 	const title = $derived(topic?.title ?? '');
 </script>
 
@@ -147,68 +141,43 @@
 					<img src={topic.image_url} alt="" class="h-full w-full object-cover" />
 				</div>
 			{/if}
-			<header class="flex flex-col gap-3 border-b border-[var(--sl-border-muted)] px-5 py-5 sm:px-7">
+			<header class="border-b border-[var(--sl-border-muted)] px-5 py-5 sm:px-7">
 				<h1
 					class="text-[1.5rem] leading-tight font-semibold tracking-[-0.015em] text-[var(--sl-text-1)] sm:text-[1.75rem]"
 				>
 					{topic.title}
 				</h1>
-				<div class="flex items-center gap-2 text-[0.8125rem] text-[var(--sl-text-3)]">
-					{#if avatarSrc}
-						<img
-							src={avatarSrc}
-							alt=""
-							loading="lazy"
-							class="h-5 w-5 rounded-full"
-						/>
-					{/if}
-					{#if cached?.authorUsername}
-						<span class="font-medium text-[var(--sl-text-2)]">@{cached.authorUsername}</span>
-						<span aria-hidden="true">·</span>
-					{/if}
-					<span>{formatDate(topic.created_at)}</span>
-				</div>
+				<p class="mt-2 text-[0.8125rem] text-[var(--sl-text-3)]">
+					{formatDate(topic.created_at)}
+				</p>
 			</header>
 			<div class="px-5 py-6 sm:px-7">
-				{#if whatsNewStore.bodyLoading[topic.id] && !cached?.cooked}
-					<div class="flex items-center gap-2 text-[var(--sl-text-3)]">
-						<Loader2 size={14} class="animate-spin" aria-hidden="true" />
-						<span class="text-[0.8125rem]">Loading…</span>
-					</div>
-				{:else if cached?.cooked}
-					<div
-						class="prose prose-sm max-w-none text-[var(--sl-text-2)] sm:prose-base dark:prose-invert prose-headings:text-[var(--sl-text-1)] prose-a:text-primary prose-strong:text-[var(--sl-text-1)]"
-					>
-						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-						{@html cached.cooked}
-					</div>
+				{#if topicExcerpt(topic)}
+					<p class="text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]">
+						{topicExcerpt(topic)}
+					</p>
 				{:else}
 					<p class="text-[0.8125rem] text-[var(--sl-text-3)]">
-						Couldn't load this post.
-						<a
-							href={forumTopicUrl(topic)}
-							target="_blank"
-							rel="noopener"
-							class="text-primary hover:underline"
-						>
-							Read on the forum
-						</a>
+						No preview available — read the full post on the community forum.
 					</p>
 				{/if}
-			</div>
-			<footer
-				class="border-t border-[var(--sl-border-muted)] px-5 py-4 sm:px-7"
-			>
 				<a
 					href={forumTopicUrl(topic)}
 					target="_blank"
 					rel="noopener"
-					class="inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] hover:underline"
+					onclick={() => openOnForum(topic)}
+					class="relative mt-6 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
 				>
-					Discuss on community forum
-					<ExternalLink size={12} aria-hidden="true" />
+					<span>Read on forum</span>
+					<ExternalLink size={13} aria-hidden="true" />
+					{#if isUnread}
+						<span
+							class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
+							aria-label="Unread announcement"
+						></span>
+					{/if}
 				</a>
-			</footer>
+			</div>
 		</article>
 	{/if}
 </div>
