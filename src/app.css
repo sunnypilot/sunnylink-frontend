@@ -82,6 +82,8 @@
 	--sl-toggle-off-disabled: #e5e5e5;
 	--sl-skeleton-bar: #d4d4d4;
 	--sl-skeleton-highlight: #e8e8e8;
+	--sl-scrollbar-thumb: rgba(0, 0, 0, 0.08);
+	--sl-scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
 }
 
 [data-theme='sunny-dark'] {
@@ -103,6 +105,8 @@
 	--sl-toggle-off-disabled: #282828;
 	--sl-skeleton-bar: #2e2e2e;
 	--sl-skeleton-highlight: #3a3a3a;
+	--sl-scrollbar-thumb: rgba(255, 255, 255, 0.08);
+	--sl-scrollbar-thumb-hover: rgba(255, 255, 255, 0.22);
 }
 
 @theme {
@@ -150,25 +154,40 @@ body {
 		background-color 0.15s ease,
 		color 0.15s ease;
 
-	/* App-like feel: hide native scrollbar chrome on document scroll surfaces, kill
-	   bounce/rubber-band on iOS, deny pinch-zoom (modals/dropdowns/ComboBox keep
-	   their native scrollbars since this only targets html/body and main page
-	   containers). Linear-style. */
-	scrollbar-width: none;
+	/* App-like feel: kill bounce/rubber-band on iOS, deny pinch-zoom — Linear-style. */
 	overscroll-behavior: none;
 	touch-action: pan-x pan-y;
 }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-main::-webkit-scrollbar,
-.drawer-content::-webkit-scrollbar {
-	display: none;
+/* Linear-style thin custom scrollbar — barely visible idle, more visible on hover.
+   Applied to every scrollable surface so PC + mobile match. Neutral gray so brand
+   color stays reserved for accents. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--sl-scrollbar-thumb) transparent;
 }
 
-main,
-.drawer-content {
-	scrollbar-width: none;
+*::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: var(--sl-scrollbar-thumb);
+	border-radius: 3px;
+	transition: background-color 0.15s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background-color: var(--sl-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+	background: transparent;
 }
 
 /* Allow text selection on interactive inputs and copyable content */
