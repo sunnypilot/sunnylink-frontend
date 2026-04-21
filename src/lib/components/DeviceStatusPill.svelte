@@ -312,10 +312,15 @@
 				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: false });
 			}
 			driftStore.resolveKeys(deviceId, ['OffroadMode']);
-			await checkDeviceStatus(deviceId, token, true);
+			// State is now consistent — drop the spinner before the background
+			// refresh; otherwise the toggle keeps spinning while the pill already
+			// shows the new state. Refresh is fire-and-forget.
+			stoppingForce = false;
+			checkDeviceStatus(deviceId, token, true).catch((err) => {
+				console.error('Background status refresh after stopForceOffroad failed', err);
+			});
 		} catch (e) {
 			console.error('Failed to stop force offroad', e);
-		} finally {
 			stoppingForce = false;
 		}
 	}
