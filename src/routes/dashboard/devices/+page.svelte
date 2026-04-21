@@ -318,6 +318,8 @@
 				{@const isError = status === 'error'}
 				{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 				{@const isPolling = statusPolling.isRefreshing && !isLoading}
+				{@const infoLoaded =
+					isOffline || isError || deviceState.infoFetchComplete[device.device_id] === true}
 
 				<article
 					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow,transform] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm active:scale-[0.99] {isSelected
@@ -389,12 +391,12 @@
 						</div>
 
 						<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
-							{@render labelValueRow('Version', getVersion(device), false, !isLoading)}
+							{@render labelValueRow('Version', getVersion(device), false, !infoLoaded)}
 							{#key statusPolling.tickCounter}
-								{@render labelValueRow('Date', getCommitDate(device), false, !isLoading)}
+								{@render labelValueRow('Date', getCommitDate(device), false, !infoLoaded)}
 							{/key}
-							{@render labelValueRow('Branch', getBranch(device), true, !isLoading, true)}
-							{@render labelValueRow('Commit', getCommit(device), true, !isLoading)}
+							{@render labelValueRow('Branch', getBranch(device), true, !infoLoaded, true)}
+							{@render labelValueRow('Commit', getCommit(device), true, !infoLoaded)}
 						</div>
 
 						{#if isSelected}
