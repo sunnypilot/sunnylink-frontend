@@ -311,8 +311,8 @@
 	);
 	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
 	const sync = createSyncStatus(
-		() => isRevalidating || batchActive || isStale,
-		() => !isOffline && !isError && !batchActive && !isStale
+		() => isCheckingStatus || isRevalidating || batchActive || isStale,
+		() => !isOffline && !isError && !isCheckingStatus && !batchActive && !isStale
 	);
 
 	// Reset on device change (skip initial mount)
@@ -855,16 +855,21 @@
 	description="Manage and switch driving models & related settings for your device."
 	syncStatus={modelList ? sync.status : undefined}
 	loading={!!(loadingModels || isCheckingStatus) && !modelList}
-	onRefresh={() => {
+	onRefresh={async () => {
 		if (!deviceId || !logtoClient) return;
 		// Set stale immediately for instant "Refreshing..." feedback (matches settings pages)
 		deviceState.valuesStale[deviceId] = true;
-		logtoClient.getIdToken().then((token) => {
-			if (token && deviceId) {
-				checkDeviceStatus(deviceId, token, true, false);
-				fetchModelsForDevice(true);
-			}
-		});
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+			await Promise.all([
+				checkDeviceStatus(deviceId, token, true, false),
+				fetchModelsForDevice(true)
+			]);
+		} finally {
+			// Clear stale so the title-bar sync indicator can transition to "synced"
+			deviceState.valuesStale[deviceId] = false;
+		}
 	}}
 >
 	{#if authState.loading}

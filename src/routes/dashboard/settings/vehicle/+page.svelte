@@ -150,15 +150,24 @@
 	}
 
 	let batchActive = $derived(deviceId ? batchPush.isActive(deviceId) : false);
+	let isCheckingStatus = $derived(
+		!!(
+			deviceId &&
+			(deviceState.onlineStatuses[deviceId] === 'loading' ||
+				deviceState.onlineStatuses[deviceId] === undefined)
+		)
+	);
 	const sync = createSyncStatus(
 		() =>
 			!isDeviceOffline &&
-			(loadingBrandValues ||
+			(isCheckingStatus ||
+				loadingBrandValues ||
 				vehicleApiInFlight ||
 				batchActive ||
 				schemaRevalStatus === 'revalidating'),
 		() =>
 			!isDeviceOffline &&
+			!isCheckingStatus &&
 			!loadingBrandValues &&
 			!vehicleApiInFlight &&
 			!batchActive &&

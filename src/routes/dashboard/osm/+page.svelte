@@ -76,8 +76,8 @@
 		!!(deviceState.selectedDeviceId && deviceState.valuesStale[deviceState.selectedDeviceId])
 	);
 	const sync = createSyncStatus(
-		() => !isOffline && (loadingOsmParams || batchActive || isStale),
-		() => !isOffline && !loadingOsmParams && !error && !batchActive && !isStale
+		() => !isOffline && (isCheckingStatus || loadingOsmParams || batchActive || isStale),
+		() => !isOffline && !isCheckingStatus && !loadingOsmParams && !error && !batchActive && !isStale
 	);
 
 	let { data } = $props();
@@ -433,17 +433,22 @@
 	description="Manage offline OpenStreetMap data on your device"
 	syncStatus={!loadingOsmParams ? sync.status : undefined}
 	loading={loadingOsmParams}
-	onRefresh={() => {
+	onRefresh={async () => {
 		const did = deviceState.selectedDeviceId;
 		if (!did || !logtoClient) return;
 		// Set stale immediately for instant "Refreshing..." feedback (matches settings pages)
 		deviceState.valuesStale[did] = true;
-		logtoClient.getIdToken().then((token) => {
-			if (token && did) {
-				checkDeviceStatus(did, token, true, false);
-				fetchOsmParams(did, token, false);
-			}
-		});
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+			await Promise.all([
+				checkDeviceStatus(did, token, true, false),
+				fetchOsmParams(did, token, false)
+			]);
+		} finally {
+			// Clear stale so the title-bar sync indicator can transition to "synced"
+			deviceState.valuesStale[did] = false;
+		}
 	}}
 >
 	{#if authState.loading}
