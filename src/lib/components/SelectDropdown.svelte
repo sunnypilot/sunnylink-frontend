@@ -4,6 +4,7 @@
 	import { modalLock } from '$lib/utils/modalLock';
 	import { tick } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 
 	interface Option {
 		value: string | number;
@@ -33,10 +34,23 @@
 	const BOTTOM_SHEET_THRESHOLD = 10;
 
 	let open = $state(false);
+	// Two-stage mount mirrors PWAInstallPrompt: `mounted` puts the portal wrapper
+	// in the DOM first; on the next tick `open` flips true and Svelte sees the
+	// transition siblings appear, which is when fly/fade fire correctly. Single-
+	// stage {#if open} mounts wrapper + content in the same tick and the inner
+	// transitions never fire visually (sheet just pops in after backdrop fade).
+	let mounted = $state(false);
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let menuEl = $state<HTMLDivElement | null>(null);
 	let scrollEl = $state<HTMLDivElement | null>(null);
-	let menuStyle = $state('position:fixed;');
+	// Individual reactive position props instead of a single style string. A single
+	// style attribute being re-set during the scale transition would clobber the
+	// transform Svelte writes for the animation; style: directives only touch
+	// the property they own.
+	let menuTop = $state(0);
+	let menuRightPx = $state(0);
+	let menuMinWidthPx = $state(0);
+	let menuMaxHeightPx = $state<number | null>(null);
 
 	let menuRight = 0;
 	let menuMinWidth = 0;
@@ -65,16 +79,20 @@
 			close();
 			return;
 		}
-		// Pre-position from the trigger rect synchronously so the popover renders
-		// at the right spot from frame 1 — visibility:hidden hid the entire scale
-		// transition because alignMenu only revealed the element mid-animation.
-		// alignMenu still runs after mount to refine for selected-option centering.
 		if (!useBottomSheet && triggerEl) {
 			const r = triggerEl.getBoundingClientRect();
-			const right = Math.max(8, document.documentElement.clientWidth - r.right);
-			const minWidth = Math.max(r.width, 120);
-			menuStyle = `position:fixed;top:${r.bottom + 4}px;right:${right}px;min-width:${minWidth}px;`;
+			menuRightPx = Math.max(8, document.documentElement.clientWidth - r.right);
+			menuMinWidthPx = Math.max(r.width, 120);
+			menuTop = r.bottom + 4;
+			menuMaxHeightPx = null;
 		}
+		// Mount with closed state first; flip open on next paint so the CSS
+		// transition has a real "from" frame to animate from. Svelte's
+		// transition:fly was unreliable here (portaled element, multiple instances)
+		// — pure CSS transition + class toggle is rock-solid.
+		mounted = true;
+		await tick();
+		await new Promise<void>((r) => requestAnimationFrame(() => r()));
 		open = true;
 		await tick();
 		await new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -83,6 +101,11 @@
 
 	function close() {
 		open = false;
+		// Wait for the longest CSS transition (300ms) before unmounting so users
+		// see the exit animation.
+		setTimeout(() => {
+			mounted = false;
+		}, 320);
 	}
 
 	function select(opt: Option) {
@@ -123,13 +146,19 @@
 			isClipped = false;
 			canScrollUp = false;
 			canScrollDown = false;
-			menuStyle = `position:fixed;right:${menuRight}px;top:${idealTop}px;min-width:${menuMinWidth}px;`;
+			menuRightPx = menuRight;
+			menuTop = idealTop;
+			menuMinWidthPx = menuMinWidth;
+			menuMaxHeightPx = null;
 		} else {
 			isClipped = true;
 			const clampedTop = Math.max(margin, idealTop);
 			const maxHeight = viewH - clampedTop - margin;
 
-			menuStyle = `position:fixed;right:${menuRight}px;top:${clampedTop}px;min-width:${menuMinWidth}px;max-height:${maxHeight}px;`;
+			menuRightPx = menuRight;
+			menuTop = clampedTop;
+			menuMinWidthPx = menuMinWidth;
+			menuMaxHeightPx = maxHeight;
 
 			// Scroll selected into view after style applies
 			requestAnimationFrame(() => {
@@ -175,7 +204,7 @@
 		const newMaxHeight = initialMaxHeight + growAmount;
 
 		// Adjust top position: shift upward as menu grows taller
-		const currentTop = parseFloat(menuStyle.match(/top:([^p]+)px/)?.[1] || '8');
+		const currentTop = menuTop;
 		const heightDelta = newMaxHeight - menuEl.getBoundingClientRect().height;
 		let newTop = currentTop - heightDelta * 0.5; // grow evenly from center
 		newTop = Math.max(margin, Math.min(viewH - newMaxHeight - margin, newTop));
@@ -186,10 +215,16 @@
 			canScrollUp = false;
 			canScrollDown = false;
 			initialMaxHeight = 0;
-			menuStyle = `position:fixed;right:${menuRight}px;top:${newTop}px;min-width:${menuMinWidth}px;`;
+			menuRightPx = menuRight;
+			menuTop = newTop;
+			menuMinWidthPx = menuMinWidth;
+			menuMaxHeightPx = null;
 			el.scrollTop = 0;
 		} else {
-			menuStyle = `position:fixed;right:${menuRight}px;top:${newTop}px;min-width:${menuMinWidth}px;max-height:${newMaxHeight}px;`;
+			menuRightPx = menuRight;
+			menuTop = newTop;
+			menuMinWidthPx = menuMinWidth;
+			menuMaxHeightPx = newMaxHeight;
 		}
 	}
 
@@ -260,34 +295,43 @@
 	</span>
 </button>
 
-{#if open}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
+{#if mounted}
+	<!-- Two-stage mount: this outer block puts the portal wrapper into the DOM
+	     immediately. The inner {#if open} block flips on the next tick so its
+	     transition:fade / transition:fly children fire correctly. Cloning the
+	     PWAInstallPrompt pattern verbatim — single-stage mounting was making the
+	     bottom-sheet pop in instead of slide. -->
 	<div
 		use:portal
-		use:modalLock
-		class="fixed inset-0 z-[9998] {useBottomSheet ? 'bg-black/40 backdrop-blur-sm' : ''}"
-		transition:fade={{ duration: useBottomSheet ? 200 : 120 }}
-		onclick={(e) => {
-			e.stopPropagation();
-			close();
-		}}
-		onwheel={(e) => {
-			e.preventDefault();
-		}}
-	></div>
-	{#if useBottomSheet}
-		<!-- ── Bottom-sheet variant (mobile, > 10 options) ──────────────────── -->
-		<div
-			use:portal
-			bind:this={menuEl}
-			transition:fly={{ y: 400, duration: 280 }}
-			class="fixed inset-x-0 bottom-0 z-[9999] flex max-h-[75vh] flex-col overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl"
-			role="dialog"
-			aria-modal="true"
-			aria-label={title || 'Choose an option'}
-			style="padding-bottom: env(safe-area-inset-bottom);"
-		>
+		class="pointer-events-none fixed inset-0 z-[9998] {useBottomSheet
+			? 'flex items-end justify-center'
+			: ''}"
+		role={useBottomSheet ? 'dialog' : 'presentation'}
+		aria-modal={useBottomSheet ? 'true' : undefined}
+		aria-label={useBottomSheet ? title || 'Choose an option' : undefined}
+	>
+		<!-- Backdrop: CSS opacity transition. modalLock fires on mount, unlocks
+		     on unmount (controlled by outer {#if mounted}). -->
+		<button
+			type="button"
+			use:modalLock
+			class="pointer-events-auto absolute inset-0 transition-opacity duration-200 ease-out {useBottomSheet
+				? 'bg-black/40 backdrop-blur-sm'
+				: ''}"
+			class:opacity-100={open}
+			class:opacity-0={!open}
+			onclick={close}
+			aria-label="Close"
+		></button>
+		{#if useBottomSheet}
+			<!-- ── Bottom-sheet variant (mobile, > 10 options) ──────────────────── -->
+			<div
+				bind:this={menuEl}
+				class="pointer-events-auto relative flex max-h-[55vh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl transition-transform duration-300 ease-out"
+				class:translate-y-0={open}
+				class:translate-y-full={!open}
+				style="padding-bottom: env(safe-area-inset-bottom);"
+			>
 			<!-- Drag handle (visual affordance, not draggable) -->
 			<div class="flex shrink-0 items-center justify-center pt-2.5 pb-1.5">
 				<div class="h-1 w-10 rounded-full bg-[var(--sl-border-emphasis)]"></div>
@@ -349,11 +393,17 @@
 	{:else}
 		<!-- ── Anchored popover variant (default) ──────────────────────────── -->
 		<div
-			use:portal
 			bind:this={menuEl}
-			transition:scale={{ start: 0.96, duration: 150, opacity: 0 }}
-			class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-sm"
-			style={menuStyle}
+			class="pointer-events-auto flex origin-top flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-lg transition-[opacity,transform] duration-200 ease-out"
+			class:opacity-100={open}
+			class:scale-100={open}
+			class:opacity-0={!open}
+			class:scale-95={!open}
+			style:position="fixed"
+			style:top="{menuTop}px"
+			style:right="{menuRightPx}px"
+			style:min-width="{menuMinWidthPx}px"
+			style:max-height={menuMaxHeightPx !== null ? `${menuMaxHeightPx}px` : null}
 			role="listbox"
 		>
 			{#if canScrollUp}
@@ -412,6 +462,7 @@
 			{/if}
 		</div>
 	{/if}
+	</div>
 {/if}
 
 <style>
