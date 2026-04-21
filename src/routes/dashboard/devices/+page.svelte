@@ -238,20 +238,39 @@
 		return deviceState.sortDevices(list);
 	});
 
-	// If the user's selected device is offline, hoist it out of the collapsed
-	// Offline group so they can see the device they're actually operating on
-	// without expanding the section. The Vercel / Linear / Slack rule: the
-	// active context must always be visible, never tucked behind a fold.
-	let selectedOfflineDevice = $derived.by(() => {
-		deviceState.version;
+	// Mount-time behaviour: if the persisted selection lives in the offline
+	// group, expand the group once so the user lands with the selected card
+	// visible, then scroll-into-view the selected card (works for online + offline).
+	// Runs once per mount — the user can collapse / re-expand freely afterward
+	// without fighting us, and selecting a new device doesn't re-trigger this
+	// because the flag flips permanently.
+	let mountBehaviourRan = false;
+	$effect(() => {
+		if (mountBehaviourRan) return;
+		if (!deviceState.pairedDevicesLoaded) return;
+		if (!devices || devices.length === 0) return;
 		const sel = deviceState.selectedDeviceId;
-		if (!sel) return null;
-		return offlineDevices.find((d) => d.device_id === sel) ?? null;
-	});
+		if (!sel) {
+			mountBehaviourRan = true;
+			return;
+		}
+		mountBehaviourRan = true;
 
-	let otherOfflineDevices = $derived.by(() => {
-		if (!selectedOfflineDevice) return offlineDevices;
-		return offlineDevices.filter((d) => d.device_id !== selectedOfflineDevice.device_id);
+		const isOffline = deviceState.onlineStatuses[sel] === 'offline';
+		if (isOffline) offlineSectionOpen = true;
+
+		// Defer scroll until the offline section (if opened) has rendered + the
+		// card has an ID to find.
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				const el = document.querySelector(`[data-device-id="${sel}"]`);
+				if (el)
+					el.scrollIntoView({
+						behavior: 'smooth',
+						block: 'center'
+					});
+			});
+		});
 	});
 </script>
 
@@ -341,6 +360,7 @@
 				{@const hasBadges = isLegacy}
 
 				<article
+					data-device-id={device.device_id}
 					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 						? 'border-2 border-primary'
 						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
@@ -447,11 +467,7 @@
 					{@render deviceCard(device)}
 				{/each}
 
-				{#if selectedOfflineDevice}
-					{@render deviceCard(selectedOfflineDevice)}
-				{/if}
-
-				{#if otherOfflineDevices.length > 0}
+				{#if offlineDevices.length > 0}
 					<button
 						class="group flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3 text-left transition-all duration-100 hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-none active:scale-[0.99] active:bg-[var(--sl-bg-subtle)]"
 						onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
@@ -470,7 +486,7 @@
 							<span
 								class="rounded-full bg-[var(--sl-bg-elevated)] px-2 py-0.5 text-[0.6875rem] font-semibold text-[var(--sl-text-2)] group-hover:bg-[var(--sl-bg-subtle)]"
 							>
-								{otherOfflineDevices.length}
+								{offlineDevices.length}
 							</span>
 						</div>
 					</button>
@@ -481,7 +497,7 @@
 							class="flex flex-col gap-3"
 							transition:slide={{ duration: 150 }}
 						>
-							{#each otherOfflineDevices as device (device.device_id)}
+							{#each offlineDevices as device (device.device_id)}
 								{@render deviceCard(device)}
 							{/each}
 						</div>
