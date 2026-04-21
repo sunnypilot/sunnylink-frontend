@@ -7,27 +7,27 @@
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import {
+		Bot,
+		Car,
 		ChevronDown,
+		Gauge,
+		HardDrive,
+		House,
 		LogIn,
 		Loader2,
+		Map as MapIcon,
 		Menu,
 		Monitor,
 		Package,
+		Palette,
 		Settings,
+		ToggleLeft,
+		Wind,
+		Wrench,
 		ArrowLeftRight,
+		Smartphone,
 		X
 	} from 'lucide-svelte';
-	import HardDriveBrand from '$lib/components/icons/HardDriveBrand.svelte';
-	import ToggleLeftBrand from '$lib/components/icons/ToggleLeftBrand.svelte';
-	import BotBrand from '$lib/components/icons/BotBrand.svelte';
-	import GaugeBrand from '$lib/components/icons/GaugeBrand.svelte';
-	import WindBrand from '$lib/components/icons/WindBrand.svelte';
-	import PaletteBrand from '$lib/components/icons/PaletteBrand.svelte';
-	import MapBrand from '$lib/components/icons/MapBrand.svelte';
-	import CarBrand from '$lib/components/icons/CarBrand.svelte';
-	import WrenchBrand from '$lib/components/icons/WrenchBrand.svelte';
-	import HouseBrand from '$lib/components/icons/HouseBrand.svelte';
-	import SmartphoneBrand from '$lib/components/icons/SmartphoneBrand.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import SearchTrigger from '$lib/components/search/SearchTrigger.svelte';
 	import CommandPalette from '$lib/components/search/CommandPalette.svelte';
@@ -69,12 +69,6 @@
 			(document as any).startViewTransition(async () => {
 				resolve();
 				await navigation.complete;
-				// View Transitions API snapshots DOM state for crossfade; SvelteKit's own
-				// scroll-to-top is suppressed inside the transition. Restore it here so the
-				// new page renders at top. Skip popstate so back/forward keeps remembered scroll.
-				if (navigation.type !== 'popstate') {
-					window.scrollTo({ top: 0 });
-				}
 			});
 		});
 	});
@@ -118,8 +112,8 @@
 	let topLevelItems: NavItem[] = $derived(
 		authState.isAuthenticated
 			? [
-					{ icon: HouseBrand, label: 'Home', href: '/dashboard' },
-					{ icon: SmartphoneBrand, label: 'My Devices', href: '/dashboard/devices' }
+					{ icon: House, label: 'Home', href: '/dashboard' },
+					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' }
 				]
 			: []
 	);
@@ -130,17 +124,17 @@
 					{
 						label: 'Device Settings',
 						items: [
-							{ icon: HardDriveBrand, label: 'Device', href: '/dashboard/settings/device' },
-							{ icon: ToggleLeftBrand, label: 'Toggles', href: '/dashboard/settings/toggles' },
-							{ icon: BotBrand, label: 'Models', href: '/dashboard/models' },
-							{ icon: GaugeBrand, label: 'Steering', href: '/dashboard/settings/steering' },
-							{ icon: WindBrand, label: 'Cruise', href: '/dashboard/settings/cruise' },
-							{ icon: PaletteBrand, label: 'Visuals', href: '/dashboard/settings/visuals' },
+							{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
+							{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
+							{ icon: Bot, label: 'Models', href: '/dashboard/models' },
+							{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
+							{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
+							{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
 							{ icon: Monitor, label: 'Display', href: '/dashboard/settings/display' },
-							{ icon: MapBrand, label: 'Maps', href: '/dashboard/osm' },
-							{ icon: CarBrand, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
+							{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
+							{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
 							{ icon: Package, label: 'Software', href: '/dashboard/settings/software' },
-							{ icon: WrenchBrand, label: 'Developer', href: '/dashboard/settings/developer' }
+							{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
 						]
 					}
 				]
@@ -155,7 +149,7 @@
 			action: () => deviceState.openMigrationWizard()
 		},
 		{
-			icon: SmartphoneBrand,
+			icon: Smartphone,
 			label: 'Pair Device',
 			action: () => deviceState.openPairingModal()
 		}
