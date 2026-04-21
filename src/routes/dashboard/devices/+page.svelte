@@ -7,7 +7,7 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { Plus, Loader2, ChevronDown, Check, ArrowRight, AlertCircle } from 'lucide-svelte';
+	import { Plus, ChevronDown, Check, ArrowRight } from 'lucide-svelte';
 	import { slide, scale } from 'svelte/transition';
 	import { APIv0Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
@@ -98,30 +98,6 @@
 		return 'bg-emerald-400';
 	}
 
-	function getSubtitle(device: any, _tick?: number): string {
-		// _tick unused in body — ties call site to statusPolling.tickCounter so
-		// the relative "Last seen" re-renders on each poll.
-		const status = deviceState.onlineStatuses[device.device_id];
-		const parts: string[] = [];
-		const typeName = getDeviceTypeName(device);
-		if (typeName) parts.push(typeName);
-		if (status === 'error') {
-			parts.push('Check failed · Tap to retry');
-		} else if (status === 'offline') {
-			const ts = getLastSeen(device);
-			parts.push(ts ? `Last seen ${formatRelativeTime(ts)}` : 'Offline');
-		} else {
-			const driving = getDrivingState(device);
-			if (driving) parts.push(driving);
-			else {
-				const statusText = getStatusText(device);
-				if (statusText && statusText !== 'Checking...') parts.push(statusText);
-			}
-		}
-		if (statusPolling.isRefreshing && status !== 'loading') parts.push('Checking…');
-		return parts.join(' \u00b7 ');
-	}
-
 	function getCommitDate(device: any): string | null {
 		const values = deviceState.deviceValues[device.device_id];
 		const raw = values?.['GitCommitDate'] as string | undefined;
@@ -166,26 +142,6 @@
 		const branch = values?.['GitBranch'] as string | undefined;
 		if (!branch) return null;
 		return branch;
-	}
-
-	function getDrivingState(device: any): string | null {
-		const status = deviceState.onlineStatuses[device.device_id];
-		if (status !== 'online') return null;
-		const offroad = deviceState.offroadStatuses[device.device_id];
-		if (offroad?.forceOffroad) return 'Always Offroad';
-		if (offroad?.isOffroad === false) return 'Onroad';
-		if (offroad?.isOffroad === true) return 'Offroad';
-		return null;
-	}
-
-	function getLastSeen(device: any): number | null {
-		const status = deviceState.onlineStatuses[device.device_id];
-		if (status === 'online') {
-			// Online: show when we last confirmed it
-			return deviceState.lastStatusCheck[device.device_id] ?? null;
-		}
-		// Offline/error: show when it was last online (not when we last polled)
-		return deviceState.lastSeenOnline[device.device_id] ?? null;
 	}
 
 	function selectDevice(device: any) {
@@ -361,7 +317,7 @@
 
 				<article
 					data-device-id={device.device_id}
-					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+					class="group relative cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 						? 'border-2 border-primary'
 						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
 					onclick={() => handleCardClick(device)}
@@ -381,60 +337,56 @@
 					aria-busy={isLoading || isPolling ? 'true' : undefined}
 				>
 					<div class="px-4 py-3.5">
-						<div class="flex items-start gap-3">
-							<div class="min-w-0 flex-1">
-								<div class="flex items-center gap-2">
-									{#if isError}
-										<AlertCircle
-											size={12}
-											class="shrink-0 text-red-500 dark:text-red-400"
-											aria-hidden="true"
-										/>
-									{:else}
-										<span
-											class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
-											class:animate-pulse={isLoading || isPolling}
-											aria-hidden="true"
-										></span>
-									{/if}
-									<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-										{getAlias(device)}
+						<!-- Top-right cluster: spinner + checkmark, absolutely positioned so
+						     the alias/ID column can use its full width without reserving a
+						     trailing icon slot. -->
+						{#if isLoading || isPolling || isSelected}
+							<div class="absolute top-3.5 right-4 flex items-center gap-2">
+								{#if isLoading || isPolling}
+									<span
+										class="loading loading-xs loading-spinner text-primary"
+										aria-label={isLoading ? 'Checking status' : 'Refreshing'}
+									></span>
+								{/if}
+								{#if isSelected}
+									<span
+										in:scale={{ duration: 150, start: 0.5 }}
+										class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
+										aria-label="Selected device"
+										title="Selected device"
+									>
+										<Check size={12} aria-hidden="true" />
 									</span>
-									{#if isLoading}
-										<Loader2
-											size={12}
-											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-											aria-label="Checking status"
-										/>
-									{/if}
-								</div>
-
-								{#key statusPolling.tickCounter}
-									<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
-										{getSubtitle(device, statusPolling.tickCounter) || getStatusText(device)}
-									</p>
-								{/key}
-
-								{#if hasBadges}
-									<div class="mt-1.5 flex flex-wrap gap-1.5">
-										<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
-									</div>
 								{/if}
 							</div>
+						{/if}
 
-							{#if isSelected}
-								<span
-									in:scale={{ duration: 150, start: 0.5 }}
-									class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
-									aria-label="Selected device"
-									title="Selected device"
-								>
-									<Check size={12} aria-hidden="true" />
-								</span>
-							{/if}
+						<!-- Header row: status dot vertically centered between alias + sunnylink Device ID. -->
+						<div class="flex items-center gap-3 pr-12">
+							<span
+								class="block h-2.5 w-2.5 shrink-0 rounded-full {getStatusDotClass(
+									device
+								)} {isPolling ? 'animate-pulse ring-2 ring-primary/40' : ''}"
+								aria-hidden="true"
+							></span>
+							<div class="min-w-0 flex-1">
+								<div class="truncate text-sm font-medium text-[var(--sl-text-1)]">
+									{getAlias(device)}
+								</div>
+								<div class="font-mono text-[0.7rem] break-all text-[var(--sl-text-3)]">
+									{device.device_id}
+								</div>
+							</div>
 						</div>
 
+						{#if hasBadges}
+							<div class="mt-2 flex flex-wrap gap-1.5">
+								<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
+							</div>
+						{/if}
+
 						<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
+							{@render labelValueRow('Device', getDeviceTypeName(device), false, !infoLoaded)}
 							{@render labelValueRow('Version', getVersion(device), false, !infoLoaded)}
 							{#key statusPolling.tickCounter}
 								{@render labelValueRow('Date', getCommitDate(device), false, !infoLoaded)}

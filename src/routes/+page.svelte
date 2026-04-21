@@ -28,10 +28,18 @@
 	// Pattern matches Linear (linear.app/login → redirects), GitHub (auth-aware
 	// homepage). We hold a "Verifying" splash while authState resolves so the
 	// user never sees the landing flash before being whisked away.
+	// One-shot guard: authState reactivity can re-fire the effect after the
+	// redirect starts (e.g. silent session refresh), which left the splash
+	// spinning forever when goto('/dashboard') got re-issued mid-navigation.
+	let redirectFired = $state(false);
 	$effect(() => {
 		if (!browser) return;
 		if (authState.loading) return;
-		if (authState.isAuthenticated) goto('/dashboard');
+		if (redirectFired) return;
+		if (authState.isAuthenticated) {
+			redirectFired = true;
+			goto('/dashboard', { replaceState: true });
+		}
 	});
 
 	let showAuthSplash = $derived(browser && (authState.loading || authState.isAuthenticated));
