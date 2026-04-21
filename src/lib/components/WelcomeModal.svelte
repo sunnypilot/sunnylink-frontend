@@ -3,22 +3,14 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
 	import { X, ArrowRight, Loader2 } from 'lucide-svelte';
 
 	const DISMISS_KEY = 'sunnylink_welcome_dismissed_2_0';
-	const PROXY_PREFIX = '/api/discourse';
-	const CATEGORY_ID = 112;
-	const REQUIRED_TAGS = ['sunnylink', 'official-updates'];
-
-	type Tag = { name: string };
-	type Topic = { id: number; title: string; slug: string; created_at: string; tags: Tag[] };
 
 	let visible = $state(false);
-	let latestTopic = $state<Topic | null>(null);
-	let loadingPreview = $state(false);
-	let attemptedPreview = $state(false);
 
 	function alreadyDismissed(): boolean {
 		try {
@@ -39,7 +31,9 @@
 	// Heuristic for "returning user": Logto OIDC userinfo doesn't include account
 	// creation date, so we use paired devices as a proxy. A user with paired
 	// devices used the old sunnylink to pair them; a brand-new user won't.
-	let qualifies = $derived(deviceState.pairedDevicesLoaded && deviceState.pairedDevices.length > 0);
+	const qualifies = $derived(
+		deviceState.pairedDevicesLoaded && deviceState.pairedDevices.length > 0
+	);
 
 	$effect(() => {
 		if (!qualifies) return;
@@ -47,31 +41,18 @@
 		visible = true;
 	});
 
-	async function loadPreview() {
-		attemptedPreview = true;
-		loadingPreview = true;
-		try {
-			const res = await fetch(`${PROXY_PREFIX}/c/announcements/${CATEGORY_ID}.json`);
-			if (!res.ok) return;
-			const data = await res.json();
-			const all: Topic[] = data?.topic_list?.topics ?? [];
-			const filtered = all
-				.filter((t) => {
-					const names = (t.tags || []).map((x) => x.name);
-					return REQUIRED_TAGS.every((req) => names.includes(req));
-				})
-				.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-			latestTopic = filtered[0] ?? null;
-		} catch {
-			latestTopic = null;
-		} finally {
-			loadingPreview = false;
-		}
-	}
-
-	$effect(() => {
-		if (visible && !attemptedPreview && !loadingPreview) void loadPreview();
+	// Feed store is the single source of truth for "what's new" previews; the
+	// topbar bell and /whats-new page both read the same topics, so the modal
+	// just subscribes instead of firing its own Discourse fetch.
+	onMount(() => {
+		void whatsNewStore.init();
 	});
+
+	const latestTopic = $derived(whatsNewStore.latestUnread ?? whatsNewStore.latestTopic);
+	const loadingPreview = $derived(
+		whatsNewStore.initialLoading && whatsNewStore.topics.length === 0
+	);
+	const unreadCount = $derived(whatsNewStore.unreadCount);
 
 	function dismiss() {
 		markDismissed();
@@ -140,7 +121,7 @@
 				</p>
 			{:else if latestTopic}
 				<p class="mt-3 text-[0.8125rem] text-[var(--sl-text-3)]">
-					Latest:
+					{unreadCount > 1 ? `${unreadCount} updates you haven't seen · ` : 'Latest: '}
 					<a
 						href="/dashboard/whats-new"
 						onclick={(e) => {

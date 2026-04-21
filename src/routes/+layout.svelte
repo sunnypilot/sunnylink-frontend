@@ -45,10 +45,12 @@
 	import { themeState } from '$lib/stores/theme.svelte';
 	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 	import SplashScreen from '$lib/components/SplashScreen.svelte';
+	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { navHistory } from '$lib/stores/navHistory.svelte';
 	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
+	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { onMount } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 
@@ -442,6 +444,9 @@
 	$effect(() => {
 		if (authState.isAuthenticated) {
 			invalidate('app:devices');
+			whatsNewStore.startLifecycle();
+		} else {
+			whatsNewStore.stopLifecycle();
 		}
 	});
 
@@ -539,6 +544,9 @@
 											<span>Change device</span>
 										</a>
 									{/if}
+									{#if authState.isAuthenticated}
+										<NotificationBell />
+									{/if}
 									<DeviceStatusPill />
 									{#if authState.loading}
 										<span
@@ -561,8 +569,8 @@
 								</div>
 							</div>
 
-							{#if deviceState.selectedDeviceId}
-								<div class="flex items-center gap-2 lg:hidden">
+							<div class="flex items-center gap-2 lg:hidden">
+								{#if deviceState.selectedDeviceId}
 									<a
 										href="/dashboard/devices"
 										class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)]"
@@ -570,9 +578,14 @@
 									>
 										<ArrowLeftRight size={16} aria-hidden="true" />
 									</a>
+								{/if}
+								{#if authState.isAuthenticated}
+									<NotificationBell />
+								{/if}
+								{#if deviceState.selectedDeviceId}
 									<DeviceStatusPill />
-								</div>
-							{/if}
+								{/if}
+							</div>
 						</div>
 
 						{#if deviceState.selectedDeviceId}
