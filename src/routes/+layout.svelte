@@ -417,11 +417,12 @@
 		<GlobalStatusBanner />
 
 		{#if !isChromeless}
-			<header
-				class="sticky top-0 z-50 w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
-			>
+			<div class="sticky top-0 z-50">
 				<ForceOffroadBanner />
-				<div class="flex items-center justify-between gap-3">
+				<header
+					class="w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
+				>
+					<div class="flex items-center justify-between gap-3">
 					<label
 						for="main-drawer"
 						aria-label="open sidebar"
@@ -491,7 +492,8 @@
 						<SearchTrigger />
 					</div>
 				{/if}
-			</header>
+				</header>
+			</div>
 		{/if}
 
 		<main class="flex-1 {isChromeless ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
