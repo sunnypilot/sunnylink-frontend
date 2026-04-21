@@ -505,11 +505,7 @@
 					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
 				</div>
 			{/if}
-			{#key pathname}
-				<div class="animate-page-enter">
-					{@render children()}
-				</div>
-			{/key}
+			{@render children()}
 		</main>
 	</div>
 

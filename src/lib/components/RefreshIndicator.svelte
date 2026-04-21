@@ -9,11 +9,13 @@
 
 	let displayTime = $derived.by(() => {
 		statusPolling.tickCounter;
+		if (statusPolling.isRefreshing) return 'Refreshing…';
 		if (statusPolling.lastCheckedAt === 0) return '';
 		return formatRelativeTime(statusPolling.lastCheckedAt);
 	});
 
 	let staleClass = $derived.by(() => {
+		if (statusPolling.isRefreshing) return 'text-[var(--sl-text-2)]';
 		const s = statusPolling.staleness;
 		if (s === 'critical') return 'text-amber-700 dark:text-amber-400';
 		if (s === 'warn') return 'text-amber-600/80 dark:text-amber-400/60';

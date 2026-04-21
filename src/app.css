@@ -306,16 +306,15 @@ code,
 	animation: value-fade-in var(--dur-fast) var(--ease-out) both;
 }
 
-/* SPA nav uses the View Transitions API when available — Notion-style crossfade
-   with a subtle upward translate on the incoming snapshot. The pseudo-elements
-   are browser-managed overlays, so transforms on them do NOT create containing
-   blocks for the real DOM's fixed children. Elements that opt into
-   shared-element morphing set their own `view-transition-name` inline. */
+/* SPA nav uses the View Transitions API when available. Pure opacity crossfade —
+   no transform on the root snapshots. Mixing translateY with SvelteKit's scroll
+   reset makes the incoming page appear to "move up then down" because the old
+   snapshot is captured at the pre-nav scroll while the new root starts at 0. */
 ::view-transition-old(root) {
-	animation: 200ms var(--ease-out) both view-fade-out;
+	animation: 180ms var(--ease-out) both view-fade-out;
 }
 ::view-transition-new(root) {
-	animation: 280ms var(--ease-out) both view-slide-in;
+	animation: 220ms var(--ease-out) both view-fade-in;
 }
 
 @keyframes view-fade-out {
@@ -323,14 +322,12 @@ code,
 		opacity: 0;
 	}
 }
-@keyframes view-slide-in {
+@keyframes view-fade-in {
 	from {
 		opacity: 0;
-		transform: translateY(6px);
 	}
 	to {
 		opacity: 1;
-		transform: translateY(0);
 	}
 }
 

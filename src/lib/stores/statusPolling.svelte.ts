@@ -13,7 +13,11 @@ let consecutiveFailures = $state(0);
 let tickId: ReturnType<typeof setInterval> | null = null;
 let tickCounter = $state(0);
 
-async function pollAllDevices(force: boolean = false, silent: boolean = false) {
+async function pollAllDevices(
+	force: boolean = false,
+	silent: boolean = false,
+	includeOffline: boolean = false
+) {
 	if (isRefreshing) return;
 	if (!logtoClient) return;
 
@@ -23,10 +27,12 @@ async function pollAllDevices(force: boolean = false, silent: boolean = false) {
 	const allDeviceIds = Object.keys(deviceState.onlineStatuses);
 	if (allDeviceIds.length === 0) return;
 
-	const deviceIds = allDeviceIds.filter((id) => {
-		const status = deviceState.onlineStatuses[id];
-		return status !== 'offline';
-	});
+	// Auto-poll skips offline devices to save bandwidth. Manual refresh checks
+	// all of them because the user's intent is explicit — they want to know if
+	// anything came back online since the last check.
+	const deviceIds = includeOffline
+		? allDeviceIds
+		: allDeviceIds.filter((id) => deviceState.onlineStatuses[id] !== 'offline');
 
 	isRefreshing = true;
 
@@ -106,7 +112,7 @@ export const statusPolling = {
 	},
 
 	async refreshNow() {
-		await pollAllDevices(true);
+		await pollAllDevices(true, false, true);
 	},
 
 	markChecked() {

@@ -7,8 +7,8 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { Plus, Loader2, ChevronDown, Check, ArrowRight } from 'lucide-svelte';
-	import { slide } from 'svelte/transition';
+	import { Plus, Loader2, ChevronDown, Check, ArrowRight, AlertCircle } from 'lucide-svelte';
+	import { slide, scale } from 'svelte/transition';
 	import { APIv0Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
@@ -97,29 +97,39 @@
 		return 'bg-emerald-400';
 	}
 
-	/**
-	 * Primary glance values for the stat strip. Return null when unknown so the
-	 * template can render a stable "—" slot instead of shifting layout.
-	 */
-	function formatLastSeenShort(device: any, _tick?: number): string | null {
-		// _tick unused in body — receiving it ties the template call site to
-		// `statusPolling.tickCounter` so the relative-time string re-renders each poll.
-		const ts = getLastSeen(device);
-		if (!ts) return null;
-		return formatRelativeTime(ts);
-	}
-
-	function getSubtitle(device: any): string {
+	function getSubtitle(device: any, _tick?: number): string {
+		// _tick unused in body — ties call site to statusPolling.tickCounter so
+		// the relative "Last seen" re-renders on each poll.
+		const status = deviceState.onlineStatuses[device.device_id];
 		const parts: string[] = [];
 		const typeName = getDeviceTypeName(device);
 		if (typeName) parts.push(typeName);
-		const driving = getDrivingState(device);
-		if (driving) parts.push(driving);
-		else {
-			const statusText = getStatusText(device);
-			if (statusText && statusText !== 'Checking...') parts.push(statusText);
+		if (status === 'error') {
+			parts.push('Check failed · Tap to retry');
+		} else if (status === 'offline') {
+			const ts = getLastSeen(device);
+			parts.push(ts ? `Last seen ${formatRelativeTime(ts)}` : 'Offline');
+		} else {
+			const driving = getDrivingState(device);
+			if (driving) parts.push(driving);
+			else {
+				const statusText = getStatusText(device);
+				if (statusText && statusText !== 'Checking...') parts.push(statusText);
+			}
 		}
+		if (statusPolling.isRefreshing && status !== 'loading') parts.push('Checking…');
 		return parts.join(' \u00b7 ');
+	}
+
+	function getCommitDate(device: any): string | null {
+		const values = deviceState.deviceValues[device.device_id];
+		const raw = values?.['GitCommitDate'] as string | undefined;
+		if (!raw) return null;
+		const trimmed = raw.replace(/^'|'$/g, '').trim();
+		const first = trimmed.split(/\s+/)[0];
+		const sec = Number(first);
+		if (!Number.isFinite(sec) || sec <= 0) return null;
+		return formatRelativeTime(sec * 1000);
 	}
 
 	const DEVICE_TYPE_NAMES: Record<string, string> = {
@@ -134,18 +144,6 @@
 		const type = telemetry?.deviceType;
 		if (!type || type === 'unknown') return null;
 		return DEVICE_TYPE_NAMES[type.toLowerCase()] ?? null;
-	}
-
-	function getNetworkType(device: any): string | null {
-		const telemetry = deviceState.deviceTelemetry[device.device_id];
-		const type = telemetry?.networkType;
-		if (!type || type === 'unknown') return null;
-		const map: Record<string, string> = {
-			wifi: 'WiFi',
-			cellular: 'Cellular',
-			ethernet: 'Ethernet'
-		};
-		return map[type.toLowerCase()] ?? type;
 	}
 
 	function getVersion(device: any): string | null {
@@ -193,6 +191,21 @@
 		deviceState.setSelectedDevice(device.device_id);
 	}
 
+	async function retryDevice(device: any) {
+		const token = await logtoClient?.getIdToken();
+		if (!token) return;
+		await checkDeviceStatus(device.device_id, token, true);
+	}
+
+	function handleCardClick(device: any) {
+		const status = deviceState.onlineStatuses[device.device_id];
+		if (status === 'error') {
+			void retryDevice(device);
+			return;
+		}
+		selectDevice(device);
+	}
+
 	function goHome() {
 		goto('/dashboard');
 	}
@@ -200,23 +213,13 @@
 	// Use cached devices from deviceState for instant rendering; update when API returns
 	let devices = $derived(deviceState.pairedDevices);
 
-	// Pin the currently-selected device to the top of the page, hoisted out of
-	// either status section. Mirrors the "current account" pattern from Vercel /
-	// Stripe / AWS — your active context should be visible without scrolling.
-	let pinnedDevice = $derived.by(() => {
-		deviceState.version;
-		if (!devices) return null;
-		const sel = deviceState.selectedDeviceId;
-		if (!sel) return null;
-		return devices.find((d) => d.device_id === sel) ?? null;
-	});
-
+	// Keep stable natural sort — no pinning. Selected device indicated by
+	// checkmark + "Manage on Home" CTA inline; reshuffling on select causes
+	// mental-model churn and spam-click flip-flop (Vercel/Slack/Notion pattern).
 	let onlineDevices = $derived.by(() => {
 		deviceState.version;
 		if (!devices) return [];
-		const pinId = pinnedDevice?.device_id;
 		const list = devices.filter((d) => {
-			if (pinId && d.device_id === pinId) return false;
 			const status = deviceState.onlineStatuses[d.device_id];
 			return (
 				status === 'online' || status === 'loading' || status === 'error' || status === undefined
@@ -228,9 +231,7 @@
 	let offlineDevices = $derived.by(() => {
 		deviceState.version;
 		if (!devices) return [];
-		const pinId = pinnedDevice?.device_id;
 		const list = devices.filter((d) => {
-			if (pinId && d.device_id === pinId) return false;
 			return deviceState.onlineStatuses[d.device_id] === 'offline';
 		});
 		return deviceState.sortDevices(list);
@@ -311,41 +312,50 @@
 			{/snippet}
 
 			{#snippet deviceCard(device: any)}
-				{@const isLoading =
-					!deviceState.onlineStatuses[device.device_id] ||
-					deviceState.onlineStatuses[device.device_id] === 'loading'}
-				{@const isOffline = deviceState.onlineStatuses[device.device_id] === 'offline'}
-				{@const isUnregistered =
-					device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
+				{@const status = deviceState.onlineStatuses[device.device_id]}
+				{@const isLoading = !status || status === 'loading'}
+				{@const isOffline = status === 'offline'}
+				{@const isError = status === 'error'}
 				{@const isSelected = deviceState.selectedDeviceId === device.device_id}
+				{@const isPolling = statusPolling.isRefreshing && !isLoading}
 
 				<article
-					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
+					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow,transform] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm active:scale-[0.99] {isSelected
 						? 'border-2 border-primary'
 						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-					onclick={() => selectDevice(device)}
+					onclick={() => handleCardClick(device)}
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
-							selectDevice(device);
+							handleCardClick(device);
 						}
 					}}
 					role="listitem"
 					tabindex="0"
-					aria-label="{getAlias(device)} - {isOffline
-						? 'Offline'
-						: getStatusText(device)}{isSelected ? ' - selected' : ''}"
-					aria-busy={isLoading ? 'true' : undefined}
+					aria-label="{getAlias(device)} - {isError
+						? 'Check failed, tap to retry'
+						: isOffline
+							? 'Offline'
+							: getStatusText(device)}{isSelected ? ' - selected' : ''}"
+					aria-busy={isLoading || isPolling ? 'true' : undefined}
 				>
 					<div class="px-4 py-3.5">
 						<div class="flex items-start gap-3">
 							<div class="min-w-0 flex-1">
 								<div class="flex items-center gap-2">
-									<span
-										class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
-										class:animate-pulse={isLoading}
-										aria-hidden="true"
-									></span>
+									{#if isError}
+										<AlertCircle
+											size={12}
+											class="shrink-0 text-red-500 dark:text-red-400"
+											aria-hidden="true"
+										/>
+									{:else}
+										<span
+											class="block h-2 w-2 shrink-0 rounded-full {getStatusDotClass(device)}"
+											class:animate-pulse={isLoading || isPolling}
+											aria-hidden="true"
+										></span>
+									{/if}
 									<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
 										{getAlias(device)}
 									</span>
@@ -359,13 +369,16 @@
 									<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
 								</div>
 
-								<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
-									{isOffline ? 'Offline' : getSubtitle(device) || getStatusText(device)}
-								</p>
+								{#key statusPolling.tickCounter}
+									<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-3)]">
+										{getSubtitle(device, statusPolling.tickCounter) || getStatusText(device)}
+									</p>
+								{/key}
 							</div>
 
 							{#if isSelected}
 								<span
+									in:scale={{ duration: 150, start: 0.5 }}
 									class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
 									aria-label="Selected device"
 									title="Selected device"
@@ -377,17 +390,10 @@
 
 						<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
 							{@render labelValueRow('Version', getVersion(device), false, !isOffline)}
-							{@render labelValueRow('Branch', getBranch(device), true, !isOffline, true)}
 							{#key statusPolling.tickCounter}
-								{@render labelValueRow(
-									'Last seen',
-									formatLastSeenShort(device, statusPolling.tickCounter),
-									false,
-									!isOffline
-								)}
+								{@render labelValueRow('Date', getCommitDate(device), false, !isOffline)}
 							{/key}
-							{@render labelValueRow('Device', getDeviceTypeName(device), false, !isOffline)}
-							{@render labelValueRow('Network', getNetworkType(device), false, !isOffline)}
+							{@render labelValueRow('Branch', getBranch(device), true, !isOffline, true)}
 							{@render labelValueRow('Commit', getCommit(device), true, !isOffline)}
 						</div>
 
@@ -395,6 +401,7 @@
 							<button
 								type="button"
 								class="mt-3 flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-[0.8125rem] font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary"
+								in:slide={{ duration: 180 }}
 								onclick={(e) => {
 									e.stopPropagation();
 									goHome();
@@ -410,10 +417,6 @@
 			{/snippet}
 
 			<div class="flex flex-col gap-3" role="list" aria-label="Device list">
-				{#if pinnedDevice}
-					{@render deviceCard(pinnedDevice)}
-				{/if}
-
 				{#each onlineDevices as device (device.device_id)}
 					{@render deviceCard(device)}
 				{/each}

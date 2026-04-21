@@ -271,7 +271,7 @@
 	}
 </script>
 
-<div class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6">
+<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 	<button
 		type="button"
 		onclick={() => goto('/dashboard')}
@@ -357,12 +357,12 @@
 	<section class="mt-8" aria-labelledby="actions-heading">
 		<h2
 			id="actions-heading"
-			class="mb-3 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+			class="px-1 text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]"
 		>
 			Actions
 		</h2>
 		<div
-			class="flex flex-col gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+			class="mt-3 flex flex-col gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
 		>
 			<div class="min-w-0 flex-1">
 				<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">Download backup</p>
@@ -387,22 +387,22 @@
 		</div>
 	</section>
 
-	<section class="mt-6" aria-labelledby="advanced-heading">
+	<section class="mt-8" aria-labelledby="advanced-heading">
 		<button
 			type="button"
 			onclick={() => (advancedOpen = !advancedOpen)}
-			class="flex w-full items-center justify-between rounded-lg px-1 py-2 text-left transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+			class="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary"
 			aria-expanded={advancedOpen}
 			aria-controls="advanced-section"
 		>
 			<span
 				id="advanced-heading"
-				class="text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+				class="text-[1rem] leading-snug font-medium tracking-[-0.01em] text-[var(--sl-text-1)]"
 			>
 				Advanced settings
 			</span>
 			<ChevronDown
-				size={14}
+				size={16}
 				class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-150 {advancedOpen
 					? 'rotate-180'
 					: ''}"
@@ -412,7 +412,7 @@
 		{#if advancedOpen}
 			<div
 				id="advanced-section"
-				class="mt-2 rounded-xl border border-red-500/20 bg-red-500/5 p-4"
+				class="mt-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4"
 				transition:slide={{ duration: 180 }}
 			>
 				<p class="text-[0.8125rem] font-medium text-red-700 dark:text-red-400">Danger zone</p>
