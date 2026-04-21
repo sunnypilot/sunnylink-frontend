@@ -236,6 +236,22 @@
 		});
 		return deviceState.sortDevices(list);
 	});
+
+	// If the user's selected device is offline, hoist it out of the collapsed
+	// Offline group so they can see the device they're actually operating on
+	// without expanding the section. The Vercel / Linear / Slack rule: the
+	// active context must always be visible, never tucked behind a fold.
+	let selectedOfflineDevice = $derived.by(() => {
+		deviceState.version;
+		const sel = deviceState.selectedDeviceId;
+		if (!sel) return null;
+		return offlineDevices.find((d) => d.device_id === sel) ?? null;
+	});
+
+	let otherOfflineDevices = $derived.by(() => {
+		if (!selectedOfflineDevice) return offlineDevices;
+		return offlineDevices.filter((d) => d.device_id !== selectedOfflineDevice.device_id);
+	});
 </script>
 
 {#if authState.loading}
@@ -322,7 +338,7 @@
 					isOffline || isError || deviceState.infoFetchComplete[device.device_id] === true}
 
 				<article
-					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow,transform] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm active:scale-[0.99] {isSelected
+					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 						? 'border-2 border-primary'
 						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
 					onclick={() => handleCardClick(device)}
@@ -423,7 +439,11 @@
 					{@render deviceCard(device)}
 				{/each}
 
-				{#if offlineDevices.length > 0}
+				{#if selectedOfflineDevice}
+					{@render deviceCard(selectedOfflineDevice)}
+				{/if}
+
+				{#if otherOfflineDevices.length > 0}
 					<button
 						class="group flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3 text-left transition-colors hover:border-[var(--sl-text-3)]/40 hover:bg-[var(--sl-bg-elevated)] focus-visible:border-primary focus-visible:outline-none"
 						onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
@@ -442,7 +462,7 @@
 							<span
 								class="rounded-full bg-[var(--sl-bg-elevated)] px-2 py-0.5 text-[0.6875rem] font-semibold text-[var(--sl-text-2)] group-hover:bg-[var(--sl-bg-subtle)]"
 							>
-								{offlineDevices.length}
+								{otherOfflineDevices.length}
 							</span>
 						</div>
 					</button>
@@ -453,7 +473,7 @@
 							class="flex flex-col gap-3"
 							transition:slide={{ duration: 150 }}
 						>
-							{#each offlineDevices as device (device.device_id)}
+							{#each otherOfflineDevices as device (device.device_id)}
 								{@render deviceCard(device)}
 							{/each}
 						</div>

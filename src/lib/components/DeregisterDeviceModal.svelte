@@ -21,7 +21,7 @@
 		onDeregistered?: () => void;
 	} = $props();
 
-	const CONFIRM_PHRASE = 'deregister';
+	const CONFIRM_PHRASE = 'permanent deregister';
 	const FORUM_BUG_REPORT = 'https://community.sunnypilot.ai/c/bug-reports/8';
 
 	let stage = $state<1 | 2>(1);
@@ -198,10 +198,24 @@
 				>
 					Confirm deregister
 				</h2>
-				<p class="mt-2 text-[0.8125rem] text-[var(--sl-text-2)]">
-					You're about to deregister
-					<span class="font-medium text-[var(--sl-text-1)]">{alias || deviceId}</span>.
-				</p>
+				<p class="mt-2 text-[0.8125rem] text-[var(--sl-text-2)]">You're about to deregister:</p>
+				<div
+					class="mt-2 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3 py-2.5"
+				>
+					<p class="truncate text-[0.9375rem] font-semibold text-[var(--sl-text-1)]">
+						{alias || deviceId}
+					</p>
+					<dl class="mt-1 flex flex-col gap-0.5">
+						<div class="flex items-baseline gap-2">
+							<dt class="shrink-0 text-[0.6875rem] text-[var(--sl-text-3)]">sunnylink Device ID</dt>
+							<dd
+								class="min-w-0 flex-1 truncate text-right font-mono text-[0.6875rem] text-[var(--sl-text-2)]"
+							>
+								{deviceId}
+							</dd>
+						</div>
+					</dl>
+				</div>
 
 				<div class="mt-4 space-y-2.5">
 					<label
