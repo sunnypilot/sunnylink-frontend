@@ -112,9 +112,9 @@
 					<Pencil size={14} />
 					Rename
 				</button>
+				<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
 			{/if}
 
-			<div class="my-1 border-t border-[var(--sl-border-emphasis)]"></div>
 			<div class="px-2.5 pt-1 pb-0.5">
 				<span
 					class="text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
