@@ -44,6 +44,7 @@
 	import { Toaster } from 'svelte-sonner';
 	import { themeState } from '$lib/stores/theme.svelte';
 	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
+	import SplashScreen from '$lib/components/SplashScreen.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { navHistory } from '$lib/stores/navHistory.svelte';
@@ -443,369 +444,381 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div
-	class="drawer min-h-screen bg-[var(--sl-bg-page)] {!isChromeless
-		? 'lg:drawer-open'
-		: 'h-auto overflow-visible'}"
->
-	<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
-
+{#if showSessionExpiredModal}
+	<!-- Terminal auth state: replace the whole dashboard chrome with the brand
+	     splash so nothing behind the modal is re-rendering. The previous
+	     behavior kept rendering sidebar + page content, whose auth-dependent
+	     skeletons flickered on/off as refreshSession() toggled
+	     authState.loading a second time before landing on sessionExpired.
+	     Splash is static; the modal keeps its own transition:fade on top. -->
+	<SplashScreen spinner={false} label="Session expired" />
+{:else}
 	<div
-		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isChromeless
-			? 'h-auto overflow-visible'
-			: ''}"
-		style={isChromeless ? '' : `padding-top: ${topBarHeight}px;`}
+		class="drawer min-h-screen bg-[var(--sl-bg-page)] {!isChromeless
+			? 'lg:drawer-open'
+			: 'h-auto overflow-visible'}"
 	>
-		<GlobalStatusBanner />
+		<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 
-		{#if !isChromeless}
-			<div
-				bind:clientHeight={topBarHeight}
-				class="fixed top-0 right-0 left-0 z-50 bg-[var(--sl-bg-page)] lg:left-[18rem]"
-				style="padding-top: env(safe-area-inset-top);"
-			>
-				<ForceOffroadBanner />
-				<header
-					class="w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
+		<div
+			class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isChromeless
+				? 'h-auto overflow-visible'
+				: ''}"
+			style={isChromeless ? '' : `padding-top: ${topBarHeight}px;`}
+		>
+			<GlobalStatusBanner />
+
+			{#if !isChromeless}
+				<div
+					bind:clientHeight={topBarHeight}
+					class="fixed top-0 right-0 left-0 z-50 bg-[var(--sl-bg-page)] lg:left-[18rem]"
+					style="padding-top: env(safe-area-inset-top);"
 				>
-					<div class="flex items-center justify-between gap-3">
-						<label
-							for="main-drawer"
-							aria-label="open sidebar"
-							class="btn btn-square text-[var(--sl-text-1)] btn-ghost transition-all duration-100 btn-sm active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] lg:hidden"
-						>
-							<Menu size={20} />
-						</label>
+					<ForceOffroadBanner />
+					<header
+						class="w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
+					>
+						<div class="flex items-center justify-between gap-3">
+							<label
+								for="main-drawer"
+								aria-label="open sidebar"
+								class="btn btn-square text-[var(--sl-text-1)] btn-ghost transition-all duration-100 btn-sm active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] lg:hidden"
+							>
+								<Menu size={20} />
+							</label>
 
-						<div class="hidden flex-1 items-center justify-between gap-3 lg:flex">
-							<div class="flex flex-1 justify-center px-6">
-								{#if deviceState.selectedDeviceId}
-									<div class="w-full max-w-md">
-										<SearchTrigger />
-									</div>
-								{/if}
+							<div class="hidden flex-1 items-center justify-between gap-3 lg:flex">
+								<div class="flex flex-1 justify-center px-6">
+									{#if deviceState.selectedDeviceId}
+										<div class="w-full max-w-md">
+											<SearchTrigger />
+										</div>
+									{/if}
+								</div>
+
+								<div class="flex items-center gap-3">
+									{#if deviceState.selectedDeviceId}
+										<a
+											href="/dashboard/devices"
+											class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
+											aria-label="Change selected device"
+										>
+											<ArrowLeftRight size={14} aria-hidden="true" />
+											<span>Change device</span>
+										</a>
+									{/if}
+									<DeviceStatusPill />
+									{#if authState.loading}
+										<span
+											class="loading loading-spinner text-[var(--sl-text-3)]"
+											style="width: 16px; height: 16px;"
+											aria-label="Checking session"
+										></span>
+									{:else}
+										{#await data.streamed.deviceResult then result}
+											{#if result.error === 'api_error'}
+												<button
+													class="btn text-error btn-ghost transition-all duration-100 btn-sm active:scale-[0.97] active:bg-red-500/10"
+													onclick={() => invalidate('app:devices')}
+												>
+													Failed to load — Retry
+												</button>
+											{/if}
+										{/await}
+									{/if}
+								</div>
 							</div>
 
-							<div class="flex items-center gap-3">
-								{#if deviceState.selectedDeviceId}
+							{#if deviceState.selectedDeviceId}
+								<div class="flex items-center gap-2 lg:hidden">
 									<a
 										href="/dashboard/devices"
-										class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
+										class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)]"
 										aria-label="Change selected device"
 									>
-										<ArrowLeftRight size={14} aria-hidden="true" />
-										<span>Change device</span>
+										<ArrowLeftRight size={16} aria-hidden="true" />
 									</a>
-								{/if}
-								<DeviceStatusPill />
-								{#if authState.loading}
-									<span
-										class="loading loading-spinner text-[var(--sl-text-3)]"
-										style="width: 16px; height: 16px;"
-										aria-label="Checking session"
-									></span>
-								{:else}
-									{#await data.streamed.deviceResult then result}
-										{#if result.error === 'api_error'}
-											<button
-												class="btn text-error btn-ghost transition-all duration-100 btn-sm active:scale-[0.97] active:bg-red-500/10"
-												onclick={() => invalidate('app:devices')}
-											>
-												Failed to load — Retry
-											</button>
-										{/if}
-									{/await}
-								{/if}
-							</div>
+									<DeviceStatusPill />
+								</div>
+							{/if}
 						</div>
 
 						{#if deviceState.selectedDeviceId}
-							<div class="flex items-center gap-2 lg:hidden">
-								<a
-									href="/dashboard/devices"
-									class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)]"
-									aria-label="Change selected device"
-								>
-									<ArrowLeftRight size={16} aria-hidden="true" />
-								</a>
-								<DeviceStatusPill />
+							<div class="mt-2 lg:hidden">
+								<SearchTrigger />
 							</div>
 						{/if}
-					</div>
-
-					{#if deviceState.selectedDeviceId}
-						<div class="mt-2 lg:hidden">
-							<SearchTrigger />
-						</div>
-					{/if}
-				</header>
-			</div>
-		{/if}
-
-		<main class="flex-1 {isChromeless ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
-			{#if !isChromeless && deviceState.selectedDeviceId}
-				<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-					<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
+					</header>
 				</div>
 			{/if}
-			{#key pathname}
-				<div in:fade={{ duration: 180 }}>
-					{@render children()}
-				</div>
-			{/key}
-		</main>
-	</div>
 
-	{#if !isChromeless}
-		<div class="drawer-side z-[51]">
-			<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-			<aside
-				class={[
-					'flex h-[100dvh] flex-col overflow-hidden border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)]',
-					// Fixed width on mobile (w-72) — the closed state is already
-					// off-screen via drawer translate, so animating width here was
-					// layout-thrashing work in parallel with the slide for no visible
-					// payoff. Desktop keeps its wider fixed size.
-					'w-72 lg:w-[18rem]'
-				]}
-			>
-				<!-- Brand wordmark (non-interactive) -->
-				<div class="flex h-14 w-full shrink-0 items-center px-4 lg:px-5">
-					<p
-						class={[
-							'font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-2)] uppercase',
-							drawerOpen ? 'block' : 'hidden',
-							'lg:block'
-						]}
-					>
-						sunnylink
-					</p>
-				</div>
+			<main class="flex-1 {isChromeless ? '' : 'px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8'}">
+				{#if !isChromeless && deviceState.selectedDeviceId}
+					<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+						<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
+					</div>
+				{/if}
+				{#key pathname}
+					<div in:fade={{ duration: 180 }}>
+						{@render children()}
+					</div>
+				{/key}
+			</main>
+		</div>
 
-				<nav
-					class="flex-1 overflow-y-auto overscroll-contain bg-[var(--sl-bg-surface)] px-3 py-3 lg:px-4"
-					style="min-height: 0;"
+		{#if !isChromeless}
+			<div class="drawer-side z-[51]">
+				<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+				<aside
+					class={[
+						'flex h-[100dvh] flex-col overflow-hidden border-r border-[var(--sl-border)] bg-[var(--sl-bg-surface)]',
+						// Fixed width on mobile (w-72) — the closed state is already
+						// off-screen via drawer translate, so animating width here was
+						// layout-thrashing work in parallel with the slide for no visible
+						// payoff. Desktop keeps its wider fixed size.
+						'w-72 lg:w-[18rem]'
+					]}
 				>
-					<!-- Auth init in flight — show skeleton rows so the sidebar doesn't
+					<!-- Brand wordmark (non-interactive) -->
+					<div class="flex h-14 w-full shrink-0 items-center px-4 lg:px-5">
+						<p
+							class={[
+								'font-audiowide text-[0.75rem] font-semibold tracking-[0.20em] text-[var(--sl-text-2)] uppercase',
+								drawerOpen ? 'block' : 'hidden',
+								'lg:block'
+							]}
+						>
+							sunnylink
+						</p>
+					</div>
+
+					<nav
+						class="flex-1 overflow-y-auto overscroll-contain bg-[var(--sl-bg-surface)] px-3 py-3 lg:px-4"
+						style="min-height: 0;"
+					>
+						<!-- Auth init in flight — show skeleton rows so the sidebar doesn't
 						 flash empty or flip to the logged-out view during the refresh
 						 grant window. -->
-					{#if authState.loading}
-						<ul class="mb-2 flex flex-col gap-0.5" aria-hidden="true">
-							{#each [0, 1] as _}
-								<li class="list-none">
-									<div class="flex items-center gap-3 rounded-lg px-3.5 py-2.5">
-										<div
-											class="h-5 w-5 shrink-0 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
-										></div>
-										<div
-											class={[
-												'h-3 w-24 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
-												drawerOpen ? 'block' : 'hidden',
-												'lg:block'
-											]}
-										></div>
-									</div>
-								</li>
-							{/each}
-						</ul>
-						<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
-						<div class="mb-1 px-3 py-1.5">
-							<div
-								class={[
-									'h-2.5 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
-									drawerOpen ? 'block' : 'hidden',
-									'lg:block'
-								]}
-							></div>
-						</div>
-						<ul class="flex flex-col gap-0.5" aria-hidden="true">
-							{#each [0, 1, 2, 3, 4, 5, 6, 7, 8] as _}
-								<li class="list-none">
-									<div class="flex items-center gap-3 rounded-lg px-3.5 py-2.5">
-										<div
-											class="h-5 w-5 shrink-0 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
-										></div>
-										<div
-											class={[
-												'h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
-												drawerOpen ? 'block' : 'hidden',
-												'lg:block'
-											]}
-										></div>
-									</div>
-								</li>
-							{/each}
-						</ul>
-					{:else}
-						<!-- Top-level items (standalone, above settings sections) -->
-						{#if topLevelItems.length > 0}
-							<ul class="mb-2 flex flex-col gap-0.5">
-								{#each topLevelItems as item}
-									{@render navItemSnippet(item)}
+						{#if authState.loading}
+							<ul class="mb-2 flex flex-col gap-0.5" aria-hidden="true">
+								{#each [0, 1] as _}
+									<li class="list-none">
+										<div class="flex items-center gap-3 rounded-lg px-3.5 py-2.5">
+											<div
+												class="h-5 w-5 shrink-0 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+											></div>
+											<div
+												class={[
+													'h-3 w-24 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+													drawerOpen ? 'block' : 'hidden',
+													'lg:block'
+												]}
+											></div>
+										</div>
+									</li>
 								{/each}
 							</ul>
-						{/if}
-
-						{#each navSections as section, si}
-							{#if si > 0}
-								<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
-							{/if}
-
-							{#if section.collapsible}
-								<button
-									class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.98] active:opacity-80"
-									onclick={() => (settingsOpen = !settingsOpen)}
-								>
-									<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>{section.label}</span>
-									<ChevronDown
-										size={12}
-										class="transition-transform duration-150 {settingsOpen
-											? ''
-											: '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
-									/>
-								</button>
+							<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
+							<div class="mb-1 px-3 py-1.5">
 								<div
-									class="grid transition-[grid-template-rows] duration-200 ease-in-out"
-									style="grid-template-rows: {settingsOpen ? '1fr' : '0fr'};"
-								>
-									<ul class="mt-0.5 flex flex-col gap-0.5 overflow-hidden">
-										{#each section.items as item}
-											{@render navItemSnippet(item)}
-										{/each}
-									</ul>
-								</div>
-							{:else}
-								<div class="mb-1 px-3 py-1.5">
-									<span
-										class={[
-											'text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase',
-											drawerOpen ? 'block' : 'hidden',
-											'lg:block'
-										]}
-									>
-										{section.label}
-									</span>
-								</div>
-								<ul class="flex flex-col gap-0.5">
-									{#each section.items as item}
+									class={[
+										'h-2.5 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+										drawerOpen ? 'block' : 'hidden',
+										'lg:block'
+									]}
+								></div>
+							</div>
+							<ul class="flex flex-col gap-0.5" aria-hidden="true">
+								{#each [0, 1, 2, 3, 4, 5, 6, 7, 8] as _}
+									<li class="list-none">
+										<div class="flex items-center gap-3 rounded-lg px-3.5 py-2.5">
+											<div
+												class="h-5 w-5 shrink-0 animate-pulse rounded bg-[var(--sl-bg-elevated)]"
+											></div>
+											<div
+												class={[
+													'h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+													drawerOpen ? 'block' : 'hidden',
+													'lg:block'
+												]}
+											></div>
+										</div>
+									</li>
+								{/each}
+							</ul>
+						{:else}
+							<!-- Top-level items (standalone, above settings sections) -->
+							{#if topLevelItems.length > 0}
+								<ul class="mb-2 flex flex-col gap-0.5">
+									{#each topLevelItems as item}
 										{@render navItemSnippet(item)}
 									{/each}
 								</ul>
 							{/if}
-						{/each}
-					{/if}
 
-					<!-- Utility items (device-level, e.g. Migration Wizard) -->
-					{#if utilityItems.length > 0}
-						<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
-						<ul class="flex flex-col gap-0.5">
-							{#each utilityItems as item}
-								{@render navItemSnippet(item)}
-							{/each}
-						</ul>
-					{/if}
-				</nav>
-
-				{#snippet navItemSnippet(item: NavItem)}
-					{@const active = isActive(item.href)}
-					{@const Icon = item.icon}
-					<li class="list-none">
-						{#if item.href}
-							<a
-								href={item.href}
-								onclick={closeDrawerOnMobile}
-								class={navItemClasses(active)}
-								aria-current={active ? 'page' : undefined}
-							>
-								{#if active}
-									<span
-										class="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
-									></span>
+							{#each navSections as section, si}
+								{#if si > 0}
+									<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
 								{/if}
-								<Icon class="size-5 shrink-0" />
-								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-									{item.label}
-								</span>
-							</a>
-						{:else if item.action}
+
+								{#if section.collapsible}
+									<button
+										class="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.98] active:opacity-80"
+										onclick={() => (settingsOpen = !settingsOpen)}
+									>
+										<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}
+											>{section.label}</span
+										>
+										<ChevronDown
+											size={12}
+											class="transition-transform duration-150 {settingsOpen
+												? ''
+												: '-rotate-90'} {drawerOpen ? 'block' : 'hidden'} lg:block"
+										/>
+									</button>
+									<div
+										class="grid transition-[grid-template-rows] duration-200 ease-in-out"
+										style="grid-template-rows: {settingsOpen ? '1fr' : '0fr'};"
+									>
+										<ul class="mt-0.5 flex flex-col gap-0.5 overflow-hidden">
+											{#each section.items as item}
+												{@render navItemSnippet(item)}
+											{/each}
+										</ul>
+									</div>
+								{:else}
+									<div class="mb-1 px-3 py-1.5">
+										<span
+											class={[
+												'text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase',
+												drawerOpen ? 'block' : 'hidden',
+												'lg:block'
+											]}
+										>
+											{section.label}
+										</span>
+									</div>
+									<ul class="flex flex-col gap-0.5">
+										{#each section.items as item}
+											{@render navItemSnippet(item)}
+										{/each}
+									</ul>
+								{/if}
+							{/each}
+						{/if}
+
+						<!-- Utility items (device-level, e.g. Migration Wizard) -->
+						{#if utilityItems.length > 0}
+							<div class="mx-2 my-2 border-b border-[var(--sl-border-muted)]"></div>
+							<ul class="flex flex-col gap-0.5">
+								{#each utilityItems as item}
+									{@render navItemSnippet(item)}
+								{/each}
+							</ul>
+						{/if}
+					</nav>
+
+					{#snippet navItemSnippet(item: NavItem)}
+						{@const active = isActive(item.href)}
+						{@const Icon = item.icon}
+						<li class="list-none">
+							{#if item.href}
+								<a
+									href={item.href}
+									onclick={closeDrawerOnMobile}
+									class={navItemClasses(active)}
+									aria-current={active ? 'page' : undefined}
+								>
+									{#if active}
+										<span
+											class="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
+										></span>
+									{/if}
+									<Icon class="size-5 shrink-0" />
+									<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+										{item.label}
+									</span>
+								</a>
+							{:else if item.action}
+								<button
+									type="button"
+									onclick={() => {
+										item.action?.();
+										closeDrawerOnMobile();
+									}}
+									class={navItemClasses(active)}
+								>
+									<Icon class="size-5 shrink-0" />
+									<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+										{item.label}
+									</span>
+								</button>
+							{/if}
+						</li>
+					{/snippet}
+
+					<div class="shrink-0 border-t border-[var(--sl-border-muted)] px-4 py-3">
+						{#if authState.loading}
+							<!-- Skeleton row matching account/login footer height -->
+							<div class="flex items-center gap-2.5 rounded-lg px-3 py-2" aria-hidden="true">
+								<div
+									class="h-8 w-8 shrink-0 animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"
+								></div>
+								<div
+									class={[
+										'h-3 w-24 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
+										drawerOpen ? 'block' : 'hidden',
+										'lg:block'
+									]}
+								></div>
+							</div>
+						{:else if authState.isAuthenticated}
+							<div class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
+								<AccountMenu onNavigate={closeDrawerOnMobile} />
+							</div>
+						{:else}
 							<button
 								type="button"
-								onclick={() => {
-									item.action?.();
+								disabled={authState.isSigningIn}
+								onclick={async () => {
 									closeDrawerOnMobile();
+									await authState.signIn(`${window.location.origin}/auth/callback`);
 								}}
-								class={navItemClasses(active)}
+								class={[
+									'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.98] active:bg-[var(--sl-bg-elevated)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent disabled:active:scale-100',
+									drawerOpen ? 'justify-start' : 'justify-center',
+									'lg:justify-start'
+								]}
 							>
-								<Icon class="size-5 shrink-0" />
-								<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-									{item.label}
+								{#if authState.isSigningIn}
+									<Loader2
+										size={18}
+										class="animate-spin text-[var(--sl-text-2)]"
+										aria-hidden="true"
+									/>
+								{:else}
+									<LogIn
+										size={18}
+										class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+									/>
+								{/if}
+								<span
+									class={[
+										'text-[0.8125rem] font-medium text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]',
+										drawerOpen ? 'block' : 'hidden',
+										'lg:block'
+									]}
+								>
+									{authState.isSigningIn ? 'Signing in…' : 'Login'}
 								</span>
 							</button>
 						{/if}
-					</li>
-				{/snippet}
-
-				<div class="shrink-0 border-t border-[var(--sl-border-muted)] px-4 py-3">
-					{#if authState.loading}
-						<!-- Skeleton row matching account/login footer height -->
-						<div class="flex items-center gap-2.5 rounded-lg px-3 py-2" aria-hidden="true">
-							<div
-								class="h-8 w-8 shrink-0 animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"
-							></div>
-							<div
-								class={[
-									'h-3 w-24 animate-pulse rounded bg-[var(--sl-bg-elevated)]',
-									drawerOpen ? 'block' : 'hidden',
-									'lg:block'
-								]}
-							></div>
-						</div>
-					{:else if authState.isAuthenticated}
-						<div class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
-							<AccountMenu onNavigate={closeDrawerOnMobile} />
-						</div>
-					{:else}
-						<button
-							type="button"
-							disabled={authState.isSigningIn}
-							onclick={async () => {
-								closeDrawerOnMobile();
-								await authState.signIn(`${window.location.origin}/auth/callback`);
-							}}
-							class={[
-								'group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.98] active:bg-[var(--sl-bg-elevated)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent disabled:active:scale-100',
-								drawerOpen ? 'justify-start' : 'justify-center',
-								'lg:justify-start'
-							]}
-						>
-							{#if authState.isSigningIn}
-								<Loader2
-									size={18}
-									class="animate-spin text-[var(--sl-text-2)]"
-									aria-hidden="true"
-								/>
-							{:else}
-								<LogIn
-									size={18}
-									class="text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
-								/>
-							{/if}
-							<span
-								class={[
-									'text-[0.8125rem] font-medium text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]',
-									drawerOpen ? 'block' : 'hidden',
-									'lg:block'
-								]}
-							>
-								{authState.isSigningIn ? 'Signing in…' : 'Login'}
-							</span>
-						</button>
-					{/if}
-				</div>
-			</aside>
-		</div>
-	{/if}
-</div>
+					</div>
+				</aside>
+			</div>
+		{/if}
+	</div>
+{/if}
 
 <BackupStatusIndicator />
 

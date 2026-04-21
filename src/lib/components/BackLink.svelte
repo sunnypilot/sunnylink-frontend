@@ -32,7 +32,7 @@
 <button
 	type="button"
 	onclick={handleClick}
-	class="row-press -ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)] {extraClass}"
+	class="row-press -ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)] {extraClass}"
 >
 	<ChevronLeft size={14} aria-hidden="true" />
 	{label}

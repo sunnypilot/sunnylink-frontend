@@ -21,6 +21,7 @@
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
+	import SplashScreen from '$lib/components/SplashScreen.svelte';
 
 	let isMenuOpen = false;
 
@@ -71,29 +72,11 @@
 
 {#if showAuthSplash}
 	<!-- Authenticated visitor (or auth still resolving): hold a splash so we
-	     don't flash marketing copy before redirecting to /dashboard. Logo +
-	     spinner only — Linear / Vercel / Apple all run launch screens without
-	     status text since the spinner already conveys "working". Locked to
-	     viewport height + overflow-hidden + touch-none so the user can't drag
-	     the centered content around on iOS. -->
-	<div
-		class="flex h-[100dvh] touch-none flex-col items-center justify-center overflow-hidden bg-[var(--sl-bg-page)] px-6 select-none"
-		role="status"
-		aria-live="polite"
-		aria-label="Loading"
-		in:fade={{ duration: 200 }}
-	>
-		<p
-			class="font-audiowide text-[1.5rem] font-semibold tracking-[0.20em] text-[var(--sl-text-1)] uppercase"
-		>
-			sunnylink
-		</p>
-		<span
-			class="loading mt-6 loading-spinner text-primary"
-			style="width: 24px; height: 24px;"
-			aria-hidden="true"
-		></span>
-	</div>
+	     don't flash marketing copy before redirecting to /dashboard. Shared
+	     SplashScreen component so the session-expired state can reuse the
+	     same brand surface (minus the spinner, since that flow is waiting on
+	     the user not the network). -->
+	<SplashScreen />
 {:else}
 	<div
 		class="min-h-screen overflow-x-hidden bg-[#0f1726] font-sans text-white selection:bg-[#594AE2]/30"
