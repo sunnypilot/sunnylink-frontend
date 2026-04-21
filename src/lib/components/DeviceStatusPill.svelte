@@ -12,6 +12,7 @@
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
+	import LegacyInfoModal from '$lib/components/LegacyInfoModal.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import {
@@ -108,6 +109,7 @@
 
 	// Popover state
 	let popoverOpen = $state(false);
+	let legacyModalOpen = $state(false);
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let menuStyle = $state('position:fixed;visibility:hidden;');
 	let refreshing = $state(false);
@@ -463,7 +465,14 @@
 
 			{#if deviceId && schemaState.schemaUnavailable[deviceId]}
 				<div class="px-1.5 pb-1.5">
-					<LegacyDeviceBadge {deviceId} variant="banner" onBeforeOpen={closePopover} />
+					<LegacyDeviceBadge
+						{deviceId}
+						variant="banner"
+						onActivate={() => {
+							closePopover();
+							legacyModalOpen = true;
+						}}
+					/>
 				</div>
 			{/if}
 
@@ -680,6 +689,7 @@
 	{/if}
 
 	<ForceOffroadModal bind:open={forceModalOpen} onSuccess={onForceOffroadSuccess} />
+	<LegacyInfoModal bind:open={legacyModalOpen} />
 {/if}
 
 <style>

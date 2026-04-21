@@ -7,18 +7,28 @@
 		deviceId: string | null | undefined;
 		variant?: 'dot' | 'chip' | 'banner';
 		className?: string;
-		onBeforeOpen?: () => void;
+		/**
+		 * If provided, clicking the badge delegates to this callback INSTEAD of
+		 * opening the internal modal. Use this when the badge lives inside a
+		 * transient parent (e.g. DeviceStatusPill popover) that unmounts on click
+		 * — mount LegacyInfoModal at a stable parent and trigger it via this
+		 * callback so the modal survives the parent's unmount.
+		 */
+		onActivate?: () => void;
 	}
 
-	let { deviceId, variant = 'dot', className = '', onBeforeOpen }: Props = $props();
+	let { deviceId, variant = 'dot', className = '', onActivate }: Props = $props();
 
 	let isLegacy = $derived(!!deviceId && schemaState.schemaUnavailable[deviceId] === true);
 	let modalOpen = $state(false);
 
-	function openModal(e: MouseEvent | KeyboardEvent) {
+	function activate(e: MouseEvent | KeyboardEvent) {
 		e.stopPropagation();
-		onBeforeOpen?.();
-		modalOpen = true;
+		if (onActivate) {
+			onActivate();
+		} else {
+			modalOpen = true;
+		}
 	}
 </script>
 
@@ -26,7 +36,7 @@
 	{#if variant === 'banner'}
 		<button
 			type="button"
-			onclick={openModal}
+			onclick={activate}
 			class="flex w-full items-center gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-2.5 text-left text-[0.8125rem] text-amber-700 transition-colors hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-amber-600 dark:bg-amber-500/10 dark:text-amber-300 {className}"
 			aria-label="Legacy sunnylink on this device"
 		>
@@ -37,7 +47,7 @@
 	{:else if variant === 'chip'}
 		<button
 			type="button"
-			onclick={openModal}
+			onclick={activate}
 			class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[0.6875rem] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-2 focus-visible:outline-amber-600 dark:text-amber-300 {className}"
 			aria-label="Legacy sunnylink on this device"
 		>
