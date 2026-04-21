@@ -2,7 +2,7 @@
 	import { ChevronDown, ChevronUp, Check } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { tick } from 'svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly, scale } from 'svelte/transition';
 
 	interface Option {
 		value: string | number;
@@ -19,6 +19,8 @@
 
 	let { options, value, disabled = false, disabledValues, onchange }: Props = $props();
 
+	const BOTTOM_SHEET_THRESHOLD = 10;
+
 	let open = $state(false);
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let menuEl = $state<HTMLDivElement | null>(null);
@@ -32,6 +34,18 @@
 	let canScrollUp = $state(false);
 	let canScrollDown = $state(false);
 
+	let isMobile = $state(false);
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		const mq = window.matchMedia('(max-width: 1023px)');
+		isMobile = mq.matches;
+		const handler = (e: MediaQueryListEvent) => (isMobile = e.matches);
+		mq.addEventListener('change', handler);
+		return () => mq.removeEventListener('change', handler);
+	});
+
+	let useBottomSheet = $derived(isMobile && options.length > BOTTOM_SHEET_THRESHOLD);
+
 	let selectedLabel = $derived(options.find((o) => String(o.value) === String(value))?.label ?? '');
 
 	async function toggle() {
@@ -44,7 +58,7 @@
 		open = true;
 		await tick();
 		await new Promise<void>((r) => requestAnimationFrame(() => r()));
-		alignMenu();
+		if (!useBottomSheet) alignMenu();
 	}
 
 	function close() {
@@ -117,7 +131,7 @@
 	function handleScroll() {
 		updateScrollIndicators();
 
-		if (!scrollEl || !isClipped || !menuEl) return;
+		if (!scrollEl || !isClipped || !menuEl || useBottomSheet) return;
 		const el = scrollEl;
 		const viewH = window.innerHeight;
 		const margin = 8;
@@ -200,6 +214,45 @@
 			};
 		}
 	});
+
+	// Body scroll lock while popover open. iOS Safari otherwise rubber-bands the
+	// page behind the overlay; pin the body via position:fixed with scrollY offset.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		if (!open) return;
+
+		const scrollY = window.scrollY;
+		const html = document.documentElement;
+		const body = document.body;
+		const prev = {
+			htmlOverflow: html.style.overflow,
+			bodyPosition: body.style.position,
+			bodyTop: body.style.top,
+			bodyLeft: body.style.left,
+			bodyRight: body.style.right,
+			bodyWidth: body.style.width,
+			bodyOverflow: body.style.overflow
+		};
+
+		html.style.overflow = 'hidden';
+		body.style.position = 'fixed';
+		body.style.top = `-${scrollY}px`;
+		body.style.left = '0';
+		body.style.right = '0';
+		body.style.width = '100%';
+		body.style.overflow = 'hidden';
+
+		return () => {
+			html.style.overflow = prev.htmlOverflow;
+			body.style.position = prev.bodyPosition;
+			body.style.top = prev.bodyTop;
+			body.style.left = prev.bodyLeft;
+			body.style.right = prev.bodyRight;
+			body.style.width = prev.bodyWidth;
+			body.style.overflow = prev.bodyOverflow;
+			window.scrollTo(0, scrollY);
+		};
+	});
 </script>
 
 <button
@@ -246,66 +299,116 @@
 				e.preventDefault();
 			}}
 		></div>
-		<div
-			bind:this={menuEl}
-			transition:scale={{ start: 0.96, duration: 150, opacity: 0 }}
-			class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-sm"
-			style={menuStyle}
-			role="listbox"
-		>
-			{#if canScrollUp}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
-					onmousedown={scrollUpClick}
-				>
-					<ChevronUp size={12} />
-				</div>
-			{/if}
-
+		{#if useBottomSheet}
+			<!-- ── Bottom-sheet variant (mobile, > 10 options) ──────────────────── -->
 			<div
-				bind:this={scrollEl}
-				class="relative flex-1 overflow-y-auto"
-				class:scroll-fade-top={canScrollUp}
-				class:scroll-fade-bottom={canScrollDown}
-				onscroll={handleScroll}
+				bind:this={menuEl}
+				transition:fly={{ y: 400, duration: 250 }}
+				class="fixed inset-x-0 bottom-0 z-[9999] flex max-h-[75vh] flex-col overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl"
+				role="listbox"
+				style="padding-bottom: env(safe-area-inset-bottom);"
 			>
-				<div class="p-1.5">
-					{#each options as opt (opt.value)}
-						{@const isSelected = String(opt.value) === String(value)}
-						{@const isOptDisabled = !!disabledValues?.has(opt.value)}
-						<button
-							type="button"
-							class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[0.8125rem] transition-colors"
-							class:text-[var(--sl-text-1)]={!isOptDisabled}
-							class:hover:bg-[var(--sl-bg-subtle)]={!isOptDisabled}
-							class:text-[var(--sl-text-3)]={isOptDisabled}
-							class:opacity-40={isOptDisabled}
-							class:cursor-not-allowed={isOptDisabled}
-							role="option"
-							aria-selected={isSelected}
-							aria-disabled={isOptDisabled}
-							onclick={() => select(opt)}
-						>
-							<span>{opt.label}</span>
-							{#if isSelected && !isOptDisabled}
-								<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
-							{/if}
-						</button>
-					{/each}
+				<!-- Drag handle (visual affordance, not draggable) -->
+				<div class="flex shrink-0 items-center justify-center pt-2.5 pb-1.5">
+					<div class="h-1 w-10 rounded-full bg-[var(--sl-border-emphasis)]"></div>
+				</div>
+				<div
+					bind:this={scrollEl}
+					class="flex-1 overflow-y-auto"
+					style="touch-action: pan-y; overscroll-behavior: contain;"
+				>
+					<div class="p-2">
+						{#each options as opt (opt.value)}
+							{@const isSelected = String(opt.value) === String(value)}
+							{@const isOptDisabled = !!disabledValues?.has(opt.value)}
+							<button
+								type="button"
+								class="flex w-full items-center justify-between rounded-lg px-3 py-3 text-[0.9375rem] transition-colors"
+								class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
+								class:text-[var(--sl-text-1)]={!isOptDisabled}
+								class:active:bg-[var(--sl-bg-subtle)]={!isOptDisabled && !isSelected}
+								class:text-[var(--sl-text-3)]={isOptDisabled}
+								class:opacity-40={isOptDisabled}
+								class:cursor-not-allowed={isOptDisabled}
+								role="option"
+								aria-selected={isSelected}
+								aria-disabled={isOptDisabled}
+								onclick={() => select(opt)}
+							>
+								<span>{opt.label}</span>
+								{#if isSelected && !isOptDisabled}
+									<Check size={16} class="shrink-0 text-[var(--sl-text-2)]" />
+								{/if}
+							</button>
+						{/each}
+					</div>
 				</div>
 			</div>
+		{:else}
+			<!-- ── Anchored popover variant (default) ──────────────────────────── -->
+			<div
+				bind:this={menuEl}
+				transition:scale={{ start: 0.96, duration: 150, opacity: 0 }}
+				class="z-[9999] flex flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-sm"
+				style={menuStyle}
+				role="listbox"
+			>
+				{#if canScrollUp}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+						onmousedown={scrollUpClick}
+					>
+						<ChevronUp size={12} />
+					</div>
+				{/if}
 
-			{#if canScrollDown}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
-					onmousedown={scrollDownClick}
+					bind:this={scrollEl}
+					class="relative flex-1 overflow-y-auto"
+					class:scroll-fade-top={canScrollUp}
+					class:scroll-fade-bottom={canScrollDown}
+					style="touch-action: pan-y; overscroll-behavior: contain;"
+					onscroll={handleScroll}
 				>
-					<ChevronDown size={12} />
+					<div class="p-1.5">
+						{#each options as opt (opt.value)}
+							{@const isSelected = String(opt.value) === String(value)}
+							{@const isOptDisabled = !!disabledValues?.has(opt.value)}
+							<button
+								type="button"
+								class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[0.8125rem] transition-colors"
+								class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
+								class:text-[var(--sl-text-1)]={!isOptDisabled}
+								class:hover:bg-[var(--sl-bg-subtle)]={!isOptDisabled && !isSelected}
+								class:text-[var(--sl-text-3)]={isOptDisabled}
+								class:opacity-40={isOptDisabled}
+								class:cursor-not-allowed={isOptDisabled}
+								role="option"
+								aria-selected={isSelected}
+								aria-disabled={isOptDisabled}
+								onclick={() => select(opt)}
+							>
+								<span>{opt.label}</span>
+								{#if isSelected && !isOptDisabled}
+									<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
+								{/if}
+							</button>
+						{/each}
+					</div>
 				</div>
-			{/if}
-		</div>
+
+				{#if canScrollDown}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+						onmousedown={scrollDownClick}
+					>
+						<ChevronDown size={12} />
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {/if}
 
