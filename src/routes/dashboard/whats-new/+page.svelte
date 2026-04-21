@@ -42,12 +42,23 @@
 		}
 	}
 
-	function toggleExpand(id: number) {
+	async function toggleExpand(id: number) {
 		if (selectMode) {
 			toggleSelect(id);
 			return;
 		}
-		expandedId = expandedId === id ? null : id;
+		if (expandedId === id) {
+			expandedId = null;
+			return;
+		}
+		expandedId = id;
+		const topic = whatsNewStore.topics.find((t) => t.id === id);
+		if (topic) {
+			// Expand fetches the body so we can show the real post content
+			// (not just the list-response excerpt, which is occasionally empty).
+			// Not a track-view bump — only the forum CTA counts as a read.
+			await whatsNewStore.ensureBody(topic);
+		}
 	}
 
 	function toggleSelect(id: number) {
@@ -151,6 +162,21 @@
 		return topic.excerpt.replace(/&hellip;\s*$/i, '…').replace(/\s+$/g, '');
 	}
 
+	function stripHtml(html: string): string {
+		if (typeof document === 'undefined' || !html) return '';
+		const tmp = document.createElement('div');
+		tmp.innerHTML = html;
+		// Collapse whitespace so the 3-line clamp doesn't get tricked by
+		// block-level newlines into showing half a line of content.
+		return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+	}
+
+	function expandedPreview(topic: DiscourseTopic): string {
+		const body = whatsNewStore.bodies[topic.id]?.cooked;
+		if (body) return stripHtml(body);
+		return topicExcerpt(topic);
+	}
+
 	function coverUrl(topic: DiscourseTopic): string | null {
 		return topic.image_url || null;
 	}
@@ -161,7 +187,7 @@
 </svelte:head>
 
 <div class="mx-auto w-full max-w-3xl {selectMode && selectedCount > 0 ? 'pb-24' : ''}">
-	<div class="mb-6 flex items-start justify-between gap-3 px-4">
+	<div class="mb-6 flex items-start justify-between gap-3 px-4 sm:px-0">
 		<div class="min-w-0">
 			<h2 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
 				What's new
@@ -197,7 +223,7 @@
 		</div>
 	{:else if whatsNewStore.topics.length === 0}
 		<div
-			class="mx-4 rounded-xl border border-dashed border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-6 py-12 text-center"
+			class="rounded-xl border border-dashed border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-6 py-12 text-center"
 		>
 			<p class="text-[0.875rem] font-medium text-[var(--sl-text-2)]">No announcements yet</p>
 			<p class="mt-1 text-[0.8125rem] text-[var(--sl-text-3)]">
@@ -205,13 +231,14 @@
 			</p>
 		</div>
 	{:else}
-		<ul class="flex flex-col gap-3 px-4">
+		<ul class="flex flex-col gap-3">
 			{#each whatsNewStore.topics as topic (topic.id)}
 				{@const isOpen = !selectMode && expandedId === topic.id}
 				{@const isUnread = whatsNewStore.isUnread(topic.id)}
 				{@const isSelected = selectedIds.has(topic.id)}
 				{@const cover = coverUrl(topic)}
-				{@const excerpt = topicExcerpt(topic)}
+				{@const preview = expandedPreview(topic)}
+				{@const bodyLoading = whatsNewStore.bodyLoading[topic.id]}
 				<li data-topic-id={topic.id}>
 					<article
 						class="overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isSelected
@@ -283,9 +310,14 @@
 								class="border-t border-[var(--sl-border-muted)] px-4 py-4"
 								transition:slide={{ duration: 180 }}
 							>
-								{#if excerpt}
+								{#if bodyLoading && !preview}
+									<div class="flex items-center gap-2 text-[var(--sl-text-3)]">
+										<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+										<span class="text-[0.8125rem]">Loading…</span>
+									</div>
+								{:else if preview}
 									<p class="line-clamp-3 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
-										{excerpt}
+										{preview}
 									</p>
 								{:else}
 									<p class="text-[0.8125rem] text-[var(--sl-text-3)]">
