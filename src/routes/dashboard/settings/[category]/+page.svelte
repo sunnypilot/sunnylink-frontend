@@ -30,6 +30,7 @@
 	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
 	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
 	import AlwaysOffroadPrompt from '$lib/components/AlwaysOffroadPrompt.svelte';
+	import BackLink from '$lib/components/BackLink.svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
@@ -578,23 +579,11 @@
 			>
 				{#if activeSubPanel}
 					<div class="px-4">
-						<button
-							class="row-press mb-1 flex items-center gap-1 rounded px-1 py-0.5 text-[0.8125rem] text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.96] active:bg-[var(--sl-bg-elevated)]"
-							onclick={closeSubPanel}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
-							>
-							{schemaPanel?.label ?? category}
-						</button>
+						<BackLink
+							label={schemaPanel?.label ?? category}
+							fallback={closeSubPanel}
+							class="mb-1"
+						/>
 						<h2
 							class="flex items-baseline gap-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
 						>

@@ -273,7 +273,7 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-	<PageHeader title="About this device" backHref="/dashboard" backLabel="Back to Home">
+	<PageHeader title="About this device" backHref="/dashboard" backLabel="Home">
 		{#snippet subtitleSnippet()}
 			<div class="flex items-center gap-1.5">
 				{#if isRenaming}

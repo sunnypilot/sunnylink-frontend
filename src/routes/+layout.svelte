@@ -46,6 +46,7 @@
 	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import { navHistory } from '$lib/stores/navHistory.svelte';
 	import { onMount } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 
@@ -75,6 +76,11 @@
 	// own setTimeout after this resets so the override still wins.
 	afterNavigate((nav) => {
 		if (typeof window === 'undefined') return;
+		// Any navigation with a `from` origin means the user moved within the
+		// app — flag the tab as having in-app history so BackLink prefers
+		// history.back() (which pops the SvelteKit entry as popstate, letting
+		// the browser restore scroll naturally) over an explicit goto fallback.
+		if (nav.from) navHistory.markInternalNav();
 		if (nav.type === 'popstate') return;
 		window.scrollTo(0, 0);
 	});
