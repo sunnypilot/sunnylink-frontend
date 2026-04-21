@@ -125,17 +125,35 @@
 	</button>
 
 	{#if open}
-		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
+		<!-- Two-zone backdrop:
+		     - Sidebar zone (left, sidebar width): close card only, swallow click
+		       so sidebar nav items don't activate.
+		     - Main zone (rest of viewport): close card AND collapse drawer on
+		       mobile (onNavigate maps to layout's closeDrawerOnMobile). Desktop
+		       sidebar is always-open, so onNavigate is a no-op there.
+		     Both zones swallow the underlying click. -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			use:portal
 			use:modalLock
-			class="fixed inset-0 z-[9998]"
+			class="fixed inset-y-0 left-0 z-[9998] w-72 lg:w-[18rem]"
 			transition:fade={{ duration: 120 }}
 			onclick={(e) => {
 				e.stopPropagation();
 				open = false;
+			}}
+		></div>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			use:portal
+			class="fixed inset-y-0 right-0 left-72 z-[9998] lg:left-[18rem]"
+			transition:fade={{ duration: 120 }}
+			onclick={(e) => {
+				e.stopPropagation();
+				open = false;
+				onNavigate?.();
 			}}
 		></div>
 		<div
