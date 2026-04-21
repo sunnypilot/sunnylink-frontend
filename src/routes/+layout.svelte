@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.png';
 	import { page } from '$app/state';
-	import { afterNavigate, goto, invalidate } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto, invalidate } from '$app/navigation';
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -48,6 +48,7 @@
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { navHistory } from '$lib/stores/navHistory.svelte';
+	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
 	import { onMount } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 
@@ -58,7 +59,12 @@
 
 	let drawerOpen = $state(false);
 	let topBarHeight = $state(0);
+	let scrollEl = $state<HTMLDivElement | null>(null);
 	const pathname = $derived(page.url.pathname);
+
+	function scrollKey(url: URL): string {
+		return url.pathname + url.search;
+	}
 
 	// Page transitions are driven by Svelte's {#key pathname} + in:fade below so
 	// they render identically on every engine — iOS Safari, iOS PWA standalone,
@@ -75,6 +81,17 @@
 	// instead of at the hero. Pages with their own scroll-into-view logic (e.g.
 	// /dashboard/devices auto-revealing the selected card on mount) run their
 	// own setTimeout after this resets so the override still wins.
+	// Remember the inner container's scrollTop when leaving a URL so popstate
+	// (browser back, BackLink) can land the user where they were. Moving the
+	// scroll off the document to block iOS pull-to-refresh meant SvelteKit's
+	// built-in scroll restoration (which targets window.scrollTo) no longer
+	// has anything to restore — we do it ourselves.
+	beforeNavigate((nav) => {
+		if (typeof window === 'undefined') return;
+		if (!scrollEl || !nav.from) return;
+		scrollPositions.save(scrollKey(nav.from.url), scrollEl.scrollTop);
+	});
+
 	afterNavigate((nav) => {
 		if (typeof window === 'undefined') return;
 		// Any navigation with a `from` origin means the user moved within the
@@ -82,8 +99,12 @@
 		// history.back() (which pops the SvelteKit entry as popstate, letting
 		// the browser restore scroll naturally) over an explicit goto fallback.
 		if (nav.from) navHistory.markInternalNav();
-		if (nav.type === 'popstate') return;
-		window.scrollTo(0, 0);
+		if (!scrollEl) return;
+		if (nav.type === 'popstate') {
+			scrollEl.scrollTop = scrollPositions.load(scrollKey(page.url));
+		} else {
+			scrollEl.scrollTop = 0;
+		}
 	});
 
 	// iOS-style rubber-band is enabled on the main viewport *only* when the
@@ -99,13 +120,13 @@
 	const SCROLLABLE_THRESHOLD = 20;
 	let contentScrollable = $state(false);
 	$effect(() => {
-		if (typeof document === 'undefined') return;
+		if (!scrollEl) return;
+		const el = scrollEl;
 
 		let rafId = 0;
 		function measure() {
 			rafId = 0;
-			const scrollable =
-				document.documentElement.scrollHeight > window.innerHeight + SCROLLABLE_THRESHOLD;
+			const scrollable = el.scrollHeight > el.clientHeight + SCROLLABLE_THRESHOLD;
 			if (scrollable !== contentScrollable) contentScrollable = scrollable;
 		}
 		function schedule() {
@@ -113,32 +134,35 @@
 			rafId = requestAnimationFrame(measure);
 		}
 
+		// ResizeObserver on the scroll container fires on clientHeight changes
+		// (viewport resize, safe-area shifts). MutationObserver on its subtree
+		// catches every DOM update that could alter scrollHeight — route
+		// remounts, toggles expanding, images loading. rAF throttling collapses
+		// repeated signals inside a frame to a single measure call.
 		const ro = new ResizeObserver(schedule);
-		ro.observe(document.body);
+		ro.observe(el);
+		const mo = new MutationObserver(schedule);
+		mo.observe(el, { childList: true, subtree: true, attributes: true, characterData: true });
 		window.addEventListener('resize', schedule, { passive: true });
 		measure();
 
 		return () => {
 			ro.disconnect();
+			mo.disconnect();
 			window.removeEventListener('resize', schedule);
 			if (rafId) cancelAnimationFrame(rafId);
 		};
 	});
 
 	$effect(() => {
-		if (typeof document === 'undefined') return;
-		// Mobile drawer lock takes priority: its $effect writes `contain` and
-		// cleans up on close. Skip writing here so we don't clobber it.
-		if (drawerOpen && window.innerWidth < 1024) return;
-		// `contain` (not `auto`) when scrollable: preserves iOS rubber-band
-		// bounce at the top/bottom of the content, but blocks the browser's
-		// pull-to-refresh gesture — matches Linear's mobile behavior where a
-		// hard pull past the top can't accidentally reload the app. `none`
-		// on short pages keeps them fully frozen (no bounce on empty
-		// viewport).
-		const mode = contentScrollable ? 'contain' : 'none';
-		document.documentElement.style.overscrollBehavior = mode;
-		document.body.style.overscrollBehavior = mode;
+		if (!scrollEl) return;
+		// `contain` when the page actually overflows: iOS rubber-band still
+		// plays internally (this is the scroller, not the document), and the
+		// `contain` keyword stops the gesture from chaining to the viewport
+		// where it would otherwise have been the browser's pull-to-refresh
+		// trigger. `none` on short pages keeps them fully frozen (no bounce
+		// on an empty viewport).
+		scrollEl.style.overscrollBehavior = contentScrollable ? 'contain' : 'none';
 	});
 
 	// Collapsible section state
@@ -177,38 +201,21 @@
 		}
 	});
 
-	// Lock body scroll while the mobile drawer is open. The previous approach
-	// pinned body with `position: fixed; top: -scrollY`, which broke the
-	// sticky top bar — sticky needs a scrolling ancestor, so when body went
-	// fixed the top bar snapped from viewport-0 to document-0, producing the
-	// "top bar jumps up" symptom on open. Using overflow:hidden alone keeps
-	// the sticky context intact and still halts body scroll on iOS 16+
-	// (overscroll-behavior: contain handles the rubber-band that originally
-	// motivated the fixed-position hack).
+	// Lock the inner scroll container while the mobile drawer is open so the
+	// user can't scroll the dimmed content behind the sidebar. Body itself is
+	// already `overflow:hidden` (non-scrolling shell for iOS PTR isolation),
+	// so the lock target is `scrollEl` (.drawer-content).
 	$effect(() => {
 		if (typeof window === 'undefined') return;
 		if (!drawerOpen) return;
+		if (!scrollEl) return;
 		if (!window.matchMedia('(max-width: 1023px)').matches) return;
 
-		const html = document.documentElement;
-		const body = document.body;
-		const prev = {
-			htmlOverflow: html.style.overflow,
-			htmlOverscroll: html.style.overscrollBehavior,
-			bodyOverflow: body.style.overflow,
-			bodyOverscroll: body.style.overscrollBehavior
-		};
-
-		html.style.overflow = 'hidden';
-		html.style.overscrollBehavior = 'contain';
-		body.style.overflow = 'hidden';
-		body.style.overscrollBehavior = 'contain';
+		const prev = scrollEl.style.overflow;
+		scrollEl.style.overflow = 'hidden';
 
 		return () => {
-			html.style.overflow = prev.htmlOverflow;
-			html.style.overscrollBehavior = prev.htmlOverscroll;
-			body.style.overflow = prev.bodyOverflow;
-			body.style.overscrollBehavior = prev.bodyOverscroll;
+			if (scrollEl) scrollEl.style.overflow = prev;
 		};
 	});
 
@@ -460,16 +467,15 @@
 	<SplashScreen spinner={false} label="Session expired" />
 {:else}
 	<div
-		class="drawer min-h-screen bg-[var(--sl-bg-page)] {!isChromeless
+		class="drawer h-[100dvh] overflow-hidden bg-[var(--sl-bg-page)] {!isChromeless
 			? 'lg:drawer-open'
-			: 'h-auto overflow-visible'}"
+			: ''}"
 	>
 		<input id="main-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 
 		<div
-			class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isChromeless
-				? 'h-auto overflow-visible'
-				: ''}"
+			bind:this={scrollEl}
+			class="drawer-content flex h-[100dvh] flex-col overflow-y-auto bg-[var(--sl-bg-page)]"
 			style={isChromeless ? '' : `padding-top: ${topBarHeight}px;`}
 		>
 			<GlobalStatusBanner />

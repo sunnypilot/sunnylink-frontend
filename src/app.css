@@ -145,7 +145,13 @@ body {
 		sans-serif;
 	background-color: var(--sl-bg-page);
 	color: var(--sl-text-1);
-	min-height: 100vh;
+	/* Body is a fixed-size, non-scrolling shell. The app's actual scroll lives
+	   on `.drawer-content` inside the layout — moving the scroller off the
+	   document is what stops iOS Safari's pull-to-refresh (document-level
+	   gesture, doesn't fire on inner overflow:auto containers) while still
+	   letting iOS apply its rubber-band bounce to the inner scroller. */
+	height: 100dvh;
+	overflow: hidden;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	-webkit-user-select: none;
@@ -154,7 +160,8 @@ body {
 		background-color 0.15s ease,
 		color 0.15s ease;
 
-	/* App-like feel: kill bounce/rubber-band on iOS, deny pinch-zoom — Linear-style. */
+	/* Defense in depth: even though body can't scroll, deny any overscroll
+	   behaviors so a stray gesture can't propagate to the viewport. */
 	overscroll-behavior: none;
 	touch-action: pan-x pan-y;
 }
