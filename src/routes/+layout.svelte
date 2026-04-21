@@ -21,6 +21,7 @@
 		Package,
 		Palette,
 		Settings,
+		Sparkles,
 		ToggleLeft,
 		Wind,
 		Wrench,
@@ -97,7 +98,8 @@
 			'/dashboard/settings/software': 'Software',
 			'/dashboard/settings/developer': 'Developer',
 			'/dashboard/osm': 'Maps',
-			'/dashboard/preferences': 'Preferences'
+			'/dashboard/preferences': 'Preferences',
+			'/dashboard/whats-new': "What's new"
 		};
 		return `sunnylink${titles[path] ? ` - ${titles[path]}` : ''}`;
 	};
@@ -170,7 +172,8 @@
 		authState.isAuthenticated
 			? [
 					{ icon: House, label: 'Home', href: '/dashboard' },
-					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' }
+					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' },
+					{ icon: Sparkles, label: "What's new", href: '/dashboard/whats-new' }
 				]
 			: []
 	);

@@ -10,6 +10,7 @@
 	import DashboardTiles from '$lib/components/dashboard/DashboardTiles.svelte';
 	import DashboardEmptyState from '$lib/components/dashboard/DashboardEmptyState.svelte';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
+	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
 	import { Athenav1Client } from '$lib/api/client';
 	import { formatRelativeTime } from '$lib/utils/time';
@@ -370,3 +371,5 @@
 		if (deviceId) handleDownloadBackup(deviceId, true);
 	}}
 />
+
+<WelcomeModal />
