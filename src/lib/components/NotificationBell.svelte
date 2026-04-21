@@ -17,12 +17,26 @@
 
 	let rafId: number | null = null;
 
+	// Matches the CSS `w-[min(22rem,calc(100vw-1rem))]` so we can clamp the
+	// panel's right-offset such that its left edge stays ≥8px on screen.
+	const MAX_PANEL_WIDTH_PX = 352;
+	const EDGE_MARGIN = 8;
+
 	function computePos() {
 		if (!triggerEl) return;
 		const rect = triggerEl.getBoundingClientRect();
+		const vw = window.innerWidth;
+		const panelWidth = Math.min(MAX_PANEL_WIDTH_PX, vw - EDGE_MARGIN * 2);
+		const alignedRight = Math.max(vw - rect.right, EDGE_MARGIN);
+		// Pin right-offset so panel's left edge never goes off-screen. If the
+		// trigger sits close to the left edge the computed alignedRight would
+		// push the panel past the viewport — clamp to leave EDGE_MARGIN on the
+		// left. If the viewport is smaller than panelWidth+margins entirely,
+		// the `max` floor keeps us at EDGE_MARGIN.
+		const maxRight = Math.max(vw - panelWidth - EDGE_MARGIN, EDGE_MARGIN);
 		panelPos = {
 			top: rect.bottom + 8,
-			right: Math.max(window.innerWidth - rect.right, 8)
+			right: Math.min(alignedRight, maxRight)
 		};
 	}
 
