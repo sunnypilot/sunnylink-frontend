@@ -7,7 +7,8 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { APIv0Client } from '$lib/api/client';
-	import { ChevronLeft, Copy, Check } from 'lucide-svelte';
+	import { ChevronLeft, Copy, Check, Pencil, Loader2 } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
 
 	let id = $derived(page.params.id);
 
@@ -70,6 +71,63 @@
 	let notFound = $derived(deviceState.pairedDevicesLoaded && !device);
 
 	let alias = $derived((id && deviceState.aliases[id]) || device?.alias || id || '');
+
+	let isRenaming = $state(false);
+	let renameValue = $state('');
+	let renameOriginal = $state('');
+	let saving = $state(false);
+
+	function startRename() {
+		if (!id) return;
+		renameOriginal = alias;
+		renameValue = alias;
+		isRenaming = true;
+		requestAnimationFrame(() => {
+			setTimeout(() => {
+				const input = document.getElementById('alias-rename-input') as HTMLInputElement | null;
+				if (input) {
+					input.focus();
+					input.select();
+				}
+			}, 30);
+		});
+	}
+
+	function cancelRename() {
+		isRenaming = false;
+		renameValue = renameOriginal;
+	}
+
+	async function commitRename() {
+		if (!id) return;
+		const trimmed = renameValue.trim();
+		isRenaming = false;
+		if (!trimmed || trimmed === renameOriginal) return;
+
+		saving = true;
+		try {
+			const token = await logtoClient?.getIdToken();
+			if (!token) throw new Error('Not authenticated');
+			const response = await APIv0Client.PATCH('/device/{deviceId}', {
+				params: { path: { deviceId: id } },
+				body: { alias: trimmed },
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			if ((response as any).error) {
+				const err = (response as any).error;
+				const msg =
+					typeof err === 'object' && err !== null ? err.detail || 'Unknown error' : 'Unknown error';
+				throw new Error(msg);
+			}
+			deviceState.updateAlias(id, trimmed);
+			toast.success(`Renamed to "${trimmed}"`);
+		} catch (e: any) {
+			console.error('Rename failed', e);
+			toast.error(e.message || 'Failed to rename device');
+		} finally {
+			saving = false;
+		}
+	}
 	let onlineStatus = $derived(id ? deviceState.onlineStatuses[id] : undefined);
 	let offroadStatus = $derived(id ? deviceState.offroadStatuses[id] : undefined);
 	let telemetry = $derived(id ? deviceState.deviceTelemetry[id] : undefined);
@@ -201,7 +259,45 @@
 	<h1 class="text-[1.5rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]">
 		About this device
 	</h1>
-	<p class="mt-1 truncate text-[0.875rem] text-[var(--sl-text-2)]">{alias}</p>
+	<div class="mt-1 flex items-center gap-1.5">
+		{#if isRenaming}
+			<input
+				id="alias-rename-input"
+				type="text"
+				bind:value={renameValue}
+				onblur={commitRename}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						e.currentTarget.blur();
+					} else if (e.key === 'Escape') {
+						e.preventDefault();
+						cancelRename();
+					}
+				}}
+				class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-[0.875rem] font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+				aria-label="Device alias"
+			/>
+		{:else}
+			<p class="truncate text-[0.875rem] text-[var(--sl-text-2)]">{alias}</p>
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+				onclick={startRename}
+				aria-label="Rename device"
+				disabled={saving}
+			>
+				<Pencil size={12} />
+			</button>
+			{#if saving}
+				<Loader2
+					size={12}
+					class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+					aria-label="Saving alias"
+				/>
+			{/if}
+		{/if}
+	</div>
 
 	{#if notFound}
 		<div

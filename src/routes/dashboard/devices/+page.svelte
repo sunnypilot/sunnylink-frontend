@@ -9,14 +9,13 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { Plus, Loader2, ChevronDown, Pencil } from 'lucide-svelte';
+	import { Plus, Loader2, ChevronDown, Check, ArrowRight } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
 	import { APIv0Client, Athenav1Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
-	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
 
@@ -25,10 +24,6 @@
 	let deviceToDeregisterAlias = $state<string>('');
 	let deviceToDeregisterPairedAt = $state<number>(0);
 	let deviceToDeregisterIsOnline = $state<boolean>(false);
-	let renamingDeviceId = $state<string | null>(null);
-	let renameValue = $state('');
-	let renameOriginal = $state('');
-	let savingAliasFor = $state<string | null>(null);
 	let offlineSectionOpen = $state(false);
 
 	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
@@ -207,42 +202,6 @@
 		return deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
 	}
 
-	async function commitRename() {
-		const deviceId = renamingDeviceId;
-		if (!deviceId) return;
-		const trimmed = renameValue.trim();
-		renamingDeviceId = null;
-		if (!trimmed || trimmed === renameOriginal) return;
-
-		savingAliasFor = deviceId;
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-			const response = await APIv0Client.PATCH('/device/{deviceId}', {
-				params: { path: { deviceId } },
-				body: { alias: trimmed },
-				headers: { Authorization: `Bearer ${token}` }
-			});
-			if ((response as any).error) {
-				const err = (response as any).error;
-				const msg =
-					typeof err === 'object' && err !== null ? err.detail || 'Unknown error' : 'Unknown error';
-				throw new Error(msg);
-			}
-			deviceState.updateAlias(deviceId, trimmed);
-			toast.success(`Renamed to "${trimmed}"`);
-		} catch (e: any) {
-			console.error('Rename failed', e);
-			toast.error(e.message || 'Failed to rename device');
-		} finally {
-			savingAliasFor = null;
-		}
-	}
-
-	function cancelRename() {
-		renamingDeviceId = null;
-	}
-
 	function formatDateShort(timestamp: number | undefined) {
 		if (!timestamp) return '';
 		return new Date(timestamp * 1000).toLocaleDateString(undefined, {
@@ -258,23 +217,6 @@
 		deviceToDeregisterPairedAt = device.created_at;
 		deviceToDeregisterIsOnline = deviceState.onlineStatuses[device.device_id] === 'online';
 		deregisterModalOpen = true;
-	}
-
-	function startRename(did: string) {
-		const device = devices.find((d: any) => d.device_id === did);
-		const current = deviceState.aliases[did] ?? device?.alias ?? did;
-		renameOriginal = current;
-		renameValue = current;
-		requestAnimationFrame(() => {
-			renamingDeviceId = did;
-			setTimeout(() => {
-				const input = document.getElementById(`alias-${did}`) as HTMLInputElement;
-				if (input) {
-					input.focus();
-					input.select();
-				}
-			}, 50);
-		});
 	}
 
 	function getStatusText(device: any): string {
@@ -391,9 +333,21 @@
 		return deviceState.lastSeenOnline[device.device_id] ?? null;
 	}
 
-	function selectAndOpen(device: any) {
+	function selectDevice(device: any) {
 		deviceState.setSelectedDevice(device.device_id);
+	}
+
+	function goHome() {
 		goto('/dashboard');
+	}
+
+	function handleCardActivate(device: any) {
+		const isSelected = deviceState.selectedDeviceId === device.device_id;
+		if (isSelected) {
+			goHome();
+		} else {
+			selectDevice(device);
+		}
 	}
 
 	// Use cached devices from deviceState for instant rendering; update when API returns
@@ -516,23 +470,24 @@
 				{@const isOffline = deviceState.onlineStatuses[device.device_id] === 'offline'}
 				{@const isUnregistered =
 					device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
-				{@const isRenaming = renamingDeviceId === device.device_id}
 				{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 
 				<article
 					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 						? 'border-2 border-primary'
 						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-					onclick={() => selectAndOpen(device)}
+					onclick={() => handleCardActivate(device)}
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
-							selectAndOpen(device);
+							handleCardActivate(device);
 						}
 					}}
 					role="listitem"
 					tabindex="0"
-					aria-label="{getAlias(device)} - {isOffline ? 'Offline' : getStatusText(device)}"
+					aria-label="{getAlias(device)} - {isOffline
+						? 'Offline'
+						: getStatusText(device)}{isSelected ? ' - selected, tap to open Home' : ''}"
 					aria-busy={isLoading ? 'true' : undefined}
 				>
 					<div class="px-4 py-3.5">
@@ -544,50 +499,10 @@
 										class:animate-pulse={isLoading}
 										aria-hidden="true"
 									></span>
-									{#if isRenaming}
-										<input
-											id="alias-{device.device_id}"
-											type="text"
-											bind:value={renameValue}
-											onblur={commitRename}
-											onkeydown={(e) => {
-												e.stopPropagation();
-												if (e.key === 'Enter') {
-													e.preventDefault();
-													e.currentTarget.blur();
-												} else if (e.key === 'Escape') {
-													e.preventDefault();
-													renameValue = renameOriginal;
-													cancelRename();
-												}
-											}}
-											onclick={(e) => e.stopPropagation()}
-											class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-sm font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
-										/>
-									{:else}
-										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
-											{getAlias(device)}
-										</span>
-										<button
-											type="button"
-											class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-											onclick={(e) => {
-												e.stopPropagation();
-												startRename(device.device_id);
-											}}
-											onkeydown={(e) => e.stopPropagation()}
-											aria-label="Rename {getAlias(device)}"
-										>
-											<Pencil size={12} />
-										</button>
-									{/if}
-									{#if savingAliasFor === device.device_id}
-										<Loader2
-											size={12}
-											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-											aria-label="Saving alias"
-										/>
-									{:else if isLoading}
+									<span class="truncate text-sm font-medium text-[var(--sl-text-1)]">
+										{getAlias(device)}
+									</span>
+									{#if isLoading}
 										<Loader2
 											size={12}
 											class="shrink-0 animate-spin text-[var(--sl-text-3)]"
@@ -603,10 +518,20 @@
 							</div>
 
 							<div
-								class="shrink-0"
+								class="flex shrink-0 items-center gap-2"
 								onclick={(e) => e.stopPropagation()}
 								onkeydown={(e) => e.stopPropagation()}
+								role="presentation"
 							>
+								{#if isSelected}
+									<span
+										class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
+										aria-label="Selected device"
+										title="Selected device"
+									>
+										<Check size={12} aria-hidden="true" />
+									</span>
+								{/if}
 								<DeviceRowMenu
 									deviceId={device.device_id}
 									dongleId={isUnregistered ? undefined : device.comma_dongle_id}
@@ -614,7 +539,6 @@
 									isDownloading={!isOffline &&
 										deviceState.backupState.isDownloading &&
 										deviceState.backupState.deviceId === device.device_id}
-									onRename={() => startRename(device.device_id)}
 									onDownloadBackup={isOffline
 										? undefined
 										: () => handleDownloadBackup(device.device_id)}
@@ -638,6 +562,21 @@
 							{@render labelValueRow('Network', getNetworkType(device), false, !isOffline)}
 							{@render labelValueRow('Commit', getCommit(device), true, !isOffline)}
 						</div>
+
+						{#if isSelected}
+							<button
+								type="button"
+								class="mt-3 flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-[0.8125rem] font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary"
+								onclick={(e) => {
+									e.stopPropagation();
+									goHome();
+								}}
+								aria-label="Manage this device on Home"
+							>
+								<span>Manage on Home</span>
+								<ArrowRight size={14} aria-hidden="true" />
+							</button>
+						{/if}
 					</div>
 				</article>
 			{/snippet}
