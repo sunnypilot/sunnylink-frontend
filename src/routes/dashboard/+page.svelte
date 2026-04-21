@@ -11,8 +11,7 @@
 	import DashboardEmptyState from '$lib/components/dashboard/DashboardEmptyState.svelte';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
-	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { Athenav1Client } from '$lib/api/client';
+	import { startBackup, retryFailedBackup } from '$lib/utils/backup';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 
@@ -183,122 +182,8 @@
 		await checkDeviceStatus(selectedDevice.device_id, token, true);
 	}
 
-	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
-		if (!deviceId || deviceState.backupState.isDownloading) return;
-
-		const currentValues =
-			fullRefresh || deviceState.backupState.deviceId !== deviceId
-				? deviceState.deviceValues[deviceId] || {}
-				: {
-						...(deviceState.deviceValues[deviceId] || {}),
-						...(deviceState.backupState.fetchedSettings || {})
-					};
-
-		deviceState.startBackup(deviceId);
-
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-
-			const result = await fetchAllSettings(
-				deviceId,
-				Athenav1Client,
-				token,
-				currentValues,
-				(progress, status) => {
-					deviceState.setBackupProgress(progress, status);
-				},
-				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[deviceId]
-			);
-
-			Object.entries(result.settings).forEach(([key, value]) => {
-				if (currentValues[key] === undefined) {
-					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
-				}
-			});
-
-			deviceState.setBackupFetchedSettings(result.settings);
-
-			if (result.failedKeys.length > 0) {
-				deviceState.finishBackup(
-					false,
-					`${result.failedKeys.length} of ${Object.keys(result.settings).length + result.failedKeys.length} settings could not be fetched.`,
-					result.failedKeys
-				);
-			} else {
-				downloadSettingsBackup(deviceId, result.settings);
-				deviceState.finishBackup(true);
-				if (deviceState.backupState.isOpen) {
-					setTimeout(() => {
-						deviceState.closeBackupModal();
-					}, 1000);
-				}
-			}
-		} catch (e: any) {
-			if (e.message === 'Backup cancelled') {
-				deviceState.finishBackup(false, 'Backup cancelled');
-			} else {
-				console.error('Failed to download backup', e);
-				deviceState.finishBackup(false, 'Failed to download backup');
-			}
-		}
-	}
-
-	async function handleRetryFailedBackup() {
-		const bs = deviceState.backupState;
-		if (!bs.deviceId || !bs.failedKeys.length || !bs.fetchedSettings) return;
-
-		const deviceId = bs.deviceId;
-		const failedKeyNames = bs.failedKeys.map((f) => f.key);
-		const previousSettings = { ...bs.fetchedSettings };
-
-		deviceState.startBackup(deviceId);
-
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-
-			const result = await fetchAllSettings(
-				deviceId,
-				Athenav1Client,
-				token,
-				previousSettings,
-				(progress, status) => {
-					deviceState.setBackupProgress(progress, status);
-				},
-				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[deviceId],
-				failedKeyNames
-			);
-
-			const mergedSettings = { ...previousSettings, ...result.settings };
-			deviceState.setBackupFetchedSettings(mergedSettings);
-
-			if (result.failedKeys.length > 0) {
-				deviceState.finishBackup(
-					false,
-					`${result.failedKeys.length} settings still could not be fetched.`,
-					result.failedKeys
-				);
-			} else {
-				downloadSettingsBackup(deviceId, mergedSettings);
-				deviceState.finishBackup(true);
-				if (deviceState.backupState.isOpen) {
-					setTimeout(() => {
-						deviceState.closeBackupModal();
-					}, 1000);
-				}
-			}
-		} catch (e: any) {
-			if (e.message === 'Backup cancelled') {
-				deviceState.finishBackup(false, 'Backup cancelled');
-			} else {
-				console.error('Failed to retry backup', e);
-				deviceState.finishBackup(false, 'Retry failed');
-			}
-		}
+	function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
+		void startBackup(deviceId, fullRefresh);
 	}
 </script>
 
@@ -365,7 +250,7 @@
 {/if}
 
 <BackupProgressModal
-	onRetry={handleRetryFailedBackup}
+	onRetry={retryFailedBackup}
 	onFullBackup={() => {
 		const deviceId = deviceState.backupState.deviceId;
 		if (deviceId) handleDownloadBackup(deviceId, true);

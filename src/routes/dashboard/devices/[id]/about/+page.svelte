@@ -7,8 +7,21 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { APIv0Client } from '$lib/api/client';
-	import { ChevronLeft, Copy, Check, Pencil, Loader2 } from 'lucide-svelte';
+	import {
+		ChevronLeft,
+		Copy,
+		Check,
+		Pencil,
+		Loader2,
+		Download,
+		ChevronDown,
+		Trash2
+	} from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
+	import { slide } from 'svelte/transition';
+	import { startBackup, retryFailedBackup } from '$lib/utils/backup';
+	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
+	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 
 	let id = $derived(page.params.id);
 
@@ -244,6 +257,18 @@
 			/* ignore */
 		}
 	}
+
+	let advancedOpen = $state(false);
+	let deregisterOpen = $state(false);
+
+	async function handleBackupClick(fullRefresh: boolean = false) {
+		if (!id) return;
+		await startBackup(id, fullRefresh);
+	}
+
+	function openDeregister() {
+		deregisterOpen = true;
+	}
 </script>
 
 <div class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6">
@@ -329,12 +354,116 @@
 		{@render copyRow('comma Dongle ID', device?.comma_dongle_id ?? null, 'dongle')}
 	</dl>
 
+	<section class="mt-8" aria-labelledby="actions-heading">
+		<h2
+			id="actions-heading"
+			class="mb-3 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+		>
+			Actions
+		</h2>
+		<div
+			class="flex flex-col gap-2 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+		>
+			<div class="min-w-0 flex-1">
+				<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">Download backup</p>
+				<p class="mt-0.5 text-[0.8125rem] text-[var(--sl-text-2)]">
+					Save this device's settings as a JSON file you can restore later.
+				</p>
+			</div>
+			<button
+				type="button"
+				onclick={() => handleBackupClick(false)}
+				disabled={!id || deviceState.backupState.isDownloading}
+				class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-4 text-[0.8125rem] font-medium text-[var(--sl-text-1)] transition-colors hover:bg-[var(--sl-bg-subtle)] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+			>
+				{#if deviceState.backupState.isDownloading && deviceState.backupState.deviceId === id}
+					<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+					<span>Backing up…</span>
+				{:else}
+					<Download size={14} aria-hidden="true" />
+					<span>Download</span>
+				{/if}
+			</button>
+		</div>
+	</section>
+
+	<section class="mt-6" aria-labelledby="advanced-heading">
+		<button
+			type="button"
+			onclick={() => (advancedOpen = !advancedOpen)}
+			class="flex w-full items-center justify-between rounded-lg px-1 py-2 text-left transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+			aria-expanded={advancedOpen}
+			aria-controls="advanced-section"
+		>
+			<span
+				id="advanced-heading"
+				class="text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+			>
+				Advanced settings
+			</span>
+			<ChevronDown
+				size={14}
+				class="shrink-0 text-[var(--sl-text-3)] transition-transform duration-150 {advancedOpen
+					? 'rotate-180'
+					: ''}"
+				aria-hidden="true"
+			/>
+		</button>
+		{#if advancedOpen}
+			<div
+				id="advanced-section"
+				class="mt-2 rounded-xl border border-red-500/20 bg-red-500/5 p-4"
+				transition:slide={{ duration: 180 }}
+			>
+				<p class="text-[0.8125rem] font-medium text-red-700 dark:text-red-400">Danger zone</p>
+				<div
+					class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+				>
+					<div class="min-w-0 flex-1">
+						<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">Deregister device</p>
+						<p class="mt-0.5 text-[0.8125rem] text-[var(--sl-text-2)]">
+							Permanently remove this device from your account. This cannot be undone.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={openDeregister}
+						disabled={!id || !device}
+						class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 text-[0.8125rem] font-medium text-red-700 transition-colors hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400"
+					>
+						<Trash2 size={14} aria-hidden="true" />
+						<span>Deregister</span>
+					</button>
+				</div>
+			</div>
+		{/if}
+	</section>
+
 	{#if !deviceState.pairedDevicesLoaded && !device}
 		<p class="mt-4 text-center text-[0.75rem] text-[var(--sl-text-3)]" aria-live="polite">
 			Loading device details…
 		</p>
 	{/if}
 </div>
+
+<BackupProgressModal
+	onRetry={retryFailedBackup}
+	onFullBackup={() => {
+		const bid = deviceState.backupState.deviceId;
+		if (bid) handleBackupClick(true);
+	}}
+/>
+
+{#if id && device}
+	<DeregisterDeviceModal
+		bind:open={deregisterOpen}
+		deviceId={id}
+		{alias}
+		pairedAt={device.created_at}
+		isOnline={deviceState.onlineStatuses[id] === 'online'}
+		onDeregistered={() => goto('/dashboard/devices')}
+	/>
+{/if}
 
 {#snippet row(label: string, value: string | null, mono = false, loaded = true)}
 	<div class="flex items-center justify-between gap-4 px-4 py-3">

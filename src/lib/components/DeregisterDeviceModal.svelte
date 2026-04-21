@@ -1,68 +1,72 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
-	import { AlertTriangle, Loader2, Trash2, X, ArrowRight, Wifi, WifiOff } from 'lucide-svelte';
+	import { AlertTriangle, Loader2, Trash2, X, ChevronLeft, ExternalLink } from 'lucide-svelte';
 	import { deregisterDevice, removeUserFromDevice } from '$lib/api/device';
 	import { logtoClient } from '$lib/logto/auth.svelte';
-	import { downloadSettingsBackup } from '$lib/utils/settings';
-	import { deviceState } from '$lib/stores/device.svelte';
-	import { Download } from 'lucide-svelte';
 
 	let {
 		open = $bindable(false),
 		deviceId,
 		alias,
-		pairedAt,
-		isOnline,
 		onDeregistered
-	} = $props<{
+	}: {
 		open: boolean;
 		deviceId: string;
 		alias: string;
-		pairedAt: number;
-		isOnline: boolean;
+		pairedAt?: number;
+		isOnline?: boolean;
 		onDeregistered?: () => void;
-	}>();
+	} = $props();
 
-	const CONFIRMATION_PHRASE = 'FACTORY RESET';
+	const CONFIRM_PHRASE = 'deregister';
+	const FORUM_BUG_REPORT = 'https://community.sunnypilot.ai/c/bug-reports/8';
 
-	let step = $state(1);
-	let confirmationInput = $state('');
+	let stage = $state<1 | 2>(1);
+	let confirmInput = $state('');
+	let checkedPermanent = $state(false);
+	let checkedIntend = $state(false);
 	let isProcessing = $state(false);
 	let error = $state<string | null>(null);
 	let fatalError = $state(false);
 
-	// Checkboxes state
-	let checkedUndone = $state(false);
-	let checkedFactoryReset = $state(false);
-
 	function reset() {
-		step = 1;
-		confirmationInput = '';
+		stage = 1;
+		confirmInput = '';
+		checkedPermanent = false;
+		checkedIntend = false;
 		isProcessing = false;
 		error = null;
 		fatalError = false;
-		checkedUndone = false;
-		checkedFactoryReset = false;
 	}
 
 	function close() {
 		if (isProcessing) return;
 		open = false;
-		setTimeout(reset, 300); // Reset after animation
-	}
-
-	function handleFirstConfirmation() {
-		if (confirmationInput !== CONFIRMATION_PHRASE || !checkedUndone || !checkedFactoryReset) return;
-		step = 2;
+		setTimeout(reset, 250);
 	}
 
 	function blockPaste(e: Event) {
 		e.preventDefault();
 	}
 
-	async function handleFinalDeregister() {
+	function continueAnyway() {
+		stage = 2;
+	}
+
+	function backToStage1() {
+		if (isProcessing) return;
+		stage = 1;
+	}
+
+	let canDeregister = $derived(
+		checkedPermanent && checkedIntend && confirmInput.trim() === CONFIRM_PHRASE
+	);
+
+	async function handleDeregister() {
+		if (!canDeregister || isProcessing) return;
 		isProcessing = true;
 		error = null;
 		fatalError = false;
@@ -71,291 +75,208 @@
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
 
-			// Step 1: Deregister Device
-			// This is the irreversible action. We MUST do this first.
 			try {
 				await deregisterDevice(deviceId, token);
 			} catch (e) {
 				console.error('Deregistration failed:', e);
-				// CRITICAL: If this fails, we must NOT proceed to remove the user.
-				// The user needs to contact support.
 				fatalError = true;
 				error =
-					'Deregistration failed. Please contact support immediately. Do NOT attempt to remove the user manually.';
+					'Deregistration failed. Please contact support before retrying — do not attempt to remove the user manually.';
 				isProcessing = false;
 				return;
 			}
 
-			// Step 2: Remove User from Device
-			// Only proceed if step 1 was successful
 			await removeUserFromDevice(deviceId, 'self', token);
 
-			if (onDeregistered) {
-				onDeregistered();
-			}
+			onDeregistered?.();
 			close();
 		} catch (e) {
 			console.error('User removal failed:', e);
 			error =
-				'Failed to remove user from device, but device may have been deregistered. Please refresh and check.';
+				'Failed to remove user from device, but the device may have been deregistered. Refresh and check.';
 			isProcessing = false;
 		}
 	}
 
-	function formatDate(timestamp: number) {
-		return new Date(timestamp * 1000).toLocaleDateString(undefined, {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
+	function onKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && open) close();
 	}
+
+	onMount(() => {
+		window.addEventListener('keydown', onKeydown);
+		return () => window.removeEventListener('keydown', onKeydown);
+	});
 </script>
 
 {#if open}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0"
-		role="dialog"
-		aria-modal="true"
 		use:portal
 		use:modalLock
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm sm:py-0"
+		style="padding-top: max(env(safe-area-inset-top), 1.5rem); padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="deregister-modal-title"
+		transition:fade={{ duration: 200 }}
+		onclick={(e) => {
+			if (e.target === e.currentTarget) close();
+		}}
 	>
-		<button
-			class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-			transition:fade={{ duration: 200 }}
-			onclick={close}
-			aria-label="Close modal"
-			disabled={isProcessing}
-		></button>
-
-		<!-- Modal Content -->
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-red-500/20 bg-[var(--sl-bg-input)] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			class="relative max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6 shadow-xl"
+			transition:scale={{ start: 0.95, duration: 200, opacity: 0 }}
 		>
-			<!-- Header -->
-			<div class="border-b border-red-500/10 bg-red-500/5 p-6">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3 text-red-600 dark:text-red-400">
-						<div class="rounded-full bg-red-500/10 p-2">
-							<AlertTriangle size={24} />
-						</div>
-						<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Deregister Device</h3>
-					</div>
-					<button
-						class="rounded-lg p-2 text-[var(--sl-text-2)] hover:bg-white/5 hover:text-[var(--sl-text-1)] disabled:opacity-50"
-						onclick={close}
-						disabled={isProcessing}
-					>
-						<X size={20} />
-					</button>
+			<button
+				type="button"
+				class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+				onclick={close}
+				disabled={isProcessing}
+				aria-label="Dismiss"
+			>
+				<X size={16} />
+			</button>
+
+			{#if stage === 1}
+				<h2
+					id="deregister-modal-title"
+					class="pr-10 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+				>
+					Before you deregister
+				</h2>
+				<div
+					class="mt-3 flex items-start gap-2.5 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 dark:bg-red-500/10"
+				>
+					<AlertTriangle
+						size={16}
+						class="mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+						aria-hidden="true"
+					/>
+					<p class="text-[0.8125rem] leading-relaxed text-red-700 dark:text-red-300">
+						<span class="font-medium">This is destructive and permanent.</span> Deregistering removes
+						this device from your account and is irreversible.
+					</p>
 				</div>
-			</div>
+				<p class="mt-4 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
+					Most issues — device offline, settings not syncing, login problems — don't require a
+					deregister. Reporting a bug on the community forum is almost always the right first step.
+				</p>
 
-			<!-- Body -->
-			<div class="p-6 sm:p-8">
-				{#if step === 1}
-					<div class="space-y-6">
-						<div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-							<p class="font-bold text-red-600 dark:text-red-400">WARNING: IRREVERSIBLE ACTION</p>
-							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-								Deregistration <span class="font-bold text-[var(--sl-text-1)]"
-									>must only be done after performing a full factory reset</span
-								> on your device. Deregistering without a factory reset will leave your device in a broken
-								state that cannot be fixed remotely.
-							</p>
-							<p class="mt-2 text-sm text-[var(--sl-text-2)]">
-								All historical data and backups associated with this device ID will be permanently
-								inaccessible.
-								<span class="font-bold text-[var(--sl-text-1)]">This action cannot be undone.</span>
-							</p>
-							<p class="mt-2 text-sm font-semibold text-red-600 dark:text-red-400">
-								If you are trying to fix a problem with your device, deregistering is NOT the
-								solution. Please ask for help in the community first.
-							</p>
-						</div>
+				<a
+					href={FORUM_BUG_REPORT}
+					target="_blank"
+					rel="noopener"
+					class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				>
+					<span>Report an issue on the forum</span>
+					<ExternalLink size={14} aria-hidden="true" />
+				</a>
+				<button
+					type="button"
+					onclick={continueAnyway}
+					class="mt-2 inline-flex h-11 w-full items-center justify-center rounded-lg border border-[var(--sl-border)] bg-transparent px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+				>
+					Continue anyway
+				</button>
+			{:else}
+				<div class="mb-1 flex items-center gap-1">
+					<button
+						type="button"
+						onclick={backToStage1}
+						disabled={isProcessing}
+						class="-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+						aria-label="Back"
+					>
+						<ChevronLeft size={16} />
+					</button>
+					<span class="text-[0.75rem] text-[var(--sl-text-3)]">Step 2 of 2</span>
+				</div>
+				<h2
+					id="deregister-modal-title"
+					class="pr-10 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+				>
+					Confirm deregister
+				</h2>
+				<p class="mt-2 text-[0.8125rem] text-[var(--sl-text-2)]">
+					You're about to deregister
+					<span class="font-medium text-[var(--sl-text-1)]">{alias || deviceId}</span>.
+				</p>
 
-						<!-- Backup Recommendation -->
-						<div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-							<div class="flex items-start gap-3">
-								<div class="rounded-full bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
-									<Download size={20} />
-								</div>
-								<div>
-									<h4 class="font-bold text-blue-700 dark:text-blue-400">
-										Recommended: Backup Settings
-									</h4>
-									<p class="mt-1 text-sm text-[var(--sl-text-2)]">
-										Before deregistering, download a backup of your settings so you can restore them
-										to a new device later.
-									</p>
-									<button
-										class="btn mt-3 border-blue-500/30 text-blue-400 btn-outline btn-sm hover:border-blue-500 hover:bg-blue-500 hover:text-[var(--sl-text-1)]"
-										onclick={() => {
-											if (deviceState.deviceValues[deviceId]) {
-												downloadSettingsBackup(deviceId, deviceState.deviceValues[deviceId]);
-											}
-										}}
-									>
-										<Download size={14} class="mr-2" />
-										Download Backup
-									</button>
-								</div>
-							</div>
-						</div>
+				<div class="mt-4 space-y-2.5">
+					<label
+						class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/40 px-3 py-2.5 transition-colors hover:bg-[var(--sl-bg-elevated)]/70"
+					>
+						<input
+							type="checkbox"
+							bind:checked={checkedPermanent}
+							class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-[var(--sl-border)] text-primary accent-primary focus-visible:outline-2 focus-visible:outline-primary"
+						/>
+						<span class="text-[0.8125rem] leading-relaxed text-[var(--sl-text-2)]">
+							I understand this is <span class="font-medium text-[var(--sl-text-1)]">permanent</span
+							> and cannot be undone.
+						</span>
+					</label>
+					<label
+						class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/40 px-3 py-2.5 transition-colors hover:bg-[var(--sl-bg-elevated)]/70"
+					>
+						<input
+							type="checkbox"
+							bind:checked={checkedIntend}
+							class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-[var(--sl-border)] text-primary accent-primary focus-visible:outline-2 focus-visible:outline-primary"
+						/>
+						<span class="text-[0.8125rem] leading-relaxed text-[var(--sl-text-2)]">
+							I want to <span class="font-medium text-[var(--sl-text-1)]">deregister</span> this device
+							from my account.
+						</span>
+					</label>
+				</div>
 
-						<!-- Checkboxes -->
-						<div class="space-y-3">
-							<label class="group flex cursor-pointer items-start gap-3">
-								<input
-									type="checkbox"
-									bind:checked={checkedUndone}
-									class="checkbox h-6 w-6 rounded-md border-[var(--sl-border)] bg-transparent checkbox-error transition-all hover:border-red-400"
-								/>
-								<span
-									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
-								>
-									I understand this action <span class="font-bold text-[var(--sl-text-1)]"
-										>cannot be undone</span
-									>
-									and is
-									<span class="font-bold text-[var(--sl-text-1)]">NOT a troubleshooting step</span>.
-								</span>
-							</label>
-							<label class="group flex cursor-pointer items-start gap-3">
-								<input
-									type="checkbox"
-									bind:checked={checkedFactoryReset}
-									class="checkbox h-6 w-6 rounded-md border-[var(--sl-border)] bg-transparent checkbox-error transition-all hover:border-red-400"
-								/>
-								<span
-									class="pt-0.5 text-sm text-[var(--sl-text-2)] transition-colors group-hover:text-[var(--sl-text-1)]"
-								>
-									I have already performed a <span class="font-bold text-[var(--sl-text-1)]"
-										>full factory reset</span
-									> on this device.
-								</span>
-							</label>
-						</div>
+				<div class="mt-4">
+					<label for="deregister-confirm" class="block text-[0.8125rem] text-[var(--sl-text-2)]">
+						Type <span class="font-mono font-semibold text-[var(--sl-text-1)]"
+							>{CONFIRM_PHRASE}</span
+						> to confirm:
+					</label>
+					<input
+						id="deregister-confirm"
+						type="text"
+						bind:value={confirmInput}
+						onpaste={blockPaste}
+						ondrop={blockPaste}
+						autocomplete="off"
+						autocapitalize="none"
+						autocorrect="off"
+						spellcheck="false"
+						class="mt-1.5 w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-3 py-2 font-mono text-[0.875rem] text-[var(--sl-text-1)] focus:border-red-500 focus-visible:outline-2 focus-visible:outline-red-500"
+						placeholder={CONFIRM_PHRASE}
+					/>
+				</div>
 
-						<div class="space-y-2 pt-2">
-							<label for="confirmation" class="text-sm font-medium text-[var(--sl-text-2)]">
-								Type <span class="font-mono font-bold text-red-600 dark:text-red-400"
-									>{CONFIRMATION_PHRASE}</span
-								> to confirm:
-							</label>
-
-							<input
-								id="confirmation"
-								type="text"
-								bind:value={confirmationInput}
-								onpaste={blockPaste}
-								ondrop={blockPaste}
-								class="input w-full border-[var(--sl-border)] bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:border-red-500 focus:outline-none"
-								placeholder={CONFIRMATION_PHRASE}
-								autocomplete="off"
-								spellcheck="false"
-							/>
-						</div>
-
-						<div class="flex items-center justify-end gap-3 pt-2">
-							<button
-								class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
-								onclick={close}
-							>
-								Cancel
-							</button>
-							<button
-								class="btn border-none bg-red-600 text-[var(--sl-text-1)] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={confirmationInput !== CONFIRMATION_PHRASE ||
-									!checkedUndone ||
-									!checkedFactoryReset}
-								onclick={handleFirstConfirmation}
-							>
-								Next
-								<ArrowRight size={18} class="ml-2" />
-							</button>
-						</div>
-					</div>
-				{:else if step === 2}
-					<div class="space-y-6">
-						<div class="space-y-4">
-							<p class="text-lg font-medium text-[var(--sl-text-1)]">
-								Please double check you are deleting the correct device:
-							</p>
-
-							<div
-								class="space-y-3 rounded-xl border border-[var(--sl-border)]/50 bg-[var(--sl-bg-surface)]/50 p-4"
-							>
-								{#if alias && alias !== deviceId}
-									<div class="flex flex-col gap-1 border-b border-[var(--sl-border)]/50 pb-2">
-										<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase"
-											>Device Alias</span
-										>
-										<span class="text-2xl font-bold text-[var(--sl-text-1)]">{alias}</span>
-									</div>
-								{/if}
-
-								<div class="flex items-center justify-between">
-									<span class="text-[var(--sl-text-2)]">sunnylink ID</span>
-									<span
-										class="rounded bg-[var(--sl-bg-input)] px-3 py-1.5 font-mono text-[var(--sl-text-1)]"
-										>{deviceId}</span
-									>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[var(--sl-text-2)]">Paired Date</span>
-									<span class="text-[var(--sl-text-1)]">{formatDate(pairedAt)}</span>
-								</div>
-								<div class="flex items-center justify-between">
-									<span class="text-[var(--sl-text-2)]">Status</span>
-									{#if isOnline}
-										<span
-											class="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400"
-										>
-											<Wifi size={14} /> Online
-										</span>
-									{:else}
-										<span class="flex items-center gap-1.5 font-medium text-[var(--sl-text-2)]">
-											<WifiOff size={14} /> Offline
-										</span>
-									{/if}
-								</div>
-							</div>
-						</div>
-
-						{#if error}
-							<div
-								class="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-600 dark:text-red-400"
-							>
-								{error}
-							</div>
-						{/if}
-
-						<div class="flex items-center justify-end gap-3 pt-2">
-							<button
-								class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)] disabled:opacity-50"
-								onclick={() => (step = 1)}
-								disabled={isProcessing}
-							>
-								Back
-							</button>
-							<button
-								class="btn border-none bg-red-600 text-[var(--sl-text-1)] hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={isProcessing || fatalError}
-								onclick={handleFinalDeregister}
-							>
-								{#if isProcessing}
-									<Loader2 size={18} class="mr-2 animate-spin" />
-									Processing...
-								{:else}
-									<Trash2 size={18} class="mr-2" />
-									Yes, Deregister Permanently
-								{/if}
-							</button>
-						</div>
+				{#if error}
+					<div
+						class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-[0.8125rem] text-red-700 dark:text-red-300"
+						role="alert"
+					>
+						{error}
 					</div>
 				{/if}
-			</div>
+
+				<button
+					type="button"
+					onclick={handleDeregister}
+					disabled={!canDeregister || isProcessing || fatalError}
+					class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-red-600 px-4 text-[0.875rem] font-medium text-white transition-colors hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:bg-red-600/50 dark:bg-red-500 dark:hover:bg-red-600"
+				>
+					{#if isProcessing}
+						<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+						<span>Deregistering…</span>
+					{:else}
+						<Trash2 size={14} aria-hidden="true" />
+						<span>Deregister device</span>
+					{/if}
+				</button>
+			{/if}
 		</div>
 	</div>
 {/if}

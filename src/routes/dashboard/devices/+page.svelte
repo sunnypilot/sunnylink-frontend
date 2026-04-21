@@ -3,146 +3,19 @@
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
-	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import MyDevicesSkeleton from './MyDevicesSkeleton.svelte';
-	import DeviceRowMenu from '$lib/components/DeviceRowMenu.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { Plus, Loader2, ChevronDown, Check, ArrowRight } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
-	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
-	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { APIv0Client, Athenav1Client } from '$lib/api/client';
+	import { APIv0Client } from '$lib/api/client';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
 
 	let { data } = $props();
 
-	let deregisterModalOpen = $state(false);
-	let deviceToDeregister = $state<string | null>(null);
-	let deviceToDeregisterAlias = $state<string>('');
-	let deviceToDeregisterPairedAt = $state<number>(0);
-	let deviceToDeregisterIsOnline = $state<boolean>(false);
 	let offlineSectionOpen = $state(false);
-
-	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
-		if (!deviceId || deviceState.backupState.isDownloading) return;
-
-		const currentValues =
-			fullRefresh || deviceState.backupState.deviceId !== deviceId
-				? deviceState.deviceValues[deviceId] || {}
-				: {
-						...(deviceState.deviceValues[deviceId] || {}),
-						...(deviceState.backupState.fetchedSettings || {})
-					};
-
-		deviceState.startBackup(deviceId);
-
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-
-			const result = await fetchAllSettings(
-				deviceId,
-				Athenav1Client,
-				token,
-				currentValues,
-				(progress, status) => {
-					deviceState.setBackupProgress(progress, status);
-				},
-				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[deviceId]
-			);
-
-			Object.entries(result.settings).forEach(([key, value]) => {
-				if (currentValues[key] === undefined) {
-					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
-				}
-			});
-
-			deviceState.setBackupFetchedSettings(result.settings);
-
-			if (result.failedKeys.length > 0) {
-				deviceState.finishBackup(
-					false,
-					`${result.failedKeys.length} of ${Object.keys(result.settings).length + result.failedKeys.length} settings could not be fetched.`,
-					result.failedKeys
-				);
-			} else {
-				downloadSettingsBackup(deviceId, result.settings);
-				deviceState.finishBackup(true);
-				if (deviceState.backupState.isOpen) {
-					setTimeout(() => {
-						deviceState.closeBackupModal();
-					}, 1000);
-				}
-			}
-		} catch (e: any) {
-			if (e.message === 'Backup cancelled') {
-				deviceState.finishBackup(false, 'Backup cancelled');
-			} else {
-				console.error('Failed to download backup', e);
-				deviceState.finishBackup(false, 'Failed to download backup');
-			}
-		}
-	}
-
-	async function handleRetryFailedBackup() {
-		const bs = deviceState.backupState;
-		if (!bs.deviceId || !bs.failedKeys.length || !bs.fetchedSettings) return;
-
-		const deviceId = bs.deviceId;
-		const failedKeyNames = bs.failedKeys.map((f) => f.key);
-		const previousSettings = { ...bs.fetchedSettings };
-
-		deviceState.startBackup(deviceId);
-
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-
-			const result = await fetchAllSettings(
-				deviceId,
-				Athenav1Client,
-				token,
-				previousSettings,
-				(progress, status) => {
-					deviceState.setBackupProgress(progress, status);
-				},
-				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[deviceId],
-				failedKeyNames
-			);
-
-			const mergedSettings = { ...previousSettings, ...result.settings };
-			deviceState.setBackupFetchedSettings(mergedSettings);
-
-			if (result.failedKeys.length > 0) {
-				deviceState.finishBackup(
-					false,
-					`${result.failedKeys.length} settings still could not be fetched.`,
-					result.failedKeys
-				);
-			} else {
-				downloadSettingsBackup(deviceId, mergedSettings);
-				deviceState.finishBackup(true);
-				if (deviceState.backupState.isOpen) {
-					setTimeout(() => {
-						deviceState.closeBackupModal();
-					}, 1000);
-				}
-			}
-		} catch (e: any) {
-			if (e.message === 'Backup cancelled') {
-				deviceState.finishBackup(false, 'Backup cancelled');
-			} else {
-				console.error('Failed to retry backup', e);
-				deviceState.finishBackup(false, 'Retry failed');
-			}
-		}
-	}
 
 	$effect(() => {
 		// Skip the redirect when the session was killed mid-use — the modal in
@@ -200,23 +73,6 @@
 
 	function getAlias(device: any) {
 		return deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
-	}
-
-	function formatDateShort(timestamp: number | undefined) {
-		if (!timestamp) return '';
-		return new Date(timestamp * 1000).toLocaleDateString(undefined, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	}
-
-	function openDeregisterModal(device: any) {
-		deviceToDeregister = device.device_id;
-		deviceToDeregisterAlias = getAlias(device);
-		deviceToDeregisterPairedAt = device.created_at;
-		deviceToDeregisterIsOnline = deviceState.onlineStatuses[device.device_id] === 'online';
-		deregisterModalOpen = true;
 	}
 
 	function getStatusText(device: any): string {
@@ -339,15 +195,6 @@
 
 	function goHome() {
 		goto('/dashboard');
-	}
-
-	function handleCardActivate(device: any) {
-		const isSelected = deviceState.selectedDeviceId === device.device_id;
-		if (isSelected) {
-			goHome();
-		} else {
-			selectDevice(device);
-		}
 	}
 
 	// Use cached devices from deviceState for instant rendering; update when API returns
@@ -476,18 +323,18 @@
 					class="group cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 						? 'border-2 border-primary'
 						: 'border border-[var(--sl-border)] hover:border-[var(--sl-text-3)]/30'}"
-					onclick={() => handleCardActivate(device)}
+					onclick={() => selectDevice(device)}
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
-							handleCardActivate(device);
+							selectDevice(device);
 						}
 					}}
 					role="listitem"
 					tabindex="0"
 					aria-label="{getAlias(device)} - {isOffline
 						? 'Offline'
-						: getStatusText(device)}{isSelected ? ' - selected, tap to open Home' : ''}"
+						: getStatusText(device)}{isSelected ? ' - selected' : ''}"
 					aria-busy={isLoading ? 'true' : undefined}
 				>
 					<div class="px-4 py-3.5">
@@ -517,34 +364,15 @@
 								</p>
 							</div>
 
-							<div
-								class="flex shrink-0 items-center gap-2"
-								onclick={(e) => e.stopPropagation()}
-								onkeydown={(e) => e.stopPropagation()}
-								role="presentation"
-							>
-								{#if isSelected}
-									<span
-										class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
-										aria-label="Selected device"
-										title="Selected device"
-									>
-										<Check size={12} aria-hidden="true" />
-									</span>
-								{/if}
-								<DeviceRowMenu
-									deviceId={device.device_id}
-									dongleId={isUnregistered ? undefined : device.comma_dongle_id}
-									pairedAt={device.created_at}
-									isDownloading={!isOffline &&
-										deviceState.backupState.isDownloading &&
-										deviceState.backupState.deviceId === device.device_id}
-									onDownloadBackup={isOffline
-										? undefined
-										: () => handleDownloadBackup(device.device_id)}
-									onDeregister={() => openDeregisterModal(device)}
-								/>
-							</div>
+							{#if isSelected}
+								<span
+									class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
+									aria-label="Selected device"
+									title="Selected device"
+								>
+									<Check size={12} aria-hidden="true" />
+								</span>
+							{/if}
 						</div>
 
 						<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
@@ -644,26 +472,5 @@
 				</p>
 			</button>
 		{/if}
-
-		{#if deviceToDeregister}
-			<DeregisterDeviceModal
-				bind:open={deregisterModalOpen}
-				deviceId={deviceToDeregister}
-				alias={deviceToDeregisterAlias}
-				pairedAt={deviceToDeregisterPairedAt}
-				isOnline={deviceToDeregisterIsOnline}
-				onDeregistered={() => {
-					window.location.reload();
-				}}
-			/>
-		{/if}
 	</div>
 {/if}
-
-<BackupProgressModal
-	onRetry={handleRetryFailedBackup}
-	onFullBackup={() => {
-		const deviceId = deviceState.backupState.deviceId;
-		if (deviceId) handleDownloadBackup(deviceId, true);
-	}}
-/>
