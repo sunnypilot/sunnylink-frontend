@@ -241,12 +241,18 @@
 				{@const bodyLoading = whatsNewStore.bodyLoading[topic.id]}
 				<li data-topic-id={topic.id}>
 					<article
-						class="overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isSelected
+						class="relative overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isSelected
 							? 'border-primary/60 ring-1 ring-primary/30'
 							: isOpen
 								? 'border-primary/40'
 								: 'border-[var(--sl-border)]'}"
 					>
+						{#if isUnread && !selectMode}
+							<span
+								class="pointer-events-none absolute top-2.5 right-2.5 z-10 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
+								aria-label="Unread"
+							></span>
+						{/if}
 						<button
 							type="button"
 							onclick={() => toggleExpand(topic.id)}
