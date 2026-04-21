@@ -22,14 +22,7 @@
 		title?: string;
 	}
 
-	let {
-		options,
-		value,
-		disabled = false,
-		disabledValues,
-		onchange,
-		title = ''
-	}: Props = $props();
+	let { options, value, disabled = false, disabledValues, onchange, title = '' }: Props = $props();
 
 	const BOTTOM_SHEET_THRESHOLD = 10;
 
@@ -332,136 +325,136 @@
 				class:translate-y-full={!open}
 				style="padding-bottom: env(safe-area-inset-bottom);"
 			>
-			<!-- Drag handle (visual affordance, not draggable) -->
-			<div class="flex shrink-0 items-center justify-center pt-2.5 pb-1.5">
-				<div class="h-1 w-10 rounded-full bg-[var(--sl-border-emphasis)]"></div>
-			</div>
-			{#if title}
-				<!-- Title bar: tells user what setting they're choosing. The trigger
+				<!-- Drag handle (visual affordance, not draggable) -->
+				<div class="flex shrink-0 items-center justify-center pt-2.5 pb-1.5">
+					<div class="h-1 w-10 rounded-full bg-[var(--sl-border-emphasis)]"></div>
+				</div>
+				{#if title}
+					<!-- Title bar: tells user what setting they're choosing. The trigger
 				     row underneath is covered by the sheet, so without this the user
 				     can lose track. iOS HIG / Material modal sheet pattern. -->
-				<div
-					class="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--sl-border-muted)] px-4 pt-1 pb-3"
-				>
-					<h3 class="truncate text-[0.9375rem] font-semibold text-[var(--sl-text-1)]">
-						{title}
-					</h3>
-					<button
-						type="button"
-						onclick={close}
-						class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-						aria-label="Close"
+					<div
+						class="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--sl-border-muted)] px-4 pt-1 pb-3"
 					>
-						<X size={16} />
-					</button>
-				</div>
-			{/if}
-			<div role="listbox" aria-label={title || 'Options'} class="contents">
-			<div
-				bind:this={scrollEl}
-				class="flex-1 overflow-y-auto"
-				style="touch-action: pan-y; overscroll-behavior: contain;"
-			>
-				<div class="p-2">
-					{#each options as opt (opt.value)}
-						{@const isSelected = String(opt.value) === String(value)}
-						{@const isOptDisabled = !!disabledValues?.has(opt.value)}
+						<h3 class="truncate text-[0.9375rem] font-semibold text-[var(--sl-text-1)]">
+							{title}
+						</h3>
 						<button
 							type="button"
-							class="flex w-full items-center justify-between rounded-lg px-3 py-3 text-[0.9375rem] transition-colors"
-							class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
-							class:text-[var(--sl-text-1)]={!isOptDisabled}
-							class:active:bg-[var(--sl-bg-subtle)]={!isOptDisabled && !isSelected}
-							class:text-[var(--sl-text-3)]={isOptDisabled}
-							class:opacity-40={isOptDisabled}
-							class:cursor-not-allowed={isOptDisabled}
-							role="option"
-							aria-selected={isSelected}
-							aria-disabled={isOptDisabled}
-							onclick={() => select(opt)}
+							onclick={close}
+							class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+							aria-label="Close"
 						>
-							<span>{opt.label}</span>
-							{#if isSelected && !isOptDisabled}
-								<Check size={16} class="shrink-0 text-[var(--sl-text-2)]" />
-							{/if}
+							<X size={16} />
 						</button>
-					{/each}
+					</div>
+				{/if}
+				<div role="listbox" aria-label={title || 'Options'} class="contents">
+					<div
+						bind:this={scrollEl}
+						class="flex-1 overflow-y-auto"
+						style="touch-action: pan-y; overscroll-behavior: contain;"
+					>
+						<div class="p-2">
+							{#each options as opt (opt.value)}
+								{@const isSelected = String(opt.value) === String(value)}
+								{@const isOptDisabled = !!disabledValues?.has(opt.value)}
+								<button
+									type="button"
+									class="flex w-full items-center justify-between rounded-lg px-3 py-3 text-[0.9375rem] transition-colors"
+									class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
+									class:text-[var(--sl-text-1)]={!isOptDisabled}
+									class:active:bg-[var(--sl-bg-subtle)]={!isOptDisabled && !isSelected}
+									class:text-[var(--sl-text-3)]={isOptDisabled}
+									class:opacity-40={isOptDisabled}
+									class:cursor-not-allowed={isOptDisabled}
+									role="option"
+									aria-selected={isSelected}
+									aria-disabled={isOptDisabled}
+									onclick={() => select(opt)}
+								>
+									<span>{opt.label}</span>
+									{#if isSelected && !isOptDisabled}
+										<Check size={16} class="shrink-0 text-[var(--sl-text-2)]" />
+									{/if}
+								</button>
+							{/each}
+						</div>
+					</div>
 				</div>
 			</div>
-		</div>
-		</div>
-	{:else}
-		<!-- ── Anchored popover variant (default) ──────────────────────────── -->
-		<div
-			bind:this={menuEl}
-			class="pointer-events-auto flex origin-top flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-lg transition-[opacity,transform] duration-200 ease-out"
-			class:opacity-100={open}
-			class:scale-100={open}
-			class:opacity-0={!open}
-			class:scale-95={!open}
-			style:position="fixed"
-			style:top="{menuTop}px"
-			style:right="{menuRightPx}px"
-			style:min-width="{menuMinWidthPx}px"
-			style:max-height={menuMaxHeightPx !== null ? `${menuMaxHeightPx}px` : null}
-			role="listbox"
-		>
-			{#if canScrollUp}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
-					onmousedown={scrollUpClick}
-				>
-					<ChevronUp size={12} />
-				</div>
-			{/if}
-
+		{:else}
+			<!-- ── Anchored popover variant (default) ──────────────────────────── -->
 			<div
-				bind:this={scrollEl}
-				class="relative flex-1 overflow-y-auto"
-				class:scroll-fade-top={canScrollUp}
-				class:scroll-fade-bottom={canScrollDown}
-				style="touch-action: pan-y; overscroll-behavior: contain;"
-				onscroll={handleScroll}
+				bind:this={menuEl}
+				class="pointer-events-auto flex origin-top flex-col overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-lg transition-[opacity,transform] duration-200 ease-out"
+				class:opacity-100={open}
+				class:scale-100={open}
+				class:opacity-0={!open}
+				class:scale-95={!open}
+				style:position="fixed"
+				style:top="{menuTop}px"
+				style:right="{menuRightPx}px"
+				style:min-width="{menuMinWidthPx}px"
+				style:max-height={menuMaxHeightPx !== null ? `${menuMaxHeightPx}px` : null}
+				role="listbox"
 			>
-				<div class="p-1.5">
-					{#each options as opt (opt.value)}
-						{@const isSelected = String(opt.value) === String(value)}
-						{@const isOptDisabled = !!disabledValues?.has(opt.value)}
-						<button
-							type="button"
-							class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[0.8125rem] transition-colors"
-							class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
-							class:text-[var(--sl-text-1)]={!isOptDisabled}
-							class:hover:bg-[var(--sl-bg-subtle)]={!isOptDisabled && !isSelected}
-							class:text-[var(--sl-text-3)]={isOptDisabled}
-							class:opacity-40={isOptDisabled}
-							class:cursor-not-allowed={isOptDisabled}
-							role="option"
-							aria-selected={isSelected}
-							aria-disabled={isOptDisabled}
-							onclick={() => select(opt)}
-						>
-							<span>{opt.label}</span>
-							{#if isSelected && !isOptDisabled}
-								<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
-							{/if}
-						</button>
-					{/each}
-				</div>
-			</div>
+				{#if canScrollUp}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+						onmousedown={scrollUpClick}
+					>
+						<ChevronUp size={12} />
+					</div>
+				{/if}
 
-			{#if canScrollDown}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
-					onmousedown={scrollDownClick}
+					bind:this={scrollEl}
+					class="relative flex-1 overflow-y-auto"
+					class:scroll-fade-top={canScrollUp}
+					class:scroll-fade-bottom={canScrollDown}
+					style="touch-action: pan-y; overscroll-behavior: contain;"
+					onscroll={handleScroll}
 				>
-					<ChevronDown size={12} />
+					<div class="p-1.5">
+						{#each options as opt (opt.value)}
+							{@const isSelected = String(opt.value) === String(value)}
+							{@const isOptDisabled = !!disabledValues?.has(opt.value)}
+							<button
+								type="button"
+								class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[0.8125rem] transition-colors"
+								class:bg-[var(--sl-bg-subtle)]={isSelected && !isOptDisabled}
+								class:text-[var(--sl-text-1)]={!isOptDisabled}
+								class:hover:bg-[var(--sl-bg-subtle)]={!isOptDisabled && !isSelected}
+								class:text-[var(--sl-text-3)]={isOptDisabled}
+								class:opacity-40={isOptDisabled}
+								class:cursor-not-allowed={isOptDisabled}
+								role="option"
+								aria-selected={isSelected}
+								aria-disabled={isOptDisabled}
+								onclick={() => select(opt)}
+							>
+								<span>{opt.label}</span>
+								{#if isSelected && !isOptDisabled}
+									<Check size={14} class="shrink-0 text-[var(--sl-text-2)]" />
+								{/if}
+							</button>
+						{/each}
+					</div>
 				</div>
-			{/if}
-		</div>
-	{/if}
+
+				{#if canScrollDown}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="flex shrink-0 cursor-pointer items-center justify-center py-1 text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]"
+						onmousedown={scrollDownClick}
+					>
+						<ChevronDown size={12} />
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {/if}
 

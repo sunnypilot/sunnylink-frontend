@@ -423,75 +423,75 @@
 					class="w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"
 				>
 					<div class="flex items-center justify-between gap-3">
-					<label
-						for="main-drawer"
-						aria-label="open sidebar"
-						class="btn btn-square text-[var(--sl-text-1)] btn-ghost btn-sm lg:hidden"
-					>
-						<Menu size={20} />
-					</label>
+						<label
+							for="main-drawer"
+							aria-label="open sidebar"
+							class="btn btn-square text-[var(--sl-text-1)] btn-ghost btn-sm lg:hidden"
+						>
+							<Menu size={20} />
+						</label>
 
-					<div class="hidden flex-1 items-center justify-between gap-3 lg:flex">
-						<div class="flex flex-1 justify-center px-6">
-							{#if deviceState.selectedDeviceId}
-								<div class="w-full max-w-md">
-									<SearchTrigger />
-								</div>
-							{/if}
+						<div class="hidden flex-1 items-center justify-between gap-3 lg:flex">
+							<div class="flex flex-1 justify-center px-6">
+								{#if deviceState.selectedDeviceId}
+									<div class="w-full max-w-md">
+										<SearchTrigger />
+									</div>
+								{/if}
+							</div>
+
+							<div class="flex items-center gap-3">
+								{#if deviceState.selectedDeviceId}
+									<a
+										href="/dashboard/devices"
+										class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+										aria-label="Change selected device"
+									>
+										<ArrowLeftRight size={14} aria-hidden="true" />
+										<span>Change device</span>
+									</a>
+								{/if}
+								<DeviceStatusPill />
+								{#if authState.loading}
+									<span
+										class="loading loading-spinner text-[var(--sl-text-3)]"
+										style="width: 16px; height: 16px;"
+										aria-label="Checking session"
+									></span>
+								{:else}
+									{#await data.streamed.deviceResult then result}
+										{#if result.error === 'api_error'}
+											<button
+												class="btn text-error btn-ghost btn-sm"
+												onclick={() => invalidate('app:devices')}
+											>
+												Failed to load — Retry
+											</button>
+										{/if}
+									{/await}
+								{/if}
+							</div>
 						</div>
 
-						<div class="flex items-center gap-3">
-							{#if deviceState.selectedDeviceId}
+						{#if deviceState.selectedDeviceId}
+							<div class="flex items-center gap-2 lg:hidden">
 								<a
 									href="/dashboard/devices"
-									class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
+									class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
 									aria-label="Change selected device"
 								>
-									<ArrowLeftRight size={14} aria-hidden="true" />
-									<span>Change device</span>
+									<ArrowLeftRight size={16} aria-hidden="true" />
 								</a>
-							{/if}
-							<DeviceStatusPill />
-							{#if authState.loading}
-								<span
-									class="loading loading-spinner text-[var(--sl-text-3)]"
-									style="width: 16px; height: 16px;"
-									aria-label="Checking session"
-								></span>
-							{:else}
-								{#await data.streamed.deviceResult then result}
-									{#if result.error === 'api_error'}
-										<button
-											class="btn text-error btn-ghost btn-sm"
-											onclick={() => invalidate('app:devices')}
-										>
-											Failed to load — Retry
-										</button>
-									{/if}
-								{/await}
-							{/if}
-						</div>
+								<DeviceStatusPill />
+							</div>
+						{/if}
 					</div>
 
 					{#if deviceState.selectedDeviceId}
-						<div class="flex items-center gap-2 lg:hidden">
-							<a
-								href="/dashboard/devices"
-								class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
-								aria-label="Change selected device"
-							>
-								<ArrowLeftRight size={16} aria-hidden="true" />
-							</a>
-							<DeviceStatusPill />
+						<div class="mt-2 lg:hidden">
+							<SearchTrigger />
 						</div>
 					{/if}
-				</div>
-
-				{#if deviceState.selectedDeviceId}
-					<div class="mt-2 lg:hidden">
-						<SearchTrigger />
-					</div>
-				{/if}
 				</header>
 			</div>
 		{/if}

@@ -387,287 +387,288 @@
 {#if deviceId}
 	<button
 		bind:this={triggerEl}
-			onclick={togglePopover}
-			class="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors duration-[var(--dur-fast)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none {pillState.bgClass} {pillState.borderClass}"
-			aria-label="Device status: {pillState.label}, click to view details"
-			aria-expanded={popoverOpen}
-			aria-haspopup="dialog"
-		>
-			<span
-				class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
-				class:animate-pulse={pillState.pulse}
-			></span>
-			<span class="text-[0.75rem] leading-none font-medium {pillState.textClass}">
-				{pillState.label}
-			</span>
-			<ChevronDown
-				size={12}
-				class="shrink-0 transition-transform duration-150 {pillState.textClass} opacity-70 {popoverOpen
-					? 'rotate-180'
-					: ''}"
-			/>
-		</button>
+		onclick={togglePopover}
+		class="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors duration-[var(--dur-fast)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none {pillState.bgClass} {pillState.borderClass}"
+		aria-label="Device status: {pillState.label}, click to view details"
+		aria-expanded={popoverOpen}
+		aria-haspopup="dialog"
+	>
+		<span
+			class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
+			class:animate-pulse={pillState.pulse}
+		></span>
+		<span class="text-[0.75rem] leading-none font-medium {pillState.textClass}">
+			{pillState.label}
+		</span>
+		<ChevronDown
+			size={12}
+			class="shrink-0 transition-transform duration-150 {pillState.textClass} opacity-70 {popoverOpen
+				? 'rotate-180'
+				: ''}"
+		/>
+	</button>
 
-		{#if popoverOpen}
-			<!-- Portaled backdrop swallows outside-click + locks body scroll -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<div
-				use:portal
-				use:modalLock
-				class="fixed inset-0 z-[9998]"
-				transition:fade={{ duration: 120 }}
-				onclick={(e) => {
-					e.stopPropagation();
-					closePopover();
-				}}
-			></div>
-			<div
-				use:portal
-				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
-				class="z-[9999] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
-				style={menuStyle}
-				role="dialog"
-				aria-label="Device status details"
-			>
-				<div class="px-2.5 pt-2 pb-2">
-					<div class="flex items-center justify-between">
-						<span class="text-[0.875rem] font-semibold text-[var(--sl-text-1)]">
-							{deviceName}
-						</span>
-						<button
-							onclick={refreshStatus}
-							disabled={refreshing}
-							class="flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none disabled:opacity-50"
-							aria-label="Refresh status"
-						>
-							<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
-						</button>
-					</div>
-					<div class="mt-1 flex items-center gap-1.5 text-[0.75rem] text-[var(--sl-text-2)]">
-						<span
-							class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
-							class:animate-pulse={pillState.pulse}
-						></span>
-						<span>{pillState.label}</span>
-						{#if deviceTypeName}
-							<span class="text-[var(--sl-text-3)]">&middot;</span>
-							<Monitor size={11} class="shrink-0 text-[var(--sl-text-3)]" />
-							<span>{deviceTypeName}</span>
+	{#if popoverOpen}
+		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			use:portal
+			use:modalLock
+			class="fixed inset-0 z-[9998]"
+			transition:fade={{ duration: 120 }}
+			onclick={(e) => {
+				e.stopPropagation();
+				closePopover();
+			}}
+		></div>
+		<div
+			use:portal
+			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
+			class="z-[9999] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+			style={menuStyle}
+			role="dialog"
+			aria-label="Device status details"
+		>
+			<div class="px-2.5 pt-2 pb-2">
+				<div class="flex items-center justify-between">
+					<span class="text-[0.875rem] font-semibold text-[var(--sl-text-1)]">
+						{deviceName}
+					</span>
+					<button
+						onclick={refreshStatus}
+						disabled={refreshing}
+						class="flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none disabled:opacity-50"
+						aria-label="Refresh status"
+					>
+						<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
+					</button>
+				</div>
+				<div class="mt-1 flex items-center gap-1.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					<span
+						class="block h-[6px] w-[6px] shrink-0 rounded-full {pillState.dotClass}"
+						class:animate-pulse={pillState.pulse}
+					></span>
+					<span>{pillState.label}</span>
+					{#if deviceTypeName}
+						<span class="text-[var(--sl-text-3)]">&middot;</span>
+						<Monitor size={11} class="shrink-0 text-[var(--sl-text-3)]" />
+						<span>{deviceTypeName}</span>
+					{/if}
+				</div>
+			</div>
+
+			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+
+			<div class="space-y-0.5 px-1">
+				{#if mayBeOnline}
+					<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
+						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Network</span>
+						{#if telemetry}
+							<span class="text-[0.75rem] text-[var(--sl-text-2)]">
+								{formatNetworkType(telemetry.networkType)}
+								{#if telemetry.networkMetered}
+									<span class="text-amber-700 dark:text-amber-400">(metered)</span>
+								{/if}
+							</span>
+						{:else}
+							<span class="h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
 						{/if}
 					</div>
-				</div>
-
-				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-
-				<div class="space-y-0.5 px-1">
-					{#if mayBeOnline}
-						<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
-							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Network</span>
-							{#if telemetry}
-								<span class="text-[0.75rem] text-[var(--sl-text-2)]">
-									{formatNetworkType(telemetry.networkType)}
-									{#if telemetry.networkMetered}
-										<span class="text-amber-700 dark:text-amber-400">(metered)</span>
-									{/if}
+				{/if}
+				{#if branchName || valuesLoading}
+					<button
+						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+						onclick={() => branchName && copyField('branch', branchName)}
+						disabled={!branchName}
+						aria-label={branchName ? `Copy branch ${branchName}` : 'Loading branch'}
+					>
+						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Branch</span>
+						<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
+							{#if !branchName}
+								<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+							{:else if copiedField === 'branch'}
+								<span
+									class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+								>
+									<Check size={12} class="shrink-0" />
+									Copied
 								</span>
 							{:else}
-								<span class="h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
-							{/if}
-						</div>
-					{/if}
-					{#if branchName || valuesLoading}
-						<button
-							class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => branchName && copyField('branch', branchName)}
-							disabled={!branchName}
-							aria-label={branchName ? `Copy branch ${branchName}` : 'Loading branch'}
-						>
-							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Branch</span>
-							<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
-								{#if !branchName}
-									<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
-								{:else if copiedField === 'branch'}
-									<span
-										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
-									>
-										<Check size={12} class="shrink-0" />
-										Copied
-									</span>
-								{:else}
-									<span
-										bind:this={marqueeEl}
-										class="marquee-container max-w-[120px] overflow-hidden"
-										class:overflows={marqueeOverflows}
-									>
-										<span
-											class="marquee-track font-mono text-[0.75rem] whitespace-nowrap text-[var(--sl-text-2)]"
-										>
-											<span>{branchName}</span>
-											{#if marqueeOverflows}
-												<span class="marquee-gap"></span>
-												<span>{branchName}</span>
-											{/if}
-										</span>
-									</span>
-									<Copy
-										size={11}
-										class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
-									/>
-								{/if}
-							</span>
-						</button>
-					{/if}
-					{#if softwareVersion || valuesLoading}
-						<button
-							class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => softwareVersion && copyField('version', softwareVersion)}
-							disabled={!softwareVersion}
-							aria-label={softwareVersion ? `Copy version ${softwareVersion}` : 'Loading version'}
-						>
-							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Version</span>
-							<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
-								{#if !softwareVersion}
-									<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
-								{:else if copiedField === 'version'}
-									<span
-										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
-									>
-										<Check size={12} class="shrink-0" />
-										Copied
-									</span>
-								{:else}
-									<span class="text-[0.75rem] text-[var(--sl-text-2)]">{softwareVersion}</span>
-									<Copy
-										size={11}
-										class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
-									/>
-								{/if}
-							</span>
-						</button>
-					{/if}
-					{#if commitHash || valuesLoading}
-						<button
-							class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
-							onclick={() => commitHash && copyField('commit', commitHash)}
-							disabled={!commitHash}
-							aria-label={commitHash ? `Copy commit ${commitHash}` : 'Loading commit'}
-						>
-							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Commit</span>
-							<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
-								{#if !commitHash}
-									<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
-								{:else if copiedField === 'commit'}
-									<span
-										class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
-									>
-										<Check size={12} class="shrink-0" />
-										Copied
-									</span>
-								{:else}
-									<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commitHash}</span>
-									<Copy
-										size={11}
-										class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
-									/>
-								{/if}
-							</span>
-						</button>
-					{/if}
-					{#if lastSeen || mayBeOnline}
-						<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
-							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Last seen</span>
-							{#if lastSeen}
-								<!-- Force re-render every 10s via statusPolling tick -->
-								{#key statusPolling.tickCounter}
-									<span class="text-[0.75rem] text-[var(--sl-text-2)]">
-										{formatRelativeTime(lastSeen)}
-									</span>
-								{/key}
-							{:else}
-								<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
-							{/if}
-						</div>
-					{/if}
-					{#if onlineStatus === 'error' && errorMessage}
-						<div class="flex items-center gap-1.5">
-							<AlertTriangle size={13} class="shrink-0 text-red-600 dark:text-red-400" />
-							<span class="text-[0.75rem] text-red-600 dark:text-red-400">{errorMessage}</span>
-						</div>
-					{:else if onlineStatus === 'offline' && !lastSeen}
-						<div>
-							<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Device is not connected</span>
-						</div>
-					{/if}
-				</div>
-
-				{#if isOnline}
-					<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-					<button
-						onclick={handleForceOffroadClick}
-						disabled={stoppingForce}
-						role="switch"
-						aria-checked={isForceOffroad}
-						aria-label="Always Offroad Mode"
-						class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:bg-[var(--sl-bg-subtle)] disabled:opacity-50"
-					>
-						<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-							>Always Offroad Mode</span
-						>
-						<span
-							aria-hidden="true"
-							class="relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full {isForceOffroad
-								? 'bg-amber-500'
-								: 'bg-[var(--sl-toggle-off)]'}"
-							style="transition: background-color var(--dur-instant) var(--ease-out);"
-						>
-							{#if stoppingForce}
-								<Loader2
-									size={12}
-									class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-spin text-[var(--sl-text-2)]"
-								/>
-							{:else}
 								<span
-									class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
-									class:translate-x-[18px]={isForceOffroad}
-									style="transition: transform var(--dur-instant) var(--ease-spring);"
-								></span>
+									bind:this={marqueeEl}
+									class="marquee-container max-w-[120px] overflow-hidden"
+									class:overflows={marqueeOverflows}
+								>
+									<span
+										class="marquee-track font-mono text-[0.75rem] whitespace-nowrap text-[var(--sl-text-2)]"
+									>
+										<span>{branchName}</span>
+										{#if marqueeOverflows}
+											<span class="marquee-gap"></span>
+											<span>{branchName}</span>
+										{/if}
+									</span>
+								</span>
+								<Copy
+									size={11}
+									class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
+								/>
 							{/if}
 						</span>
 					</button>
 				{/if}
-
-				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-				<div class="px-1.5 pt-1.5 pb-1">
-					<div
-						class="px-1 pb-0.5 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
-					>
-						sunnylink Device ID
-					</div>
+				{#if softwareVersion || valuesLoading}
 					<button
-						onclick={copyDeviceId}
-						class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
-						aria-label="Copy sunnylink device ID {deviceId}"
+						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+						onclick={() => softwareVersion && copyField('version', softwareVersion)}
+						disabled={!softwareVersion}
+						aria-label={softwareVersion ? `Copy version ${softwareVersion}` : 'Loading version'}
 					>
-						<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span
-						>
-						{#if copiedId}
-							<span
-								class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
-							>
-								<Check size={12} class="shrink-0" />
-								Copied
-							</span>
-						{:else}
-							<Copy
-								size={12}
-								class="shrink-0 text-[var(--sl-text-3)]/70 transition-colors group-hover:text-[var(--sl-text-2)] group-focus-visible:text-[var(--sl-text-2)]"
-							/>
-						{/if}
+						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Version</span>
+						<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
+							{#if !softwareVersion}
+								<span class="h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+							{:else if copiedField === 'version'}
+								<span
+									class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+								>
+									<Check size={12} class="shrink-0" />
+									Copied
+								</span>
+							{:else}
+								<span class="text-[0.75rem] text-[var(--sl-text-2)]">{softwareVersion}</span>
+								<Copy
+									size={11}
+									class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
+								/>
+							{/if}
+						</span>
 					</button>
-				</div>
+				{/if}
+				{#if commitHash || valuesLoading}
+					<button
+						class="group relative flex min-h-[28px] w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--sl-bg-elevated)]"
+						onclick={() => commitHash && copyField('commit', commitHash)}
+						disabled={!commitHash}
+						aria-label={commitHash ? `Copy commit ${commitHash}` : 'Loading commit'}
+					>
+						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Commit</span>
+						<span class="flex w-[160px] items-center justify-end gap-1.5 leading-none">
+							{#if !commitHash}
+								<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+							{:else if copiedField === 'commit'}
+								<span
+									class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+								>
+									<Check size={12} class="shrink-0" />
+									Copied
+								</span>
+							{:else}
+								<span class="font-mono text-[0.75rem] text-[var(--sl-text-2)]">{commitHash}</span>
+								<Copy
+									size={11}
+									class="shrink-0 text-[var(--sl-text-3)]/60 group-hover:text-[var(--sl-text-3)]"
+								/>
+							{/if}
+						</span>
+					</button>
+				{/if}
+				{#if lastSeen || mayBeOnline}
+					<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
+						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Last seen</span>
+						{#if lastSeen}
+							<!-- Force re-render every 10s via statusPolling tick -->
+							{#key statusPolling.tickCounter}
+								<span class="text-[0.75rem] text-[var(--sl-text-2)]">
+									{formatRelativeTime(lastSeen)}
+								</span>
+							{/key}
+						{:else}
+							<span class="h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+						{/if}
+					</div>
+				{/if}
+				{#if onlineStatus === 'error' && errorMessage}
+					<div class="flex items-center gap-1.5">
+						<AlertTriangle size={13} class="shrink-0 text-red-600 dark:text-red-400" />
+						<span class="text-[0.75rem] text-red-600 dark:text-red-400">{errorMessage}</span>
+					</div>
+				{:else if onlineStatus === 'offline' && !lastSeen}
+					<div>
+						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]"
+							>Device is not connected</span
+						>
+					</div>
+				{/if}
 			</div>
-		{/if}
+
+			{#if isOnline}
+				<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+				<button
+					onclick={handleForceOffroadClick}
+					disabled={stoppingForce}
+					role="switch"
+					aria-checked={isForceOffroad}
+					aria-label="Always Offroad Mode"
+					class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:bg-[var(--sl-bg-subtle)] disabled:opacity-50"
+				>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+						>Always Offroad Mode</span
+					>
+					<span
+						aria-hidden="true"
+						class="relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full {isForceOffroad
+							? 'bg-amber-500'
+							: 'bg-[var(--sl-toggle-off)]'}"
+						style="transition: background-color var(--dur-instant) var(--ease-out);"
+					>
+						{#if stoppingForce}
+							<Loader2
+								size={12}
+								class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-spin text-[var(--sl-text-2)]"
+							/>
+						{:else}
+							<span
+								class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm"
+								class:translate-x-[18px]={isForceOffroad}
+								style="transition: transform var(--dur-instant) var(--ease-spring);"
+							></span>
+						{/if}
+					</span>
+				</button>
+			{/if}
+
+			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
+			<div class="px-1.5 pt-1.5 pb-1">
+				<div
+					class="px-1 pb-0.5 text-[0.6875rem] font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
+				>
+					sunnylink Device ID
+				</div>
+				<button
+					onclick={copyDeviceId}
+					class="group flex min-h-[36px] w-full items-center justify-between gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-[var(--sl-bg-elevated)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none"
+					aria-label="Copy sunnylink device ID {deviceId}"
+				>
+					<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-2)]">{deviceId}</span>
+					{#if copiedId}
+						<span
+							class="flex shrink-0 items-center gap-1 text-[0.6875rem] text-emerald-600 dark:text-emerald-400"
+						>
+							<Check size={12} class="shrink-0" />
+							Copied
+						</span>
+					{:else}
+						<Copy
+							size={12}
+							class="shrink-0 text-[var(--sl-text-3)]/70 transition-colors group-hover:text-[var(--sl-text-2)] group-focus-visible:text-[var(--sl-text-2)]"
+						/>
+					{/if}
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<ForceOffroadModal bind:open={forceModalOpen} onSuccess={onForceOffroadSuccess} />
 {/if}
