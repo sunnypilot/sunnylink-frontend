@@ -69,6 +69,12 @@
 			(document as any).startViewTransition(async () => {
 				resolve();
 				await navigation.complete;
+				// View Transitions API snapshots DOM state for crossfade; SvelteKit's own
+				// scroll-to-top is suppressed inside the transition. Restore it here so the
+				// new page renders at top. Skip popstate so back/forward keeps remembered scroll.
+				if (navigation.type !== 'popstate') {
+					window.scrollTo({ top: 0 });
+				}
 			});
 		});
 	});
