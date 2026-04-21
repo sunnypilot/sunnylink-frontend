@@ -249,6 +249,48 @@ function markRead(topicId: number): void {
 	}
 }
 
+function markUnread(topicId: number): void {
+	if (!(topicId in readMap)) return;
+	const next = { ...readMap };
+	delete next[topicId];
+	readMap = next;
+	persistReadMap();
+}
+
+function markReadMany(ids: number[]): void {
+	const next: Record<number, number> = { ...readMap };
+	let changed = false;
+	const arrivals = new Set(newArrivalIds);
+	for (const id of ids) {
+		const topic = topics.find((t) => t.id === id);
+		if (!topic) continue;
+		const highest = topic.highest_post_number ?? 1;
+		if ((next[id] ?? 0) < highest) {
+			next[id] = highest;
+			changed = true;
+			arrivals.delete(id);
+		}
+	}
+	if (!changed) return;
+	readMap = next;
+	persistReadMap();
+	newArrivalIds = Array.from(arrivals);
+}
+
+function markUnreadMany(ids: number[]): void {
+	const next: Record<number, number> = { ...readMap };
+	let changed = false;
+	for (const id of ids) {
+		if (id in next) {
+			delete next[id];
+			changed = true;
+		}
+	}
+	if (!changed) return;
+	readMap = next;
+	persistReadMap();
+}
+
 function markAllRead(): void {
 	let changed = false;
 	const next: Record<number, number> = { ...readMap };
@@ -378,6 +420,9 @@ export const whatsNewStore = {
 	loadNextPage,
 	ensureBody,
 	markRead,
+	markUnread,
+	markReadMany,
+	markUnreadMany,
 	markAllRead,
 	consumeNewArrivals,
 	startLifecycle,
