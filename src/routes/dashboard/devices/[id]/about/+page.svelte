@@ -149,10 +149,19 @@
 	// Loaded flags — used to render skeleton placeholders while a fetch is in
 	// flight, falling back to "—" only after the fetch completes (success or
 	// failure) so we never claim a value is missing while it's still arriving.
+	// Offline/error devices never trigger the info-keys fetch (checkDeviceStatus
+	// returns early), so infoFetchComplete stays false forever — treat those as
+	// "attempted, nothing coming" so we render cached-or-em-dash instead of
+	// indefinite skeleton.
 	let statusLoaded = $derived(
 		!!onlineStatus && onlineStatus !== 'loading' && (!!telemetry || onlineStatus !== 'online')
 	);
-	let infoLoaded = $derived(!!id && deviceState.infoFetchComplete[id] === true);
+	let infoLoaded = $derived(
+		!!id &&
+			(deviceState.infoFetchComplete[id] === true ||
+				onlineStatus === 'offline' ||
+				onlineStatus === 'error')
+	);
 
 	let deviceTypeName = $derived.by(() => {
 		const t = telemetry?.deviceType;

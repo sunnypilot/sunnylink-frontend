@@ -389,12 +389,12 @@
 						</div>
 
 						<div class="mt-3 space-y-1.5 rounded-lg bg-[var(--sl-bg-elevated)]/50 px-3 py-2.5">
-							{@render labelValueRow('Version', getVersion(device), false, !isOffline)}
+							{@render labelValueRow('Version', getVersion(device), false, !isLoading)}
 							{#key statusPolling.tickCounter}
-								{@render labelValueRow('Date', getCommitDate(device), false, !isOffline)}
+								{@render labelValueRow('Date', getCommitDate(device), false, !isLoading)}
 							{/key}
-							{@render labelValueRow('Branch', getBranch(device), true, !isOffline, true)}
-							{@render labelValueRow('Commit', getCommit(device), true, !isOffline)}
+							{@render labelValueRow('Branch', getBranch(device), true, !isLoading, true)}
+							{@render labelValueRow('Commit', getCommit(device), true, !isLoading)}
 						</div>
 
 						{#if isSelected}
