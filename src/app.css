@@ -149,6 +149,26 @@ body {
 	transition:
 		background-color 0.15s ease,
 		color 0.15s ease;
+
+	/* App-like feel: hide native scrollbar chrome on document scroll surfaces, kill
+	   bounce/rubber-band on iOS, deny pinch-zoom (modals/dropdowns/ComboBox keep
+	   their native scrollbars since this only targets html/body and main page
+	   containers). Linear-style. */
+	scrollbar-width: none;
+	overscroll-behavior: none;
+	touch-action: pan-x pan-y;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+main::-webkit-scrollbar,
+.drawer-content::-webkit-scrollbar {
+	display: none;
+}
+
+main,
+.drawer-content {
+	scrollbar-width: none;
 }
 
 /* Allow text selection on interactive inputs and copyable content */
