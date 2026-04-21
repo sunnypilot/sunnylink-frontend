@@ -1024,7 +1024,7 @@
 		</div>
 	{:else if item.widget === 'multiple_button'}
 		<!-- ── Multi-choice Row (right-aligned: compact segmented if labels fit, dropdown otherwise) ── -->
-		<div class="flex items-start justify-between gap-4 px-4 py-3.5">
+		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
