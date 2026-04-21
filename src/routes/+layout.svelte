@@ -52,7 +52,8 @@
 	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { onMount } from 'svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 
 	let { children, data } = $props();
 
@@ -894,14 +895,14 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="session-expired-title"
-		transition:fade={{ duration: 200 }}
+		transition:fade={{ duration: 150 }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) dismissSessionExpired();
 		}}
 	>
 		<div
 			class="relative w-full max-w-sm rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-6 shadow-xl"
-			transition:scale={{ start: 0.96, duration: 200, opacity: 0 }}
+			transition:fly={{ y: 8, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			<button
 				type="button"

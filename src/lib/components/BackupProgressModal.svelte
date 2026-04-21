@@ -9,7 +9,8 @@
 		AlertTriangle,
 		Info
 	} from 'lucide-svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
 	import { deviceState } from '$lib/stores/device.svelte';
@@ -90,7 +91,7 @@
 	>
 		<div
 			class="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
-			transition:scale={{ duration: 200, start: 0.95 }}
+			transition:fly={{ y: 8, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)]/50 p-4">
 				<div class="flex items-center justify-between">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Shield, Info, Wifi } from 'lucide-svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
 	import { preferences } from '$lib/stores/preferences.svelte';
@@ -36,7 +37,7 @@
 		></button>
 		<div
 			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			transition:fly={{ y: 8, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-4 sm:p-6">
 				<div class="flex items-center gap-3">

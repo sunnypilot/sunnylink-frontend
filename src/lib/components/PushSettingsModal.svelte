@@ -5,7 +5,8 @@
 	import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 	import { SETTINGS_DEFINITIONS } from '$lib/types/settings';
 	import { Loader2, AlertTriangle, ArrowRight } from 'lucide-svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
 
@@ -165,7 +166,7 @@
 		></button>
 		<div
 			class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			transition:fly={{ y: 8, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			<div class="border-b border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-6">
 				<h3 class="text-xl font-bold text-[var(--sl-text-1)]">Review Changes</h3>

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate } from '$app/navigation';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
@@ -421,7 +422,7 @@
 			use:portal
 			use:modalLock
 			class="fixed inset-0 z-[9998]"
-			transition:fade={{ duration: 120 }}
+			transition:fade={{ duration: 150 }}
 			onclick={(e) => {
 				e.stopPropagation();
 				closePopover();
@@ -429,8 +430,8 @@
 		></div>
 		<div
 			use:portal
-			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
-			class="z-[9999] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+			transition:fly={{ y: -4, duration: 150, easing: cubicOut, opacity: 0 }}
+			class="z-[9999] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
 			style={menuStyle}
 			role="dialog"
 			aria-label="Device status details"

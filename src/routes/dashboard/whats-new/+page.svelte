@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import {
 		ChevronDown,
@@ -13,12 +13,8 @@
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { avatarUrl, forumTopicUrl, type DiscourseTopic } from '$lib/api/discourse';
 
-	const DWELL_MARK_READ_MS = 1500;
-
 	let expandedId = $state<number | null>(null);
 	let sentinelEl = $state<HTMLDivElement | null>(null);
-	let dwellObserver: IntersectionObserver | null = null;
-	const dwellTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 	function formatDate(iso: string): string {
 		try {
@@ -41,47 +37,10 @@
 		// Track-view bump is intentional on in-app expansion: the user is reading
 		// this announcement and we want the forum's view counter to reflect that.
 		await whatsNewStore.ensureBody(topic, { trackView: true });
-		// Mark-read fires after the expand animation settles; dwell observer
-		// would also catch this but the click is an explicit read signal.
+		// Explicit expand is the only mark-read trigger on this page — users
+		// were surprised when scroll-based dwell silently cleared the unread
+		// badge. "Mark all read" button handles bulk dismissal.
 		whatsNewStore.markRead(topic.id);
-	}
-
-	function handleDwellEntry(entry: IntersectionObserverEntry) {
-		const id = Number(entry.target.getAttribute('data-topic-id') || 0);
-		if (!id) return;
-		if (!entry.isIntersecting) {
-			const timer = dwellTimers.get(id);
-			if (timer) {
-				clearTimeout(timer);
-				dwellTimers.delete(id);
-			}
-			return;
-		}
-		if (!whatsNewStore.isUnread(id)) return;
-		if (dwellTimers.has(id)) return;
-		const timer = setTimeout(() => {
-			whatsNewStore.markRead(id);
-			dwellTimers.delete(id);
-		}, DWELL_MARK_READ_MS);
-		dwellTimers.set(id, timer);
-	}
-
-	function observeDwell(node: HTMLElement) {
-		if (!dwellObserver) return;
-		dwellObserver.observe(node);
-		return {
-			destroy() {
-				dwellObserver?.unobserve(node);
-				const id = Number(node.getAttribute('data-topic-id') || 0);
-				if (id) {
-					const timer = dwellTimers.get(id);
-					if (timer) {
-						clearTimeout(timer);
-						dwellTimers.delete(id);
-					}
-				}
-			}
-		};
 	}
 
 	// Infinite-scroll sentinel. Loads the next page whenever the end-of-list
@@ -106,19 +65,7 @@
 	});
 
 	onMount(() => {
-		dwellObserver = new IntersectionObserver(
-			(entries) => {
-				for (const e of entries) handleDwellEntry(e);
-			},
-			{ threshold: 0.6 }
-		);
 		void whatsNewStore.init();
-		return () => {
-			dwellObserver?.disconnect();
-			dwellObserver = null;
-			for (const timer of dwellTimers.values()) clearTimeout(timer);
-			dwellTimers.clear();
-		};
 	});
 
 	function topicExcerpt(topic: DiscourseTopic): string {
@@ -205,7 +152,7 @@
 				{@const cover = coverUrl(topic)}
 				{@const avatarSrc = primaryAuthorAvatar(topic)}
 				{@const cachedBody = whatsNewStore.bodies[topic.id]}
-				<li use:observeDwell data-topic-id={topic.id}>
+				<li data-topic-id={topic.id}>
 					<article
 						class="overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isOpen
 							? 'border-primary/50'

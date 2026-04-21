@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { Loader2 } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
@@ -49,7 +50,7 @@
 		<!-- Modal Content -->
 		<div
 			class="relative w-full max-w-sm overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			transition:fly={{ y: 8, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			<div class="p-5">
 				<h3 class="text-[15px] font-semibold text-[var(--sl-text-1)]">{title}</h3>

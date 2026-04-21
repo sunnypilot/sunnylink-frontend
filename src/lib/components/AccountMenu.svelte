@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate } from '$app/navigation';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
@@ -132,7 +133,7 @@
 			use:portal
 			use:modalLock
 			class="fixed inset-y-0 left-0 z-[9998] w-72 lg:w-[18rem]"
-			transition:fade={{ duration: 120 }}
+			transition:fade={{ duration: 150 }}
 			onclick={(e) => {
 				e.stopPropagation();
 				open = false;
@@ -143,7 +144,7 @@
 		<div
 			use:portal
 			class="fixed inset-y-0 right-0 left-72 z-[9998] lg:left-[18rem]"
-			transition:fade={{ duration: 120 }}
+			transition:fade={{ duration: 150 }}
 			onclick={(e) => {
 				e.stopPropagation();
 				open = false;
@@ -152,10 +153,10 @@
 		></div>
 		<div
 			use:portal
-			class="z-[9999] origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
+			class="z-[9999] rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
 			style={menuStyle}
 			role="menu"
-			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
+			transition:fly={{ y: 4, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			<div class="px-2.5 pt-1.5 pb-1.5">
 				<p class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">

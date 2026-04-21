@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { Bell, CheckCheck, Sparkles } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
@@ -147,7 +148,7 @@
 		onclick={() => (open = false)}
 		onkeydown={(e) => e.key === 'Escape' && (open = false)}
 		role="presentation"
-		transition:fade={{ duration: 120 }}
+		transition:fade={{ duration: 150 }}
 	></div>
 	<div
 		use:portal
@@ -155,7 +156,7 @@
 		aria-label="Notifications"
 		class="fixed z-[81] w-[min(22rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-xl"
 		style="top: {panelPos.top}px; right: {panelPos.right}px;"
-		transition:scale={{ start: 0.96, duration: 160, opacity: 0 }}
+		transition:fly={{ y: -4, duration: 150, easing: cubicOut, opacity: 0 }}
 	>
 		<header
 			class="flex items-center justify-between border-b border-[var(--sl-border-muted)] px-4 py-3"
