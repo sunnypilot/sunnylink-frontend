@@ -1,22 +1,15 @@
 <script lang="ts">
 	import { preferences } from '$lib/stores/preferences.svelte';
-	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
 	import { browser } from '$app/environment';
-	import { Sun, Moon, Monitor } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { toast } from 'svelte-sonner';
 
 	const isDev =
 		import.meta.env.DEV || (browser && localStorage.getItem('debug_override') === 'true');
-
-	const themeOptions: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
-		{ value: 'light', label: 'Light', icon: Sun },
-		{ value: 'dark', label: 'Dark', icon: Moon },
-		{ value: 'auto', label: 'System', icon: Monitor }
-	];
 
 	const landingPageOptions: { value: string; label: string }[] = [
 		{ value: 'overview', label: 'Home' },
@@ -92,27 +85,7 @@
 					Choose your preferred color scheme
 				</p>
 			</div>
-			<div class="flex rounded-lg bg-[var(--sl-bg-page)] p-1">
-				{#each themeOptions as opt}
-					{@const isActive = themeState.preference === opt.value}
-					<button
-						type="button"
-						class="flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all duration-200"
-						class:bg-[var(--sl-bg-surface)]={isActive}
-						class:border={isActive}
-						class:border-[var(--sl-border)]={isActive}
-						class:shadow-sm={isActive}
-						class:text-[var(--sl-text-1)]={isActive}
-						class:font-medium={isActive}
-						class:text-[var(--sl-text-3)]={!isActive}
-						class:hover:text-[var(--sl-text-2)]={!isActive}
-						onclick={() => themeState.setPreference(opt.value)}
-					>
-						<opt.icon size={13} />
-						<span>{opt.label}</span>
-					</button>
-				{/each}
-			</div>
+			<ThemeToggle />
 		</div>
 	</div>
 

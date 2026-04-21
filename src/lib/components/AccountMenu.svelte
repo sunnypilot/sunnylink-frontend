@@ -2,10 +2,10 @@
 	import { fade, scale } from 'svelte/transition';
 	import { afterNavigate } from '$app/navigation';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
-	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
-	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
+	import { LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
+	import ThemeToggle from './ThemeToggle.svelte';
 
 	interface Props {
 		onNavigate?: () => void;
@@ -57,12 +57,6 @@
 			cancelAnimationFrame(rafId);
 		};
 	});
-
-	const themeOptions: { value: ThemePreference; icon: typeof Sun; label: string }[] = [
-		{ value: 'light', icon: Sun, label: 'Light' },
-		{ value: 'dark', icon: Moon, label: 'Dark' },
-		{ value: 'auto', icon: Monitor, label: 'System' }
-	];
 
 	const handleLogout = async () => {
 		open = false;
@@ -178,27 +172,7 @@
 				<p class="mb-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
 					Theme
 				</p>
-				<div class="flex rounded-lg bg-[var(--sl-bg-input)] p-1">
-					{#each themeOptions as opt}
-						{@const isActive = themeState.preference === opt.value}
-						<button
-							type="button"
-							class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs transition-all duration-150 active:scale-[0.94] active:bg-[var(--sl-bg-elevated)]"
-							class:bg-[var(--sl-bg-surface)]={isActive}
-							class:shadow-sm={isActive}
-							class:text-[var(--sl-text-1)]={isActive}
-							class:font-medium={isActive}
-							class:text-[var(--sl-text-3)]={!isActive}
-							class:hover:text-[var(--sl-text-2)]={!isActive}
-							role="menuitem"
-							aria-label="{opt.label} theme"
-							onclick={() => themeState.setPreference(opt.value)}
-						>
-							<opt.icon size={14} />
-							<span>{opt.label}</span>
-						</button>
-					{/each}
-				</div>
+				<ThemeToggle fillWidth />
 			</div>
 
 			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>

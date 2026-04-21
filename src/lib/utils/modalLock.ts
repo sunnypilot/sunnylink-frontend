@@ -19,6 +19,7 @@
 
 let lockCount = 0;
 let savedScrollY = 0;
+let lockedPathname: string | null = null;
 let touchMoveHandler: ((e: TouchEvent) => void) | null = null;
 
 function findScrollableAncestor(start: EventTarget | null): HTMLElement | null {
@@ -37,6 +38,7 @@ function findScrollableAncestor(start: EventTarget | null): HTMLElement | null {
 function lockScroll() {
 	if (lockCount === 0) {
 		savedScrollY = window.scrollY;
+		lockedPathname = window.location.pathname;
 		const b = document.body.style;
 		const h = document.documentElement.style;
 		b.position = 'fixed';
@@ -79,7 +81,15 @@ function unlockScroll() {
 			document.removeEventListener('touchmove', touchMoveHandler);
 			touchMoveHandler = null;
 		}
-		window.scrollTo(0, savedScrollY);
+		// Only restore scroll when the modal closes in place. If a navigation
+		// happened while the lock was held (e.g. AccountMenu → Preferences link),
+		// the layout's afterNavigate has already reset scroll to 0 for the new
+		// route; restoring savedScrollY here would clobber that and drop the
+		// user into the middle of the new page.
+		if (lockedPathname === window.location.pathname) {
+			window.scrollTo(0, savedScrollY);
+		}
+		lockedPathname = null;
 	}
 }
 
