@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { scale } from 'svelte/transition';
+	import { fade, scale } from 'svelte/transition';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { themeState, type ThemePreference } from '$lib/stores/theme.svelte';
 	import { Sun, Moon, Monitor, LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
+	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 
 	interface Props {
 		onNavigate?: () => void;
@@ -23,19 +25,8 @@
 		await logtoClient?.signOut(window.location.origin);
 	};
 
-	function handleClickOutside(event: MouseEvent) {
-		const target = event.target as HTMLElement;
-		if (!target.closest('[data-account-menu]')) {
-			open = false;
-		}
-	}
-
-	$effect(() => {
-		if (open) {
-			document.addEventListener('click', handleClickOutside, true);
-			return () => document.removeEventListener('click', handleClickOutside, true);
-		}
-	});
+	// Outside-click handled by portaled backdrop (use:modalLock); document
+	// click listener removed so clicks below the backdrop don't pass through.
 
 	// Close on Escape
 	function handleKeydown(event: KeyboardEvent) {
@@ -89,8 +80,27 @@
 	</button>
 
 	{#if open}
+		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
+		<div use:portal>
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				use:modalLock
+				class="fixed inset-0 z-[9998]"
+				transition:fade={{ duration: 120 }}
+				onmousedown={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					open = false;
+				}}
+				ontouchstart={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					open = false;
+				}}
+			></div>
+		</div>
 		<div
-			class="absolute right-0 bottom-full left-0 z-50 mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
+			class="absolute right-0 bottom-full left-0 z-[9999] mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
 			role="menu"
 			transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 		>

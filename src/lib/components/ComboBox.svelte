@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Check, ChevronDown, Search, X } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 
 	type Option = {
 		value: string;
@@ -28,25 +30,7 @@
 	let inputElement = $state<HTMLInputElement | undefined>();
 	let containerElement = $state<HTMLDivElement | undefined>();
 
-	// Click-outside handler
-	$effect(() => {
-		if (!isOpen) return;
-
-		function handleClickOutside(e: MouseEvent) {
-			if (containerElement && !containerElement.contains(e.target as Node)) {
-				isOpen = false;
-			}
-		}
-
-		// Use capture + requestAnimationFrame to avoid closing on the same click that opens
-		requestAnimationFrame(() => {
-			document.addEventListener('click', handleClickOutside, true);
-		});
-
-		return () => {
-			document.removeEventListener('click', handleClickOutside, true);
-		};
-	});
+	// Outside-click handled by portaled backdrop (use:modalLock).
 
 	let filteredOptions = $derived(
 		options.filter((option: Option) =>
@@ -102,8 +86,27 @@
 
 	<!-- Dropdown -->
 	{#if isOpen}
+		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
+		<div use:portal>
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				use:modalLock
+				class="fixed inset-0 z-[9998]"
+				transition:fade={{ duration: 120 }}
+				onmousedown={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					isOpen = false;
+				}}
+				ontouchstart={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					isOpen = false;
+				}}
+			></div>
+		</div>
 		<div
-			class="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
+			class="absolute z-[9999] mt-2 w-full overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
 			transition:fly={{ y: 10, duration: 200 }}
 		>
 			<!-- Search Input -->

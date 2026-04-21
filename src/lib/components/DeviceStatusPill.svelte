@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { scale } from 'svelte/transition';
+	import { fade, scale } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
@@ -205,11 +207,7 @@
 		popoverOpen = false;
 	}
 
-	function handleWindowClick(e: MouseEvent) {
-		if (popoverOpen && pillRef && !pillRef.contains(e.target as Node)) {
-			closePopover();
-		}
-	}
+	// Outside-click handled by portaled backdrop (use:modalLock).
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && popoverOpen) {
@@ -324,7 +322,7 @@
 	}
 </script>
 
-<svelte:window onclick={handleWindowClick} onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if deviceId}
 	<div class="relative" bind:this={pillRef}>
@@ -351,9 +349,28 @@
 		</button>
 
 		{#if popoverOpen}
+			<!-- Portaled backdrop swallows outside-click + locks body scroll -->
+			<div use:portal>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					use:modalLock
+					class="fixed inset-0 z-[9998]"
+					transition:fade={{ duration: 120 }}
+					onmousedown={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						closePopover();
+					}}
+					ontouchstart={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						closePopover();
+					}}
+				></div>
+			</div>
 			<div
 				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
-				class="absolute top-full right-0 z-[100] mt-2 w-[min(18rem,calc(100vw-1rem))] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
+				class="absolute top-full right-0 z-[9999] mt-2 w-[min(18rem,calc(100vw-1rem))] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
 				role="dialog"
 				aria-label="Device status details"
 			>
