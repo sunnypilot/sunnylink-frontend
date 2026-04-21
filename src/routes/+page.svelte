@@ -26,11 +26,13 @@
 
 	// Authenticated visitors land on /dashboard, not the marketing page.
 	// Pattern matches Linear (linear.app/login → redirects), GitHub (auth-aware
-	// homepage). We hold a "Verifying" splash while authState resolves so the
-	// user never sees the landing flash before being whisked away.
-	// One-shot guard: authState reactivity can re-fire the effect after the
-	// redirect starts (e.g. silent session refresh), which left the splash
-	// spinning forever when goto('/dashboard') got re-issued mid-navigation.
+	// homepage). We hold a splash while authState resolves so the user never
+	// sees the landing flash before being whisked away.
+	// SvelteKit's client-side goto from a prerendered route (/ has
+	// prerender=true) was hanging in PWA standalone — the splash spun forever
+	// even though the effect ran. Hard-redirect via window.location.replace is
+	// deterministic across every engine and avoids the prerendered-page edge
+	// case entirely.
 	let redirectFired = $state(false);
 	$effect(() => {
 		if (!browser) return;
@@ -38,7 +40,7 @@
 		if (redirectFired) return;
 		if (authState.isAuthenticated) {
 			redirectFired = true;
-			goto('/dashboard', { replaceState: true });
+			window.location.replace('/dashboard');
 		}
 	});
 
@@ -68,13 +70,17 @@
 </script>
 
 {#if showAuthSplash}
-	<!-- Authenticated visitor (or auth still resolving): hold a verifying
-	     splash so we don't flash marketing copy before redirecting to
-	     /dashboard. Matches the /auth/callback page styling for continuity. -->
+	<!-- Authenticated visitor (or auth still resolving): hold a splash so we
+	     don't flash marketing copy before redirecting to /dashboard. Logo +
+	     spinner only — Linear / Vercel / Apple all run launch screens without
+	     status text since the spinner already conveys "working". Locked to
+	     viewport height + overflow-hidden + touch-none so the user can't drag
+	     the centered content around on iOS. -->
 	<div
-		class="flex min-h-screen flex-col items-center justify-center bg-[var(--sl-bg-page)] px-6"
+		class="flex h-[100dvh] touch-none flex-col items-center justify-center overflow-hidden bg-[var(--sl-bg-page)] px-6 select-none"
 		role="status"
 		aria-live="polite"
+		aria-label="Loading"
 		in:fade={{ duration: 200 }}
 	>
 		<p
@@ -83,16 +89,10 @@
 			sunnylink
 		</p>
 		<span
-			class="loading mt-8 loading-spinner text-primary"
+			class="loading mt-6 loading-spinner text-primary"
 			style="width: 24px; height: 24px;"
 			aria-hidden="true"
 		></span>
-		<p class="mt-4 text-[0.875rem] text-[var(--sl-text-2)]">
-			{authState.loading ? 'Verifying your identity' : 'Loading your dashboard'}…
-		</p>
-		<span class="sr-only">
-			{authState.loading ? 'Verifying your identity' : 'Loading your dashboard'}
-		</span>
 	</div>
 {:else}
 	<div

@@ -146,6 +146,13 @@
 
 	function selectDevice(device: any) {
 		deviceState.setSelectedDevice(device.device_id);
+		// Scroll the newly selected card into view so the checkmark + Manage CTA
+		// appearing below the row stay on screen, even if the user tapped near
+		// the bottom edge of the viewport.
+		requestAnimationFrame(() => {
+			const el = document.querySelector(`[data-device-id="${device.device_id}"]`);
+			if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
 	}
 
 	async function retryDevice(device: any) {
@@ -369,7 +376,7 @@
 							<span
 								class="block h-2.5 w-2.5 shrink-0 rounded-full {getStatusDotClass(
 									device
-								)} {isPolling ? 'animate-pulse ring-2 ring-primary/40' : ''}"
+								)} {isPolling ? 'animate-pulse' : ''}"
 								aria-hidden="true"
 							></span>
 							<div class="min-w-0 flex-1">
