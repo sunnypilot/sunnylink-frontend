@@ -55,6 +55,7 @@
 	type NavSection = { label: string; items: NavItem[]; collapsible?: boolean };
 
 	let drawerOpen = $state(false);
+	let topBarHeight = $state(0);
 	const pathname = $derived(page.url.pathname);
 
 	// Page transitions are driven by Svelte's {#key pathname} + in:fade below so
@@ -385,13 +386,15 @@
 	<div
 		class="drawer-content flex min-h-screen flex-col bg-[var(--sl-bg-page)] {isChromeless
 			? 'h-auto overflow-visible'
-			: ''} {drawerOpen && !isChromeless ? 'h-screen! overflow-hidden! lg:overflow-visible!' : ''}"
+			: ''}"
+		style={isChromeless ? '' : `padding-top: ${topBarHeight}px;`}
 	>
 		<GlobalStatusBanner />
 
 		{#if !isChromeless}
 			<div
-				class="sticky top-0 z-50 bg-[var(--sl-bg-page)]"
+				bind:clientHeight={topBarHeight}
+				class="fixed top-0 right-0 left-0 z-50 bg-[var(--sl-bg-page)] lg:left-[18rem]"
 				style="padding-top: env(safe-area-inset-top);"
 			>
 				<ForceOffroadBanner />
