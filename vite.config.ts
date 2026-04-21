@@ -3,8 +3,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { readFileSync } from 'node:fs';
+
+const pkgVersion = JSON.parse(readFileSync('./package.json', 'utf-8')).version;
 
 export default defineConfig({
+	define: {
+		__APP_VERSION__: JSON.stringify(pkgVersion)
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit(),
@@ -14,7 +20,7 @@ export default defineConfig({
 			manifest: {
 				name: 'sunnylink',
 				short_name: 'sunnylink',
-				description: 'Connect with sunnypilot.',
+				description: `Connect with sunnypilot. v${pkgVersion}`,
 				theme_color: '#0f1726',
 				background_color: '#0f1726',
 				display: 'standalone',
