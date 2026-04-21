@@ -18,6 +18,7 @@
 	let visible = $state(false);
 	let latestTopic = $state<Topic | null>(null);
 	let loadingPreview = $state(false);
+	let attemptedPreview = $state(false);
 
 	function alreadyDismissed(): boolean {
 		try {
@@ -47,6 +48,7 @@
 	});
 
 	async function loadPreview() {
+		attemptedPreview = true;
 		loadingPreview = true;
 		try {
 			const res = await fetch(`${PROXY_PREFIX}/c/announcements/${CATEGORY_ID}.json`);
@@ -68,7 +70,7 @@
 	}
 
 	$effect(() => {
-		if (visible && latestTopic === null && !loadingPreview) void loadPreview();
+		if (visible && !attemptedPreview && !loadingPreview) void loadPreview();
 	});
 
 	function dismiss() {
@@ -165,23 +167,14 @@
 				</a>
 			{/if}
 
-			<div class="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-				<button
-					type="button"
-					onclick={readMore}
-					class="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-				>
-					<span>What's new</span>
-					<ArrowRight size={14} aria-hidden="true" />
-				</button>
-				<button
-					type="button"
-					onclick={dismiss}
-					class="inline-flex h-10 flex-1 items-center justify-center rounded-lg px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary"
-				>
-					Got it
-				</button>
-			</div>
+			<button
+				type="button"
+				onclick={readMore}
+				class="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[0.875rem] font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+			>
+				<span>What's new</span>
+				<ArrowRight size={14} aria-hidden="true" />
+			</button>
 		</div>
 	</div>
 {/if}

@@ -20,12 +20,29 @@
 	const BODY_CACHE_PREFIX = 'sunnylink_whats_new_body_';
 	const TOPICS_TTL = 5 * 60 * 1000;
 	const BODY_TTL = 60 * 60 * 1000;
+	// 429 retry: silent attempts at 3s, 10s. After that, fall to empty/fallback —
+	// matches Stripe SDK + GitHub octokit retry posture for rate-limit-only errors.
+	const RETRY_DELAYS_MS = [3000, 10000];
+
+	async function fetchWithRetry(url: string): Promise<Response | null> {
+		let res: Response | null = null;
+		const delays = [0, ...RETRY_DELAYS_MS];
+		for (const delay of delays) {
+			if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+			try {
+				res = await fetch(url);
+				if (res.status !== 429) return res;
+			} catch {
+				res = null;
+			}
+		}
+		return res;
+	}
 
 	let topics = $state<Topic[]>([]);
 	let bodies = $state<Record<number, string>>({});
 	let bodyLoading = $state<Record<number, boolean>>({});
 	let loading = $state(true);
-	let error = $state<string | null>(null);
 	let expandedId = $state<number | null>(null);
 
 	function readJSONCache<T>(key: string, ttl: number): T | null {
@@ -58,8 +75,14 @@
 		}
 
 		try {
-			const res = await fetch(`${PROXY_PREFIX}/c/announcements/${CATEGORY_ID}.json`);
-			if (!res.ok) throw new Error(`Forum returned ${res.status}`);
+			const res = await fetchWithRetry(`${PROXY_PREFIX}/c/announcements/${CATEGORY_ID}.json`);
+			if (!res || !res.ok) {
+				// Treat 429 / network failure as transient → empty state, cache it so we
+				// don't hammer the forum on quick re-visits within the TTL window.
+				topics = [];
+				writeJSONCache(TOPICS_CACHE_KEY, []);
+				return;
+			}
 			const data = await res.json();
 			const all: Topic[] = data?.topic_list?.topics ?? [];
 			const filtered = all
@@ -72,8 +95,8 @@
 			topics = filtered;
 			writeJSONCache(TOPICS_CACHE_KEY, filtered);
 			if (filtered[0]) void expandTopic(filtered[0]);
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load updates';
+		} catch {
+			topics = [];
 		} finally {
 			loading = false;
 		}
@@ -84,8 +107,8 @@
 		const cached = readJSONCache<string>(cacheKey, BODY_TTL);
 		if (cached) return cached;
 
-		const res = await fetch(`${PROXY_PREFIX}/t/${topic.slug}/${topic.id}.json`);
-		if (!res.ok) throw new Error(`Forum returned ${res.status}`);
+		const res = await fetchWithRetry(`${PROXY_PREFIX}/t/${topic.slug}/${topic.id}.json`);
+		if (!res || !res.ok) return '';
 		const data = await res.json();
 		const cooked = data?.post_stream?.posts?.[0]?.cooked ?? '';
 		writeJSONCache(cacheKey, cooked);
@@ -155,13 +178,6 @@
 	{#if loading}
 		<div class="flex items-center justify-center py-16 text-[var(--sl-text-3)]">
 			<Loader2 size={20} class="animate-spin" aria-label="Loading" />
-		</div>
-	{:else if error}
-		<div
-			class="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-[0.8125rem] text-red-700 dark:text-red-300"
-			role="alert"
-		>
-			Couldn't load updates: {error}
 		</div>
 	{:else if topics.length === 0}
 		<div
