@@ -480,7 +480,7 @@
 					</p>
 				</div>
 
-				<nav class="flex-1 overflow-y-auto px-3 py-3 lg:px-4">
+				<nav class="flex-1 overflow-y-auto overscroll-contain px-3 py-3 lg:px-4">
 					<!-- Auth init in flight — show skeleton rows so the sidebar doesn't
 						 flash empty or flip to the logged-out view during the refresh
 						 grant window. -->
