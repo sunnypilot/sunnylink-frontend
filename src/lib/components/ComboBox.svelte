@@ -87,24 +87,18 @@
 	<!-- Dropdown -->
 	{#if isOpen}
 		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
-		<div use:portal>
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				use:modalLock
-				class="fixed inset-0 z-[9998]"
-				transition:fade={{ duration: 120 }}
-				onmousedown={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					isOpen = false;
-				}}
-				ontouchstart={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					isOpen = false;
-				}}
-			></div>
-		</div>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			use:portal
+			use:modalLock
+			class="fixed inset-0 z-[9998]"
+			transition:fade={{ duration: 120 }}
+			onclick={(e) => {
+				e.stopPropagation();
+				isOpen = false;
+			}}
+		></div>
 		<div
 			class="absolute z-[9999] mt-2 w-full overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
 			transition:fly={{ y: 10, duration: 200 }}

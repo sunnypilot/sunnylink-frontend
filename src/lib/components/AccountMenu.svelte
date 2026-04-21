@@ -81,24 +81,18 @@
 
 	{#if open}
 		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
-		<div use:portal>
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				use:modalLock
-				class="fixed inset-0 z-[9998]"
-				transition:fade={{ duration: 120 }}
-				onmousedown={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					open = false;
-				}}
-				ontouchstart={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					open = false;
-				}}
-			></div>
-		</div>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			use:portal
+			use:modalLock
+			class="fixed inset-0 z-[9998]"
+			transition:fade={{ duration: 120 }}
+			onclick={(e) => {
+				e.stopPropagation();
+				open = false;
+			}}
+		></div>
 		<div
 			class="absolute right-0 bottom-full left-0 z-[9999] mb-1.5 origin-bottom rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] p-1.5"
 			role="menu"

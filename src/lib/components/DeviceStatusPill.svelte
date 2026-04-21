@@ -350,24 +350,18 @@
 
 		{#if popoverOpen}
 			<!-- Portaled backdrop swallows outside-click + locks body scroll -->
-			<div use:portal>
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					use:modalLock
-					class="fixed inset-0 z-[9998]"
-					transition:fade={{ duration: 120 }}
-					onmousedown={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						closePopover();
-					}}
-					ontouchstart={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						closePopover();
-					}}
-				></div>
-			</div>
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<div
+				use:portal
+				use:modalLock
+				class="fixed inset-0 z-[9998]"
+				transition:fade={{ duration: 120 }}
+				onclick={(e) => {
+					e.stopPropagation();
+					closePopover();
+				}}
+			></div>
 			<div
 				transition:scale={{ start: 0.95, duration: 150, opacity: 0 }}
 				class="absolute top-full right-0 z-[9999] mt-2 w-[min(18rem,calc(100vw-1rem))] origin-top-right rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-1.5 shadow-sm"
