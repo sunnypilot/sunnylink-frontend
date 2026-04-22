@@ -60,13 +60,13 @@ export function paintBadge(show: boolean): void {
 		if (!ctx) return;
 		ctx.drawImage(baseImage, 0, 0, size, size);
 
-		const dotR = size * 0.3;
+		const dotR = size * 0.2;
 		const cx = size - dotR - 2;
 		const cy = size - dotR - 2;
 
 		// White halo so the dot reads against any base colour.
 		ctx.beginPath();
-		ctx.arc(cx, cy, dotR + 3, 0, Math.PI * 2);
+		ctx.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
 		ctx.fillStyle = '#ffffff';
 		ctx.fill();
 
