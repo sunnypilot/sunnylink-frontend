@@ -525,7 +525,7 @@
 							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								class="bright-badge rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-cyan-700 uppercase dark:text-cyan-400"
 								>Changed on device</span
 							>
 						</Tooltip>
@@ -656,7 +656,7 @@
 							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								class="bright-badge rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-cyan-700 uppercase dark:text-cyan-400"
 								>Changed on device</span
 							>
 						</Tooltip>
@@ -759,7 +759,7 @@
 						text="This setting's value was changed directly on the device since the last sync."
 					>
 						<span
-							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+							class="bright-badge rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-cyan-700 uppercase dark:text-cyan-400"
 							>Changed on device</span
 						>
 					</Tooltip>
@@ -962,7 +962,7 @@
 							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								class="bright-badge rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-cyan-700 uppercase dark:text-cyan-400"
 								>Changed on device</span
 							>
 						</Tooltip>
@@ -1058,7 +1058,7 @@
 							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
+								class="bright-badge rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-cyan-700 uppercase dark:text-cyan-400"
 								>Changed on device</span
 							>
 						</Tooltip>
