@@ -197,9 +197,6 @@
 							aria-hidden="true"
 						></div>
 					</div>
-					<p class="mt-4 text-[0.8125rem] text-[var(--sl-text-3)]">
-						Continue reading on the community forum →
-					</p>
 				{:else}
 					<p class="text-[0.8125rem] text-[var(--sl-text-3)]">
 						No preview available — read the full post on the community forum.
