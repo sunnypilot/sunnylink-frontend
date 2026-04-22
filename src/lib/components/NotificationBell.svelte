@@ -7,6 +7,7 @@
 	import { portal } from '$lib/utils/portal';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { paintBadge } from '$lib/utils/favicon';
+	import { FEATURES } from '$lib/config/features';
 
 	const unreadCount = $derived(whatsNewStore.unreadCount);
 	const unread = $derived(whatsNewStore.unread);
@@ -81,7 +82,7 @@
 	// Favicon badge mirrors unreadCount globally — paint whenever the count
 	// flips between zero and non-zero.
 	$effect(() => {
-		paintBadge(unreadCount > 0);
+		if (FEATURES.faviconBadge) paintBadge(unreadCount > 0);
 	});
 
 	afterNavigate(() => {

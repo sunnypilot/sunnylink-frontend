@@ -2,6 +2,7 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { Info, ChevronRight } from 'lucide-svelte';
 	import LegacyInfoModal from '$lib/components/LegacyInfoModal.svelte';
+	import { FEATURES } from '$lib/config/features';
 
 	interface Props {
 		deviceId: string | null | undefined;
@@ -19,7 +20,9 @@
 
 	let { deviceId, variant = 'dot', className = '', onActivate }: Props = $props();
 
-	let isLegacy = $derived(!!deviceId && schemaState.schemaUnavailable[deviceId] === true);
+	let isLegacy = $derived(
+		FEATURES.legacyUi && !!deviceId && schemaState.schemaUnavailable[deviceId] === true
+	);
 	let modalOpen = $state(false);
 
 	function activate(e: MouseEvent | KeyboardEvent) {

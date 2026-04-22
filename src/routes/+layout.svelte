@@ -52,6 +52,7 @@
 	import { navHistory } from '$lib/stores/navHistory.svelte';
 	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
+	import { FEATURES } from '$lib/config/features';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -253,12 +254,16 @@
 			? [
 					{ icon: House, label: 'Home', href: '/dashboard' },
 					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' },
-					{
-						icon: Sparkles,
-						label: "What's new",
-						href: '/dashboard/whats-new',
-						badge: whatsNewStore.unreadCount
-					}
+					...(FEATURES.whatsNewRoute
+						? [
+								{
+									icon: Sparkles,
+									label: "What's new",
+									href: '/dashboard/whats-new',
+									badge: whatsNewStore.unreadCount
+								}
+							]
+						: [])
 				]
 			: []
 	);
@@ -490,7 +495,9 @@
 	$effect(() => {
 		if (authState.isAuthenticated) {
 			invalidate('app:devices');
-			whatsNewStore.startLifecycle();
+			if (FEATURES.notificationBell || FEATURES.whatsNewRoute) {
+				whatsNewStore.startLifecycle();
+			}
 		} else {
 			whatsNewStore.stopLifecycle();
 		}
@@ -592,7 +599,7 @@
 											<span>Change device</span>
 										</a>
 									{/if}
-									{#if authState.isAuthenticated}
+									{#if authState.isAuthenticated && FEATURES.notificationBell}
 										<NotificationBell />
 									{/if}
 									<DeviceStatusPill />
@@ -627,7 +634,7 @@
 										<ArrowLeftRight size={16} aria-hidden="true" />
 									</a>
 								{/if}
-								{#if authState.isAuthenticated}
+								{#if authState.isAuthenticated && FEATURES.notificationBell}
 									<NotificationBell />
 								{/if}
 								{#if deviceState.selectedDeviceId}
@@ -653,7 +660,7 @@
 				{#if !isChromeless && deviceState.selectedDeviceId}
 					<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 						<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
-						{#if pathname !== '/dashboard/preferences'}
+						{#if pathname !== '/dashboard/preferences' && FEATURES.legacyUi}
 							<div class="mb-3">
 								<LegacyTopBanner deviceId={deviceState.selectedDeviceId} />
 							</div>

@@ -3,6 +3,7 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import LegacyInfoModal from './LegacyInfoModal.svelte';
+	import { FEATURES } from '$lib/config/features';
 
 	interface Props {
 		deviceId: string | null | undefined;
@@ -13,7 +14,9 @@
 	let sessionDismissed = $state(false);
 	let modalOpen = $state(false);
 
-	const isLegacy = $derived(!!deviceId && schemaState.schemaUnavailable[deviceId] === true);
+	const isLegacy = $derived(
+		FEATURES.legacyUi && !!deviceId && schemaState.schemaUnavailable[deviceId] === true
+	);
 	const shouldShow = $derived(isLegacy && preferences.showLegacyBanner && !sessionDismissed);
 
 	function openLearnMore() {
