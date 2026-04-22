@@ -46,6 +46,7 @@
 	import { themeState } from '$lib/stores/theme.svelte';
 	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 	import SplashScreen from '$lib/components/SplashScreen.svelte';
+	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
@@ -951,6 +952,10 @@
 	bind:open={deviceState.pairingState.isOpen}
 	bind:deviceType={deviceState.pairingState.deviceType}
 />
+
+{#if authState.isAuthenticated}
+	<WelcomeModal />
+{/if}
 
 <Toaster theme={themeState.effective} position="bottom-center" richColors />
 <PendingChangesPill />

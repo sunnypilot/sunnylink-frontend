@@ -7,7 +7,7 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
-	import { X, ArrowRight, Check, Sparkles } from 'lucide-svelte';
+	import { ArrowRight, Check } from 'lucide-svelte';
 
 	// Two onboarding variants, shown at distinct moments:
 	//
@@ -58,6 +58,21 @@
 		!!deviceState.selectedDeviceId &&
 			schemaState.schemaUnavailable[deviceState.selectedDeviceId] === false
 	);
+
+	// Device identity line shown in variant B subtitle: "{alias} · {id}" when
+	// alias set, else just the id. Alias is always optional.
+	const selectedDeviceAlias = $derived.by(() => {
+		const id = deviceState.selectedDeviceId;
+		if (!id) return null;
+		const explicit = deviceState.aliases[id];
+		if (explicit && explicit.trim() && explicit !== id) return explicit;
+		const paired = (deviceState.pairedDevices ?? []).find(
+			(d: { device_id?: string | null }) => d.device_id === id
+		);
+		const serverAlias = paired?.alias;
+		if (serverAlias && serverAlias.trim() && serverAlias !== id) return serverAlias;
+		return null;
+	});
 
 	const showGeneral = $derived(hydrated && !dismissedGeneral);
 	const showNewSchema = $derived(
@@ -114,18 +129,9 @@
 			transition:fly={{ y: 8, duration: 150, easing: cubicOut, opacity: 0 }}
 		>
 			{#if showGeneral}
-				<button
-					type="button"
-					class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
-					onclick={onGeneralClose}
-					aria-label="Dismiss"
-				>
-					<X size={16} />
-				</button>
-
 				<h2
 					id="welcome-modal-title"
-					class="pr-10 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+					class="text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 				>
 					Welcome to the new sunnylink
 				</h2>
@@ -142,21 +148,23 @@
 					<ArrowRight size={14} aria-hidden="true" />
 				</button>
 			{:else if showNewSchema}
-				<button
-					type="button"
-					class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
-					onclick={onNewSchemaGotIt}
-					aria-label="Dismiss"
-				>
-					<X size={16} />
-				</button>
-
 				<h2
 					id="welcome-modal-title"
-					class="pr-10 text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+					class="text-[1.125rem] font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 				>
 					Unlocked: new sunnylink features
 				</h2>
+				{#if deviceState.selectedDeviceId}
+					<p
+						class="mt-1 flex flex-wrap items-center gap-x-1.5 text-[0.75rem] text-[var(--sl-text-3)]"
+					>
+						{#if selectedDeviceAlias}
+							<span class="font-medium text-[var(--sl-text-2)]">{selectedDeviceAlias}</span>
+							<span aria-hidden="true">·</span>
+						{/if}
+						<span class="font-mono break-all">{deviceState.selectedDeviceId}</span>
+					</p>
+				{/if}
 				<ul class="mt-4 space-y-2.5 text-[0.875rem] text-[var(--sl-text-2)]">
 					<li class="flex items-start gap-2.5">
 						<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
@@ -167,7 +175,7 @@
 						<span>Faster device management</span>
 					</li>
 					<li class="flex items-start gap-2.5">
-						<Sparkles size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
+						<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
 						<span>
 							<span
 								class="mr-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-[1px] text-[0.6875rem] font-semibold tracking-wide text-primary uppercase"

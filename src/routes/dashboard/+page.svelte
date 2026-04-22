@@ -10,7 +10,6 @@
 	import DashboardTiles from '$lib/components/dashboard/DashboardTiles.svelte';
 	import DashboardEmptyState from '$lib/components/dashboard/DashboardEmptyState.svelte';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
-	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
 	import { startBackup, retryFailedBackup } from '$lib/utils/backup';
 	import { formatRelativeTime } from '$lib/utils/time';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
@@ -212,5 +211,3 @@
 		if (deviceId) handleDownloadBackup(deviceId, true);
 	}}
 />
-
-<WelcomeModal />
