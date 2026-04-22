@@ -2,20 +2,14 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { formatRelativeTime } from '$lib/utils/time';
-	import { Smartphone, Loader2, ChevronRight, ArrowLeftRight } from 'lucide-svelte';
+	import { Loader2, ChevronRight, ArrowLeftRight } from 'lucide-svelte';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
+	import { getDeviceDisplayName, getDeviceTypeLabel } from '$lib/utils/deviceDisplay';
 
 	let { device } = $props<{ device: any }>();
 
-	const DEVICE_TYPE_NAMES: Record<string, string> = {
-		tizi: 'comma 3X',
-		mici: 'comma four',
-		tici: 'comma three',
-		pc: 'PC'
-	};
-
-	let alias = $derived(deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id);
+	let alias = $derived(getDeviceDisplayName(device.device_id, device.alias));
 
 	let onlineStatus = $derived(deviceState.onlineStatuses[device.device_id]);
 	let offroadStatus = $derived(deviceState.offroadStatuses[device.device_id]);
@@ -59,11 +53,9 @@
 		return formatRelativeTime(ts);
 	});
 
-	let deviceType = $derived.by(() => {
-		const t = deviceState.deviceTelemetry[device.device_id]?.deviceType;
-		if (!t || t === 'unknown') return null;
-		return DEVICE_TYPE_NAMES[t.toLowerCase()] ?? null;
-	});
+	let deviceType = $derived(
+		getDeviceTypeLabel(deviceState.deviceTelemetry[device.device_id]?.deviceType)
+	);
 </script>
 
 <section
@@ -72,55 +64,58 @@
 		: ''}"
 	aria-labelledby="hero-alias"
 >
-	<div class="flex items-start gap-3">
-		<div
-			class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-		>
-			<Smartphone size={22} aria-hidden="true" />
-		</div>
-		<div class="min-w-0 flex-1">
-			<div class="flex items-center justify-between gap-2">
+	<div class="flex items-start justify-between gap-3">
+		<!-- Status dot anchored next to the alias — matches the My Devices row
+		     layout so Home and My Devices read as the same object in two contexts. -->
+		<div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+			<span
+				class="block h-2.5 w-2.5 shrink-0 rounded-full {statusDotClass}"
+				class:animate-pulse={isLoading}
+				aria-hidden="true"
+			></span>
+			<div class="min-w-0 flex-1">
 				<h1
 					id="hero-alias"
 					class="truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 				>
 					{alias}
 				</h1>
-				<a
-					href="/dashboard/devices"
-					class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
-					aria-label="Change selected device"
-				>
-					<ArrowLeftRight size={12} aria-hidden="true" />
-					<span class="hidden sm:inline">Change device</span>
-					<span class="sm:hidden">Change</span>
-				</a>
+				<p class="mt-0.5 truncate font-mono text-[0.6875rem] text-[var(--sl-text-3)]">
+					{device.device_id}
+				</p>
 			</div>
-			<div class="mt-1 flex items-center gap-1.5">
-				<span class="block h-2 w-2 shrink-0 rounded-full {statusDotClass}" aria-hidden="true"
-				></span>
-				<span class="text-[0.8125rem] text-[var(--sl-text-2)]">{statusLabel}</span>
-				{#if isLoading}
-					<Loader2
-						size={12}
-						class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-						aria-hidden="true"
-					/>
-				{/if}
-			</div>
-			{#if deviceType || lastSeen}
-				{#key statusPolling.tickCounter}
-					<p class="mt-0.5 truncate text-[0.75rem] text-[var(--sl-text-3)]">
-						{#if deviceType}{deviceType}{/if}
-						{#if deviceType && lastSeen}
-							·
-						{/if}
-						{#if lastSeen}Last seen {lastSeen}{/if}
-					</p>
-				{/key}
+		</div>
+		<a
+			href="/dashboard/devices"
+			class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--sl-border)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
+			aria-label="Change selected device"
+		>
+			<ArrowLeftRight size={12} aria-hidden="true" />
+			<span class="hidden sm:inline">Change device</span>
+			<span class="sm:hidden">Change</span>
+		</a>
+	</div>
+
+	{#key statusPolling.tickCounter}
+		<div class="mt-2 flex flex-wrap items-center gap-x-1.5 text-[0.75rem] text-[var(--sl-text-3)]">
+			<span class="text-[var(--sl-text-2)]">{statusLabel}</span>
+			{#if isLoading}
+				<Loader2
+					size={11}
+					class="shrink-0 animate-spin text-[var(--sl-text-3)]"
+					aria-hidden="true"
+				/>
+			{/if}
+			{#if deviceType}
+				<span aria-hidden="true">·</span>
+				<span>{deviceType}</span>
+			{/if}
+			{#if lastSeen}
+				<span aria-hidden="true">·</span>
+				<span>Last seen {lastSeen}</span>
 			{/if}
 		</div>
-	</div>
+	{/key}
 
 	<dl
 		class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-[var(--sl-bg-elevated)]/60 p-3"

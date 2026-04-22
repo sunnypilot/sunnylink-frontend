@@ -501,3 +501,21 @@ code,
 		background-color: color-mix(in oklab, #06b6d4 6%, transparent);
 	}
 }
+
+/* svelte-sonner override for the "message" (default) toast variant.
+ *
+ * Out of the box sonner renders default toasts with pure black in dark mode
+ * and pure white in light mode — both read as stark blocks against the
+ * sunnylink surface palette. Retarget the --normal-* custom props to the
+ * same surface tokens the rest of the UI uses. richColors variants
+ * (success/error/warning/info) keep sonner's palette.
+ */
+[data-sonner-toaster] {
+	--normal-bg: var(--sl-bg-surface);
+	--normal-border: var(--sl-border);
+	--normal-text: var(--sl-text-1);
+}
+
+[data-sonner-toast][data-type='default'] {
+	backdrop-filter: blur(8px);
+}
