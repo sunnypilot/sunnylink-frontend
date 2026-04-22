@@ -268,19 +268,24 @@
 			: []
 	);
 
-	// Utility items always visible in sidebar
-	let utilityItems: NavItem[] = [
-		{
-			icon: ArrowLeftRight,
-			label: 'Migration Wizard',
-			action: () => deviceState.openMigrationWizard()
-		},
+	// Utility items — Migration Wizard requires a selected device, Pair Device
+	// is always relevant (especially for the fresh-sign-in no-selection state).
+	let utilityItems: NavItem[] = $derived([
+		...(deviceState.selectedDeviceId
+			? [
+					{
+						icon: ArrowLeftRight,
+						label: 'Migration Wizard',
+						action: () => deviceState.openMigrationWizard()
+					}
+				]
+			: []),
 		{
 			icon: Smartphone,
 			label: 'Pair Device',
 			action: () => deviceState.openPairingModal()
 		}
-	];
+	]);
 
 	const isActive = (href?: string) => href === pathname;
 
@@ -361,8 +366,18 @@
 				// page kicks off all-devices status checks when visited.
 				if (!statusCheckStarted && deviceState.selectedDeviceId) {
 					statusCheckStarted = true;
-					checkSelectedDeviceStatus(deviceState.selectedDeviceId).then(() => {
+					const selectedId = deviceState.selectedDeviceId;
+					checkSelectedDeviceStatus(selectedId).then(() => {
 						statusPolling.markChecked();
+						// Fresh-auth hybrid: keep the persisted selection only when it's
+						// actually usable. If the first status check after this auth
+						// session comes back offline, clear the selection so the user
+						// isn't dumped into a dashboard for an unreachable device (the
+						// flash-then-reshuffle users were seeing on fresh sign-in).
+						const status = deviceState.onlineStatuses[selectedId];
+						if (status && status !== 'online') {
+							deviceState.setSelectedDevice(null);
+						}
 						statusPolling.start();
 					});
 				}

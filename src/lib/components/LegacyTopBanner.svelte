@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Info, X } from 'lucide-svelte';
+	import { Info, Zap } from 'lucide-svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import LegacyInfoModal from './LegacyInfoModal.svelte';
@@ -14,22 +14,17 @@
 	let modalOpen = $state(false);
 
 	const isLegacy = $derived(!!deviceId && schemaState.schemaUnavailable[deviceId] === true);
-	const shouldShow = $derived(
-		isLegacy && preferences.showLegacyBanner && !sessionDismissed
-	);
+	const shouldShow = $derived(isLegacy && preferences.showLegacyBanner && !sessionDismissed);
 
-	function openLearnMore(e: MouseEvent) {
-		e.stopPropagation();
+	function openLearnMore() {
 		modalOpen = true;
 	}
 
-	function dismissSession(e: MouseEvent) {
-		e.stopPropagation();
+	function dismissSession() {
 		sessionDismissed = true;
 	}
 
-	function dismissForever(e: MouseEvent) {
-		e.stopPropagation();
+	function dismissForever() {
 		preferences.showLegacyBanner = false;
 	}
 </script>
@@ -38,34 +33,52 @@
 	<div
 		role="region"
 		aria-label="Legacy sunnylink banner"
-		class="flex w-full items-center gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-2.5 text-[0.8125rem] text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+		class="rounded-xl border border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/10"
 	>
-		<Info size={16} class="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-		<div class="min-w-0 flex-1">
-			<span class="font-medium">Legacy sunnylink on this device.</span>
+		<div class="flex items-center gap-3 border-b border-amber-500/25 px-4 py-3">
+			<div class="rounded-full bg-amber-500/15 p-1.5 text-amber-600 dark:text-amber-400">
+				<Info size={16} aria-hidden="true" />
+			</div>
+			<p class="flex-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+				Using legacy sunnylink with this device's sunnypilot version
+			</p>
 			<button
 				type="button"
+				class="btn btn-ghost btn-xs text-amber-700 transition-all duration-100 hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
+				onclick={dismissSession}
+			>
+				Dismiss
+			</button>
+		</div>
+		<div class="space-y-2 px-4 py-3">
+			<div class="flex gap-2.5">
+				<Zap
+					class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+					size={16}
+					aria-hidden="true"
+				/>
+				<p class="text-[0.8125rem] font-[450] text-amber-800 dark:text-amber-200/90">
+					Newer sunnylink features aren't available in this sunnypilot version. Update sunnypilot on
+					the device to get them.
+				</p>
+			</div>
+		</div>
+		<div class="flex justify-between border-t border-amber-500/25 px-4 py-2.5">
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs text-amber-700 transition-all duration-100 hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
 				onclick={openLearnMore}
-				class="ml-1 underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-amber-600"
 			>
 				Learn more
 			</button>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs text-amber-700 transition-all duration-100 hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
+				onclick={dismissForever}
+			>
+				Don't show again
+			</button>
 		</div>
-		<button
-			type="button"
-			onclick={dismissForever}
-			class="shrink-0 text-[0.75rem] underline underline-offset-2 opacity-80 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-amber-600"
-		>
-			Don't show again
-		</button>
-		<button
-			type="button"
-			onclick={dismissSession}
-			aria-label="Dismiss"
-			class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-amber-600 active:scale-[0.92]"
-		>
-			<X size={14} aria-hidden="true" />
-		</button>
 	</div>
 	<LegacyInfoModal bind:open={modalOpen} />
 {/if}
