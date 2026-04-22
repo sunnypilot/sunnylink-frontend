@@ -309,6 +309,45 @@
 		}
 	});
 
+	// Deep-link highlight: SettingsRefreshBanner jump-links append `?highlight=<key>`
+	// so we can scroll the targeted setting into view and pulse it once the page
+	// has settled. Wait for the device to be verified + any sub-panel fly
+	// transition to finish (~400ms budget covers the 200ms in + 120ms delay).
+	// aria-live announcement also lands here so screen-reader users get the
+	// same "navigated to X" feedback sighted users get from the pulse.
+	let highlightAnnouncement = $state('');
+	$effect(() => {
+		const key = page.url.searchParams.get('highlight');
+		if (!key) return;
+		if (!deviceVerified) return;
+		const subPanelParam = page.url.searchParams.get('panel');
+		const subPanelReady = subPanelParam ? activeSubPanel?.id === subPanelParam : !activeSubPanel;
+		if (!subPanelReady) return;
+
+		const timer = window.setTimeout(() => {
+			const el = document.getElementById(key);
+			if (el) {
+				const prefersReducedMotion = window.matchMedia(
+					'(prefers-reduced-motion: reduce)'
+				).matches;
+				el.scrollIntoView({
+					block: 'center',
+					behavior: prefersReducedMotion ? 'auto' : 'smooth'
+				});
+				el.setAttribute('data-settings-highlight', 'true');
+				const readableLabel = el.querySelector('h3, h4, p, span')?.textContent?.trim() || key;
+				highlightAnnouncement = `Navigated to ${readableLabel}, refreshed from device.`;
+				window.setTimeout(() => {
+					el.removeAttribute('data-settings-highlight');
+				}, 2500);
+			}
+			const cleanUrl = new URL(page.url);
+			cleanUrl.searchParams.delete('highlight');
+			goto(cleanUrl.toString(), { replaceState: true, keepFocus: true, noScroll: true });
+		}, 400);
+		return () => window.clearTimeout(timer);
+	});
+
 	function chunkArray<T>(array: T[], size: number): T[][] {
 		const result = [];
 		for (let i = 0; i < array.length; i += size) {
@@ -812,3 +851,6 @@
 		alias={currentDeviceAlias}
 	/>
 {/if}
+
+<!-- Screen-reader announcement for highlight deep-link jumps. -->
+<span class="sr-only" role="status" aria-live="polite">{highlightAnnouncement}</span>

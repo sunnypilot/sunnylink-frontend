@@ -13,6 +13,9 @@
 	} from '$lib/stores/valuesCache';
 	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
+	import { refreshBanner, type RefreshEntry } from '$lib/stores/refreshBanner.svelte';
+	import { resolveKeyPath } from '$lib/utils/schemaLookup';
+	import SettingsRefreshBanner from '$lib/components/SettingsRefreshBanner.svelte';
 	import { fetchSettingsAsync, setDeviceParams } from '$lib/api/device';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
@@ -37,6 +40,18 @@
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let deviceStatus = $derived(deviceId ? deviceState.onlineStatuses[deviceId] : undefined);
+
+	// Clear refresh-banner entries for the previously selected device when the
+	// user switches the device pill — stale "refreshed from device" surfaces
+	// should not follow them to a different device.
+	let prevSelected: string | null | undefined = null;
+	$effect(() => {
+		const cur = deviceState.selectedDeviceId;
+		if (prevSelected && prevSelected !== cur) {
+			refreshBanner.clearDevice(prevSelected);
+		}
+		prevSelected = cur;
+	});
 	let isOnline = $derived(deviceStatus === 'online');
 	let isDeviceUnavailable = $derived(deviceId ? !isOnline : false);
 
@@ -497,10 +512,25 @@
 						for (const d of passiveDrifts) newBaseline[d.key] = d.freshValue;
 						driftStore.updateBaseline(did, newBaseline);
 
-						const n = passiveDrifts.length;
-						toast(`${n} setting${n === 1 ? '' : 's'} refreshed from device`, {
-							duration: 4_000
-						});
+						// Surface as persistent banner entries (survives reloads this
+						// session) so driving-companion users can review changes after
+						// parking. Dropped the ephemeral toast — it was easy to miss.
+						const now = Date.now();
+						const entries: RefreshEntry[] = [];
+						for (const d of passiveDrifts) {
+							const path = resolveKeyPath(schema, vehicleItems, d.key);
+							if (!path) continue;
+							entries.push({
+								key: d.key,
+								label: path.label,
+								panelId: path.panelId,
+								subPanelId: path.subPanelId,
+								oldValue: d.cachedValue,
+								newValue: d.freshValue,
+								at: now
+							});
+						}
+						if (entries.length > 0) refreshBanner.add(did, entries);
 					}
 
 					// Sweep stale drift entries (anything no longer drifting) so the
@@ -665,6 +695,11 @@
 {/if}
 
 <!-- Sync status banner — pending/failed/drift indicators -->
+
+<!-- Settings-refresh banner: "X settings refreshed from device" with jump-to-row
+     deep links. Persistent across reloads in the same tab (sessionStorage) so
+     driving-companion users can review changes after parking. -->
+<SettingsRefreshBanner />
 
 <!-- Always render children — never gate on device status.
      SchemaItemRenderer's pushValue() has its own offline guard.

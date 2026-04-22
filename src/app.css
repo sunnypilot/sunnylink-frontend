@@ -456,3 +456,47 @@ code,
 	-webkit-mask-repeat: no-repeat;
 	mask-repeat: no-repeat;
 }
+
+/* Setting-refresh banner deep-link highlight: pulse the target row so the user
+   can see which setting was refreshed after jumping in from the banner.
+   Keyframes inset a soft accent tint via box-shadow on the SchemaItemRenderer
+   root. Respects prefers-reduced-motion by swapping to a static border glow. */
+[data-settings-highlight='true'] {
+	animation: sl-setting-highlight 2.4s cubic-bezier(0.33, 1, 0.68, 1);
+	border-radius: 0.5rem;
+}
+
+@keyframes sl-setting-highlight {
+	0% {
+		box-shadow:
+			inset 0 0 0 2px transparent,
+			0 0 0 0 transparent;
+		background-color: transparent;
+	}
+	12% {
+		box-shadow:
+			inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 55%, transparent),
+			0 0 0 4px color-mix(in oklab, var(--color-primary) 15%, transparent);
+		background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
+	}
+	55% {
+		box-shadow:
+			inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 40%, transparent),
+			0 0 0 4px color-mix(in oklab, var(--color-primary) 8%, transparent);
+		background-color: color-mix(in oklab, var(--color-primary) 5%, transparent);
+	}
+	100% {
+		box-shadow:
+			inset 0 0 0 2px transparent,
+			0 0 0 0 transparent;
+		background-color: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-settings-highlight='true'] {
+		animation: none;
+		box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 50%, transparent);
+		background-color: color-mix(in oklab, var(--color-primary) 6%, transparent);
+	}
+}
