@@ -153,6 +153,34 @@ async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response
 	return res;
 }
 
+// iOS 26 WebKit has been observed to fail silently on `Response.json()` for
+// some Netlify-proxied cross-origin responses (users on iOS 26 saw empty feed
+// while every other platform worked). Read the body as text, strip a UTF-8
+// BOM if present, and parse manually. If parsing fails, log the first 200
+// chars so we can see whether the server returned HTML (SW intercept, proxy
+// error page, login wall) rather than JSON.
+async function parseJsonSafe<T>(res: Response, endpoint: string): Promise<T | null> {
+	let text: string;
+	try {
+		text = await res.text();
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		lastFetchError = `read body: ${msg}`;
+		console.error('[discourse]', endpoint, 'body read threw', err);
+		return null;
+	}
+	if (text.length > 0 && text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+	try {
+		return JSON.parse(text) as T;
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		lastFetchError = `JSON parse: ${msg}`;
+		const preview = text.slice(0, 200).replace(/\s+/g, ' ');
+		console.error('[discourse]', endpoint, 'JSON parse failed. Body preview:', preview);
+		return null;
+	}
+}
+
 export function topicNameTags(topic: DiscourseTopic): string[] {
 	if (!topic.tags || topic.tags.length === 0) return [];
 	const first = topic.tags[0] as unknown;
@@ -172,7 +200,8 @@ export async function fetchCategoryTopics(
 		`${PROXY_PREFIX}/c/${CATEGORY_SLUG}/${CATEGORY_ID}.json${query}`
 	);
 	if (!res || !res.ok) return null;
-	const data = (await res.json()) as CategoryListResponse;
+	const data = await parseJsonSafe<CategoryListResponse>(res, 'fetchCategoryTopics');
+	if (!data) return null;
 	const topics = data?.topic_list?.topics ?? [];
 	const hasMore = Boolean(data?.topic_list?.more_topics_url);
 	return { topics, hasMore };
@@ -187,7 +216,7 @@ export async function fetchTopicDetail(
 	if (opts.trackView) headers['Discourse-Track-View'] = 'true';
 	const res = await fetchWithRetry(`${PROXY_PREFIX}/t/${slug}/${id}.json`, { headers });
 	if (!res || !res.ok) return null;
-	return (await res.json()) as DiscourseTopicDetail;
+	return await parseJsonSafe<DiscourseTopicDetail>(res, 'fetchTopicDetail');
 }
 
 export function forumTopicUrl(topic: Pick<DiscourseTopic, 'slug' | 'id'>): string {

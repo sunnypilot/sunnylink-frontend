@@ -123,7 +123,16 @@ async function fetchPage(page: number): Promise<DiscourseTopic[] | null> {
 
 async function refresh(opts: { silent?: boolean } = {}): Promise<void> {
 	try {
-		const fresh = await fetchPage(0);
+		let fresh: DiscourseTopic[] | null = null;
+		try {
+			fresh = await fetchPage(0);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			fetchError = `unexpected: ${msg}`;
+			console.error('[whatsNew] refresh threw', err);
+			if (!hasLoaded) topics = [];
+			return;
+		}
 		if (!fresh) {
 			fetchError = getLastFetchError() ?? 'network error';
 			if (!hasLoaded) topics = [];
