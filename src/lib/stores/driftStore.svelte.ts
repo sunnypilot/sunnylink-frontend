@@ -1,110 +1,48 @@
 /**
- * Reactive store for detected drift entries per device.
+ * Baseline store for drift detection.
  *
- * Drift = a setting changed on the device since the web UI last fetched it.
- * Populated when fresh values arrive (in category page fetch) by comparing
- * against the cached values. Persists across panel navigation so drifts
- * from all panels are visible in the global banner.
+ * "Baseline" = snapshot of a device's param values at first fetch this session,
+ * used by the layout prefetch to diff fresh device reads against what the web
+ * UI last knew. Diffs (passive drifts) are now surfaced via the
+ * SettingsRefreshBanner + the "Changed on device" item badge — both read
+ * directly from `refreshBanner`, not from this store.
+ *
+ * Listener hook is retained for batchPush: a baseline mutation means the
+ * device advanced to a new commit / refreshed values, so any queued edits
+ * need to re-check their desiredValue against the new baseline.
  */
 
-import type { DriftEntry } from '$lib/utils/drift';
-
 class DriftStore {
-	/** deviceId → DriftEntry[] */
-	private _drifts: Record<string, DriftEntry[]> = $state({});
-
-	/** Drift baseline: snapshot of values at first load, for comparison against fresh fetch.
-	 *  Persists across layout mount/unmount cycles (e.g. navigating to Models and back). */
 	private _baselines: Record<string, Record<string, unknown>> = {};
-
-	/** Listener invoked whenever a baseline mutates. Used by batchPush to detect
-	 *  reconnect/refresh conflicts: if a queued desiredValue no longer matches
-	 *  the fresh baseline, the debounce is paused and the user is asked to
-	 *  resolve via SyncStatusBanner. One listener is enough for the current
-	 *  use case; if more consumers appear, switch to a Set<fn>. */
 	private _baselineUpdateListener: ((deviceId: string) => void) | null = null;
 
 	setBaselineUpdateListener(fn: (deviceId: string) => void): void {
 		this._baselineUpdateListener = fn;
 	}
 
-	/** Capture a baseline snapshot for a device (only captures once per session). */
 	captureBaseline(deviceId: string, values: Record<string, unknown>): void {
 		if (this._baselines[deviceId]) return;
 		this._baselines[deviceId] = { ...values };
 		this._baselineUpdateListener?.(deviceId);
 	}
 
-	/** Get the baseline for drift comparison. Returns empty if not captured. */
 	getBaseline(deviceId: string): Record<string, unknown> {
 		return this._baselines[deviceId] ?? {};
 	}
 
-	/** Update baseline to current values (e.g. after version change or manual refresh). */
 	updateBaseline(deviceId: string, values: Record<string, unknown>): void {
 		this._baselines[deviceId] = { ...values };
 		this._baselineUpdateListener?.(deviceId);
 	}
 
 	/**
-	 * Merge detected drifts for a device.
-	 * Updates existing entries for the same keys, adds new ones,
-	 * and preserves drifts from other panels.
+	 * No-op kept for call-site compatibility: batchPush and the layout prefetch
+	 * call this after a successful push / fresh fetch to "acknowledge" a key.
+	 * Previously cleared entries from an internal drift list; that list is no
+	 * longer tracked here (refreshBanner owns the user-facing drift surface).
 	 */
-	mergeDrifts(deviceId: string, drifts: DriftEntry[]): void {
-		const existing = this._drifts[deviceId] ?? [];
-		const incomingKeys = new Set(drifts.map((d) => d.key));
-		// Keep drifts from other keys (other panels), replace matching keys with fresh data
-		const kept = existing.filter((d) => !incomingKeys.has(d.key));
-		this._drifts[deviceId] = [...kept, ...drifts];
-	}
-
-	/**
-	 * Remove drifts for keys that are no longer drifted (resolved on a panel fetch).
-	 * Called with the keys that were fetched + had no drift, to clear stale entries.
-	 */
-	resolveKeys(deviceId: string, resolvedKeys: string[]): void {
-		const existing = this._drifts[deviceId];
-		if (!existing || existing.length === 0) return;
-		const resolved = new Set(resolvedKeys);
-		this._drifts[deviceId] = existing.filter((d) => !resolved.has(d.key));
-	}
-
-	/** Get all drifts for a device */
-	getAll(deviceId: string): DriftEntry[] {
-		return this._drifts[deviceId] ?? [];
-	}
-
-	/** Get drift for a specific key */
-	getForKey(deviceId: string, key: string): DriftEntry | undefined {
-		return this._drifts[deviceId]?.find((d) => d.key === key);
-	}
-
-	/** Check if a specific key has drifted */
-	hasDrift(deviceId: string, key: string): boolean {
-		return this._drifts[deviceId]?.some((d) => d.key === key) ?? false;
-	}
-
-	/** Count of drifted keys for a device */
-	count(deviceId: string): number {
-		return this._drifts[deviceId]?.length ?? 0;
-	}
-
-	/** Dismiss a specific drift entry */
-	dismiss(deviceId: string, key: string): void {
-		const drifts = this._drifts[deviceId];
-		if (!drifts) return;
-		this._drifts[deviceId] = drifts.filter((d) => d.key !== key);
-	}
-
-	/** Dismiss all drifts for a device */
-	dismissAll(deviceId: string): void {
-		this._drifts[deviceId] = [];
-	}
-
-	/** Clear all drifts (e.g. on navigation) */
-	clear(): void {
-		this._drifts = {};
+	resolveKeys(_deviceId: string, _keys: string[]): void {
+		// intentionally empty
 	}
 }
 

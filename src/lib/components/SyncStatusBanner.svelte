@@ -1,30 +1,13 @@
 <script lang="ts">
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
-	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import type { SchemaItem } from '$lib/types/schema';
-	import {
-		AlertTriangle,
-		RefreshCw,
-		X,
-		ChevronDown,
-		ChevronUp,
-		Shield,
-		GitMerge
-	} from 'lucide-svelte';
+	import { AlertTriangle, X, ChevronDown, ChevronUp, Shield, GitMerge } from 'lucide-svelte';
 	import { slide } from 'svelte/transition';
-	import { formatRelativeTime } from '$lib/utils/time';
-	import { onDestroy, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-
-	// Tick counter to keep relative timestamps live (updates every 15s)
-	let timeTick = $state(0);
-	const tickInterval = setInterval(() => {
-		timeTick++;
-	}, 15_000);
-	onDestroy(() => clearInterval(tickInterval));
 
 	interface Props {
 		deviceId: string;
@@ -39,8 +22,6 @@
 	let failedCount = $derived(pendingChanges.failedCount(deviceId));
 	let blockedCount = $derived(pendingChanges.blockedCount(deviceId));
 	let isFlushing = $derived(pendingChanges.isFlushing(deviceId));
-	let driftCount = $derived(driftStore.count(deviceId));
-	let driftEntries = $derived(driftStore.getAll(deviceId));
 	let isOnline = $derived(deviceState.onlineStatuses[deviceId] === 'online');
 	let conflictCount = $derived(batchPush.getConflictCount(deviceId));
 	let conflicts = $derived(batchPush.getConflicts(deviceId));
@@ -62,24 +43,6 @@
 			lastConflictCount = cur;
 		});
 	});
-
-	// Group drifts by panel for the expanded list
-	let driftsByPanel = $derived.by(() => {
-		const groups: { panelId: string; panelLabel: string; entries: typeof driftEntries }[] = [];
-		const map = new Map<string, typeof driftEntries>();
-		for (const entry of driftEntries) {
-			const id = entry.panelId;
-			if (!id) continue; // Skip entries without a panel (non-schema params)
-			if (!map.has(id)) {
-				map.set(id, []);
-				groups.push({ panelId: id, panelLabel: entry.panelLabel ?? id, entries: map.get(id)! });
-			}
-			map.get(id)!.push(entry);
-		}
-		return groups;
-	});
-
-	let driftExpanded = $state(false);
 
 	// Build key → SchemaItem lookup from schema for title + options resolution
 	let keyToItem = $derived.by(() => {
@@ -110,21 +73,14 @@
 		return map;
 	});
 
-	// Only show for actionable states: failed (retry), drift (review), or actively syncing.
-	let showBanner = $derived(
-		failedCount > 0 || blockedCount > 0 || isFlushing || driftCount > 0 || conflictCount > 0
-	);
+	// Only show for actionable states: failed (retry), conflict (review), or actively syncing.
+	let showBanner = $derived(failedCount > 0 || blockedCount > 0 || isFlushing || conflictCount > 0);
 
 	function handleDismissFailed() {
 		const failed = pendingChanges.getByStatus(deviceId, 'failed');
 		for (const entry of failed) {
 			pendingChanges.remove(deviceId, entry.key);
 		}
-	}
-
-	function handleDismissDrift() {
-		driftStore.dismissAll(deviceId);
-		driftExpanded = false;
 	}
 
 	function normalizeForCompare(value: unknown): string {
@@ -172,9 +128,7 @@
 						? 'border-primary/30'
 						: confirmedCount > 0
 							? 'border-emerald-500/30'
-							: driftCount > 0
-								? 'border-cyan-500/30'
-								: 'border-amber-500/30'
+							: 'border-amber-500/30'
 	);
 
 	let dotColor = $derived(
@@ -188,9 +142,7 @@
 						? 'bg-primary animate-pulse'
 						: confirmedCount > 0
 							? 'bg-emerald-500'
-							: driftCount > 0
-								? 'bg-cyan-500'
-								: 'bg-amber-500'
+							: 'bg-amber-500'
 	);
 </script>
 
@@ -249,34 +201,12 @@
 				</button>
 			{/if}
 
-			{#if driftCount > 0}
-				<span class="flex items-center gap-1.5 text-sm text-cyan-700 dark:text-cyan-400">
-					<RefreshCw size={14} />
-					{driftCount}
-					{driftCount === 1 ? 'setting' : 'settings'} modified on device
-				</span>
-				<button
-					class="flex items-center gap-0.5 text-xs font-medium text-[var(--sl-text-1)] underline underline-offset-2 transition-all duration-100 hover:no-underline active:scale-[0.94] active:opacity-80"
-					onclick={() => (driftExpanded = !driftExpanded)}
-				>
-					{driftExpanded ? 'Hide' : 'Review'}
-					{#if driftExpanded}
-						<ChevronUp size={12} />
-					{:else}
-						<ChevronDown size={12} />
-					{/if}
-				</button>
-			{/if}
-
-			<!-- Dismiss X — far right, covers both failed and drift -->
-			{#if failedCount > 0 || driftCount > 0}
+			<!-- Dismiss X — far right, clears acknowledged failed entries -->
+			{#if failedCount > 0}
 				<span class="ml-auto"></span>
 				<button
 					class="flex h-11 w-11 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-2)] focus-visible:bg-[var(--sl-bg-subtle)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-elevated)]"
-					onclick={() => {
-						if (failedCount > 0) handleDismissFailed();
-						if (driftCount > 0) handleDismissDrift();
-					}}
+					onclick={handleDismissFailed}
 					aria-label="Dismiss"
 				>
 					<X size={14} />
@@ -344,44 +274,6 @@
 							</button>
 						</div>
 					</div>
-				{/each}
-			</div>
-		{/if}
-
-		{#if driftExpanded && driftEntries.length > 0}
-			<div
-				class="mt-2 border-t border-[var(--sl-border-muted)] pt-2"
-				transition:slide={{ duration: 150 }}
-			>
-				{#each driftsByPanel as group (group.panelId)}
-					{#each group.entries as entry (entry.key)}
-						{@const itemName = entry.itemTitle || keyToItem[entry.key]?.title || entry.key}
-						{@const pathParts = [
-							entry.panelLabel,
-							entry.sectionLabel,
-							entry.subPanelLabel,
-							itemName
-						].filter(Boolean)}
-						<div class="flex items-center justify-between gap-3 py-1.5">
-							<div class="min-w-0 flex-1 truncate text-[0.8125rem] text-[var(--sl-text-2)]">
-								{pathParts.join(' \u2192 ')}
-								{#if entry.detectedAt}
-									<span class="text-[0.6875rem] text-[var(--sl-text-3)]"
-										>&middot; {(void timeTick, formatRelativeTime(entry.detectedAt))}</span
-									>
-								{/if}
-							</div>
-							<span class="shrink-0 text-xs text-[var(--sl-text-3)] tabular-nums">
-								<span class="text-cyan-700 dark:text-cyan-400"
-									>{formatDriftValue(entry.cachedValue, entry.key)}</span
-								>
-								<span class="mx-1">&rarr;</span>
-								<span class="font-medium text-[var(--sl-text-1)]"
-									>{formatDriftValue(entry.freshValue, entry.key)}</span
-								>
-							</span>
-						</div>
-					{/each}
 				{/each}
 			</div>
 		{/if}

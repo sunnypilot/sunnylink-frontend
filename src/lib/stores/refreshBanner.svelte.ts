@@ -17,9 +17,11 @@ export interface RefreshEntry {
 	key: string;
 	label: string;
 	panelId: string;
+	panelLabel: string;
 	subPanelId?: string;
-	oldValue: unknown;
-	newValue: unknown;
+	oldDisplay: string;
+	newDisplay: string;
+	hadOld: boolean;
 	at: number;
 }
 

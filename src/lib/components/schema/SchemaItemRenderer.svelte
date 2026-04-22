@@ -14,7 +14,7 @@
 	import { pushStateStore } from '$lib/stores/pushState.svelte';
 	import { batchPush } from '$lib/stores/batchPush.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
-	import { driftStore } from '$lib/stores/driftStore.svelte';
+	import { refreshBanner } from '$lib/stores/refreshBanner.svelte';
 	import type { SchemaItem, SchemaOption } from '$lib/types/schema';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import { Loader2 } from 'lucide-svelte';
@@ -208,9 +208,11 @@
 		pendingChanges.revert(deviceId, item.key, values);
 	}
 
-	// Drift state for this specific item
-	let driftEntry = $derived(driftStore.getForKey(deviceId, item.key));
-	let hasDrift = $derived(!!driftEntry);
+	// Badge state: this key was flagged as "changed on device" by the settings
+	// layout's passive-drift prefetch. Cleared when the user acknowledges the
+	// refresh banner (jump or bulk dismiss). Source unified with banner so both
+	// surfaces clear together.
+	let hasDrift = $derived(refreshBanner.getAll(deviceId).some((e) => e.key === item.key));
 
 	function inferParamType(): string {
 		const deviceParams = deviceState.deviceSettings[deviceId];
@@ -268,7 +270,7 @@
 					: pushState === 'pending' || isQueued
 						? 'border-l-2 border-l-amber-500'
 						: hasDrift
-							? 'border-l-2 border-l-cyan-500'
+							? 'border-l-2 border-l-primary'
 							: 'border-l-2 border-l-transparent'
 	);
 
@@ -520,10 +522,10 @@
 						>
 					{:else if hasDrift}
 						<Tooltip
-							text="Value was changed directly on the device and differs from what was last synced."
+							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Changed on device</span
 							>
 						</Tooltip>
@@ -651,10 +653,10 @@
 						>
 					{:else if hasDrift}
 						<Tooltip
-							text="Value was changed directly on the device and differs from what was last synced."
+							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Changed on device</span
 							>
 						</Tooltip>
@@ -754,10 +756,10 @@
 					>
 				{:else if hasDrift}
 					<Tooltip
-						text="Value was changed directly on the device and differs from what was last synced."
+						text="This setting's value was changed directly on the device since the last sync."
 					>
 						<span
-							class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+							class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 							>Changed on device</span
 						>
 					</Tooltip>
@@ -957,10 +959,10 @@
 						>
 					{:else if hasDrift}
 						<Tooltip
-							text="Value was changed directly on the device and differs from what was last synced."
+							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Changed on device</span
 							>
 						</Tooltip>
@@ -1053,10 +1055,10 @@
 						>
 					{:else if hasDrift}
 						<Tooltip
-							text="Value was changed directly on the device and differs from what was last synced."
+							text="This setting's value was changed directly on the device since the last sync."
 						>
 							<span
-								class="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-700 dark:text-cyan-400"
+								class="bright-badge rounded-md bg-primary/15 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-primary uppercase"
 								>Changed on device</span
 							>
 						</Tooltip>

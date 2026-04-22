@@ -2,23 +2,23 @@
 	import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { ChevronDown, Info, X, RefreshCw } from 'lucide-svelte';
+	import { ChevronDown, ChevronRight, RefreshCw, X } from 'lucide-svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { refreshBanner } from '$lib/stores/refreshBanner.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import MarqueeText from '$lib/components/MarqueeText.svelte';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let entries = $derived(deviceId ? refreshBanner.getAll(deviceId) : []);
 	let expanded = $derived(deviceId ? refreshBanner.isExpanded(deviceId) : false);
 
-	let hasPending = $derived(
-		deviceId ? pendingChanges.getAll(deviceId).length > 0 : false
-	);
+	let hasPending = $derived(deviceId ? pendingChanges.getAll(deviceId).length > 0 : false);
 	let tone = $derived<'info' | 'caution'>(hasPending ? 'caution' : 'info');
 
-	// Wraps "x setting(s) refreshed from device" — singular/plural-aware.
 	let countLabel = $derived(
-		entries.length === 1 ? '1 setting refreshed from device' : `${entries.length} settings refreshed from device`
+		entries.length === 1
+			? '1 setting changed on device'
+			: `${entries.length} settings changed on device`
 	);
 
 	function toggleExpanded() {
@@ -36,9 +36,8 @@
 		const params = new URLSearchParams();
 		if (entry.subPanelId) params.set('panel', entry.subPanelId);
 		params.set('highlight', entry.key);
-		// Jump-and-ack: removing from the list on click matches the pattern of
-		// "viewing === acknowledging" (Gmail / Linear). The X remains the only
-		// way to clear remaining entries in bulk.
+		// Viewing == acknowledging (Gmail / Linear pattern). X remains the only
+		// bulk clear for the remaining (unvisited) entries.
 		refreshBanner.dismissOne(deviceId, entry.key);
 		void goto(`/dashboard/settings/${entry.panelId}?${params.toString()}`, {
 			keepFocus: false,
@@ -78,7 +77,7 @@
 						</p>
 					{:else}
 						<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-							Changes were made on your device. Tap an item to review.
+							Changes made on your device. Tap an item to review.
 						</p>
 					{/if}
 				</div>
@@ -86,7 +85,7 @@
 					type="button"
 					onclick={toggleExpanded}
 					aria-expanded={expanded}
-					aria-label={expanded ? 'Collapse refreshed settings' : 'Expand refreshed settings'}
+					aria-label={expanded ? 'Collapse changed settings' : 'Expand changed settings'}
 					class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.94]"
 				>
 					<ChevronDown
@@ -98,7 +97,7 @@
 				<button
 					type="button"
 					onclick={dismissAll}
-					aria-label="Dismiss all refreshed-setting notifications"
+					aria-label="Dismiss all changed-setting notifications"
 					class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.94]"
 				>
 					<X size={16} aria-hidden="true" />
@@ -107,9 +106,7 @@
 
 			{#if expanded}
 				<div
-					class="border-t {tone === 'caution'
-						? 'border-amber-500/25'
-						: 'border-primary/20'}"
+					class="border-t {tone === 'caution' ? 'border-amber-500/25' : 'border-primary/20'}"
 					transition:slide={{ duration: 180, easing: cubicOut }}
 				>
 					<ul class="divide-y divide-[var(--sl-border-muted)]">
@@ -118,26 +115,42 @@
 								<button
 									type="button"
 									onclick={() => jumpTo(entry)}
-									class="flex w-full items-center gap-3 px-4 py-3 text-left transition-all duration-100 hover:bg-[var(--sl-bg-elevated)]/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary active:scale-[0.997] active:bg-[var(--sl-bg-elevated)]/75"
-									aria-label={`Jump to ${entry.label}, refreshed from device`}
+									class="flex w-full items-start gap-3 px-4 py-3 text-left transition-all duration-100 hover:bg-[var(--sl-bg-elevated)]/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary active:scale-[0.997] active:bg-[var(--sl-bg-elevated)]/75"
+									aria-label={`Jump to ${entry.label}, changed on device from ${entry.hadOld ? entry.oldDisplay : 'no previous value'} to ${entry.newDisplay}`}
 								>
-									<Info
-										size={14}
-										class="shrink-0 {tone === 'caution'
-											? 'text-amber-600 dark:text-amber-400'
-											: 'text-primary'}"
-										aria-hidden="true"
-									/>
 									<div class="min-w-0 flex-1">
+										<MarqueeText
+											text={`${entry.panelLabel} · ${entry.label}`}
+											className="block text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+										/>
 										<p
-											class="truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+											class="mt-0.5 text-[0.75rem] font-[450] text-[var(--sl-text-2)] tabular-nums"
 										>
-											{entry.label}
+											{#if entry.hadOld}
+												<span class="text-[var(--sl-text-3)]">{entry.oldDisplay}</span>
+												<span class="mx-1 text-[var(--sl-text-3)]" aria-hidden="true">→</span>
+												<span
+													class="font-medium {tone === 'caution'
+														? 'text-amber-700 dark:text-amber-300'
+														: 'text-primary'}"
+												>
+													{entry.newDisplay}
+												</span>
+											{:else}
+												<span class="text-[var(--sl-text-3)]">New:</span>
+												<span
+													class="ml-1 font-medium {tone === 'caution'
+														? 'text-amber-700 dark:text-amber-300'
+														: 'text-primary'}"
+												>
+													{entry.newDisplay}
+												</span>
+											{/if}
 										</p>
 									</div>
-									<ChevronDown
-										size={14}
-										class="shrink-0 -rotate-90 text-[var(--sl-text-3)]"
+									<ChevronRight
+										size={16}
+										class="mt-0.5 shrink-0 text-[var(--sl-text-3)]"
 										aria-hidden="true"
 									/>
 								</button>

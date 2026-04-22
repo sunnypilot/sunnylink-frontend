@@ -14,7 +14,7 @@
 	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
 	import { refreshBanner, type RefreshEntry } from '$lib/stores/refreshBanner.svelte';
-	import { resolveKeyPath } from '$lib/utils/schemaLookup';
+	import { findSchemaItem, formatSchemaValue } from '$lib/utils/schemaLookup';
 	import SettingsRefreshBanner from '$lib/components/SettingsRefreshBanner.svelte';
 	import { fetchSettingsAsync, setDeviceParams } from '$lib/api/device';
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
@@ -518,15 +518,18 @@
 						const now = Date.now();
 						const entries: RefreshEntry[] = [];
 						for (const d of passiveDrifts) {
-							const path = resolveKeyPath(schema, vehicleItems, d.key);
-							if (!path) continue;
+							const resolved = findSchemaItem(schema, vehicleItems, d.key);
+							if (!resolved) continue;
+							const hadOld = d.cachedValue !== undefined && d.cachedValue !== null;
 							entries.push({
 								key: d.key,
-								label: path.label,
-								panelId: path.panelId,
-								subPanelId: path.subPanelId,
-								oldValue: d.cachedValue,
-								newValue: d.freshValue,
+								label: resolved.path.label,
+								panelId: resolved.path.panelId,
+								panelLabel: resolved.path.panelLabel,
+								subPanelId: resolved.path.subPanelId,
+								oldDisplay: hadOld ? formatSchemaValue(resolved.item, d.cachedValue) : '',
+								newDisplay: formatSchemaValue(resolved.item, d.freshValue),
+								hadOld,
 								at: now
 							});
 						}
@@ -601,7 +604,7 @@
 				</div>
 				<p class="flex-1 text-sm font-medium text-[var(--sl-text-1)]">Device Connection Required</p>
 				<button
-					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
+					class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 btn-xs active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => dismissHelp(false)}
 				>
 					Dismiss
@@ -625,7 +628,7 @@
 			<div class="flex justify-end border-t border-[var(--sl-border)] px-4 py-2.5">
 				<button
 					type="button"
-					class="btn text-[var(--sl-text-2)] btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
+					class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 btn-xs active:scale-[0.94] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => dismissHelp(true)}
 				>
 					Don't show again
@@ -676,7 +679,7 @@
 				</div>
 			{/if}
 			<button
-				class="btn shrink-0 btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
+				class="btn shrink-0 btn-ghost transition-all duration-100 btn-xs active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
 					? 'text-orange-700 dark:text-orange-400'
 					: 'text-yellow-700 dark:text-yellow-400'}"
 				disabled={retrying}
