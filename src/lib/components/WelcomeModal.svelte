@@ -156,13 +156,13 @@
 				</h2>
 				{#if deviceState.selectedDeviceId}
 					<p
-						class="mt-1 flex flex-wrap items-center gap-x-1.5 text-[0.75rem] text-[var(--sl-text-3)]"
+						class="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.75rem] text-[var(--sl-text-3)]"
 					>
 						{#if selectedDeviceAlias}
 							<span class="font-medium text-[var(--sl-text-2)]">{selectedDeviceAlias}</span>
 							<span aria-hidden="true">·</span>
 						{/if}
-						<span class="font-mono break-all">{deviceState.selectedDeviceId}</span>
+						<span class="break-all">{deviceState.selectedDeviceId}</span>
 					</p>
 				{/if}
 				<ul class="mt-4 space-y-2.5 text-[0.875rem] text-[var(--sl-text-2)]">
@@ -174,16 +174,16 @@
 						<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
 						<span>Faster device management</span>
 					</li>
-					<li class="flex items-start gap-2.5">
-						<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
-						<span>
-							<span
-								class="mr-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-[1px] text-[0.6875rem] font-semibold tracking-wide text-primary uppercase"
-							>
-								New
-							</span>
-							Smart settings — only what applies to your car
+					<li>
+						<span
+							class="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-[1px] text-[0.6875rem] font-semibold tracking-wide text-primary uppercase"
+						>
+							New
 						</span>
+						<div class="mt-1 flex items-start gap-2.5">
+							<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
+							<span>Smart settings — only what applies to your car</span>
+						</div>
 					</li>
 				</ul>
 
