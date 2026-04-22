@@ -177,14 +177,18 @@
 				{/if}
 			{/if}
 			{#if blockedCount > 0}
-				<span class="flex items-center gap-1.5 text-sm leading-none text-orange-600 dark:text-orange-400">
+				<span
+					class="flex items-center gap-1.5 text-sm leading-none text-orange-600 dark:text-orange-400"
+				>
 					<Shield size={14} />
 					{blockedCount} blocked — vehicle is driving
 				</span>
 			{/if}
 
 			{#if conflictCount > 0}
-				<span class="flex items-center gap-1.5 text-sm leading-none text-amber-700 dark:text-amber-400">
+				<span
+					class="flex items-center gap-1.5 text-sm leading-none text-amber-700 dark:text-amber-400"
+				>
 					<GitMerge size={14} />
 					{conflictCount} pending {conflictCount === 1 ? 'change' : 'changes'} need review
 				</span>

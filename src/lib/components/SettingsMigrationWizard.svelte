@@ -681,7 +681,7 @@
 											</div>
 										{:else}
 											<button
-												class="btn w-full btn-primary transition-all duration-100 active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
+												class="btn w-full transition-all duration-100 btn-primary active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
 												disabled={!ms.sourceDeviceId || ms.isFetching}
 												onclick={handleSourceSelection}
 											>
@@ -706,7 +706,7 @@
 									</div>
 
 									<label
-										class="btn relative btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80"
+										class="btn relative transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80"
 									>
 										Choose File
 										<input
@@ -818,7 +818,7 @@
 											Download & Finish Later
 										</button>
 										<button
-											class="btn btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
+											class="btn transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
 											disabled={!ms.targetDeviceId}
 											onclick={handleTargetSelection}
 										>
@@ -883,7 +883,7 @@
 										</div>
 
 										<button
-											class="btn w-full btn-primary transition-all duration-100 active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
+											class="btn w-full transition-all duration-100 btn-primary active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
 											disabled={!ms.targetDeviceId}
 											onclick={handleTargetSelection}
 										>
@@ -1070,7 +1070,7 @@
 										Back
 									</button>
 									<button
-										class="btn btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
+										class="btn transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
 										disabled={ms.comparison.length === 0}
 										onclick={applyChanges}
 									>

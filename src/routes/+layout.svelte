@@ -76,11 +76,7 @@
 	// when there's no selection (typed URL, back-nav after clearing, etc.).
 	// /dashboard/devices, /dashboard/whats-new, /dashboard/preferences are the
 	// device-independent routes we never redirect away from.
-	const DEVICE_REQUIRED_PREFIXES = [
-		'/dashboard/settings',
-		'/dashboard/models',
-		'/dashboard/osm'
-	];
+	const DEVICE_REQUIRED_PREFIXES = ['/dashboard/settings', '/dashboard/models', '/dashboard/osm'];
 	const isDeviceRequiredRoute = $derived(
 		pathname === '/dashboard' ||
 			DEVICE_REQUIRED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))

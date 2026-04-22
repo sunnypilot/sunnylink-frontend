@@ -19,7 +19,10 @@
 </script>
 
 <div
-	class={['flex gap-0.5 rounded-lg bg-[var(--sl-bg-page)] p-1', fillWidth ? 'w-full' : 'inline-flex']}
+	class={[
+		'flex gap-0.5 rounded-lg bg-[var(--sl-bg-page)] p-1',
+		fillWidth ? 'w-full' : 'inline-flex'
+	]}
 	role="group"
 	aria-label="Theme"
 >
@@ -37,7 +40,7 @@
 				'transition-all duration-150 active:scale-[0.97]',
 				// Focus ring outside the box (outline-offset-2) so active-state bg
 				// isn't visually shrunk by focus (ui-ux-pro-max: focus-states).
-				'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 focus-visible:outline-solid',
+				'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary focus-visible:outline-solid',
 				// Active state matches the sidebar nav-active language
 				// (bg-accent-muted + primary accent) so segmented selection
 				// reads consistently with the rest of the app — rather than

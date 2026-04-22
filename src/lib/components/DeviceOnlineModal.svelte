@@ -95,7 +95,7 @@
 				</label>
 
 				<button
-					class="btn min-w-[100px] btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80"
+					class="btn min-w-[100px] transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80"
 					onclick={handleClose}
 				>
 					Got it

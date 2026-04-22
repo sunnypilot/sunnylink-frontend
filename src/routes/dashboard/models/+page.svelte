@@ -949,7 +949,7 @@
 					</div>
 				{/if}
 				<button
-					class="btn shrink-0 btn-ghost btn-xs transition-all duration-100 active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
+					class="btn shrink-0 btn-ghost transition-all duration-100 btn-xs active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
 						? 'text-orange-700 dark:text-orange-400'
 						: 'text-yellow-700 dark:text-yellow-400'}"
 					disabled={retrying}

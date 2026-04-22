@@ -44,7 +44,7 @@
 			</p>
 			<button
 				type="button"
-				class="btn btn-ghost btn-xs text-amber-700 transition-all duration-100 hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
+				class="btn text-amber-700 btn-ghost transition-all duration-100 btn-xs hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
 				onclick={dismissSession}
 			>
 				Dismiss
@@ -59,14 +59,14 @@
 		<div class="flex justify-between border-t border-amber-500/25 px-4 py-2.5">
 			<button
 				type="button"
-				class="btn btn-ghost btn-xs text-amber-700 transition-all duration-100 hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
+				class="btn text-amber-700 btn-ghost transition-all duration-100 btn-xs hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
 				onclick={openLearnMore}
 			>
 				Learn more
 			</button>
 			<button
 				type="button"
-				class="btn btn-ghost btn-xs text-amber-700 transition-all duration-100 hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
+				class="btn text-amber-700 btn-ghost transition-all duration-100 btn-xs hover:bg-amber-500/15 active:scale-[0.94] active:bg-amber-500/25 dark:text-amber-300"
 				onclick={dismissForever}
 			>
 				Don't show again

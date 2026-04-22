@@ -187,9 +187,7 @@
 					</div>
 				{:else if previewText}
 					<div class="relative">
-						<p
-							class="line-clamp-5 text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]"
-						>
+						<p class="line-clamp-5 text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]">
 							{previewText}
 						</p>
 						<div

@@ -397,7 +397,10 @@ export const whatsNewStore = {
 		return topics.filter((t) => (readMap[t.id] ?? 0) < (t.highest_post_number ?? 1));
 	},
 	get unreadCount() {
-		return topics.reduce((n, t) => n + ((readMap[t.id] ?? 0) < (t.highest_post_number ?? 1) ? 1 : 0), 0);
+		return topics.reduce(
+			(n, t) => n + ((readMap[t.id] ?? 0) < (t.highest_post_number ?? 1) ? 1 : 0),
+			0
+		);
 	},
 	get latestTopic() {
 		return topics[0] ?? null;

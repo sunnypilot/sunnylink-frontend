@@ -327,9 +327,7 @@
 		const timer = window.setTimeout(() => {
 			const el = document.getElementById(key);
 			if (el) {
-				const prefersReducedMotion = window.matchMedia(
-					'(prefers-reduced-motion: reduce)'
-				).matches;
+				const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 				el.scrollIntoView({
 					block: 'nearest',
 					behavior: prefersReducedMotion ? 'auto' : 'smooth'

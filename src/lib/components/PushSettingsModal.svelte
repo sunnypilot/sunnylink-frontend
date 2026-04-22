@@ -233,7 +233,7 @@
 					Cancel
 				</button>
 				<button
-					class="btn min-w-[120px] btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
+					class="btn min-w-[120px] transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
 					onclick={handlePush}
 					disabled={pushing}
 				>

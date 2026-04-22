@@ -74,8 +74,7 @@ class PreferencesStore {
 					this.notifySyncFailure = parsed.notifySyncFailure;
 				if (parsed.notifySettingsDrift !== undefined)
 					this.notifySettingsDrift = parsed.notifySettingsDrift;
-				if (parsed.showLegacyBanner !== undefined)
-					this.showLegacyBanner = parsed.showLegacyBanner;
+				if (parsed.showLegacyBanner !== undefined) this.showLegacyBanner = parsed.showLegacyBanner;
 				return;
 			} catch {
 				// Fall through to legacy keys

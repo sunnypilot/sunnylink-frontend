@@ -4,16 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import {
-		Check,
-		ChevronDown,
-		ExternalLink,
-		Loader2,
-		Mail,
-		MailOpen,
-		Pin,
-		X
-	} from 'lucide-svelte';
+	import { Check, ChevronDown, ExternalLink, Loader2, Mail, MailOpen, Pin, X } from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { forumTopicUrl, type DiscourseTopic } from '$lib/api/discourse';
 
@@ -30,9 +21,7 @@
 	const selectedReadCount = $derived(selectedCount - selectedUnreadCount);
 	const allSelectedRead = $derived(selectedCount > 0 && selectedUnreadCount === 0);
 	const allSelectedUnread = $derived(selectedCount > 0 && selectedReadCount === 0);
-	const allSelected = $derived(
-		selectedCount > 0 && selectedCount === whatsNewStore.topics.length
-	);
+	const allSelected = $derived(selectedCount > 0 && selectedCount === whatsNewStore.topics.length);
 
 	function formatDate(iso: string): string {
 		try {

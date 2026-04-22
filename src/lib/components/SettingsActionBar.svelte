@@ -29,7 +29,7 @@
 
 		<div class="flex items-center gap-2">
 			<button
-				class="btn text-[var(--sl-text-2)] btn-ghost btn-sm transition-all duration-100 hover:bg-[var(--sl-bg-elevated)]/50 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
+				class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 btn-sm hover:bg-[var(--sl-bg-elevated)]/50 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 				onclick={onReset}
 			>
 				<RefreshCw size={16} class="mr-2" />
@@ -37,7 +37,7 @@
 				<span class="sm:hidden">Clear</span>
 			</button>
 			<button
-				class="btn shadow-lg shadow-primary/20 btn-sm btn-primary transition-all duration-100 active:scale-[0.97] active:bg-primary/80"
+				class="btn shadow-lg shadow-primary/20 transition-all duration-100 btn-sm btn-primary active:scale-[0.97] active:bg-primary/80"
 				onclick={onPush}
 			>
 				<Save size={16} class="mr-2" />

@@ -162,9 +162,7 @@
 		style="top: {panelPos.top}px; left: {panelPos.left}px;"
 		transition:fly={{ y: -4, duration: 150, easing: cubicOut, opacity: 0 }}
 	>
-		<header
-			class="flex items-center gap-2 border-b border-[var(--sl-border-muted)] px-4 py-3"
-		>
+		<header class="flex items-center gap-2 border-b border-[var(--sl-border-muted)] px-4 py-3">
 			<Sparkles size={14} class="text-primary" aria-hidden="true" />
 			<span class="text-[0.8125rem] font-semibold text-[var(--sl-text-1)]">What's new</span>
 		</header>
@@ -190,9 +188,7 @@
 								aria-hidden="true"
 							></span>
 							<div class="min-w-0 flex-1">
-								<p
-									class="line-clamp-2 text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-								>
+								<p class="line-clamp-2 text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 									{topic.title}
 								</p>
 								<p class="mt-0.5 text-[0.6875rem] text-[var(--sl-text-3)]">
