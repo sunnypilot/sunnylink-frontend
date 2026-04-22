@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { slide } from 'svelte/transition';
+	import { scale, slide } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -29,6 +30,9 @@
 	const selectedReadCount = $derived(selectedCount - selectedUnreadCount);
 	const allSelectedRead = $derived(selectedCount > 0 && selectedUnreadCount === 0);
 	const allSelectedUnread = $derived(selectedCount > 0 && selectedReadCount === 0);
+	const allSelected = $derived(
+		selectedCount > 0 && selectedCount === whatsNewStore.topics.length
+	);
 
 	function formatDate(iso: string): string {
 		try {
@@ -69,6 +73,10 @@
 
 	function selectAll() {
 		selectedIds = new Set(whatsNewStore.topics.map((t) => t.id));
+	}
+
+	function clearSelection() {
+		selectedIds = new Set();
 	}
 
 	type PriorState = { id: number; wasUnread: boolean };
@@ -186,23 +194,13 @@
 			</p>
 		</div>
 		{#if whatsNewStore.topics.length > 0}
-			{#if selectMode}
-				<button
-					type="button"
-					onclick={exitSelectMode}
-					class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
-				>
-					Cancel
-				</button>
-			{:else}
-				<button
-					type="button"
-					onclick={enterSelectMode}
-					class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
-				>
-					Select
-				</button>
-			{/if}
+			<button
+				type="button"
+				onclick={selectMode ? exitSelectMode : enterSelectMode}
+				class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95]"
+			>
+				{selectMode ? 'Cancel' : 'Select'}
+			</button>
 		{/if}
 	</div>
 
@@ -249,6 +247,7 @@
 										? 'border-primary bg-primary text-white'
 										: 'border-[var(--sl-border)] bg-[var(--sl-bg-page)]'}"
 									aria-hidden="true"
+									transition:scale={{ duration: 150, easing: cubicOut, start: 0.6 }}
 								>
 									{#if isSelected}
 										<Check size={12} strokeWidth={3} />
@@ -284,13 +283,18 @@
 								</p>
 							</div>
 							{#if !selectMode}
-								<ChevronDown
-									size={16}
-									class="shrink-0 self-center text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
-										? 'rotate-180'
-										: ''}"
-									aria-hidden="true"
-								/>
+								<span
+									class="shrink-0 self-center"
+									transition:scale={{ duration: 150, easing: cubicOut, start: 0.6 }}
+								>
+									<ChevronDown
+										size={16}
+										class="text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
+											? 'rotate-180'
+											: ''}"
+										aria-hidden="true"
+									/>
+								</span>
 							{/if}
 						</button>
 
@@ -386,11 +390,10 @@
 			</div>
 			<button
 				type="button"
-				onclick={selectAll}
-				disabled={selectedCount === whatsNewStore.topics.length}
-				class="ml-1 inline-flex h-9 items-center rounded-lg px-2.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+				onclick={allSelected ? clearSelection : selectAll}
+				class="ml-1 inline-flex h-9 items-center rounded-lg px-2.5 text-[0.75rem] font-medium text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.97]"
 			>
-				Select all
+				{allSelected ? 'Deselect all' : 'Select all'}
 			</button>
 			<div class="ml-auto flex items-center gap-2">
 				<button
