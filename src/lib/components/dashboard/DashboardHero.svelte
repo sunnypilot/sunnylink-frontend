@@ -45,64 +45,53 @@
 		: ''}"
 	aria-labelledby="hero-alias"
 >
-	<!-- Clickable header bar. Entire row navigates to /details; internal
-	     badges are purely visual status indicators and inherit the link click
-	     (no separate handlers). Chevron on the right signals tappability,
-	     hover state confirms it. -->
+	<!-- Clickable header bar. Dot + alias/device_id stack + badges cluster +
+	     chevron are all vertically centered via items-center. Badges wrap
+	     horizontally (justify-end) into additional rows when width-constrained;
+	     the row's column layout stays symmetric around that wrap.
+	     Chevron is mobile-hidden and desktop-hover-only — tap affordance is
+	     carried by hover bg + press on mobile. -->
 	<a
 		href="/dashboard/devices/{device.device_id}/details"
-		class="group block transition-colors duration-100 hover:bg-[var(--sl-bg-elevated)]/60 focus-visible:bg-[var(--sl-bg-elevated)]/60 focus-visible:outline-none"
+		class="group flex items-center gap-3 p-4 transition-colors duration-100 hover:bg-[var(--sl-bg-elevated)]/60 focus-visible:bg-[var(--sl-bg-elevated)]/60 focus-visible:outline-none sm:gap-4 sm:p-5"
 		aria-label="Device details for {alias}"
 	>
-		<div
-			class="grid items-start gap-x-4 p-4 sm:p-5"
-			style="grid-template-columns: auto minmax(0, 1fr) auto;"
-		>
-			<span
-				class="mt-2 block h-2.5 w-2.5 shrink-0 rounded-full {statusDotClass}"
-				class:animate-pulse={isLoading}
-				aria-hidden="true"
-			></span>
+		<span
+			class="block h-2.5 w-2.5 shrink-0 rounded-full {statusDotClass}"
+			class:animate-pulse={isLoading}
+			aria-hidden="true"
+		></span>
 
-			<!-- Inner 2-col grid so badges wrap per-row: row 1 aligned with alias,
-			     row 2 aligned with device_id. Overflowing badges flex-wrap within
-			     the row-2 cell and cause that row to grow downward. -->
-			<div
-				class="grid min-w-0 items-start gap-x-3 gap-y-1"
-				style="grid-template-columns: minmax(0, 1fr) auto;"
+		<div class="min-w-0 flex-1">
+			<h1
+				id="hero-alias"
+				class="min-w-0 truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 			>
-				<h1
-					id="hero-alias"
-					class="col-start-1 row-start-1 min-w-0 truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
-				>
-					{alias}
-				</h1>
-				{#key statusPolling.tickCounter}
-					<div class="col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-1.5">
-						<DeviceStatusBadge badge={connectivityBadge} />
-						{#if drivingBadge}
-							<DeviceStatusBadge badge={drivingBadge} />
-						{/if}
-					</div>
-				{/key}
-
-				<p
-					class="col-start-1 row-start-2 min-w-0 truncate text-[0.75rem] text-[var(--sl-text-3)]"
-					title={device.device_id}
-				>
-					{device.device_id}
-				</p>
-				<div class="col-start-2 row-start-2 flex flex-wrap items-center justify-end gap-1.5">
-					<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
-				</div>
-			</div>
-
-			<ChevronRight
-				size={16}
-				class="mt-1.5 shrink-0 text-[var(--sl-text-3)] transition-transform duration-100 group-hover:translate-x-0.5 group-hover:text-[var(--sl-text-2)]"
-				aria-hidden="true"
-			/>
+				{alias}
+			</h1>
+			<p
+				class="mt-0.5 min-w-0 truncate text-[0.75rem] text-[var(--sl-text-3)]"
+				title={device.device_id}
+			>
+				{device.device_id}
+			</p>
 		</div>
+
+		{#key statusPolling.tickCounter}
+			<div class="flex flex-wrap items-center justify-end gap-1.5">
+				<DeviceStatusBadge badge={connectivityBadge} />
+				{#if drivingBadge}
+					<DeviceStatusBadge badge={drivingBadge} />
+				{/if}
+				<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
+			</div>
+		{/key}
+
+		<ChevronRight
+			size={16}
+			class="hidden shrink-0 text-[var(--sl-text-3)] transition-opacity duration-100 md:block md:opacity-0 md:group-hover:opacity-100"
+			aria-hidden="true"
+		/>
 	</a>
 
 	<div class="border-t border-[var(--sl-border-muted)]"></div>
