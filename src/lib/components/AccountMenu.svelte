@@ -6,7 +6,6 @@
 	import { LifeBuoy, Settings, LogOut, ChevronsUpDown } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
-	import ThemeToggle from './ThemeToggle.svelte';
 
 	interface Props {
 		onNavigate?: () => void;
@@ -165,15 +164,6 @@
 				{#if authState.profile?.email}
 					<p class="truncate text-xs text-[var(--sl-text-3)]">{authState.profile.email}</p>
 				{/if}
-			</div>
-
-			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>
-
-			<div class="px-2.5 py-2">
-				<p class="mb-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase">
-					Theme
-				</p>
-				<ThemeToggle fillWidth />
 			</div>
 
 			<div class="my-1 border-b border-[var(--sl-border-muted)]"></div>

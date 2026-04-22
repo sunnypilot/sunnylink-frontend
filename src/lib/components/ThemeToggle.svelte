@@ -43,7 +43,7 @@
 				// reads consistently with the rest of the app — rather than
 				// inventing a second "active" style via surface + shadow.
 				isActive
-					? 'bg-[var(--sl-accent-muted)] font-medium text-primary'
+					? 'bg-[var(--sl-bg-surface)] font-medium text-primary shadow-sm'
 					: 'text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-elevated)]/60 hover:text-[var(--sl-text-2)]'
 			]}
 			aria-label="{opt.label} theme"
