@@ -53,6 +53,7 @@
 		]
 	},
 	"dependencies": {
+		"@sunnylink/core": "workspace:*",
 		"@logto/browser": "^3.0.9",
 		"@lucide/svelte": "^0.553.0",
 		"heroicons": "^2.1.5",

@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
@@ -54,6 +55,11 @@ export default defineConfig({
 			}
 		})
 	],
+	resolve: {
+		alias: {
+			'@sunnylink/core': fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url))
+		}
+	},
 	test: {
 		expect: { requireAssertions: true },
 		coverage: {
