@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
-	import { formatRelativeTime } from '$lib/utils/time';
-	import { Loader2, ChevronRight, ArrowLeftRight } from 'lucide-svelte';
+	import { ChevronRight } from 'lucide-svelte';
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
-	import { getDeviceDisplayName, getDeviceTypeLabel } from '$lib/utils/deviceDisplay';
+	import DeviceStatusBadge from '$lib/components/DeviceStatusBadge.svelte';
+	import { getDeviceDisplayName } from '$lib/utils/deviceDisplay';
+	import { getConnectivityBadge, getDrivingBadge } from '$lib/utils/deviceBadges';
 
 	let { device } = $props<{ device: any }>();
 
 	let alias = $derived(getDeviceDisplayName(device.device_id, device.alias));
 
 	let onlineStatus = $derived(deviceState.onlineStatuses[device.device_id]);
-	let offroadStatus = $derived(deviceState.offroadStatuses[device.device_id]);
 	let values = $derived(deviceState.deviceValues[device.device_id]);
 
 	let isLoading = $derived(!onlineStatus || onlineStatus === 'loading');
@@ -25,105 +25,92 @@
 	// resolves (success or failure), then show the value or "—" if missing.
 	let infoLoaded = $derived(deviceState.infoFetchComplete[device.device_id] === true);
 
-	let statusLabel = $derived.by(() => {
-		if (isLoading) return 'Checking…';
-		if (onlineStatus === 'offline') return 'Offline';
-		if (onlineStatus === 'error') return 'Error';
-		if (offroadStatus?.forceOffroad) return 'Online · Always Offroad';
-		if (offroadStatus?.isOffroad === false) return 'Online · Onroad';
-		if (offroadStatus?.isOffroad === true) return 'Online · Offroad';
-		return 'Online';
-	});
-
 	let statusDotClass = $derived.by(() => {
-		if (isLoading) return 'bg-[var(--sl-text-3)] animate-pulse';
+		if (isLoading) return 'bg-[var(--sl-text-3)]';
 		if (onlineStatus === 'offline') return 'bg-red-400';
 		if (onlineStatus === 'error') return 'bg-amber-400';
-		if (offroadStatus?.forceOffroad) return 'bg-amber-400';
-		if (offroadStatus?.isOffroad === false) return 'bg-blue-400';
+		const offroad = deviceState.offroadStatuses[device.device_id];
+		if (offroad?.forceOffroad) return 'bg-amber-400';
+		if (offroad?.isOffroad === false) return 'bg-blue-400';
 		return 'bg-emerald-400';
 	});
 
-	let lastSeen = $derived.by(() => {
-		const ts =
-			onlineStatus === 'online'
-				? (deviceState.lastStatusCheck[device.device_id] ?? null)
-				: (deviceState.lastSeenOnline[device.device_id] ?? null);
-		if (!ts) return null;
-		return formatRelativeTime(ts);
-	});
-
-	let deviceType = $derived(
-		getDeviceTypeLabel(deviceState.deviceTelemetry[device.device_id]?.deviceType)
-	);
+	let connectivityBadge = $derived(getConnectivityBadge(device.device_id));
+	let drivingBadge = $derived(getDrivingBadge(device.device_id));
 </script>
 
 <section
-	class="rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] p-4 sm:p-5 {isOffline
+	class="overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {isOffline
 		? 'opacity-80'
 		: ''}"
 	aria-labelledby="hero-alias"
 >
-	<div class="flex items-start justify-between gap-3">
-		<!-- Status dot anchored next to the alias — matches the My Devices row
-		     layout so Home and My Devices read as the same object in two contexts. -->
-		<div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+	<!-- Clickable header bar. Entire row navigates to /details; internal
+	     badges are purely visual status indicators and inherit the link click
+	     (no separate handlers). Chevron on the right signals tappability,
+	     hover state confirms it. -->
+	<a
+		href="/dashboard/devices/{device.device_id}/details"
+		class="group block transition-colors duration-100 hover:bg-[var(--sl-bg-elevated)]/60 focus-visible:bg-[var(--sl-bg-elevated)]/60 focus-visible:outline-none"
+		aria-label="Device details for {alias}"
+	>
+		<div
+			class="grid items-start gap-x-4 p-4 sm:p-5"
+			style="grid-template-columns: auto minmax(0, 1fr) auto;"
+		>
 			<span
-				class="block h-2.5 w-2.5 shrink-0 rounded-full {statusDotClass}"
+				class="mt-2 block h-2.5 w-2.5 shrink-0 rounded-full {statusDotClass}"
 				class:animate-pulse={isLoading}
 				aria-hidden="true"
 			></span>
-			<div class="min-w-0 flex-1">
+
+			<!-- Inner 2-col grid so badges wrap per-row: row 1 aligned with alias,
+			     row 2 aligned with device_id. Overflowing badges flex-wrap within
+			     the row-2 cell and cause that row to grow downward. -->
+			<div
+				class="grid min-w-0 items-start gap-x-3 gap-y-1"
+				style="grid-template-columns: minmax(0, 1fr) auto;"
+			>
 				<h1
 					id="hero-alias"
-					class="truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
+					class="col-start-1 row-start-1 min-w-0 truncate text-[1.125rem] leading-tight font-semibold tracking-[-0.01em] text-[var(--sl-text-1)]"
 				>
 					{alias}
 				</h1>
-				<p class="mt-0.5 truncate font-mono text-[0.6875rem] text-[var(--sl-text-3)]">
+				{#key statusPolling.tickCounter}
+					<div class="col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-1.5">
+						<DeviceStatusBadge badge={connectivityBadge} />
+						{#if drivingBadge}
+							<DeviceStatusBadge badge={drivingBadge} />
+						{/if}
+					</div>
+				{/key}
+
+				<p
+					class="col-start-1 row-start-2 min-w-0 truncate text-[0.75rem] text-[var(--sl-text-3)]"
+					title={device.device_id}
+				>
 					{device.device_id}
 				</p>
+				<div class="col-start-2 row-start-2 flex flex-wrap items-center justify-end gap-1.5">
+					<LegacyDeviceBadge deviceId={device.device_id} variant="chip" />
+				</div>
 			</div>
-		</div>
-		<a
-			href="/dashboard/devices"
-			class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--sl-border)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.92] active:bg-[var(--sl-bg-subtle)]"
-			aria-label="Change selected device"
-		>
-			<ArrowLeftRight size={12} aria-hidden="true" />
-			<span class="hidden sm:inline">Change device</span>
-			<span class="sm:hidden">Change</span>
-		</a>
-	</div>
 
-	{#key statusPolling.tickCounter}
-		<div class="mt-2 flex flex-wrap items-center gap-x-1.5 text-[0.75rem] text-[var(--sl-text-3)]">
-			<span class="text-[var(--sl-text-2)]">{statusLabel}</span>
-			{#if isLoading}
-				<Loader2
-					size={11}
-					class="shrink-0 animate-spin text-[var(--sl-text-3)]"
-					aria-hidden="true"
-				/>
-			{/if}
-			{#if deviceType}
-				<span aria-hidden="true">·</span>
-				<span>{deviceType}</span>
-			{/if}
-			{#if lastSeen}
-				<span aria-hidden="true">·</span>
-				<span>Last seen {lastSeen}</span>
-			{/if}
+			<ChevronRight
+				size={16}
+				class="mt-1.5 shrink-0 text-[var(--sl-text-3)] transition-transform duration-100 group-hover:translate-x-0.5 group-hover:text-[var(--sl-text-2)]"
+				aria-hidden="true"
+			/>
 		</div>
-	{/key}
+	</a>
 
-	<dl
-		class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-[var(--sl-bg-elevated)]/60 p-3"
-		aria-label="Device build info"
-	>
+	<div class="border-t border-[var(--sl-border-muted)]"></div>
+
+	<dl class="grid grid-cols-3 gap-2 p-4 sm:p-5" aria-label="Device build info">
 		<div class="min-w-0">
 			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Version</dt>
-			<dd class="mt-0.5 truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+			<dd class="mt-1 truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{#if !infoLoaded}
 					<span
 						class="inline-block h-3 w-16 animate-pulse rounded bg-[var(--sl-bg-elevated)]/80"
@@ -137,7 +124,7 @@
 		</div>
 		<div class="min-w-0">
 			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Branch</dt>
-			<dd class="mt-0.5 min-w-0 text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+			<dd class="mt-1 min-w-0 text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{#if !infoLoaded}
 					<span
 						class="inline-block h-3 w-20 animate-pulse rounded bg-[var(--sl-bg-elevated)]/80"
@@ -147,7 +134,6 @@
 				{:else if branch}
 					<MarqueeText
 						text={branch}
-						mono
 						className="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 					/>
 				{:else}
@@ -157,7 +143,7 @@
 		</div>
 		<div class="min-w-0">
 			<dt class="text-[0.6875rem] tracking-wider text-[var(--sl-text-3)] uppercase">Commit</dt>
-			<dd class="mt-0.5 truncate font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+			<dd class="mt-1 truncate text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 				{#if !infoLoaded}
 					<span
 						class="inline-block h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]/80"
@@ -170,15 +156,4 @@
 			</dd>
 		</div>
 	</dl>
-
-	<LegacyDeviceBadge deviceId={device.device_id} variant="banner" className="mt-3" />
-
-	<a
-		href="/dashboard/devices/{device.device_id}/about"
-		class="mt-3 flex w-full items-center justify-between rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/40 px-4 py-2.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.99] active:bg-[var(--sl-bg-subtle)]"
-		aria-label="More about this device"
-	>
-		<span>More about this device</span>
-		<ChevronRight size={14} aria-hidden="true" />
-	</a>
 </section>
