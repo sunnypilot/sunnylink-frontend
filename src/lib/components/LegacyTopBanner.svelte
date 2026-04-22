@@ -52,8 +52,7 @@
 		</div>
 		<div class="px-4 py-3">
 			<p class="text-[0.8125rem] font-[450] text-amber-800 dark:text-amber-200/90">
-				Newer sunnylink features aren't available in this sunnypilot version. Update sunnypilot on
-				the device to get them.
+				Update sunnypilot on the device to access newer features.
 			</p>
 		</div>
 		<div class="flex justify-between border-t border-amber-500/25 px-4 py-2.5">
