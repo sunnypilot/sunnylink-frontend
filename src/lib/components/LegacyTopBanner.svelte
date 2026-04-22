@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Info, Zap } from 'lucide-svelte';
+	import { Info } from 'lucide-svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import LegacyInfoModal from './LegacyInfoModal.svelte';
@@ -50,18 +50,11 @@
 				Dismiss
 			</button>
 		</div>
-		<div class="space-y-2 px-4 py-3">
-			<div class="flex gap-2.5">
-				<Zap
-					class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
-					size={16}
-					aria-hidden="true"
-				/>
-				<p class="text-[0.8125rem] font-[450] text-amber-800 dark:text-amber-200/90">
-					Newer sunnylink features aren't available in this sunnypilot version. Update sunnypilot on
-					the device to get them.
-				</p>
-			</div>
+		<div class="px-4 py-3">
+			<p class="text-[0.8125rem] font-[450] text-amber-800 dark:text-amber-200/90">
+				Newer sunnylink features aren't available in this sunnypilot version. Update sunnypilot on
+				the device to get them.
+			</p>
 		</div>
 		<div class="flex justify-between border-t border-amber-500/25 px-4 py-2.5">
 			<button

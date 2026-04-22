@@ -34,7 +34,7 @@
 		transition:fly={{ y: 40, duration: 300 }}
 	>
 		<div
-			class="flex items-center gap-2 rounded-full border border-amber-600/30 bg-[var(--sl-bg-surface)] px-4 py-2 shadow-lg dark:border-amber-500/30"
+			class="flex items-center gap-2 rounded-full border border-amber-600/30 bg-[var(--sl-bg-surface)] px-4 py-2 leading-none shadow-lg dark:border-amber-500/30"
 		>
 			<Clock size={14} class="text-amber-700 dark:text-amber-400" />
 			<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">

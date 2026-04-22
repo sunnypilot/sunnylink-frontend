@@ -1182,7 +1182,7 @@
 														</span>
 														{#if favKeyState === 'pending'}
 															<span
-																class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:text-amber-400"
+																class="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-[3px] text-[0.625rem] leading-none font-semibold text-amber-700 dark:text-amber-400"
 																>Pending</span
 															>
 														{:else if isFavSyncing}

@@ -481,7 +481,7 @@
 
 {#snippet badgePill(badge: Badge)}
 	<span
-		class="inline-flex items-center rounded-full px-2 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap {TONE_CLASSES[
+		class="inline-flex items-center rounded-full px-2 py-[3px] text-[0.6875rem] leading-none font-medium whitespace-nowrap {TONE_CLASSES[
 			badge.tone
 		]}"
 	>

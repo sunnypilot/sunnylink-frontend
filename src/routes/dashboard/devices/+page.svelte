@@ -460,7 +460,7 @@
 							/>
 							<span class="text-sm font-medium text-[var(--sl-text-1)]">Offline</span>
 							<span
-								class="rounded-full bg-[var(--sl-bg-elevated)] px-2 py-0.5 text-[0.6875rem] font-semibold text-[var(--sl-text-2)] group-hover:bg-[var(--sl-bg-subtle)]"
+								class="inline-flex items-center rounded-full bg-[var(--sl-bg-elevated)] px-2 py-[3px] text-[0.6875rem] leading-none font-semibold text-[var(--sl-text-2)] group-hover:bg-[var(--sl-bg-subtle)]"
 							>
 								{offlineDevices.length}
 							</span>

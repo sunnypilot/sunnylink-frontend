@@ -489,18 +489,18 @@
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
 						>
 							<span
-								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400"
+								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold text-red-700 dark:text-red-400"
 								>Blocked</span
 							>
 						</Tooltip>
 						<button
-							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] leading-none font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 							onclick={handleRevert}>Revert</button
 						>
 					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
@@ -621,18 +621,18 @@
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
 						>
 							<span
-								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400"
+								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold text-red-700 dark:text-red-400"
 								>Blocked</span
 							>
 						</Tooltip>
 						<button
-							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] leading-none font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 							onclick={handleRevert}>Revert</button
 						>
 					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
@@ -735,7 +735,7 @@
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">
 						<span
-							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+							class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 							>Pending</span
 						>
 					</Tooltip>
@@ -927,18 +927,18 @@
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
 						>
 							<span
-								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-red-700 dark:text-red-400"
+								class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold text-red-700 dark:text-red-400"
 								>Blocked</span
 							>
 						</Tooltip>
 						<button
-							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
+							class="rounded-full bg-[var(--sl-bg-subtle)] px-1.5 py-0.5 text-[0.625rem] leading-none font-medium text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.92] active:bg-[var(--sl-bg-elevated)]"
 							onclick={handleRevert}>Revert</button
 						>
 					{:else if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
@@ -1034,7 +1034,7 @@
 					{#if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
-								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
+								class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] leading-none font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 								>Pending</span
 							>
 						</Tooltip>
