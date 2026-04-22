@@ -4,9 +4,10 @@
 	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { Check, ChevronDown, ExternalLink, Loader2, Mail, MailOpen, Pin, X } from 'lucide-svelte';
+	import { Check, ExternalLink, Loader2, Mail, MailOpen, Pin, X } from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { forumTopicUrl, type DiscourseTopic } from '$lib/api/discourse';
+	import SunnypilotLogo from '$lib/components/SunnypilotLogo.svelte';
 
 	let expandedId = $state<number | null>(null);
 	let sentinelEl = $state<HTMLDivElement | null>(null);
@@ -172,8 +173,8 @@
 	<title>sunnylink - What's new</title>
 </svelte:head>
 
-<div class="mx-auto w-full max-w-3xl {selectMode && selectedCount > 0 ? 'pb-24' : ''}">
-	<div class="mb-6 flex items-center justify-between gap-3 px-4 sm:px-0">
+<div class="mx-auto w-full max-w-2xl xl:max-w-3xl {selectMode && selectedCount > 0 ? 'pb-24' : ''}">
+	<div class="mb-6 flex items-center justify-between gap-3 px-4">
 		<div class="min-w-0">
 			<h2 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
 				What's new
@@ -255,6 +256,12 @@
 								>
 									<img src={cover} alt="" loading="lazy" class="h-full w-full object-cover" />
 								</div>
+							{:else}
+								<div
+									class="relative flex h-16 w-24 shrink-0 items-center justify-center self-center sm:h-20 sm:w-32"
+								>
+									<SunnypilotLogo class="h-full w-full px-2 text-black dark:text-white" />
+								</div>
 							{/if}
 							<div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
 								<div class="flex items-start gap-2">
@@ -277,20 +284,6 @@
 									{formatDate(topic.created_at)}
 								</p>
 							</div>
-							{#if !selectMode}
-								<span
-									class="shrink-0 self-center"
-									transition:scale={{ duration: 150, easing: cubicOut, start: 0.6 }}
-								>
-									<ChevronDown
-										size={16}
-										class="text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
-											? 'rotate-180'
-											: ''}"
-										aria-hidden="true"
-									/>
-								</span>
-							{/if}
 						</button>
 
 						{#if isOpen}
@@ -358,7 +351,7 @@
 		style="padding-bottom: env(safe-area-inset-bottom);"
 		transition:slide={{ duration: 150 }}
 	>
-		<div class="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-3 sm:gap-3">
+		<div class="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 py-3 sm:gap-3 xl:max-w-3xl">
 			<button
 				type="button"
 				onclick={exitSelectMode}

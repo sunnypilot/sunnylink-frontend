@@ -10,6 +10,7 @@
 		hasRequiredTag,
 		type DiscourseTopic
 	} from '$lib/api/discourse';
+	import SunnypilotLogo from '$lib/components/SunnypilotLogo.svelte';
 
 	const topicId = $derived(Number(page.params.id));
 
@@ -131,7 +132,7 @@
 	<title>sunnylink - {title || "What's new"}</title>
 </svelte:head>
 
-<div class="mx-auto w-full max-w-3xl">
+<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 	<a
 		href="/dashboard/whats-new"
 		class="mb-4 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)] hover:underline"
@@ -167,6 +168,10 @@
 			{#if topic.image_url}
 				<div class="aspect-[16/7] w-full overflow-hidden bg-[var(--sl-bg-elevated)]">
 					<img src={topic.image_url} alt="" class="h-full w-full object-cover" />
+				</div>
+			{:else}
+				<div class="flex aspect-[16/7] w-full items-center justify-center overflow-hidden">
+					<SunnypilotLogo class="h-16 w-auto text-black sm:h-24 dark:text-white" />
 				</div>
 			{/if}
 			<header class="border-b border-[var(--sl-border-muted)] px-5 py-5 sm:px-7">
