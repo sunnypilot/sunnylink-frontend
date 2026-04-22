@@ -72,6 +72,28 @@
 	let scrollEl = $state<HTMLDivElement | null>(null);
 	const pathname = $derived(page.url.pathname);
 
+	// Route-level device guard: device-scoped pages redirect to /dashboard/devices
+	// when there's no selection (typed URL, back-nav after clearing, etc.).
+	// /dashboard/devices, /dashboard/whats-new, /dashboard/preferences are the
+	// device-independent routes we never redirect away from.
+	const DEVICE_REQUIRED_PREFIXES = [
+		'/dashboard/settings',
+		'/dashboard/models',
+		'/dashboard/osm'
+	];
+	const isDeviceRequiredRoute = $derived(
+		pathname === '/dashboard' ||
+			DEVICE_REQUIRED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+	);
+	$effect(() => {
+		if (!authState.isAuthenticated) return;
+		if (!deviceState.pairedDevicesLoaded) return;
+		if (!isDeviceRequiredRoute) return;
+		if (deviceState.selectedDeviceId) return;
+		if (pathname === '/dashboard/devices') return;
+		goto('/dashboard/devices');
+	});
+
 	function scrollKey(url: URL): string {
 		return url.pathname + url.search;
 	}

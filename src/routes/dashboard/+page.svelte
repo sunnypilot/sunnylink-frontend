@@ -21,8 +21,6 @@
 		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId) ?? null
 	);
 
-	let announceSelection = $state('');
-
 	$effect(() => {
 		// Skip the redirect when the session was killed mid-use — the modal in
 		// +layout.svelte handles that recovery (Sign in / Maybe later). Without
@@ -33,20 +31,6 @@
 			goto('/');
 		}
 	});
-
-	// Auto-select most-recently-used device when no selection is active.
-	// Preference order: lastSeenOnline → lastStatusCheck → first paired.
-	function mruDeviceId(list: any[]): string | null {
-		if (list.length === 0) return null;
-		const scored = list
-			.map((d) => ({
-				id: d.device_id,
-				score:
-					deviceState.lastSeenOnline[d.device_id] ?? deviceState.lastStatusCheck[d.device_id] ?? 0
-			}))
-			.sort((a, b) => b.score - a.score);
-		return scored[0]?.id ?? null;
-	}
 
 	// Fresh sign-in routing: when the user just completed OAuth (flag set by
 	// /auth/callback), check the resolved selected device's online status. If
@@ -118,32 +102,6 @@
 
 	let waitingForSignInRoute = $derived(justSignedIn && !signInRouteResolved);
 
-	let autoSelectRan = $state(false);
-	$effect(() => {
-		if (autoSelectRan) return;
-		if (deviceState.selectedDeviceId) {
-			autoSelectRan = true;
-			return;
-		}
-		if (devices.length === 0) return;
-		// On fresh sign-in with no persisted selection, defer to smart routing
-		// (waitingForSignInRoute above) which sends the user to /dashboard/devices
-		// to pick explicitly. Auto-picking MRU here would surface a random
-		// (possibly offline) device pinned at the top of My Devices, which was
-		// the source of the "why is this offline device selected?" confusion.
-		if (justSignedIn) {
-			autoSelectRan = true;
-			return;
-		}
-		const id = mruDeviceId(devices);
-		if (!id) return;
-		autoSelectRan = true;
-		deviceState.setSelectedDevice(id);
-		const alias =
-			deviceState.aliases[id] ?? devices.find((d: any) => d.device_id === id)?.alias ?? id;
-		announceSelection = `Showing ${alias}`;
-	});
-
 	let isOffline = $derived(
 		selectedDevice ? deviceState.onlineStatuses[selectedDevice.device_id] === 'offline' : false
 	);
@@ -186,8 +144,6 @@
 		void startBackup(deviceId, fullRefresh);
 	}
 </script>
-
-<span class="sr-only" role="status" aria-live="polite">{announceSelection}</span>
 
 {#if authState.loading}
 	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
