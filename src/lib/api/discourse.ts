@@ -112,23 +112,28 @@ export interface CategoryListResponse {
 }
 
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response | null> {
-	// `cache: no-store` forces a network trip every time. Discourse sets
-	// Cache-Control headers on category/topic JSON that the browser will
-	// otherwise honour — meaning a topic tagged `sunnylink-feed` after the
-	// first empty fetch won't surface until the cache entry expires. Our own
-	// 5-min localStorage cache already throttles actual server hits.
-	const mergedInit: RequestInit = { cache: 'no-store', ...(init ?? {}) };
+	// Bypass the HTTP cache by appending a per-request timestamp. Previously
+	// relied on `cache: 'no-store'`, but iOS 26 WebKit appears to drop or error
+	// silently on `no-store` fetches against Netlify-proxied cross-origin paths
+	// — users on iOS 26 saw an empty feed on Safari / Chrome / Brave / PWA while
+	// older iOS + desktop worked. Query-string cache-bust achieves the same
+	// network-trip guarantee without the cache directive.
+	const cacheBustedUrl = url + (url.includes('?') ? '&' : '?') + '_=' + Date.now();
 	const delays = [0, ...RETRY_DELAYS_MS];
 	let res: Response | null = null;
 	for (const delay of delays) {
 		if (delay > 0) await new Promise((r) => setTimeout(r, delay));
 		try {
-			res = await fetch(url, mergedInit);
+			res = await fetch(cacheBustedUrl, init);
 			if (res.status !== 429) return res;
-		} catch {
+		} catch (err) {
+			console.error('[discourse] fetch threw for', url, err);
 			res = null;
 		}
 	}
+	if (!res) console.error('[discourse] fetch returned null after retries for', url);
+	else if (!res.ok)
+		console.error('[discourse] fetch non-OK', res.status, res.statusText, 'for', url);
 	return res;
 }
 
