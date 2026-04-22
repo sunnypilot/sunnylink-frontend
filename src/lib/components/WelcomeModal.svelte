@@ -7,7 +7,7 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
-	import { ArrowRight, Check } from 'lucide-svelte';
+	import { ArrowRight } from 'lucide-svelte';
 
 	// Two onboarding variants, shown at distinct moments:
 	//
@@ -58,21 +58,6 @@
 		!!deviceState.selectedDeviceId &&
 			schemaState.schemaUnavailable[deviceState.selectedDeviceId] === false
 	);
-
-	// Device identity line shown in variant B subtitle: "{alias} · {id}" when
-	// alias set, else just the id. Alias is always optional.
-	const selectedDeviceAlias = $derived.by(() => {
-		const id = deviceState.selectedDeviceId;
-		if (!id) return null;
-		const explicit = deviceState.aliases[id];
-		if (explicit && explicit.trim() && explicit !== id) return explicit;
-		const paired = (deviceState.pairedDevices ?? []).find(
-			(d: { device_id?: string | null }) => d.device_id === id
-		);
-		const serverAlias = paired?.alias;
-		if (serverAlias && serverAlias.trim() && serverAlias !== id) return serverAlias;
-		return null;
-	});
 
 	const showGeneral = $derived(hydrated && !dismissedGeneral);
 	const showNewSchema = $derived(
@@ -154,38 +139,16 @@
 				>
 					Unlocked: new sunnylink features
 				</h2>
-				{#if deviceState.selectedDeviceId}
-					<p
-						class="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.75rem] text-[var(--sl-text-3)]"
+				<div class="mt-4">
+					<span
+						class="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-[1px] text-[0.6875rem] font-semibold tracking-wide text-primary uppercase"
 					>
-						{#if selectedDeviceAlias}
-							<span class="font-medium text-[var(--sl-text-2)]">{selectedDeviceAlias}</span>
-							<span aria-hidden="true">·</span>
-						{/if}
-						<span class="break-all">{deviceState.selectedDeviceId}</span>
+						New
+					</span>
+					<p class="mt-2 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
+						Smart settings — only what applies to your car.
 					</p>
-				{/if}
-				<ul class="mt-4 space-y-2.5 text-[0.875rem] text-[var(--sl-text-2)]">
-					<li class="flex items-start gap-2.5">
-						<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
-						<span>Redesigned dashboard</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
-						<span>Faster device management</span>
-					</li>
-					<li>
-						<span
-							class="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-[1px] text-[0.6875rem] font-semibold tracking-wide text-primary uppercase"
-						>
-							New
-						</span>
-						<div class="mt-1 flex items-start gap-2.5">
-							<Check size={16} class="mt-[2px] shrink-0 text-primary" aria-hidden="true" />
-							<span>Smart settings — only what applies to your car</span>
-						</div>
-					</li>
-				</ul>
+				</div>
 
 				<button
 					type="button"
