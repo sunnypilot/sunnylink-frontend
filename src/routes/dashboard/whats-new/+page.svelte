@@ -234,7 +234,7 @@
 								? 'border-primary/40'
 								: 'border-[var(--sl-border)]'}"
 					>
-						{#if isUnread && !selectMode}
+						{#if isUnread}
 							<span
 								class="pointer-events-none absolute top-2.5 right-2.5 z-10 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
 								aria-label="Unread"
