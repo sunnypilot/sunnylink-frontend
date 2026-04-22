@@ -6,7 +6,7 @@ import { logtoClient } from '$lib/logto/auth.svelte';
 /**
  * Download a settings backup for a device.
  *
- * Called from multiple surfaces (/dashboard, /dashboard/devices/[id]/about) that
+ * Called from multiple surfaces (/dashboard, /dashboard/devices/[id]/details) that
  * all share the same backup state in deviceState + the same BackupProgressModal.
  * The caller is responsible for mounting BackupProgressModal somewhere in the
  * page tree; this helper only drives the store + the underlying fetch.
