@@ -202,24 +202,22 @@
 						No preview available — read the full post on the community forum.
 					</p>
 				{/if}
-				<div class="mt-6 flex justify-end">
-					<a
-						href={forumTopicUrl(topic)}
-						target="_blank"
-						rel="noopener noreferrer"
-						onclick={(e) => openOnForum(e, topic)}
-						class="relative inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
-					>
-						<span>Read on forum</span>
-						<ExternalLink size={13} aria-hidden="true" />
-						{#if isUnread}
-							<span
-								class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
-								aria-label="Unread announcement"
-							></span>
-						{/if}
-					</a>
-				</div>
+				<a
+					href={forumTopicUrl(topic)}
+					target="_blank"
+					rel="noopener noreferrer"
+					onclick={(e) => openOnForum(e, topic)}
+					class="relative mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-[0.9375rem] font-semibold text-white transition-all duration-100 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] active:bg-primary/80"
+				>
+					<span>Read on forum</span>
+					<ExternalLink size={14} aria-hidden="true" />
+					{#if isUnread}
+						<span
+							class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
+							aria-label="Unread announcement"
+						></span>
+					{/if}
+				</a>
 			</div>
 		</article>
 	{/if}
