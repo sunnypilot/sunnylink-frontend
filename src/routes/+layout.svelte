@@ -57,7 +57,13 @@
 
 	let { children, data } = $props();
 
-	type NavItem = { icon: any; label: string; href?: string; action?: (() => void) | undefined };
+	type NavItem = {
+		icon: any;
+		label: string;
+		href?: string;
+		action?: (() => void) | undefined;
+		badge?: number;
+	};
 	type NavSection = { label: string; items: NavItem[]; collapsible?: boolean };
 
 	let drawerOpen = $state(false);
@@ -228,7 +234,12 @@
 			? [
 					{ icon: House, label: 'Home', href: '/dashboard' },
 					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' },
-					{ icon: Sparkles, label: "What's new", href: '/dashboard/whats-new' }
+					{
+						icon: Sparkles,
+						label: "What's new",
+						href: '/dashboard/whats-new',
+						badge: whatsNewStore.unreadCount
+					}
 				]
 			: []
 	);
@@ -771,6 +782,8 @@
 					{#snippet navItemSnippet(item: NavItem)}
 						{@const active = isActive(item.href)}
 						{@const Icon = item.icon}
+						{@const hasBadge = (item.badge ?? 0) > 0}
+						{@const badgeLabel = (item.badge ?? 0) > 9 ? '9+' : String(item.badge ?? 0)}
 						<li class="list-none">
 							{#if item.href}
 								<a
@@ -788,6 +801,14 @@
 									<span class={[drawerOpen ? 'block' : 'hidden', 'lg:block']}>
 										{item.label}
 									</span>
+									{#if hasBadge}
+										<span
+											class="ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[0.6875rem] leading-none font-semibold text-white"
+											aria-label={`${item.badge} unread`}
+										>
+											{badgeLabel}
+										</span>
+									{/if}
 								</a>
 							{:else if item.action}
 								<button

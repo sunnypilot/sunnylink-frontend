@@ -186,8 +186,19 @@
 						<span class="text-[0.8125rem]">Loading preview…</span>
 					</div>
 				{:else if previewText}
-					<p class="text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]">
-						{previewText}
+					<div class="relative">
+						<p
+							class="line-clamp-3 text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]"
+						>
+							{previewText}
+						</p>
+						<div
+							class="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--sl-bg-surface)] to-transparent"
+							aria-hidden="true"
+						></div>
+					</div>
+					<p class="mt-4 text-[0.8125rem] text-[var(--sl-text-3)]">
+						Continue reading on the community forum →
 					</p>
 				{:else}
 					<p class="text-[0.8125rem] text-[var(--sl-text-3)]">

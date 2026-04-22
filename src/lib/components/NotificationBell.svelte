@@ -10,7 +10,7 @@
 
 	const unreadCount = $derived(whatsNewStore.unreadCount);
 	const unread = $derived(whatsNewStore.unread);
-	const displayCount = $derived(unreadCount > 99 ? '99+' : String(unreadCount));
+	const displayCount = $derived(unreadCount > 9 ? '9+' : String(unreadCount));
 
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let open = $state(false);
@@ -133,7 +133,7 @@
 	<Bell size={18} aria-hidden="true" />
 	{#if unreadCount > 0}
 		<span
-			class="absolute top-1 right-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-semibold text-white ring-2 ring-[var(--sl-bg-page)]"
+			class="absolute top-1 right-1 inline-flex h-[13px] min-w-[13px] items-center justify-center rounded-full bg-red-500 px-[3px] text-[0.5625rem] leading-none font-semibold text-white ring-[1.5px] ring-[var(--sl-bg-page)]"
 			aria-hidden="true"
 		>
 			{displayCount}

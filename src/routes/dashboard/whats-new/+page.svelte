@@ -176,13 +176,13 @@
 </svelte:head>
 
 <div class="mx-auto w-full max-w-3xl {selectMode && selectedCount > 0 ? 'pb-24' : ''}">
-	<div class="mb-6 flex items-start justify-between gap-3 px-4 sm:px-0">
+	<div class="mb-6 flex items-center justify-between gap-3 px-4 sm:px-0">
 		<div class="min-w-0">
 			<h2 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
 				What's new
 			</h2>
 			<p class="mt-1 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
-				Latest announcements from the sunnypilot team
+				Announcements from the sunnypilot team
 			</p>
 		</div>
 		{#if whatsNewStore.topics.length > 0}
