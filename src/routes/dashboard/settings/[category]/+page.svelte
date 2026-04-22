@@ -331,7 +331,7 @@
 					'(prefers-reduced-motion: reduce)'
 				).matches;
 				el.scrollIntoView({
-					block: 'center',
+					block: 'nearest',
 					behavior: prefersReducedMotion ? 'auto' : 'smooth'
 				});
 				el.setAttribute('data-settings-highlight', 'true');

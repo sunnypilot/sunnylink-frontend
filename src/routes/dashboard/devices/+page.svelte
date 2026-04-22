@@ -146,9 +146,21 @@
 
 	function selectDevice(device: any) {
 		deviceState.setSelectedDevice(device.device_id);
-		// Scroll the newly selected card into view so the checkmark + Manage CTA
-		// appearing below the row stay on screen, even if the user tapped near
-		// the bottom edge of the viewport.
+		const isLegacy = schemaState.schemaUnavailable[device.device_id] === true;
+		// Legacy devices surface LegacyTopBanner above the list on select. The
+		// banner is meaningful device-state info the user must see; default
+		// card-center scroll would push the banner above the viewport. Scroll
+		// the main scroll container to the top so the banner (and anything
+		// above it) is fully visible.
+		if (isLegacy) {
+			requestAnimationFrame(() => {
+				const scroller = document.querySelector('.drawer-content') as HTMLElement | null;
+				scroller?.scrollTo({ top: 0, behavior: 'smooth' });
+			});
+			return;
+		}
+		// Non-legacy: keep the card centered so the checkmark + Manage CTA stay
+		// on screen, even if the user tapped near the bottom edge of the viewport.
 		requestAnimationFrame(() => {
 			const el = document.querySelector(`[data-device-id="${device.device_id}"]`);
 			if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });

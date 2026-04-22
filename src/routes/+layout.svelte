@@ -551,7 +551,9 @@
 		<div
 			bind:this={scrollEl}
 			class="drawer-content flex h-[100dvh] flex-col overflow-y-auto bg-[var(--sl-bg-page)]"
-			style={isChromeless ? '' : `padding-top: ${topBarHeight}px;`}
+			style={isChromeless
+				? ''
+				: `padding-top: ${topBarHeight}px; scroll-padding-top: ${topBarHeight}px;`}
 		>
 			<GlobalStatusBanner />
 
