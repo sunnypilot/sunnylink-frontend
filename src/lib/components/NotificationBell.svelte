@@ -14,14 +14,14 @@
 
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let open = $state(false);
-	let panelPos = $state({ top: 0, right: 0 });
+	let panelPos = $state({ top: 0, left: 0 });
 
 	let rafId: number | null = null;
 	let lastTop = 0;
-	let lastRight = 0;
+	let lastLeft = 0;
 
 	// Matches the CSS `w-[min(22rem,calc(100vw-1rem))]` so we can clamp the
-	// panel's right-offset such that its left edge stays ≥8px on screen.
+	// panel horizontally such that both edges stay ≥8px on screen.
 	const MAX_PANEL_WIDTH_PX = 352;
 	const EDGE_MARGIN = 8;
 
@@ -30,12 +30,16 @@
 		const rect = triggerEl.getBoundingClientRect();
 		const vw = window.innerWidth;
 		const panelWidth = Math.min(MAX_PANEL_WIDTH_PX, vw - EDGE_MARGIN * 2);
-		const alignedRight = Math.max(vw - rect.right, EDGE_MARGIN);
-		// Pin right-offset so panel's left edge never goes off-screen.
-		const maxRight = Math.max(vw - panelWidth - EDGE_MARGIN, EDGE_MARGIN);
+		const triggerCenter = rect.left + rect.width / 2;
+		// Center-align panel under the bell — feels spatially connected to the
+		// trigger even when the bell sits mid-topbar. Right/left clamp keeps
+		// the panel on-screen on narrow viewports.
+		const idealLeft = triggerCenter - panelWidth / 2;
+		const maxLeft = vw - panelWidth - EDGE_MARGIN;
+		const left = Math.max(EDGE_MARGIN, Math.min(idealLeft, maxLeft));
 		return {
 			top: rect.bottom + 8,
-			right: Math.min(alignedRight, maxRight)
+			left
 		};
 	}
 
@@ -45,9 +49,9 @@
 		// Only write state when the trigger actually moved. Unconditional writes
 		// during the open animation re-emit the style attributes every frame,
 		// which reads as a "wiggle" on top of the scale transition.
-		if (next.top !== lastTop || next.right !== lastRight) {
+		if (next.top !== lastTop || next.left !== lastLeft) {
 			lastTop = next.top;
-			lastRight = next.right;
+			lastLeft = next.left;
 			panelPos = next;
 		}
 	}
@@ -63,7 +67,7 @@
 			const initial = measurePos();
 			if (initial) {
 				lastTop = initial.top;
-				lastRight = initial.right;
+				lastLeft = initial.left;
 				panelPos = initial;
 			}
 			rafId = requestAnimationFrame(trackPosition);
@@ -155,7 +159,7 @@
 		role="dialog"
 		aria-label="Notifications"
 		class="fixed z-[81] w-[min(22rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] shadow-xl"
-		style="top: {panelPos.top}px; right: {panelPos.right}px;"
+		style="top: {panelPos.top}px; left: {panelPos.left}px;"
 		transition:fly={{ y: -4, duration: 150, easing: cubicOut, opacity: 0 }}
 	>
 		<header

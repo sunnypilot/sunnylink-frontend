@@ -188,12 +188,12 @@
 				{:else if previewText}
 					<div class="relative">
 						<p
-							class="line-clamp-3 text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]"
+							class="line-clamp-5 text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]"
 						>
 							{previewText}
 						</p>
 						<div
-							class="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--sl-bg-surface)] to-transparent"
+							class="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--sl-bg-surface)] to-transparent"
 							aria-hidden="true"
 						></div>
 					</div>

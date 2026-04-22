@@ -228,24 +228,18 @@
 				{@const cover = coverUrl(topic)}
 				{@const preview = expandedPreview(topic)}
 				{@const bodyLoading = whatsNewStore.bodyLoading[topic.id]}
-				<li data-topic-id={topic.id}>
+				<li data-topic-id={topic.id} class="relative">
 					<article
-						class="relative overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isSelected
+						class="overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isSelected
 							? 'border-primary/60 ring-1 ring-primary/30'
 							: isOpen
 								? 'border-primary/40'
 								: 'border-[var(--sl-border)]'}"
 					>
-						{#if isUnread && !selectMode}
-							<span
-								class="pointer-events-none absolute top-2.5 right-2.5 z-10 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
-								aria-label="Unread"
-							></span>
-						{/if}
 						<button
 							type="button"
 							onclick={() => toggleExpand(topic.id)}
-							class="flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/40 sm:min-h-[112px]"
+							class="flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left transition-all duration-100 hover:bg-[var(--sl-bg-elevated)]/40 active:scale-[0.995] active:bg-[var(--sl-bg-elevated)]/70 sm:min-h-[112px]"
 							aria-expanded={isOpen}
 							aria-pressed={selectMode ? isSelected : undefined}
 						>
@@ -340,6 +334,12 @@
 							</div>
 						{/if}
 					</article>
+					{#if isUnread && !selectMode}
+						<span
+							class="pointer-events-none absolute -top-1 -right-1 z-10 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-page)]"
+							aria-label="Unread"
+						></span>
+					{/if}
 				</li>
 			{/each}
 		</ul>
