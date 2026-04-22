@@ -38,12 +38,12 @@
 				// Focus ring outside the box (outline-offset-2) so active-state bg
 				// isn't visually shrunk by focus (ui-ux-pro-max: focus-states).
 				'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 focus-visible:outline-solid',
-				// iOS/macOS-style segmented control: filled "lift" for active,
-				// transparent for inactive. Same filled footprint in every cell
-				// via flex-1 means active never looks wider than inactive
-				// (ui-ux-pro-max: state-clarity, elevation-consistent).
+				// Active state matches the sidebar nav-active language
+				// (bg-accent-muted + primary accent) so segmented selection
+				// reads consistently with the rest of the app — rather than
+				// inventing a second "active" style via surface + shadow.
 				isActive
-					? 'bg-[var(--sl-bg-surface)] font-medium text-[var(--sl-text-1)] shadow-sm'
+					? 'bg-[var(--sl-accent-muted)] font-medium text-primary'
 					: 'text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-elevated)]/60 hover:text-[var(--sl-text-2)]'
 			]}
 			aria-label="{opt.label} theme"
