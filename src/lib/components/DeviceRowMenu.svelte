@@ -132,7 +132,7 @@
 						>sunnylink</span
 					>
 					<span
-						class="block truncate font-mono text-[0.8125rem] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+						class="block truncate text-[0.8125rem] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
 						>{deviceId}</span
 					>
 				</span>
@@ -158,7 +158,7 @@
 							>comma dongle</span
 						>
 						<span
-							class="block truncate font-mono text-[0.8125rem] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
+							class="block truncate text-[0.8125rem] text-[var(--sl-text-2)] group-hover:text-[var(--sl-text-1)]"
 							>{dongleId}</span
 						>
 					</span>

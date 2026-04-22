@@ -548,7 +548,7 @@
 				></span>
 				<span class="sr-only">Loading {label}</span>
 			{:else}
-				<span class="font-mono text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 					{value ?? '—'}
 				</span>
 			{/if}
@@ -568,7 +568,7 @@
 				<span class="sr-only">Loading commit hash</span>
 			{:else}
 				<span
-					class="overflow-x-auto font-mono text-[0.8125rem] font-medium whitespace-nowrap text-[var(--sl-text-1)]"
+					class="overflow-x-auto text-[0.8125rem] font-medium whitespace-nowrap text-[var(--sl-text-1)]"
 					title={commit ?? ''}
 				>
 					{commitShort ?? '—'}
@@ -596,9 +596,7 @@
 	<div class="flex items-center justify-between gap-4 px-4 py-3">
 		<dt class="shrink-0 text-[0.8125rem] text-[var(--sl-text-3)]">{label}</dt>
 		<dd class="flex min-w-0 flex-1 items-center justify-end gap-2">
-			<span
-				class="overflow-x-auto font-mono text-[0.8125rem] whitespace-nowrap text-[var(--sl-text-1)]"
-			>
+			<span class="overflow-x-auto text-[0.8125rem] whitespace-nowrap text-[var(--sl-text-1)]">
 				{value ?? '—'}
 			</span>
 			{#if value}

@@ -294,7 +294,7 @@
 			{#snippet labelValueRow(
 				label: string,
 				value: string | null,
-				mono: boolean,
+				_mono: boolean,
 				loading: boolean,
 				marquee: boolean = false
 			)}
@@ -306,14 +306,12 @@
 								{#if marquee}
 									<MarqueeText
 										text={value}
-										{mono}
 										className="value-fade-in text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 									/>
 								{:else}
 									<span
-										class="value-fade-in inline-block max-w-full truncate align-middle text-[0.8125rem] font-medium text-[var(--sl-text-1)] {mono
-											? 'font-mono'
-											: ''}">{value}</span
+										class="value-fade-in inline-block max-w-full truncate align-middle text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+										>{value}</span
 									>
 								{/if}
 							{:else if loading}
@@ -396,7 +394,7 @@
 								<div class="truncate text-sm font-medium text-[var(--sl-text-1)]">
 									{getAlias(device)}
 								</div>
-								<div class="font-mono text-[0.7rem] break-all text-[var(--sl-text-3)]">
+								<div class="text-[0.7rem] break-all text-[var(--sl-text-3)]">
 									{device.device_id}
 								</div>
 							</div>
