@@ -10,6 +10,7 @@ export interface PreferencesData {
 	notifyDeviceOffline: boolean;
 	notifySyncFailure: boolean;
 	notifySettingsDrift: boolean;
+	showLegacyBanner: boolean;
 }
 
 /** Detect browser/OS data saver mode */
@@ -28,7 +29,8 @@ const DEFAULTS: PreferencesData = {
 	defaultLandingPage: 'overview',
 	notifyDeviceOffline: true,
 	notifySyncFailure: true,
-	notifySettingsDrift: true
+	notifySettingsDrift: true,
+	showLegacyBanner: true
 };
 
 class PreferencesStore {
@@ -39,6 +41,7 @@ class PreferencesStore {
 	notifyDeviceOffline = $state(DEFAULTS.notifyDeviceOffline);
 	notifySyncFailure = $state(DEFAULTS.notifySyncFailure);
 	notifySettingsDrift = $state(DEFAULTS.notifySettingsDrift);
+	showLegacyBanner = $state(DEFAULTS.showLegacyBanner);
 
 	constructor() {
 		if (browser) {
@@ -71,6 +74,8 @@ class PreferencesStore {
 					this.notifySyncFailure = parsed.notifySyncFailure;
 				if (parsed.notifySettingsDrift !== undefined)
 					this.notifySettingsDrift = parsed.notifySettingsDrift;
+				if (parsed.showLegacyBanner !== undefined)
+					this.showLegacyBanner = parsed.showLegacyBanner;
 				return;
 			} catch {
 				// Fall through to legacy keys
@@ -119,7 +124,8 @@ class PreferencesStore {
 			defaultLandingPage: this.defaultLandingPage,
 			notifyDeviceOffline: this.notifyDeviceOffline,
 			notifySyncFailure: this.notifySyncFailure,
-			notifySettingsDrift: this.notifySettingsDrift
+			notifySettingsDrift: this.notifySettingsDrift,
+			showLegacyBanner: this.showLegacyBanner
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 	}

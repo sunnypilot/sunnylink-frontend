@@ -149,6 +149,34 @@
 			<div>
 				<button
 					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					onclick={() => (preferences.showLegacyBanner = !preferences.showLegacyBanner)}
+					>Legacy Device Banner</button
+				>
+				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+					Show the top banner when this device runs legacy sunnylink
+				</p>
+			</div>
+			<button
+				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
+				class:bg-primary={preferences.showLegacyBanner}
+				class:bg-[var(--sl-toggle-off)]={!preferences.showLegacyBanner}
+				onclick={() => (preferences.showLegacyBanner = !preferences.showLegacyBanner)}
+				role="switch"
+				aria-checked={preferences.showLegacyBanner}
+			>
+				<span
+					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
+					class:translate-x-[18px]={preferences.showLegacyBanner}
+				></span>
+			</button>
+		</div>
+
+		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
+
+		<div class="flex items-center justify-between px-4 py-3.5">
+			<div>
+				<button
+					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 					onclick={() => (preferences.autoRefresh = !preferences.autoRefresh)}>Auto-refresh</button
 				>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">

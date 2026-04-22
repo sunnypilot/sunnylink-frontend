@@ -41,6 +41,7 @@
 	import PendingChangesPill from '$lib/components/PendingChangesPill.svelte';
 	import GlobalStatusBanner from '$lib/components/GlobalStatusBanner.svelte';
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
+	import LegacyTopBanner from '$lib/components/LegacyTopBanner.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import { themeState } from '$lib/stores/theme.svelte';
 	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
@@ -617,6 +618,11 @@
 				{#if !isChromeless && deviceState.selectedDeviceId}
 					<div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
 						<SyncStatusBanner deviceId={deviceState.selectedDeviceId} />
+						{#if pathname !== '/dashboard/preferences'}
+							<div class="mb-3">
+								<LegacyTopBanner deviceId={deviceState.selectedDeviceId} />
+							</div>
+						{/if}
 					</div>
 				{/if}
 				{#key pathname}
@@ -904,7 +910,7 @@
 	bind:deviceType={deviceState.pairingState.deviceType}
 />
 
-<Toaster theme={themeState.effective} position="top-center" richColors />
+<Toaster theme={themeState.effective} position="bottom-center" richColors />
 <PendingChangesPill />
 <CommandPalette />
 

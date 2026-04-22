@@ -54,9 +54,8 @@
 	let isNumber = $derived(setting.value?.type === 'Int' || setting.value?.type === 'Float');
 	let isLoading = $derived(loadingValues && currentValue === undefined);
 
-	let title = $derived(
-		setting._extra?.title || (preferences.debugMode ? setting.key : setting.label)
-	);
+	let title = $derived(setting._extra?.title || setting.label || setting.key);
+	let showDebugKey = $derived(preferences.debugMode && title !== setting.key);
 	let description = $derived(setting._extra?.description || setting.description);
 	let options = $derived(setting._extra?.options);
 	let min = $derived(setting._extra?.min);
@@ -136,6 +135,9 @@
 					{/if}
 				</span>
 			</span>
+			{#if showDebugKey}
+				<p class="mt-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{setting.key}</p>
+			{/if}
 			<p class="mt-1 text-sm text-[var(--sl-text-2)]">{description}</p>
 			{#if (decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading) || unit}
 				<p class="mt-2 text-xs text-[var(--sl-text-3)]">
@@ -211,6 +213,9 @@
 					{/if}
 				</h3>
 			</div>
+			{#if showDebugKey}
+				<p class="mt-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{setting.key}</p>
+			{/if}
 			<p class="mt-1 text-sm text-[var(--sl-text-2)]">{description}</p>
 			{#if (decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading) || unit}
 				<p class="mt-2 text-xs text-[var(--sl-text-3)]">
