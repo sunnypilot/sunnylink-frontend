@@ -13,6 +13,7 @@
 	import MarqueeText from '$lib/components/MarqueeText.svelte';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
+	import { getDeviceDisplayName } from '$lib/utils/deviceDisplay';
 
 	let { data } = $props();
 
@@ -73,7 +74,7 @@
 	});
 
 	function getAlias(device: any) {
-		return deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
+		return getDeviceDisplayName(device.device_id, device.alias);
 	}
 
 	function getStatusText(device: any): string {

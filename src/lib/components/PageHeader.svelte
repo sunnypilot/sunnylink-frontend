@@ -3,8 +3,10 @@
 	import BackLink from './BackLink.svelte';
 
 	interface Props {
-		/** Page title rendered as h1. */
-		title: string;
+		/** Page title rendered as h1. Ignored if `titleSnippet` is provided. */
+		title?: string;
+		/** Custom title block (e.g. for inline rename UI on the title row). */
+		titleSnippet?: Snippet;
 		/** Plain-text subtitle. Ignored if `subtitleSnippet` is provided. */
 		subtitle?: string;
 		/** Back-link label — destination page name (e.g. "Home"), not "Back to …". */
@@ -16,7 +18,7 @@
 		subtitleSnippet?: Snippet;
 	}
 
-	let { title, subtitle, backLabel, backHref, subtitleSnippet }: Props = $props();
+	let { title, titleSnippet, subtitle, backLabel, backHref, subtitleSnippet }: Props = $props();
 </script>
 
 <div>
@@ -30,9 +32,13 @@
 		<BackLink label={backLabel} fallback={backHref} />
 	{/if}
 	<div class="px-4">
-		<h1 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
-			{title}
-		</h1>
+		{#if titleSnippet}
+			{@render titleSnippet()}
+		{:else if title}
+			<h1 class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]">
+				{title}
+			</h1>
+		{/if}
 		{#if subtitleSnippet}
 			<div class="mt-1">
 				{@render subtitleSnippet()}

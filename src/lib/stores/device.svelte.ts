@@ -122,9 +122,17 @@ export const deviceState = $state({
 		}
 	},
 
-	// Helper to update alias
-	updateAlias(deviceId: string, alias: string) {
-		this.aliases = { ...this.aliases, [deviceId]: alias };
+	// Helper to update alias. Pass `null` or an empty string to clear the
+	// user-set alias — consumers then fall back to server alias / device type
+	// label / device ID via getDeviceDisplayName().
+	updateAlias(deviceId: string, alias: string | null) {
+		const next = { ...this.aliases };
+		if (alias && alias.trim()) {
+			next[deviceId] = alias;
+		} else {
+			delete next[deviceId];
+		}
+		this.aliases = next;
 		this.version++;
 	},
 

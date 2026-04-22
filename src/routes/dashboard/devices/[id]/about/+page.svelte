@@ -7,13 +7,14 @@
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
 	import { APIv0Client } from '$lib/api/client';
-	import { Copy, Check, Pencil, Loader2, Download, ChevronDown, Trash2 } from 'lucide-svelte';
+	import { Copy, Check, Pencil, Loader2, Download, ChevronDown, Trash2, X } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
 	import { startBackup, retryFailedBackup } from '$lib/utils/backup';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { getDeviceDisplayName, getDeviceTypeLabel } from '$lib/utils/deviceDisplay';
 
 	let id = $derived(page.params.id);
 
@@ -61,13 +62,6 @@
 		})();
 	});
 
-	const DEVICE_TYPE_NAMES: Record<string, string> = {
-		tizi: 'comma 3X',
-		mici: 'comma four',
-		tici: 'comma three',
-		pc: 'PC'
-	};
-
 	let device = $derived(
 		(deviceState.pairedDevices ?? []).find(
 			(d: { device_id?: string | null }) => d.device_id === id
@@ -75,25 +69,27 @@
 	);
 	let notFound = $derived(deviceState.pairedDevicesLoaded && !device);
 
-	let alias = $derived((id && deviceState.aliases[id]) || device?.alias || id || '');
+	// Resolved display name. User-set alias wins; otherwise server alias, device
+	// type label, or the raw device ID. When the user clears the alias we want
+	// them to see the fallback immediately — not a blank title.
+	let alias = $derived(getDeviceDisplayName(id, device?.alias));
 
 	let isRenaming = $state(false);
 	let renameValue = $state('');
 	let renameOriginal = $state('');
 	let saving = $state(false);
+	let renameInputEl = $state<HTMLInputElement | null>(null);
 
 	function startRename() {
 		if (!id) return;
-		renameOriginal = alias;
-		renameValue = alias;
+		const local = deviceState.aliases[id];
+		renameOriginal = local && local.trim() ? local : (device?.alias ?? '');
+		renameValue = renameOriginal;
 		isRenaming = true;
 		requestAnimationFrame(() => {
 			setTimeout(() => {
-				const input = document.getElementById('alias-rename-input') as HTMLInputElement | null;
-				if (input) {
-					input.focus();
-					input.select();
-				}
+				renameInputEl?.focus();
+				renameInputEl?.select();
 			}, 30);
 		});
 	}
@@ -106,16 +102,21 @@
 	async function commitRename() {
 		if (!id) return;
 		const trimmed = renameValue.trim();
+		if (trimmed === renameOriginal.trim()) {
+			isRenaming = false;
+			return;
+		}
 		isRenaming = false;
-		if (!trimmed || trimmed === renameOriginal) return;
-
 		saving = true;
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (!token) throw new Error('Not authenticated');
+			// Empty alias clears the server-side value. Schema allows `alias: null`;
+			// we send null so the server can drop the column rather than storing "".
+			const body = trimmed ? { alias: trimmed } : { alias: null };
 			const response = await APIv0Client.PATCH('/device/{deviceId}', {
 				params: { path: { deviceId: id } },
-				body: { alias: trimmed },
+				body,
 				headers: { Authorization: `Bearer ${token}` }
 			});
 			if ((response as any).error) {
@@ -124,8 +125,12 @@
 					typeof err === 'object' && err !== null ? err.detail || 'Unknown error' : 'Unknown error';
 				throw new Error(msg);
 			}
-			deviceState.updateAlias(id, trimmed);
-			toast.success(`Renamed to "${trimmed}"`);
+			deviceState.updateAlias(id, trimmed || null);
+			if (trimmed) {
+				toast.success(`Renamed to "${trimmed}"`);
+			} else {
+				toast.success('Alias cleared');
+			}
 		} catch (e: any) {
 			console.error('Rename failed', e);
 			toast.error(e.message || 'Failed to rename device');
@@ -133,6 +138,7 @@
 			saving = false;
 		}
 	}
+
 	let onlineStatus = $derived(id ? deviceState.onlineStatuses[id] : undefined);
 	let offroadStatus = $derived(id ? deviceState.offroadStatuses[id] : undefined);
 	let telemetry = $derived(id ? deviceState.deviceTelemetry[id] : undefined);
@@ -155,11 +161,7 @@
 				onlineStatus === 'error')
 	);
 
-	let deviceTypeName = $derived.by(() => {
-		const t = telemetry?.deviceType;
-		if (!t || t === 'unknown') return null;
-		return DEVICE_TYPE_NAMES[t.toLowerCase()] ?? null;
-	});
+	let deviceTypeName = $derived(getDeviceTypeLabel(telemetry?.deviceType));
 
 	let networkType = $derived.by(() => {
 		const t = telemetry?.networkType;
@@ -273,47 +275,81 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-	<PageHeader title="About this device" backHref="/dashboard" backLabel="Home">
-		{#snippet subtitleSnippet()}
-			<div class="flex items-center gap-1.5">
-				{#if isRenaming}
+	<PageHeader backHref="/dashboard" backLabel="Home">
+		{#snippet titleSnippet()}
+			{#if isRenaming}
+				<div class="flex items-stretch gap-2">
 					<input
+						bind:this={renameInputEl}
 						id="alias-rename-input"
 						type="text"
 						bind:value={renameValue}
-						onblur={commitRename}
+						onblur={(e) => {
+							// Click-outside cancels. If focus moves to an action button
+							// (Save / Cancel), skip the cancel so the click handler runs.
+							const next = e.relatedTarget as HTMLElement | null;
+							if (next && next.closest('[data-rename-action]')) return;
+							cancelRename();
+						}}
 						onkeydown={(e) => {
 							if (e.key === 'Enter') {
 								e.preventDefault();
-								e.currentTarget.blur();
+								void commitRename();
 							} else if (e.key === 'Escape') {
 								e.preventDefault();
 								cancelRename();
 							}
 						}}
-						class="min-w-0 flex-1 rounded border border-primary/50 bg-[var(--sl-bg-input)] px-2 py-0.5 text-[0.875rem] font-medium text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
+						placeholder="Device alias (optional)"
+						class="min-w-0 flex-1 rounded-md border border-primary/50 bg-[var(--sl-bg-input)] px-3 text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 						aria-label="Device alias"
 					/>
-				{:else}
-					<p class="truncate text-[0.875rem] text-[var(--sl-text-2)]">{alias}</p>
 					<button
 						type="button"
-						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
+						data-rename-action
+						class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white transition-all duration-100 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.9] active:bg-primary/80 disabled:opacity-50"
+						onclick={() => void commitRename()}
+						aria-label="Save alias"
+						disabled={saving}
+					>
+						<Check size={16} />
+					</button>
+					<button
+						type="button"
+						data-rename-action
+						class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--sl-border)] text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.9] active:bg-[var(--sl-bg-subtle)]"
+						onclick={cancelRename}
+						aria-label="Cancel rename"
+						disabled={saving}
+					>
+						<X size={16} />
+					</button>
+				</div>
+			{:else}
+				<div class="flex items-center gap-2">
+					<h1
+						class="min-w-0 truncate text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
+					>
+						{alias}
+					</h1>
+					<button
+						type="button"
+						class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 						onclick={startRename}
 						aria-label="Rename device"
 						disabled={saving}
 					>
-						<Pencil size={12} />
+						<Pencil size={14} />
 					</button>
 					{#if saving}
 						<Loader2
-							size={12}
+							size={14}
 							class="shrink-0 animate-spin text-[var(--sl-text-3)]"
 							aria-label="Saving alias"
 						/>
 					{/if}
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/snippet}
 	</PageHeader>
 
