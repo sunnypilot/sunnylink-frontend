@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { Share, SquarePlus, X, Smartphone } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
+	import { deviceState } from '$lib/stores/device.svelte';
 
 	interface Props {
 		title?: string;
@@ -34,10 +35,13 @@
 	}: Props = $props();
 
 	const STORAGE_KEY = 'iosPwaPrompt';
+	const WELCOME_DISMISS_KEY = 'sunnylink_welcome_general_dismissed_v1';
 
 	let shouldRender = $state(false);
 	let isVisible = $state(false);
+	let hasFired = $state(false);
 	let promptData: { isiOS: boolean; visits: number } | null = null;
+	let eligible = $state(false);
 
 	function detectIOS(): boolean {
 		if (typeof navigator === 'undefined') return false;
@@ -66,6 +70,26 @@
 
 		if (!promptData.isiOS && !debug) return;
 
+		eligible = true;
+	});
+
+	// Gate firing on the welcome-modal dismiss flag AND device selection.
+	// The install prompt is low-priority; never interrupt the welcome modal
+	// or a no-device user who's about to select a device from /dashboard/devices.
+	$effect(() => {
+		if (!eligible || hasFired) return;
+		let dismissedGeneral = false;
+		try {
+			dismissedGeneral = localStorage.getItem(WELCOME_DISMISS_KEY) === '1';
+		} catch {
+			dismissedGeneral = false;
+		}
+		if (!debug) {
+			if (!dismissedGeneral) return;
+			if (!deviceState.selectedDeviceId) return;
+		}
+
+		if (!promptData) return;
 		const aboveMin = promptData.visits + 1 >= promptOnVisit;
 		const belowMax = promptData.visits + 1 < promptOnVisit + timesToShow;
 
@@ -78,6 +102,7 @@
 
 		if (!aboveMin && !debug) return;
 
+		hasFired = true;
 		shouldRender = true;
 		const timeoutId = setTimeout(() => {
 			isVisible = true;
@@ -107,26 +132,21 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if shouldRender}
+	<!-- Non-modal bottom sheet. The outer fixed container sits at the bottom of
+	     the viewport with pointer-events-none so the page behind stays fully
+	     interactive. Only the inner panel captures clicks. No backdrop, no
+	     blur — install is optional, blocking the app for it is a dark pattern. -->
 	<div
-		class="fixed inset-0 z-[9999] flex items-end justify-center"
-		role="dialog"
-		aria-modal="true"
+		class="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex items-end justify-center px-0 sm:px-4"
 		aria-labelledby="pwa-prompt-title"
 		aria-describedby="pwa-prompt-description"
 		use:portal
 	>
 		{#if isVisible}
-			<button
-				type="button"
-				class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-				transition:fade={{ duration: 200 }}
-				onclick={dismiss}
-				aria-label="Dismiss install prompt"
-			></button>
-
 			<div
-				class="relative w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/95 shadow-2xl backdrop-blur-md sm:mb-4 sm:rounded-2xl"
+				class="pointer-events-auto relative w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]/95 shadow-2xl backdrop-blur-md sm:mb-4 sm:rounded-2xl"
 				style="padding-bottom: env(safe-area-inset-bottom);"
+				role="region"
 				transition:fly={{ y: 320, duration: 320, easing: cubicOut, opacity: 1 }}
 			>
 				<header
