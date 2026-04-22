@@ -13,6 +13,7 @@ import { goto } from '$app/navigation';
 import {
 	fetchCategoryTopics,
 	fetchTopicDetail,
+	getLastFetchError,
 	hasRequiredTag,
 	type DiscourseTopic,
 	type DiscourseTopicDetail
@@ -48,6 +49,7 @@ let currentPage = $state(0);
 let nextPageLoading = $state(false);
 let newArrivalIds = $state<number[]>([]);
 let lastFetchedAt = $state(0);
+let fetchError = $state<string | null>(null);
 
 let pollId: ReturnType<typeof setInterval> | null = null;
 let lifecycleStarted = false;
@@ -123,9 +125,11 @@ async function refresh(opts: { silent?: boolean } = {}): Promise<void> {
 	try {
 		const fresh = await fetchPage(0);
 		if (!fresh) {
+			fetchError = getLastFetchError() ?? 'network error';
 			if (!hasLoaded) topics = [];
 			return;
 		}
+		fetchError = null;
 		const beforeIds = new Set(topics.map((t) => t.id));
 		const arrivals = fresh
 			.filter((t) => !beforeIds.has(t.id))
@@ -392,6 +396,9 @@ export const whatsNewStore = {
 	},
 	get lastFetchedAt() {
 		return lastFetchedAt;
+	},
+	get fetchError() {
+		return fetchError;
 	},
 	get unread() {
 		return topics.filter((t) => (readMap[t.id] ?? 0) < (t.highest_post_number ?? 1));

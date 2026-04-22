@@ -4,7 +4,17 @@
 	import { cubicOut } from 'svelte/easing';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { Check, ExternalLink, Loader2, Mail, MailOpen, Pin, X } from 'lucide-svelte';
+	import {
+		AlertCircle,
+		Check,
+		ExternalLink,
+		Loader2,
+		Mail,
+		MailOpen,
+		Pin,
+		RefreshCw,
+		X
+	} from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { forumTopicUrl, type DiscourseTopic } from '$lib/api/discourse';
 	import SunnypilotLogo from '$lib/components/SunnypilotLogo.svelte';
@@ -42,6 +52,17 @@
 			return;
 		}
 		goto(`/dashboard/whats-new/${id}`);
+	}
+
+	let manualRefreshing = $state(false);
+	async function handleManualRefresh() {
+		if (manualRefreshing) return;
+		manualRefreshing = true;
+		try {
+			await whatsNewStore.refresh({ silent: true });
+		} finally {
+			manualRefreshing = false;
+		}
 	}
 
 	function toggleSelect(id: number) {
@@ -183,20 +204,57 @@
 				Announcements from the sunnypilot team
 			</p>
 		</div>
-		{#if whatsNewStore.topics.length > 0}
-			<button
-				type="button"
-				onclick={selectMode ? exitSelectMode : enterSelectMode}
-				class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95]"
-			>
-				{selectMode ? 'Cancel' : 'Select'}
-			</button>
-		{/if}
+		<div class="flex shrink-0 items-center gap-2">
+			{#if !selectMode}
+				<button
+					type="button"
+					onclick={handleManualRefresh}
+					disabled={manualRefreshing}
+					aria-label="Refresh announcements"
+					title="Refresh"
+					class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					<RefreshCw size={14} class={manualRefreshing ? 'animate-spin' : ''} />
+				</button>
+			{/if}
+			{#if whatsNewStore.topics.length > 0}
+				<button
+					type="button"
+					onclick={selectMode ? exitSelectMode : enterSelectMode}
+					class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-2 text-[0.75rem] font-medium text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95]"
+				>
+					{selectMode ? 'Cancel' : 'Select'}
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if whatsNewStore.initialLoading && whatsNewStore.topics.length === 0}
 		<div class="flex items-center justify-center py-16 text-[var(--sl-text-3)]">
 			<Loader2 size={20} class="animate-spin" aria-label="Loading" />
+		</div>
+	{:else if whatsNewStore.topics.length === 0 && whatsNewStore.fetchError}
+		<div
+			class="rounded-xl border border-red-500/30 bg-red-500/5 px-6 py-10 text-center dark:bg-red-500/10"
+		>
+			<AlertCircle
+				size={24}
+				class="mx-auto mb-2 text-red-600 dark:text-red-400"
+				aria-hidden="true"
+			/>
+			<p class="text-[0.875rem] font-medium text-[var(--sl-text-1)]">Couldn't load announcements</p>
+			<p class="mt-1 text-[0.75rem] break-words text-[var(--sl-text-3)]">
+				{whatsNewStore.fetchError}
+			</p>
+			<button
+				type="button"
+				onclick={handleManualRefresh}
+				disabled={manualRefreshing}
+				class="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				<RefreshCw size={12} class={manualRefreshing ? 'animate-spin' : ''} />
+				Retry
+			</button>
 		</div>
 	{:else if whatsNewStore.topics.length === 0}
 		<div

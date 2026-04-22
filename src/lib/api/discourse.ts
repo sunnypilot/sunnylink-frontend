@@ -111,6 +111,12 @@ export interface CategoryListResponse {
 	};
 }
 
+let lastFetchError: string | null = null;
+
+export function getLastFetchError(): string | null {
+	return lastFetchError;
+}
+
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response | null> {
 	// Bypass the HTTP cache by appending a per-request timestamp. Previously
 	// relied on `cache: 'no-store'`, but iOS 26 WebKit appears to drop or error
@@ -121,19 +127,29 @@ async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response
 	const cacheBustedUrl = url + (url.includes('?') ? '&' : '?') + '_=' + Date.now();
 	const delays = [0, ...RETRY_DELAYS_MS];
 	let res: Response | null = null;
+	let throwMsg: string | null = null;
 	for (const delay of delays) {
 		if (delay > 0) await new Promise((r) => setTimeout(r, delay));
 		try {
 			res = await fetch(cacheBustedUrl, init);
-			if (res.status !== 429) return res;
+			if (res.status !== 429) {
+				if (res.ok) {
+					lastFetchError = null;
+				} else {
+					lastFetchError = `HTTP ${res.status} ${res.statusText || ''}`.trim();
+					console.error('[discourse] fetch non-OK', res.status, res.statusText, 'for', url);
+				}
+				return res;
+			}
+			throwMsg = `HTTP 429 (rate limited)`;
 		} catch (err) {
+			throwMsg = err instanceof Error ? err.message : String(err);
 			console.error('[discourse] fetch threw for', url, err);
 			res = null;
 		}
 	}
+	lastFetchError = throwMsg ?? 'network error';
 	if (!res) console.error('[discourse] fetch returned null after retries for', url);
-	else if (!res.ok)
-		console.error('[discourse] fetch non-OK', res.status, res.statusText, 'for', url);
 	return res;
 }
 
