@@ -21,6 +21,7 @@
 		whatsNewStore.topics.find((t) => t.id === topicId) ?? fallbackTopic ?? null
 	);
 	const isUnread = $derived(topic ? whatsNewStore.isUnread(topic.id) : false);
+	const bodyLoading = $derived(topic ? !!whatsNewStore.bodyLoading[topic.id] : false);
 
 	function formatDate(iso: string): string {
 		try {
@@ -34,9 +35,22 @@
 		}
 	}
 
+	function stripHtml(html: string): string {
+		if (typeof document === 'undefined' || !html) return '';
+		const tmp = document.createElement('div');
+		tmp.innerHTML = html;
+		return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+	}
+
 	function topicExcerpt(t: DiscourseTopic): string {
 		if (!t.excerpt) return '';
 		return t.excerpt.replace(/&hellip;\s*$/i, '…').replace(/\s+$/g, '');
+	}
+
+	function preview(t: DiscourseTopic): string {
+		const body = whatsNewStore.bodies[t.id]?.cooked;
+		if (body) return stripHtml(body);
+		return topicExcerpt(t);
 	}
 
 	function openOnForum(e: MouseEvent, t: DiscourseTopic) {
@@ -101,6 +115,15 @@
 		})();
 	});
 
+	// Fetch the full body so we can render the same stripped-HTML preview the
+	// feed card used to show inline. Not a track-view bump — forum CTA is
+	// still the only read signal.
+	$effect(() => {
+		if (!topic) return;
+		if (whatsNewStore.bodies[topic.id]) return;
+		void whatsNewStore.ensureBody(topic);
+	});
+
 	const title = $derived(topic?.title ?? '');
 </script>
 
@@ -137,6 +160,7 @@
 			</a>
 		</div>
 	{:else}
+		{@const previewText = preview(topic)}
 		<article
 			class="overflow-hidden rounded-2xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
 		>
@@ -156,31 +180,38 @@
 				</p>
 			</header>
 			<div class="px-5 py-6 sm:px-7">
-				{#if topicExcerpt(topic)}
+				{#if bodyLoading && !previewText}
+					<div class="flex items-center gap-2 text-[var(--sl-text-3)]">
+						<Loader2 size={14} class="animate-spin" aria-hidden="true" />
+						<span class="text-[0.8125rem]">Loading preview…</span>
+					</div>
+				{:else if previewText}
 					<p class="text-[0.9375rem] leading-relaxed text-[var(--sl-text-2)]">
-						{topicExcerpt(topic)}
+						{previewText}
 					</p>
 				{:else}
 					<p class="text-[0.8125rem] text-[var(--sl-text-3)]">
 						No preview available — read the full post on the community forum.
 					</p>
 				{/if}
-				<a
-					href={forumTopicUrl(topic)}
-					target="_blank"
-					rel="noopener noreferrer"
-					onclick={(e) => openOnForum(e, topic)}
-					class="relative mt-6 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
-				>
-					<span>Read on forum</span>
-					<ExternalLink size={13} aria-hidden="true" />
-					{#if isUnread}
-						<span
-							class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
-							aria-label="Unread announcement"
-						></span>
-					{/if}
-				</a>
+				<div class="mt-6 flex justify-end">
+					<a
+						href={forumTopicUrl(topic)}
+						target="_blank"
+						rel="noopener noreferrer"
+						onclick={(e) => openOnForum(e, topic)}
+						class="relative inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-4 text-[0.875rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
+					>
+						<span>Read on forum</span>
+						<ExternalLink size={13} aria-hidden="true" />
+						{#if isUnread}
+							<span
+								class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
+								aria-label="Unread announcement"
+							></span>
+						{/if}
+					</a>
+				</div>
 			</div>
 		</article>
 	{/if}

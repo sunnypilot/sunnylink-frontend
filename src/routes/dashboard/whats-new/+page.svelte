@@ -1,22 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import {
-		Check,
-		ChevronDown,
-		ExternalLink,
-		Loader2,
-		Mail,
-		MailOpen,
-		Pin,
-		X
-	} from 'lucide-svelte';
+	import { Check, ChevronRight, Loader2, Mail, MailOpen, Pin, X } from 'lucide-svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
-	import { forumTopicUrl, type DiscourseTopic } from '$lib/api/discourse';
+	import type { DiscourseTopic } from '$lib/api/discourse';
 
-	let expandedId = $state<number | null>(null);
 	let sentinelEl = $state<HTMLDivElement | null>(null);
 
 	// Selection mode
@@ -42,23 +32,12 @@
 		}
 	}
 
-	async function toggleExpand(id: number) {
+	function onCardClick(id: number) {
 		if (selectMode) {
 			toggleSelect(id);
 			return;
 		}
-		if (expandedId === id) {
-			expandedId = null;
-			return;
-		}
-		expandedId = id;
-		const topic = whatsNewStore.topics.find((t) => t.id === id);
-		if (topic) {
-			// Expand fetches the body so we can show the real post content
-			// (not just the list-response excerpt, which is occasionally empty).
-			// Not a track-view bump — only the forum CTA counts as a read.
-			await whatsNewStore.ensureBody(topic);
-		}
+		goto(`/dashboard/whats-new/${id}`);
 	}
 
 	function toggleSelect(id: number) {
@@ -70,7 +49,6 @@
 
 	function enterSelectMode() {
 		selectMode = true;
-		expandedId = null;
 	}
 
 	function exitSelectMode() {
@@ -124,12 +102,6 @@
 		});
 	}
 
-	function openOnForum(e: MouseEvent, topic: DiscourseTopic) {
-		e.preventDefault();
-		whatsNewStore.markRead(topic.id);
-		window.open(forumTopicUrl(topic), '_blank', 'noopener,noreferrer');
-	}
-
 	afterNavigate(() => {
 		exitSelectMode();
 	});
@@ -156,26 +128,6 @@
 	onMount(() => {
 		void whatsNewStore.init();
 	});
-
-	function topicExcerpt(topic: DiscourseTopic): string {
-		if (!topic.excerpt) return '';
-		return topic.excerpt.replace(/&hellip;\s*$/i, '…').replace(/\s+$/g, '');
-	}
-
-	function stripHtml(html: string): string {
-		if (typeof document === 'undefined' || !html) return '';
-		const tmp = document.createElement('div');
-		tmp.innerHTML = html;
-		// Collapse whitespace so the 3-line clamp doesn't get tricked by
-		// block-level newlines into showing half a line of content.
-		return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
-	}
-
-	function expandedPreview(topic: DiscourseTopic): string {
-		const body = whatsNewStore.bodies[topic.id]?.cooked;
-		if (body) return stripHtml(body);
-		return topicExcerpt(topic);
-	}
 
 	function coverUrl(topic: DiscourseTopic): string | null {
 		return topic.image_url || null;
@@ -233,19 +185,14 @@
 	{:else}
 		<ul class="flex flex-col gap-3">
 			{#each whatsNewStore.topics as topic (topic.id)}
-				{@const isOpen = !selectMode && expandedId === topic.id}
 				{@const isUnread = whatsNewStore.isUnread(topic.id)}
 				{@const isSelected = selectedIds.has(topic.id)}
 				{@const cover = coverUrl(topic)}
-				{@const preview = expandedPreview(topic)}
-				{@const bodyLoading = whatsNewStore.bodyLoading[topic.id]}
 				<li data-topic-id={topic.id}>
 					<article
 						class="relative overflow-hidden rounded-xl border bg-[var(--sl-bg-surface)] transition-colors {isSelected
 							? 'border-primary/60 ring-1 ring-primary/30'
-							: isOpen
-								? 'border-primary/40'
-								: 'border-[var(--sl-border)]'}"
+							: 'border-[var(--sl-border)]'}"
 					>
 						{#if isUnread && !selectMode}
 							<span
@@ -255,9 +202,8 @@
 						{/if}
 						<button
 							type="button"
-							onclick={() => toggleExpand(topic.id)}
+							onclick={() => onCardClick(topic.id)}
 							class="flex min-h-[96px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--sl-bg-elevated)]/40 sm:min-h-[112px]"
-							aria-expanded={isOpen}
 							aria-pressed={selectMode ? isSelected : undefined}
 						>
 							{#if selectMode}
@@ -301,55 +247,13 @@
 								</p>
 							</div>
 							{#if !selectMode}
-								<ChevronDown
+								<ChevronRight
 									size={16}
-									class="shrink-0 self-center text-[var(--sl-text-3)] transition-transform duration-150 {isOpen
-										? 'rotate-180'
-										: ''}"
+									class="shrink-0 self-center text-[var(--sl-text-3)]"
 									aria-hidden="true"
 								/>
 							{/if}
 						</button>
-
-						{#if isOpen}
-							<div
-								class="border-t border-[var(--sl-border-muted)] px-4 py-4"
-								transition:slide={{ duration: 180 }}
-							>
-								{#if bodyLoading && !preview}
-									<div class="flex items-center gap-2 text-[var(--sl-text-3)]">
-										<Loader2 size={14} class="animate-spin" aria-hidden="true" />
-										<span class="text-[0.8125rem]">Loading…</span>
-									</div>
-								{:else if preview}
-									<p class="line-clamp-3 text-[0.875rem] leading-relaxed text-[var(--sl-text-2)]">
-										{preview}
-									</p>
-								{:else}
-									<p class="text-[0.8125rem] text-[var(--sl-text-3)]">
-										No preview available — read the full post on the community forum.
-									</p>
-								{/if}
-								<div class="mt-4 flex justify-end">
-									<a
-										href={forumTopicUrl(topic)}
-										target="_blank"
-										rel="noopener noreferrer"
-										onclick={(e) => openOnForum(e, topic)}
-										class="relative inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/60 px-3.5 text-[0.8125rem] font-medium text-[var(--sl-text-2)] transition-colors hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
-									>
-										<span>Read on forum</span>
-										<ExternalLink size={12} aria-hidden="true" />
-										{#if isUnread}
-											<span
-												class="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--sl-bg-surface)]"
-												aria-label="Unread announcement"
-											></span>
-										{/if}
-									</a>
-								</div>
-							</div>
-						{/if}
 					</article>
 				</li>
 			{/each}
