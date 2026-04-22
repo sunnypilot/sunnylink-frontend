@@ -53,13 +53,13 @@
 			aria-live="polite"
 			class="overflow-hidden rounded-xl border transition-colors duration-150 {tone === 'caution'
 				? 'border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/10'
-				: 'border-primary/25 bg-primary/5 dark:bg-primary/10'}"
+				: 'border-cyan-500/25 bg-cyan-500/5 dark:bg-cyan-500/10'}"
 		>
 			<div class="flex items-center gap-3 px-4 py-3">
 				<div
 					class="rounded-full p-1.5 {tone === 'caution'
 						? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-						: 'bg-primary/15 text-primary'}"
+						: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400'}"
 				>
 					<RefreshCw size={16} aria-hidden="true" />
 				</div>
@@ -106,7 +106,7 @@
 
 			{#if expanded}
 				<div
-					class="border-t {tone === 'caution' ? 'border-amber-500/25' : 'border-primary/20'}"
+					class="border-t {tone === 'caution' ? 'border-amber-500/25' : 'border-cyan-500/20'}"
 					transition:slide={{ duration: 180, easing: cubicOut }}
 				>
 					<ul class="divide-y divide-[var(--sl-border-muted)]">
@@ -132,7 +132,7 @@
 												<span
 													class="font-medium {tone === 'caution'
 														? 'text-amber-700 dark:text-amber-300'
-														: 'text-primary'}"
+														: 'text-cyan-700 dark:text-cyan-400'}"
 												>
 													{entry.newDisplay}
 												</span>
@@ -141,7 +141,7 @@
 												<span
 													class="ml-1 font-medium {tone === 'caution'
 														? 'text-amber-700 dark:text-amber-300'
-														: 'text-primary'}"
+														: 'text-cyan-700 dark:text-cyan-400'}"
 												>
 													{entry.newDisplay}
 												</span>

@@ -475,15 +475,15 @@ code,
 	}
 	12% {
 		box-shadow:
-			inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 55%, transparent),
-			0 0 0 4px color-mix(in oklab, var(--color-primary) 15%, transparent);
-		background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
+			inset 0 0 0 2px color-mix(in oklab, #06b6d4 55%, transparent),
+			0 0 0 4px color-mix(in oklab, #06b6d4 15%, transparent);
+		background-color: color-mix(in oklab, #06b6d4 8%, transparent);
 	}
 	55% {
 		box-shadow:
-			inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 40%, transparent),
-			0 0 0 4px color-mix(in oklab, var(--color-primary) 8%, transparent);
-		background-color: color-mix(in oklab, var(--color-primary) 5%, transparent);
+			inset 0 0 0 2px color-mix(in oklab, #06b6d4 40%, transparent),
+			0 0 0 4px color-mix(in oklab, #06b6d4 8%, transparent);
+		background-color: color-mix(in oklab, #06b6d4 5%, transparent);
 	}
 	100% {
 		box-shadow:
@@ -496,7 +496,7 @@ code,
 @media (prefers-reduced-motion: reduce) {
 	[data-settings-highlight='true'] {
 		animation: none;
-		box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--color-primary) 50%, transparent);
-		background-color: color-mix(in oklab, var(--color-primary) 6%, transparent);
+		box-shadow: inset 0 0 0 2px color-mix(in oklab, #06b6d4 50%, transparent);
+		background-color: color-mix(in oklab, #06b6d4 6%, transparent);
 	}
 }

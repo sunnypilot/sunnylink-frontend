@@ -270,7 +270,7 @@
 					: pushState === 'pending' || isQueued
 						? 'border-l-2 border-l-amber-500'
 						: hasDrift
-							? 'border-l-2 border-l-primary'
+							? 'border-l-2 border-l-cyan-500'
 							: 'border-l-2 border-l-transparent'
 	);
 
