@@ -1,2 +1,2 @@
 export * from './types';
-export * from './policy';
+export * from './backup-policy';
