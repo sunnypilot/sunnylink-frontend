@@ -9,7 +9,13 @@
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./settings": {
+			"types": "./dist/settings/index.d.ts",
+			"import": "./dist/settings/index.js",
+			"default": "./dist/settings/index.js"
 		}
 	},
 	"files": [

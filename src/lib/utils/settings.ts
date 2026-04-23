@@ -1,11 +1,20 @@
 import {
+	BACKUP_EXCLUDED_KEYS,
+	buildSettingsBackup,
+	getBackupKeys as getCoreBackupKeys,
+	parseSettingsBackup as parseCoreSettingsBackup,
+	type DeviceSettingsBackup,
+	type UnavailableSetting
+} from '@sunnylink/core/settings';
+import { browser } from '$app/environment';
+import { fetchSettingsAsync } from '$lib/api/device';
+import {
 	SETTINGS_DEFINITIONS,
 	type RenderableSetting,
 	type SettingCategory,
 	type ExtendedDeviceParamKey
 } from '$lib/types/settings';
-
-import { browser } from '$app/environment';
+import { decodeParamValue } from '$lib/utils/device';
 
 function getEffectiveDefinitions(): import('$lib/types/settings').SettingDefinition[] {
 	if (!browser) return SETTINGS_DEFINITIONS;
@@ -110,170 +119,16 @@ export function getAllSettings(
 	);
 }
 
-export interface UnavailableSetting {
-	key: string;
-	reason: string;
-}
-
-export interface DeviceSettingsBackup {
-	version: number;
-	timestamp: number;
-	deviceId: string;
-	settings: Record<string, any>;
-	unavailable_settings?: UnavailableSetting[];
-}
+export { BACKUP_EXCLUDED_KEYS };
+export type { DeviceSettingsBackup, UnavailableSetting };
 
 export interface FetchAllSettingsResult {
 	settings: Record<string, unknown>;
 	failedKeys: UnavailableSetting[];
 }
 
-export const BACKUP_EXCLUDED_KEYS = new Set([
-	// Heavy cache data (regenerated automatically)
-	'ModelManager_ModelsCache',
-	'ModelRunnerTypeCache',
-	'LagdValueCache',
-	'ApiCache_DriveStats',
-	'ApiCache_Device',
-	'ApiCache_NavDestinations',
-	'ApiCache_FirehoseStats',
-	'SunnylinkCache_Users',
-	'SunnylinkCache_Roles',
-	'AthenadRecentlyViewedRoutes',
-	// CarParams — device-specific hardware data
-	'CarList',
-	'CarParams',
-	'CarParamsCache',
-	'CarParamsSP',
-	'CarParamsSPCache',
-	'CarParamsPrevRoute',
-	'CarParamsPersistent',
-	'CarParamsSPPersistent',
-	'AccessToken',
-	'AssistNowToken',
-	'BackupManager_CreateBackup',
-	'BackupManager_RestoreVersion',
-	'CameraDebugExpGain',
-	'CameraDebugExpTime',
-	'CustomTorqueParams',
-	'DoReboot',
-	'DoShutdown',
-	'DoUninstall',
-	'DriverTooDistracted',
-	'EnforceTorqueControl',
-	'ExperimentalModeConfirmed',
-	'ForcePowerDown',
-	'GitDiff',
-	'IsTakingSnapshot',
-	'JoystickDebugMode',
-	'LastAgnosPowerMonitorShutdown',
-	'LastGPSPosition',
-	'LastManagerExitReason',
-	'LastOffroadStatusPacket',
-	'LastPowerDropDetected',
-	'LongitudinalManeuverMode',
-	'MapAdvisorySpeedLimit',
-	'MapSpeedLimit',
-	'MapTargetVelocities',
-	'ModelManager_ClearCache',
-	'ModelManager_DownloadIndex',
-	'NextMapSpeedLimit',
-	'ObdMultiplexingChanged',
-	'ObdMultiplexingEnabled',
-	'Offroad_CarUnrecognized',
-	'Offroad_ConnectivityNeeded',
-	'Offroad_ConnectivityNeededPrompt',
-	'Offroad_DriverMonitoringUncertain',
-	'Offroad_ExcessiveActuation',
-	'Offroad_IsTakingSnapshot',
-	'Offroad_NeosUpdate',
-	'Offroad_NoFirmware',
-	'Offroad_OSMUpdateRequired',
-	'Offroad_Recalibration',
-	'Offroad_TemperatureTooHigh',
-	'Offroad_TiciSupport',
-	'Offroad_UnregisteredHardware',
-	'Offroad_UpdateFailed',
-	'OffroadMode',
-	'OnroadCycleRequested',
-	'OsmDbUpdatesCheck',
-	'OSMDownloadBounds',
-	'OSMDownloadLocations',
-	'OSMDownloadProgress',
-	'OsmLocationUrl',
-	'OsmStateTitle',
-	'OsmWayTest',
-	'RecordFrontLock',
-	'RoadName',
-	'SecOCKey',
-	'SnoozeUpdate',
-	'SunnylinkTempFault',
-	'TermsVersion',
-	'TorqueControlTune',
-	'TrainingVersion',
-	// Live/ephemeral data
-	'LiveTorqueParameters',
-	'LiveParameters',
-	'LiveParametersV2',
-	'CalibrationParams',
-	'LocationFilterInitialState',
-	// Updater state (ephemeral)
-	'UpdaterAvailableBranches',
-	'UpdaterCurrentDescription',
-	'UpdaterCurrentReleaseNotes',
-	'UpdaterNewDescription',
-	'UpdaterNewReleaseNotes',
-	'UpdaterFetchAvailable',
-	'UpdaterState',
-	'UpdaterLastFetchTime',
-	// Runtime counters / device state
-	'CarBatteryCapacity',
-	'GitCommit',
-	'GitCommitDate',
-	// Boot and uptime tracking
-	'BootCount',
-	'CurrentBootlog',
-	'UptimeOnroad',
-	'UptimeOffroad',
-	// Route tracking
-	'RouteCount',
-	'CurrentRoute',
-	// Last update tracking
-	'LastUpdateException',
-	'LastUpdateTime',
-	'LastUpdateRouteCount',
-	'LastUpdateUptimeOnroad',
-	// Panda hardware state
-	'PandaHeartbeatLost',
-	'PandaSomResetTriggered',
-	'PandaSignatures',
-	// Process PIDs
-	'AthenadPid',
-	'SunnylinkdPid'
-]);
-
 export function getBackupKeys(deviceSettings?: ExtendedDeviceParamKey[]): string[] {
-	const defsMap = new Map(SETTINGS_DEFINITIONS.map((d) => [d.key, d]));
-
-	let keys: string[];
-	if (deviceSettings && deviceSettings.length > 0) {
-		// Use only device-reported keys — the device knows what it has
-		keys = deviceSettings.map((s) => s.key).filter((k): k is string => k !== undefined);
-	} else {
-		// Fallback to static definitions
-		keys = SETTINGS_DEFINITIONS.map((d) => d.key);
-	}
-
-	// Filter out section markers and explicitly excluded keys, then sort for deterministic output
-	return keys
-		.filter((key) => {
-			if (BACKUP_EXCLUDED_KEYS.has(key)) return false;
-			if (key.startsWith('_sec_')) return false;
-			const def = defsMap.get(key);
-			if (def?.isSection) return false;
-			return true;
-		})
-		.sort((a, b) => a.localeCompare(b));
+	return getCoreBackupKeys(SETTINGS_DEFINITIONS, deviceSettings);
 }
 
 export function downloadSettingsBackup(
@@ -281,23 +136,11 @@ export function downloadSettingsBackup(
 	settings: Record<string, any>,
 	unavailableSettings?: UnavailableSetting[]
 ) {
-	// Sort settings keys for deterministic output across fetches
-	const sortedSettings: Record<string, any> = {};
-	for (const key of Object.keys(settings).sort((a, b) => a.localeCompare(b))) {
-		sortedSettings[key] = settings[key];
-	}
-
-	const sortedUnavailable = unavailableSettings?.slice().sort((a, b) => a.key.localeCompare(b.key));
-
-	const backup: DeviceSettingsBackup = {
-		version: 2,
-		timestamp: Date.now(),
+	const backup = buildSettingsBackup({
 		deviceId,
-		settings: sortedSettings,
-		...(sortedUnavailable && sortedUnavailable.length > 0
-			? { unavailable_settings: sortedUnavailable }
-			: {})
-	};
+		settings,
+		unavailableSettings
+	});
 
 	const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
@@ -309,9 +152,6 @@ export function downloadSettingsBackup(
 	document.body.removeChild(a);
 	URL.revokeObjectURL(url);
 }
-
-import { decodeParamValue } from '$lib/utils/device';
-import { fetchSettingsAsync } from '$lib/api/device';
 
 export async function fetchAllSettings(
 	deviceId: string,
@@ -466,13 +306,5 @@ export async function fetchAllSettings(
 }
 
 export function parseSettingsBackup(json: string): DeviceSettingsBackup {
-	try {
-		const parsed = JSON.parse(json);
-		if (!parsed.version || !parsed.settings) {
-			throw new Error('Invalid backup format');
-		}
-		return parsed as DeviceSettingsBackup;
-	} catch (e) {
-		throw new Error('Failed to parse settings backup file');
-	}
+	return parseCoreSettingsBackup(json);
 }
