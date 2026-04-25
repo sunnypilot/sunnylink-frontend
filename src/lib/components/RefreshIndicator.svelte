@@ -43,17 +43,19 @@
 		</span>
 		<button
 			type="button"
-			class="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+			class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-[var(--sl-bg-elevated)]/40 text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
 			onclick={handleRefresh}
 			disabled={statusPolling.isRefreshing}
 			aria-disabled={statusPolling.isRefreshing}
 			aria-label="Refresh device status"
 			title="Refresh now"
 		>
-			<RefreshCw
-				size={12}
-				class="transition-transform {statusPolling.isRefreshing ? 'animate-spin' : ''}"
-			/>
+			{#if statusPolling.isRefreshing}
+				<span class="loading loading-spinner text-primary" style="width: 14px; height: 14px;"
+				></span>
+			{:else}
+				<RefreshCw size={14} />
+			{/if}
 		</button>
 	</div>
 {/if}

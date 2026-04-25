@@ -33,7 +33,7 @@
 {#if onRefresh}
 	<button
 		type="button"
-		class="relative inline-flex h-6 w-6 shrink-0 items-center justify-center self-center rounded align-middle transition-all duration-100 {isRefreshing
+		class="relative inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-md bg-[var(--sl-bg-elevated)]/40 align-middle transition-all duration-100 {isRefreshing
 			? 'cursor-not-allowed opacity-60'
 			: 'text-[var(--sl-text-3)] hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]'}"
 		onclick={handleClick}

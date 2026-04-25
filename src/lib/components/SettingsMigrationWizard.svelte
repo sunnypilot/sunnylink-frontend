@@ -602,11 +602,17 @@
 												Choose an online device to copy settings from.
 											</p>
 											<button
-												class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary transition-all duration-100 hover:bg-primary/10 active:scale-[0.94] active:bg-primary/20"
+												class="flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-xs text-primary transition-all duration-100 hover:bg-primary/10 active:scale-[0.94] active:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
 												onclick={handleRecheckStatus}
 												disabled={isCheckingStatus}
 											>
-												<RefreshCw size={12} class={isCheckingStatus ? 'animate-spin' : ''} />
+												{#if isCheckingStatus}
+													<span
+														class="loading loading-spinner text-primary"
+														style="width: 12px; height: 12px;"></span>
+												{:else}
+													<RefreshCw size={12} />
+												{/if}
 												Recheck Status
 											</button>
 										</div>

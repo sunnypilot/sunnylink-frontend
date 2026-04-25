@@ -444,10 +444,16 @@
 					<button
 						onclick={refreshStatus}
 						disabled={refreshing}
-						class="flex h-9 w-9 items-center justify-center rounded-md text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:opacity-50 disabled:active:scale-100"
+						class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md bg-[var(--sl-bg-elevated)]/40 text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-none active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
 						aria-label="Refresh status"
 					>
-						<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
+						{#if refreshing}
+							<span
+								class="loading loading-spinner text-primary"
+								style="width: 14px; height: 14px;"></span>
+						{:else}
+							<RefreshCw size={14} />
+						{/if}
 					</button>
 				</div>
 				<div class="mt-1 flex items-center gap-1.5 text-[0.75rem] text-[var(--sl-text-2)]">
