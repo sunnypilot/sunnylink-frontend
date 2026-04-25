@@ -559,14 +559,13 @@
 				? ''
 				: `padding-top: ${topBarHeight}px; scroll-padding-top: ${topBarHeight}px;`}
 		>
-			<GlobalStatusBanner />
-
 			{#if !isChromeless}
 				<div
 					bind:clientHeight={topBarHeight}
 					class="fixed top-0 right-0 left-0 z-50 bg-[var(--sl-bg-page)] lg:left-[18rem]"
 					style="padding-top: env(safe-area-inset-top);"
 				>
+					<GlobalStatusBanner />
 					<ForceOffroadBanner />
 					<header
 						class="w-full border-b border-[var(--sl-border)] bg-[var(--sl-bg-page)] px-4 py-2.5 sm:px-6"

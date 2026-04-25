@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { AlertCircle, AlertTriangle, ExternalLink, Info, X } from 'lucide-svelte';
+	import { AlertCircle, AlertTriangle, CheckCircle, ExternalLink, Info, X } from 'lucide-svelte';
 	// TEST: Import mock data for local testing
 	// import { mockIssues, mockFetchComments } from './GlobalStatusBanner.test-data';
 
@@ -281,7 +281,6 @@
 	}
 
 	function checkDismissals() {
-		// Read dismissed IDs from localStorage
 		let dismissedIds: string[] = [];
 		try {
 			const stored = localStorage.getItem('sunnylink_dismissed_status_ids');
@@ -293,10 +292,20 @@
 			dismissedIds = [];
 		}
 
+		// GC: prune dismissed IDs that no longer exist in current statuses
+		const currentIds = new Set(statuses.map((s) => s.id));
+		const pruned = dismissedIds.filter((id) => currentIds.has(id));
+		if (pruned.length !== dismissedIds.length) {
+			try {
+				localStorage.setItem('sunnylink_dismissed_status_ids', JSON.stringify(pruned));
+			} catch (e) {
+				/* ignore */
+			}
+		}
+		dismissedIds = pruned;
+
 		visibleStatuses = statuses.filter((s) => {
-			// If not dismissible, always show
 			if (!s.dismissible) return true;
-			// If dismissible, show only if ID is not in dismissed list
 			return !dismissedIds.includes(s.id);
 		});
 	}
@@ -333,17 +342,18 @@
 		info: Info,
 		warning: AlertTriangle,
 		error: AlertCircle,
-		success: Info
+		success: CheckCircle
 	};
 </script>
 
 {#if visibleStatuses.length > 0}
-	<div class="relative z-[60] flex w-full flex-col">
-		{#each visibleStatuses as status (status.id)}
+	{@const displayedStatuses = visibleStatuses.slice(0, 3)}
+	{@const overflowCount = visibleStatuses.length - displayedStatuses.length}
+	<div class="flex w-full flex-col">
+		{#each displayedStatuses as status (status.id)}
 			<div
 				transition:slide={{ duration: 300 }}
-				class="w-full border-b backdrop-blur-md {styles[status.level] ||
-					styles.info} first:pt-[env(safe-area-inset-top)]"
+				class="w-full border-b backdrop-blur-md {styles[status.level] || styles.info}"
 			>
 				<div
 					class="mx-auto flex max-w-7xl items-start justify-between gap-4 p-4 sm:items-center sm:px-6 lg:px-8"
@@ -383,5 +393,22 @@
 				</div>
 			</div>
 		{/each}
+
+		{#if overflowCount > 0}
+			<div
+				transition:slide={{ duration: 300 }}
+				class="w-full border-b bg-[var(--sl-bg-subtle)] py-2 text-center text-xs text-[var(--sl-text-3)]"
+			>
+				And {overflowCount} more incident{overflowCount > 1 ? 's' : ''} —
+				<a
+					href="https://status.sunnypilot.ai"
+					target="_blank"
+					rel="noreferrer"
+					class="underline underline-offset-2 hover:text-[var(--sl-text-1)]"
+				>
+					View status page →
+				</a>
+			</div>
+		{/if}
 	</div>
 {/if}
