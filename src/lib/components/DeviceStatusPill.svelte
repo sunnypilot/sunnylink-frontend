@@ -317,6 +317,9 @@
 				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: false });
 			}
 			driftStore.resolveKeys(deviceId, ['OffroadMode']);
+			// Invalidate device-scoped caches so the active settings/models/osm
+			// page re-fetches against the new onroad state without manual reload.
+			deviceState.invalidateAll(deviceId);
 			// State is now consistent — drop the spinner before the background
 			// refresh; otherwise the toggle keeps spinning while the pill already
 			// shows the new state. Refresh is fire-and-forget.
@@ -341,6 +344,9 @@
 
 	async function onForceOffroadSuccess() {
 		if (!deviceId) return;
+		// Invalidate device-scoped caches so the active settings/models/osm
+		// page re-fetches against the new onroad state without manual reload.
+		deviceState.invalidateAll(deviceId);
 		try {
 			const token = await logtoClient?.getIdToken();
 			if (token) await checkDeviceStatus(deviceId, token, true);

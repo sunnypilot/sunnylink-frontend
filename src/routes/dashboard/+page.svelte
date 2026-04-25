@@ -133,6 +133,9 @@
 
 	async function handleRefreshStatus() {
 		if (!selectedDevice) return;
+		// Master invalidation signal — keeps every page in lock-step with the
+		// header refresh: settings/models/osm re-fetch on next reactive pass.
+		deviceState.invalidateAll(selectedDevice.device_id);
 		const token = await logtoClient?.getIdToken();
 		if (!token) return;
 		const { checkDeviceStatus } = await import('$lib/api/device');

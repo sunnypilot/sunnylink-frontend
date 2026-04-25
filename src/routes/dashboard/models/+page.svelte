@@ -451,6 +451,17 @@
 		}
 	});
 
+	// Re-fetch models when valuesStale is set (header offroad toggle, manual
+	// refresh button, version-poll drift). Mirrors the osm/+page guard pattern.
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did && deviceState.valuesStale[did] && !untrack(() => isFetchingModels)) {
+			fetchModelsForDevice(true).finally(() => {
+				if (deviceState.valuesStale[did]) deviceState.valuesStale[did] = false;
+			});
+		}
+	});
+
 	// Poll for updates while downloading a model
 	$effect(() => {
 		if (downloadingModelIndex !== undefined && deviceState.selectedDeviceId) {
@@ -857,8 +868,9 @@
 	loading={!!(loadingModels || isCheckingStatus) && !modelList}
 	onRefresh={async () => {
 		if (!deviceId || !logtoClient) return;
-		// Set stale immediately for instant "Refreshing..." feedback (matches settings pages)
-		deviceState.valuesStale[deviceId] = true;
+		// Master invalidation signal — also drives the valuesStale $effect so
+		// the spinner shows "Refreshing..." instantly and consumers re-fetch.
+		deviceState.invalidateAll(deviceId);
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token) return;

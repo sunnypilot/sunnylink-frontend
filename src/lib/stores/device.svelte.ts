@@ -54,6 +54,22 @@ export const deviceState = $state({
 	migrationWizardOpen: false,
 	migrationTargetDeviceId: '',
 
+	/**
+	 * Mark all device-scoped caches as stale so the active route re-fetches
+	 * its data on the next reactive pass. `valuesStale` is the master
+	 * invalidation signal: settings layout prefetch, settings/[category],
+	 * settings/vehicle, models, and osm all watch it. Pages that read
+	 * `offroadStatuses` / `onlineStatuses` reactively (home, my-devices,
+	 * device-details) update without needing a flag flip.
+	 *
+	 * Called from anywhere that mutates onroad/offroad state outside the
+	 * normal status-poll flow (header pill toggle, per-page refresh buttons).
+	 */
+	invalidateAll(deviceId: string) {
+		if (!deviceId) return;
+		this.valuesStale[deviceId] = true;
+	},
+
 	// Helper to set selected device
 	setSelectedDevice(deviceId: string | null) {
 		this.selectedDeviceId = deviceId ?? undefined;

@@ -563,8 +563,9 @@
 
 	function handleManualRefresh() {
 		if (!deviceId || !logtoClient) return;
-		// Set stale immediately for instant "Refreshing..." feedback.
-		deviceState.valuesStale[deviceId] = true;
+		// Master invalidation signal — settings layout prefetch picks this up
+		// and re-fetches every panel key (full-schema refresh, not slice).
+		deviceState.invalidateAll(deviceId);
 		logtoClient.getIdToken().then((token) => {
 			if (!token || !deviceId) return;
 			// checkDeviceStatus already calls fetchParamsMetadata internally and

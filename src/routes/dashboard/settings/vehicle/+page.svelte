@@ -183,6 +183,7 @@
 	description="Fingerprint and platform selection"
 	syncStatus={sync.status}
 	onRefresh={() => {
+		if (deviceId) deviceState.invalidateAll(deviceId);
 		fetchBrandValues(true);
 		if (deviceId && logtoClient) {
 			logtoClient.getIdToken().then((token) => {

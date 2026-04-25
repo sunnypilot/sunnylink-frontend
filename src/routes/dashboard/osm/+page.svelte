@@ -436,8 +436,9 @@
 	onRefresh={async () => {
 		const did = deviceState.selectedDeviceId;
 		if (!did || !logtoClient) return;
-		// Set stale immediately for instant "Refreshing..." feedback (matches settings pages)
-		deviceState.valuesStale[did] = true;
+		// Master invalidation signal — also drives the valuesStale $effect so
+		// the spinner shows "Refreshing..." instantly and consumers re-fetch.
+		deviceState.invalidateAll(did);
 		try {
 			const token = await logtoClient.getIdToken();
 			if (!token) return;
