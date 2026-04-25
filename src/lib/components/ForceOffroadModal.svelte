@@ -97,7 +97,7 @@
 		use:modalLock
 	>
 		<button
-			class="absolute inset-0 bg-black/40"
+			class="absolute inset-0 bg-black/40 motion-safe:backdrop-blur-sm [will-change:opacity] transform-gpu"
 			transition:fade={{ duration: 200 }}
 			onclick={() => {
 				if (!pushing) open = false;
