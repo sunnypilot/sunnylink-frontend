@@ -5,10 +5,23 @@
 	import { encodeParamValue } from '$lib/utils/device';
 	import { AlertTriangle, Loader2 } from 'lucide-svelte';
 	import { checkDeviceStatus } from '$lib/api/device';
+	import { driftStore } from '$lib/stores/driftStore.svelte';
+	import { slide } from 'svelte/transition';
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let offroadStatus = $derived(deviceId ? deviceState.offroadStatuses[deviceId] : undefined);
-	let isForceOffroad = $derived(offroadStatus?.forceOffroad ?? false);
+	let offroadModeParam = $derived(
+		deviceId ? deviceState.deviceValues[deviceId]?.['OffroadMode'] : undefined
+	);
+	let isForceOffroad = $derived.by(() => {
+		const fromStatus = offroadStatus?.forceOffroad ?? false;
+		const fromParam =
+			offroadModeParam === true ||
+			offroadModeParam === 1 ||
+			offroadModeParam === '1' ||
+			offroadModeParam === 'true';
+		return fromStatus || fromParam;
+	});
 
 	let stopping = $state(false);
 
@@ -38,8 +51,20 @@
 				headers: { Authorization: `Bearer ${token}` }
 			});
 
+			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
+			deviceState.deviceValues[deviceId]['OffroadMode'] = false;
+			deviceState.offroadStatuses[deviceId] = {
+				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
+				forceOffroad: false
+			};
+			const baseline = driftStore.getBaseline(deviceId);
+			if (Object.keys(baseline).length > 0) {
+				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: false });
+			}
+			driftStore.resolveKeys(deviceId, ['OffroadMode']);
+
 			// Refresh status
-			await checkDeviceStatus(deviceId, token);
+			await checkDeviceStatus(deviceId, token, true);
 		} catch (e) {
 			console.error('Failed to stop forcing offroad', e);
 		} finally {
@@ -49,26 +74,42 @@
 </script>
 
 {#if isForceOffroad}
-	<div class="sticky top-0 z-[60] mb-4 w-full rounded-lg border border-amber-500/50 bg-[#1e293b]">
-		<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 sm:px-6 lg:px-8">
-			<div class="flex items-center gap-3">
-				<div
-					class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-500"
-				>
-					<AlertTriangle size={20} />
-				</div>
-				<div>
-					<p class="font-bold text-white">Force Offroad Active</p>
-					<p class="text-xs text-slate-400">Vehicle engagement is disabled.</p>
-				</div>
+	<div
+		role="status"
+		aria-live="polite"
+		class="w-full border-b border-amber-500/20 bg-amber-500/8 dark:bg-amber-500/10"
+		transition:slide={{ duration: 200 }}
+	>
+		<div
+			class="mx-auto flex min-h-[44px] max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:gap-4 sm:px-6 lg:px-8"
+		>
+			<div class="flex min-w-0 items-center gap-2.5">
+				<AlertTriangle
+					size={16}
+					class="shrink-0 text-amber-600 dark:text-amber-400"
+					aria-hidden="true"
+				/>
+				<p class="text-[0.8125rem] leading-snug text-amber-700 dark:text-amber-300">
+					<span class="font-medium">Always Offroad Mode Active</span>
+					<span class="text-amber-700/80 dark:text-amber-300/80">
+						• sunnypilot will not engage or enable dashcam recording
+					</span>
+				</p>
 			</div>
-			{#if stopping}
-				<Loader2 size={30} class="mr-2 animate-spin text-white" />
-			{:else}
-				<button class="btn btn-sm btn-warning" onclick={stopForcing} disabled={stopping}>
-					Stop Forcing
-				</button>
-			{/if}
+			<button
+				type="button"
+				onclick={stopForcing}
+				disabled={stopping}
+				class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/15 px-3 text-[0.75rem] font-medium text-amber-700 transition-all duration-100 hover:bg-amber-500/25 focus-visible:outline-2 focus-visible:outline-amber-600 active:scale-[0.96] active:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
+				aria-label="Disable Always Offroad Mode"
+			>
+				{#if stopping}
+					<Loader2 size={12} class="animate-spin" aria-hidden="true" />
+					<span>Disabling…</span>
+				{:else}
+					<span>Disable</span>
+				{/if}
+			</button>
 		</div>
 	</div>
 {/if}

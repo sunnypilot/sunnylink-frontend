@@ -1,0 +1,28 @@
+<svg
+	xmlns="http://www.w3.org/2000/svg"
+	viewBox="0 0 200 200"
+	fill="none"
+	stroke="currentColor"
+	stroke-width="1.5"
+	stroke-linecap="round"
+	stroke-linejoin="round"
+	aria-hidden="true"
+>
+	<!-- Calm, hand-drawn placeholder of a device + pairing dots.
+	     Uses currentColor so it inherits theme text/primary color. -->
+	<rect x="58" y="34" width="84" height="132" rx="12" opacity="0.9" />
+	<rect x="66" y="46" width="68" height="100" rx="4" opacity="0.45" />
+	<circle cx="100" cy="156" r="3" fill="currentColor" stroke="none" opacity="0.8" />
+	<path d="M100 66 v24" opacity="0.6" />
+	<path d="M88 96 h24" opacity="0.6" />
+	<path d="M82 112 h36" opacity="0.4" />
+	<path d="M82 124 h28" opacity="0.4" />
+	<circle cx="38" cy="72" r="4" opacity="0.55" />
+	<circle cx="30" cy="104" r="3" opacity="0.4" />
+	<circle cx="42" cy="136" r="3" opacity="0.35" />
+	<circle cx="166" cy="60" r="3" opacity="0.4" />
+	<circle cx="172" cy="96" r="4" opacity="0.55" />
+	<circle cx="160" cy="132" r="3" opacity="0.35" />
+	<path d="M48 76 q6 12 18 18" opacity="0.3" />
+	<path d="M152 76 q-6 12 -18 18" opacity="0.3" />
+</svg>

@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { X, RectangleHorizontal, ArrowLeft } from 'lucide-svelte';
+	import { portal } from '$lib/utils/portal';
 
 	let { open = $bindable(false), deviceType = $bindable(null) } = $props<{
 		open: boolean;
@@ -13,74 +15,167 @@
 	$effect(() => {
 		if (open && deviceType) {
 			selectedDeviceType = deviceType;
-			step = 2;
+			goToStep(2);
 		} else if (open && !selectedDeviceType) {
-			step = 1;
+			goToStep(1);
 		}
 	});
 
 	function close() {
 		open = false;
-		// Reset state after transition
+		// Reset state after exit animation completes
 		setTimeout(() => {
 			step = 1;
 			selectedDeviceType = null;
 			deviceType = null;
+			stepDirection = 'forward';
 		}, 300);
 	}
 
 	function selectDevice(type: 'c3' | 'c4') {
 		selectedDeviceType = type;
-		step = 2;
+		goToStep(2);
 	}
 
 	function back() {
 		if (deviceType) {
-			// If we opened with a specific device type, back closes or resets?
-			// User might want to switch devices. Let's allow effective "back" to selection.
 			deviceType = null;
 		}
-		step = 1;
+		goToStep(1);
 		selectedDeviceType = null;
+	}
+
+	// iOS page sheet: background shrinks on open, smoothly expands on close.
+	// Scroll locked on body + main (the actual scroll container in the drawer layout).
+	// Timeout ref prevents race conditions between close→open sequences.
+	let savedScrollY = 0;
+	let cleanupTimerId: ReturnType<typeof setTimeout> | null = null;
+
+	function lockScroll() {
+		// Cancel any pending cleanup from a previous close
+		if (cleanupTimerId !== null) {
+			clearTimeout(cleanupTimerId);
+			cleanupTimerId = null;
+		}
+
+		savedScrollY = window.scrollY;
+
+		// Lock body scroll
+		document.body.style.position = 'fixed';
+		document.body.style.top = `-${savedScrollY}px`;
+		document.body.style.width = '100%';
+		document.body.style.overflow = 'hidden';
+
+		// Lock main scroll container (inside DaisyUI drawer)
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = 'hidden';
+	}
+
+	function unlockScroll(scrollY: number) {
+		document.body.style.position = '';
+		document.body.style.top = '';
+		document.body.style.width = '';
+		document.body.style.overflow = '';
+
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = '';
+
+		window.scrollTo(0, scrollY);
+	}
+
+	$effect(() => {
+		if (open) {
+			lockScroll();
+
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transition =
+					'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
+				appRoot.style.transform = 'scale(0.94) translateY(10px)';
+				appRoot.style.borderRadius = '12px';
+				appRoot.style.overflow = 'hidden';
+			}
+		}
+		return () => {
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				// Trigger the scale-back animation (transition is still set)
+				appRoot.style.transform = '';
+				appRoot.style.borderRadius = '';
+				appRoot.style.overflow = '';
+
+				// Delay scroll unlock until the 500ms transition completes.
+				// Body stays fixed during animation to prevent reflow jank.
+				const scrollY = savedScrollY;
+				cleanupTimerId = setTimeout(() => {
+					cleanupTimerId = null;
+					appRoot.style.transition = '';
+					unlockScroll(scrollY);
+				}, 500);
+			} else {
+				unlockScroll(savedScrollY);
+			}
+		};
+	});
+
+	function emphasizedDecelerate(t: number): number {
+		return 1 - Math.pow(1 - t, 3);
+	}
+
+	function emphasizedAccelerate(t: number): number {
+		return t * t * t;
+	}
+
+	const isMobilePairing = typeof window !== 'undefined' && window.innerWidth < 640;
+
+	let stepDirection: 'forward' | 'back' = $state('forward');
+
+	function goToStep(newStep: number) {
+		stepDirection = newStep > step ? 'forward' : 'back';
+		step = newStep;
 	}
 </script>
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
-		<!-- Backdrop -->
 		<button
-			class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-			transition:fade={{ duration: 200 }}
+			class="absolute inset-0 bg-[var(--sl-overlay)]"
+			in:fade={{ duration: 400, easing: cubicOut }}
+			out:fade={{ duration: 250 }}
 			onclick={close}
 			aria-label="Close modal"
 		></button>
 
-		<!-- Content -->
 		<div
-			class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#334155] bg-[#0f1726] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			class="relative mx-2 mb-2 flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl bg-[var(--sl-bg-surface)] shadow-2xl sm:mx-0 sm:mb-0 sm:min-h-[360px] sm:w-full sm:max-w-lg sm:border sm:border-[var(--sl-border)]"
+			style="max-height: calc(100dvh - 3rem);"
+			in:fly={{ y: 800, duration: 500, easing: emphasizedDecelerate }}
+			out:fly={{ y: 800, duration: 300, easing: emphasizedAccelerate }}
 		>
 			<!-- Header -->
-			<div class="border-b border-[#334155] bg-[#1e293b]/50 p-6">
+			<div
+				class="shrink-0 border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 px-4 py-3 sm:px-5 sm:py-4"
+			>
 				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3">
+					<div class="flex items-center gap-2">
 						{#if step === 2}
 							<button
-								class="rounded-lg p-1 text-slate-400 hover:bg-white/5 hover:text-white"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 								onclick={back}
 								title="Back"
 							>
 								<ArrowLeft size={20} />
 							</button>
 						{/if}
-						<h3 class="text-xl font-bold text-white">Pair New Device</h3>
+						<h3 class="text-lg font-semibold text-[var(--sl-text-1)]">Pair New Device</h3>
 					</div>
 					<button
-						class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+						class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)]"
 						onclick={close}
 						aria-label="Close"
 					>
@@ -89,91 +184,98 @@
 				</div>
 			</div>
 
-			<div class="p-6">
-				{#if step === 1}
-					<div class="space-y-4">
-						<p class="text-sm text-slate-400">
-							Select your comma device model to see pairing instructions.
-						</p>
+			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; align-content: start;">
+				{#key step}
+					<div
+						style="grid-area: 1 / 1;"
+						in:fly={{ x: stepDirection === 'forward' ? 60 : -60, duration: 200, delay: 120 }}
+						out:fly={{ x: stepDirection === 'forward' ? -30 : 30, duration: 120 }}
+					>
+						{#if step === 1}
+							<div class="space-y-4">
+								<p class="text-sm text-[var(--sl-text-2)]">
+									Select your comma device model to see pairing instructions.
+								</p>
 
-						<div class="grid gap-4 sm:grid-cols-2">
-							<!-- Comma 3/3X -->
-							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 transition-all hover:border-primary/50 hover:bg-[#1e293b]"
-								onclick={() => selectDevice('c3')}
-							>
-								<div
-									class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition-colors group-hover:bg-primary/10 group-hover:text-primary"
-								>
-									<RectangleHorizontal size={40} />
-								</div>
-								<div class="text-center">
-									<h4 class="font-bold text-white">comma 3 / 3X</h4>
-									<p class="text-xs text-slate-500">Standard generation</p>
-								</div>
-							</button>
+								<div class="grid gap-4 sm:grid-cols-2">
+									<button
+										class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+										onclick={() => selectDevice('c4')}
+									>
+										<div
+											class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+										>
+											<RectangleHorizontal size={28} />
+										</div>
+										<div class="text-center">
+											<h4 class="font-bold text-[var(--sl-text-1)]">comma four</h4>
+											<p class="text-xs text-[var(--sl-text-3)]">Next generation</p>
+										</div>
+									</button>
 
-							<!-- Comma 4 -->
-							<button
-								class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 transition-all hover:border-primary/50 hover:bg-[#1e293b]"
-								onclick={() => selectDevice('c4')}
-							>
-								<div
-									class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition-colors group-hover:bg-primary/10 group-hover:text-primary"
-								>
-									<RectangleHorizontal size={28} />
+									<button
+										class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+										onclick={() => selectDevice('c3')}
+									>
+										<div
+											class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+										>
+											<RectangleHorizontal size={40} />
+										</div>
+										<div class="text-center">
+											<h4 class="font-bold text-[var(--sl-text-1)]">comma 3X</h4>
+											<p class="text-xs text-[var(--sl-text-3)]">Standard generation</p>
+										</div>
+									</button>
 								</div>
-								<div class="text-center">
-									<h4 class="font-bold text-white">comma 4</h4>
-									<p class="text-xs text-slate-500">Next generation</p>
-								</div>
-							</button>
-						</div>
-					</div>
-				{:else if step === 2}
-					<div class="space-y-6">
-						<!-- GIF Display -->
-						<div class="overflow-hidden rounded-xl border border-[#334155] bg-black">
-							{#if selectedDeviceType === 'c3'}
-								<!-- svelte-ignore a11y_img_redundant_alt -->
-								<img
-									src="/pair_c3.gif"
-									alt="Pairing instructions for Comma 3"
-									class="h-auto w-full object-contain"
-								/>
-							{:else if selectedDeviceType === 'c4'}
-								<!-- svelte-ignore a11y_img_redundant_alt -->
-								<img
-									src="/pair_c4.gif"
-									alt="Pairing instructions for Comma 4"
-									class="h-auto w-full object-contain"
-								/>
-							{/if}
-						</div>
-
-						<div class="rounded-xl bg-blue-500/10 p-4">
-							<ol class="list-inside list-decimal space-y-2 text-sm text-blue-200">
-								<li>Note: <strong>Wi-Fi</strong> is NOT required for pairing.</li>
-								<li>
-									Go to <strong class="text-white">Settings &gt; sunnylink</strong> on your device.
-								</li>
-								<li>
-									Tap on
-									{#if selectedDeviceType === 'c4'}
-										<strong class="text-white">Pair</strong>
-									{:else}
-										<strong class="text-white">Not Paired</strong>
+							</div>
+						{:else if step === 2}
+							<div class="space-y-6">
+								<!-- GIF Display -->
+								<div class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-black">
+									{#if selectedDeviceType === 'c3'}
+										<!-- svelte-ignore a11y_img_redundant_alt -->
+										<img
+											src="/pair_c3.gif"
+											alt="Pairing instructions for comma 3X"
+											class="h-auto w-full object-contain"
+										/>
+									{:else if selectedDeviceType === 'c4'}
+										<!-- svelte-ignore a11y_img_redundant_alt -->
+										<img
+											src="/pair_c4.gif"
+											alt="Pairing instructions for comma four"
+											class="h-auto w-full object-contain"
+										/>
 									{/if}
-									(or <strong class="text-white">Paired</strong>
-									if adding another user).
-								</li>
-								<li>
-									Scan the <strong>QR code</strong> shown on your device screen.
-								</li>
-							</ol>
-						</div>
+								</div>
+
+								<div class="rounded-xl bg-blue-500/10 p-4">
+									<ol class="list-inside list-decimal space-y-2 text-sm text-[var(--sl-text-2)]">
+										<li>Note: <strong>Wi-Fi</strong> is NOT required for pairing.</li>
+										<li>
+											Go to <strong class="text-[var(--sl-text-1)]">Settings &gt; sunnylink</strong>
+											on your device.
+										</li>
+										<li>
+											Tap on
+											{#if selectedDeviceType === 'c4'}
+												<strong class="text-[var(--sl-text-1)]">Pair</strong>
+											{:else}
+												<strong class="text-[var(--sl-text-1)]">Not Paired</strong>
+											{/if}
+											(or <strong class="text-[var(--sl-text-1)]">Paired</strong>
+											if adding another user).
+										</li>
+										<li>
+											Scan the <strong>QR code</strong> shown on your device screen.
+										</li>
+									</ol>
+								</div>
+							</div>
+						{/if}
 					</div>
-				{/if}
+				{/key}
 			</div>
 		</div>
 	</div>

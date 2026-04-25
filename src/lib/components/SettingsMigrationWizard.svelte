@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
+	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
 	import {
 		Upload,
@@ -94,6 +96,13 @@
 
 	function close() {
 		deviceState.closeMigrationWizard();
+		// Reset to initial screen after exit animation completes
+		setTimeout(() => {
+			if (!deviceState.migrationState.isOpen && !deviceState.migrationState.isFetching) {
+				deviceState.resetMigrationState();
+				stepDirection = 'forward';
+			}
+		}, 300);
 	}
 
 	function minimize() {
@@ -102,6 +111,95 @@
 
 	function cancelFetch() {
 		deviceState.cancelMigration();
+	}
+
+	// Locks body + main (the actual scroll container in the DaisyUI drawer layout).
+	// Timeout ref prevents race conditions between close→open sequences.
+	let savedScrollY = 0;
+	let cleanupTimerId: ReturnType<typeof setTimeout> | null = null;
+
+	function lockScroll() {
+		if (cleanupTimerId !== null) {
+			clearTimeout(cleanupTimerId);
+			cleanupTimerId = null;
+		}
+
+		savedScrollY = window.scrollY;
+
+		document.body.style.position = 'fixed';
+		document.body.style.top = `-${savedScrollY}px`;
+		document.body.style.width = '100%';
+		document.body.style.overflow = 'hidden';
+
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = 'hidden';
+	}
+
+	function unlockScroll(scrollY: number) {
+		document.body.style.position = '';
+		document.body.style.top = '';
+		document.body.style.width = '';
+		document.body.style.overflow = '';
+
+		const main = document.querySelector('main') as HTMLElement;
+		if (main) main.style.overflow = '';
+
+		window.scrollTo(0, scrollY);
+	}
+
+	$effect(() => {
+		if (open) {
+			lockScroll();
+
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transition =
+					'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
+				appRoot.style.transform = 'scale(0.94) translateY(10px)';
+				appRoot.style.borderRadius = '12px';
+				appRoot.style.overflow = 'hidden';
+			}
+		}
+		return () => {
+			const appRoot = document.querySelector('.drawer') as HTMLElement;
+			if (appRoot) {
+				appRoot.style.transform = '';
+				appRoot.style.borderRadius = '';
+				appRoot.style.overflow = '';
+
+				const scrollY = savedScrollY;
+				cleanupTimerId = setTimeout(() => {
+					cleanupTimerId = null;
+					appRoot.style.transition = '';
+					unlockScroll(scrollY);
+				}, 500);
+			} else {
+				unlockScroll(savedScrollY);
+			}
+		};
+	});
+
+	// Open: emphasized.decelerate — fast start, smooth decel (iOS spring approx)
+	function emphasizedDecelerate(t: number): number {
+		// cubic-bezier(0.05, 0.7, 0.1, 1) approximation
+		return 1 - Math.pow(1 - t, 3);
+	}
+
+	// Close: emphasized.accelerate — quick exit
+	function emphasizedAccelerate(t: number): number {
+		// cubic-bezier(0.3, 0, 0.8, 0.15) approximation
+		return t * t * t;
+	}
+
+	// Check if mobile for transition direction
+	const isMobileWizard = typeof window !== 'undefined' && window.innerWidth < 640;
+
+	// Set direction SYNCHRONOUSLY before step changes so out:fly reads the correct value
+	let stepDirection: 'forward' | 'back' = $state('forward');
+
+	function goToStep(step: number) {
+		stepDirection = step > ms.step ? 'forward' : 'back';
+		deviceState.setMigrationStep(step);
 	}
 
 	async function handleDownloadBackup() {
@@ -181,7 +279,7 @@
 				const text = await file.text();
 				const parsed = parseSettingsBackup(text);
 				deviceState.setMigrationParsedBackup(parsed);
-				deviceState.setMigrationStep(3); // Go to Target Selection (Resume flow maps to Step 3 logic effectively or we adjust steps)
+				goToStep(3); // Go to Target Selection (Resume flow maps to Step 3 logic effectively or we adjust steps)
 				// Wait, in previous code Resume flow went to Step 2 (Upload) -> Step 3 (Target).
 				// Here:
 				// Start New: Step 2 (Source) -> Step 3 (Target/Download) -> Step 4 (Comparison)
@@ -331,7 +429,7 @@
 
 	async function handleTargetSelection() {
 		if (!ms.targetDeviceId) return;
-		deviceState.setMigrationStep(4);
+		goToStep(4);
 		await prepareComparison();
 	}
 
@@ -365,25 +463,31 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center sm:p-6"
 		role="dialog"
 		aria-modal="true"
+		use:portal
 	>
 		<button
-			class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-			transition:fade={{ duration: 200 }}
+			class="absolute inset-0 bg-black/40"
+			in:fade={{ duration: 400, easing: cubicOut }}
+			out:fade={{ duration: 250 }}
 			onclick={close}
 			aria-label="Close modal"
 		></button>
 
 		<div
-			class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[#334155] bg-[#0f1726] shadow-2xl"
-			transition:scale={{ start: 0.95, duration: 200 }}
+			class="relative mx-2 mb-2 flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl bg-[var(--sl-bg-surface)] shadow-2xl sm:mx-0 sm:mb-0 sm:min-h-[400px] sm:w-full sm:max-w-2xl sm:border sm:border-[var(--sl-border)]"
+			style="max-height: calc(100dvh - 3rem);"
+			in:fly={{ y: 800, duration: 500, easing: emphasizedDecelerate }}
+			out:fly={{ y: 800, duration: 300, easing: emphasizedAccelerate }}
 		>
 			<!-- Header -->
-			<div class="border-b border-[#334155] bg-[#1e293b]/50 p-6">
+			<div
+				class="shrink-0 border-b border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 px-4 py-3 sm:px-5 sm:py-4"
+			>
 				<div class="flex items-center justify-between">
-					<h3 class="text-xl font-bold text-white">
+					<h3 class="text-lg font-semibold text-[var(--sl-text-1)]">
 						{#if ms.step === 1}
 							Device Migration Wizard
 						{:else if ms.type === 'new'}
@@ -392,10 +496,10 @@
 							Resume Migration
 						{/if}
 					</h3>
-					<div class="flex items-center gap-2">
+					<div class="flex items-center gap-1">
 						{#if ms.isFetching}
 							<button
-								class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-elevated)]"
 								onclick={minimize}
 								title="Minimize"
 							>
@@ -403,7 +507,7 @@
 							</button>
 						{/if}
 						<button
-							class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+							class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-2)] transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-elevated)]"
 							onclick={close}
 							aria-label="Close"
 						>
@@ -413,479 +517,576 @@
 				</div>
 			</div>
 
-			<div class="p-6">
-				{#if ms.step === 1}
-					<!-- Intro Step -->
-					<div class="space-y-6">
-						<div class="flex items-start gap-4 rounded-xl bg-blue-500/10 p-4">
-							<Info class="mt-1 shrink-0 text-blue-400" size={24} />
-							<div class="space-y-2 text-sm text-blue-200">
-								<p>
-									<strong class="text-blue-100">How it works:</strong> This wizard helps you transfer
-									settings from one device to another.
-								</p>
-								<p>
-									<strong class="text-blue-100">Requirements:</strong> The source device must be
-									<strong class="text-white">online</strong> to fetch its configuration.
-								</p>
-								<p>
-									If you don't have the new device yet, you can download a backup file to restore
-									later.
-								</p>
-							</div>
-						</div>
+			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; align-content: start;">
+				{#key ms.step}
+					<div
+						style="grid-area: 1 / 1;"
+						in:fly={{ x: stepDirection === 'forward' ? 60 : -60, duration: 200, delay: 120 }}
+						out:fly={{ x: stepDirection === 'forward' ? -30 : 30, duration: 120 }}
+					>
+						{#if ms.step === 1}
+							<!-- Intro Step -->
+							<div class="space-y-6">
+								<div
+									class="flex items-start gap-4 rounded-xl border border-primary/20 bg-[var(--sl-accent-muted)] p-4"
+								>
+									<Info class="mt-1 shrink-0 text-primary" size={24} />
+									<div class="space-y-2 text-sm text-[var(--sl-text-2)]">
+										<p>
+											<strong class="text-[var(--sl-text-1)]">How it works:</strong> This wizard helps
+											you transfer settings from one device to another.
+										</p>
+										<p>
+											<strong class="text-[var(--sl-text-1)]">Requirements:</strong> The source
+											device must be
+											<strong class="font-semibold text-[var(--sl-text-1)]">online</strong> to fetch
+											its configuration.
+										</p>
+										<p>
+											If you don't have the new device yet, you can download a backup file to
+											restore later.
+										</p>
+									</div>
+								</div>
 
-						<div class="grid gap-4 sm:grid-cols-2">
-							<button
-								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[#1e293b]"
-								onclick={() => {
-									deviceState.setMigrationType('new');
-									deviceState.setMigrationStep(2);
-								}}
-							>
-								<div class="rounded-full bg-primary/20 p-3 text-primary">
-									<Play size={24} />
-								</div>
-								<div>
-									<h4 class="font-medium text-white">Start New Migration</h4>
-									<p class="mt-1 text-xs text-slate-400">Copy settings from an online device.</p>
-								</div>
-							</button>
-
-							<button
-								class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 text-center transition-all hover:border-primary/50 hover:bg-[#1e293b]"
-								onclick={() => {
-									deviceState.setMigrationType('resume');
-									deviceState.setMigrationStep(2);
-								}}
-							>
-								<div class="rounded-full bg-slate-700 p-3 text-white">
-									<RotateCcw size={24} />
-								</div>
-								<div>
-									<h4 class="font-medium text-white">Resume Migration</h4>
-									<p class="mt-1 text-xs text-slate-400">Restore settings from a backup file.</p>
-								</div>
-							</button>
-						</div>
-					</div>
-				{:else if ms.step === 2}
-					{#if ms.type === 'new'}
-						<!-- Start New: Source Selection -->
-						<div class="flex flex-col space-y-4">
-							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Select Source Device</h4>
-								<div class="mt-1 flex items-center justify-center gap-2">
-									<p class="text-slate-400">Choose an online device to copy settings from.</p>
+								<div class="grid gap-4 sm:grid-cols-2">
 									<button
-										class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
-										onclick={handleRecheckStatus}
-										disabled={isCheckingStatus}
+										class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 text-center transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+										onclick={() => {
+											deviceState.setMigrationType('new');
+											goToStep(2);
+										}}
 									>
-										<RefreshCw size={12} class={isCheckingStatus ? 'animate-spin' : ''} />
-										Recheck Status
+										<div class="rounded-full bg-primary/20 p-3 text-primary">
+											<Play size={24} />
+										</div>
+										<div>
+											<h4 class="font-medium text-[var(--sl-text-1)]">Start New Migration</h4>
+											<p class="mt-1 text-xs text-[var(--sl-text-2)]">
+												Copy settings from an online device.
+											</p>
+										</div>
+									</button>
+
+									<button
+										class="flex flex-col items-center justify-center gap-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 text-center transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+										onclick={() => {
+											deviceState.setMigrationType('resume');
+											goToStep(2);
+										}}
+									>
+										<div
+											class="rounded-full bg-[var(--sl-bg-elevated)] p-3 text-[var(--sl-text-1)]"
+										>
+											<RotateCcw size={24} />
+										</div>
+										<div>
+											<h4 class="font-medium text-[var(--sl-text-1)]">Resume Migration</h4>
+											<p class="mt-1 text-xs text-[var(--sl-text-2)]">
+												Restore settings from a backup file.
+											</p>
+										</div>
 									</button>
 								</div>
 							</div>
-
-							{#if sourceDevices.length === 0}
-								<div class="rounded-lg bg-slate-800 p-4 text-center text-slate-400">
-									No online devices found to copy from.
-								</div>
-							{:else}
-								<div class="grid max-h-60 gap-3 overflow-y-auto">
-									{#each sourceDevices as device}
-										<button
-											class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#1e293b]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[#1e293b]"
-											class:border-primary={ms.sourceDeviceId === device.device_id}
-											class:bg-[#1e293b]={ms.sourceDeviceId === device.device_id}
-											onclick={() => {
-												if (!ms.isFetching) {
-													deviceState.setMigrationSource(device.device_id || '');
-												}
-											}}
-										>
-											<div class="flex items-center gap-3">
-												<div class="rounded-full bg-slate-700 p-2">
-													<Smartphone size={16} class="text-slate-300" />
-												</div>
-												<div>
-													<div class="font-medium text-white">
-														{device.alias || device.device_id}
-														{#if device.alias && device.alias !== device.device_id}
-															<span class="text-xs font-normal text-slate-400"
-																>({device.device_id})</span
-															>
-														{/if}
-													</div>
-												</div>
-											</div>
-											<span class="flex items-center gap-1 text-xs text-emerald-400">
-												<Wifi size={12} /> Online
-											</span>
-										</button>
-									{/each}
-								</div>
-
-								{#if ms.isFetching}
-									<div class="mt-4 space-y-2">
-										<div class="flex justify-between text-xs text-slate-400">
-											<span>{ms.status}</span>
-											<span>{Math.round(ms.progress)}%</span>
-										</div>
-										<div class="h-2 w-full overflow-hidden rounded-full bg-slate-800">
-											<div
-												class="h-full bg-primary transition-all duration-300"
-												style="width: {ms.progress}%"
-											></div>
-										</div>
-										<div class="flex justify-center pt-2">
+						{:else if ms.step === 2}
+							{#if ms.type === 'new'}
+								<!-- Start New: Source Selection -->
+								<div class="flex flex-col space-y-4">
+									<div class="text-center">
+										<h4 class="text-lg font-medium text-[var(--sl-text-1)]">
+											Select Source Device
+										</h4>
+										<div class="mt-1 flex items-center justify-center gap-2">
+											<p class="text-[var(--sl-text-2)]">
+												Choose an online device to copy settings from.
+											</p>
 											<button
-												class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
-												onclick={cancelFetch}
+												class="flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-xs text-primary transition-all duration-100 hover:bg-primary/10 active:scale-[0.94] active:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+												onclick={handleRecheckStatus}
+												disabled={isCheckingStatus}
 											>
-												<Square size={16} class="fill-current" />
-												Stop
+												{#if isCheckingStatus}
+													<span
+														class="loading loading-spinner text-primary"
+														style="width: 12px; height: 12px;"></span>
+												{:else}
+													<RefreshCw size={12} />
+												{/if}
+												Recheck Status
 											</button>
 										</div>
 									</div>
-								{:else}
-									<button
-										class="btn w-full btn-primary"
-										disabled={!ms.sourceDeviceId || ms.isFetching}
-										onclick={handleSourceSelection}
-									>
-										Start Migration <Play size={18} class="ml-2" />
-									</button>
-								{/if}
-							{/if}
-						</div>
-					{:else}
-						<!-- Resume: File Upload -->
-						<div class="flex flex-col items-center justify-center space-y-6 py-8">
-							<div class="rounded-full bg-primary/10 p-4">
-								<Upload size={32} class="text-primary" />
-							</div>
-							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Upload Settings Backup</h4>
-								<p class="mt-1 text-slate-400">
-									Select a .json file containing the settings backup.
-								</p>
-							</div>
 
-							<label class="btn relative btn-primary">
-								Choose File
-								<input
-									type="file"
-									accept=".json"
-									class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-									onchange={handleFileUpload}
-								/>
-							</label>
-
-							{#if ms.error}
-								<div class="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
-									{ms.error}
-								</div>
-							{/if}
-						</div>
-					{/if}
-
-					<div class="flex justify-start pt-4">
-						<button
-							class="btn text-slate-400 btn-ghost hover:text-white"
-							onclick={() => deviceState.setMigrationStep(1)}
-						>
-							Back
-						</button>
-					</div>
-				{:else if ms.step === 3}
-					{#if ms.type === 'new'}
-						<!-- Start New: Target/Download -->
-						<div class="space-y-6">
-							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Settings Fetched</h4>
-								{#if ms.error}
-									<div
-										class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-200"
-									>
-										<Info class="mt-0.5 shrink-0 text-yellow-400" size={16} />
-										<span>{ms.error}</span>
-									</div>
-								{:else}
-									<p class="text-slate-400">
-										Successfully fetched settings from {devices.find(
-											(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
-										)?.alias || ms.sourceDeviceId}.
-									</p>
-								{/if}
-							</div>
-
-							<div class="rounded-xl border border-[#334155] bg-[#1e293b]/30 p-4">
-								<div class="mb-4 flex items-center justify-between">
-									<h5 class="font-medium text-white">Select Target Device</h5>
-								</div>
-
-								{#if targetDevices.length === 0}
-									<div class="rounded-lg bg-slate-800 p-4 text-center text-slate-400">
-										No online devices found.
-									</div>
-								{:else}
-									<div class="grid max-h-48 gap-3 overflow-y-auto">
-										{#each targetDevices as device}
-											<button
-												class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#1e293b]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[#1e293b]"
-												class:border-primary={ms.targetDeviceId === device.device_id}
-												class:bg-[#1e293b]={ms.targetDeviceId === device.device_id}
-												onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
-											>
-												<div class="flex items-center gap-3">
-													<div class="rounded-full bg-slate-700 p-2">
-														<Smartphone size={16} class="text-slate-300" />
-													</div>
-													<div>
-														<div class="font-medium text-white">
-															{device.alias || device.device_id}
-															{#if device.alias && device.alias !== device.device_id}
-																<span class="text-xs font-normal text-slate-400"
-																	>({device.device_id})</span
-																>
-															{/if}
+									{#if sourceDevices.length === 0}
+										<div
+											class="rounded-lg bg-[var(--sl-bg-surface)] p-4 text-center text-[var(--sl-text-2)]"
+										>
+											No online devices found to copy from.
+										</div>
+									{:else}
+										<div class="grid max-h-60 gap-3 overflow-y-auto">
+											{#each sourceDevices as device}
+												<button
+													class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-all duration-150 hover:border-primary hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+													class:border-primary={ms.sourceDeviceId === device.device_id}
+													class:bg-[var(--sl-bg-elevated)]={ms.sourceDeviceId === device.device_id}
+													onclick={() => {
+														if (!ms.isFetching) {
+															deviceState.setMigrationSource(device.device_id || '');
+														}
+													}}
+												>
+													<div class="flex items-center gap-3">
+														<div class="rounded-full bg-[var(--sl-bg-elevated)] p-2">
+															<Smartphone size={16} class="text-[var(--sl-text-2)]" />
+														</div>
+														<div>
+															<div class="font-medium text-[var(--sl-text-1)]">
+																{device.alias || device.device_id}
+																{#if device.alias && device.alias !== device.device_id}
+																	<span class="text-xs font-normal text-[var(--sl-text-2)]"
+																		>({device.device_id})</span
+																	>
+																{/if}
+															</div>
 														</div>
 													</div>
+													<span
+														class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 dark:text-emerald-600"
+													>
+														<Wifi size={12} /> Online
+													</span>
+												</button>
+											{/each}
+										</div>
+
+										{#if ms.isFetching}
+											<div class="mt-4 space-y-2">
+												<div class="flex justify-between text-xs text-[var(--sl-text-2)]">
+													<span>{ms.status}</span>
+													<span>{Math.round(ms.progress)}%</span>
 												</div>
-												<span class="flex items-center gap-1 text-xs text-emerald-400">
-													<Wifi size={12} /> Online
-												</span>
+												<div
+													class="h-2 w-full overflow-hidden rounded-full bg-[var(--sl-bg-surface)]"
+												>
+													<div
+														class="h-full bg-primary transition-all duration-300"
+														style="width: {ms.progress}%"
+													></div>
+												</div>
+												<div class="flex justify-center pt-2">
+													<button
+														class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-500 transition-all duration-100 hover:bg-red-500/20 active:scale-[0.97] active:bg-red-500/30"
+														onclick={cancelFetch}
+													>
+														<Square size={16} class="fill-current" />
+														Stop
+													</button>
+												</div>
+											</div>
+										{:else}
+											<button
+												class="btn w-full transition-all duration-100 btn-primary active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
+												disabled={!ms.sourceDeviceId || ms.isFetching}
+												onclick={handleSourceSelection}
+											>
+												Start Migration <Play size={18} class="ml-2" />
 											</button>
-										{/each}
+										{/if}
+									{/if}
+								</div>
+							{:else}
+								<!-- Resume: File Upload -->
+								<div class="flex flex-col items-center justify-center space-y-5 py-6">
+									<div class="rounded-full bg-primary/10 p-4">
+										<Upload size={32} class="text-primary" />
+									</div>
+									<div class="text-center">
+										<h4 class="text-lg font-medium text-[var(--sl-text-1)]">
+											Upload Settings Backup
+										</h4>
+										<p class="mt-1 text-[var(--sl-text-2)]">
+											Select a .json file containing the settings backup.
+										</p>
+									</div>
+
+									<label
+										class="btn relative transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80"
+									>
+										Choose File
+										<input
+											type="file"
+											accept=".json"
+											class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+											onchange={handleFileUpload}
+										/>
+									</label>
+
+									{#if ms.error}
+										<div
+											class="rounded-lg bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400"
+										>
+											{ms.error}
+										</div>
+									{/if}
+								</div>
+							{/if}
+
+							<div class="flex justify-start pt-4">
+								<button
+									class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
+									onclick={() => goToStep(1)}
+								>
+									Back
+								</button>
+							</div>
+						{:else if ms.step === 3}
+							{#if ms.type === 'new'}
+								<!-- Start New: Target/Download -->
+								<div class="space-y-6">
+									<div class="text-center">
+										<h4 class="text-lg font-medium text-[var(--sl-text-1)]">Settings Fetched</h4>
+										{#if ms.error}
+											<div
+												class="mx-auto mt-2 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-3 text-left text-sm text-yellow-700 dark:text-yellow-200"
+											>
+												<Info
+													class="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400"
+													size={16}
+												/>
+												<span>{ms.error}</span>
+											</div>
+										{:else}
+											<p class="text-[var(--sl-text-2)]">
+												Successfully fetched settings from {devices.find(
+													(d: DeviceAuthResponseModel) => d.device_id === ms.sourceDeviceId
+												)?.alias || ms.sourceDeviceId}.
+											</p>
+										{/if}
+									</div>
+
+									<div
+										class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-4"
+									>
+										<div class="mb-4 flex items-center justify-between">
+											<h5 class="font-medium text-[var(--sl-text-1)]">Select Target Device</h5>
+										</div>
+
+										{#if targetDevices.length === 0}
+											<div
+												class="rounded-lg bg-[var(--sl-bg-surface)] p-4 text-center text-[var(--sl-text-2)]"
+											>
+												No online devices found.
+											</div>
+										{:else}
+											<div class="grid max-h-48 gap-3 overflow-y-auto">
+												{#each targetDevices as device}
+													<button
+														class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-all duration-150 hover:border-primary hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+														class:border-primary={ms.targetDeviceId === device.device_id}
+														class:bg-[var(--sl-bg-elevated)]={ms.targetDeviceId ===
+															device.device_id}
+														onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
+													>
+														<div class="flex items-center gap-3">
+															<div class="rounded-full bg-[var(--sl-bg-elevated)] p-2">
+																<Smartphone size={16} class="text-[var(--sl-text-2)]" />
+															</div>
+															<div>
+																<div class="font-medium text-[var(--sl-text-1)]">
+																	{device.alias || device.device_id}
+																	{#if device.alias && device.alias !== device.device_id}
+																		<span class="text-xs font-normal text-[var(--sl-text-2)]"
+																			>({device.device_id})</span
+																		>
+																	{/if}
+																</div>
+															</div>
+														</div>
+														<span
+															class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 dark:text-emerald-600"
+														>
+															<Wifi size={12} /> Online
+														</span>
+													</button>
+												{/each}
+											</div>
+										{/if}
+									</div>
+
+									<div class="grid gap-3 sm:grid-cols-2">
+										<button
+											class="btn border border-[var(--sl-border)] text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:border-white hover:bg-white/10 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
+											onclick={handleDownloadFetchedBackup}
+										>
+											<Download size={18} class="mr-2" />
+											Download & Finish Later
+										</button>
+										<button
+											class="btn transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
+											disabled={!ms.targetDeviceId}
+											onclick={handleTargetSelection}
+										>
+											Next <ArrowRight size={18} class="ml-2" />
+										</button>
+									</div>
+								</div>
+							{:else}
+								<!-- Resume: Target Selection -->
+								<div class="flex flex-col space-y-4">
+									<div class="text-center">
+										<h4 class="text-lg font-medium text-[var(--sl-text-1)]">
+											Select Target Device
+										</h4>
+										<div class="mt-1 flex items-center justify-center gap-2">
+											<p class="text-[var(--sl-text-2)]">
+												Choose an online device to apply settings to.
+											</p>
+											<button
+												class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary transition-all duration-100 hover:bg-primary/10 active:scale-[0.94] active:bg-primary/20"
+												onclick={handleRecheckStatus}
+											>
+												<RefreshCw size={12} />
+												Recheck Status
+											</button>
+										</div>
+									</div>
+
+									{#if targetDevices.length === 0}
+										<div
+											class="rounded-lg bg-[var(--sl-bg-surface)] p-4 text-center text-[var(--sl-text-2)]"
+										>
+											No online devices found.
+										</div>
+									{:else}
+										<div class="grid max-h-60 gap-3 overflow-y-auto">
+											{#each targetDevices as device}
+												<button
+													class="flex items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-3 text-left transition-all duration-150 hover:border-primary hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
+													class:border-primary={ms.targetDeviceId === device.device_id}
+													class:bg-[var(--sl-bg-elevated)]={ms.targetDeviceId === device.device_id}
+													onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
+												>
+													<div class="flex items-center gap-3">
+														<div class="rounded-full bg-[var(--sl-bg-elevated)] p-2">
+															<Smartphone size={16} class="text-[var(--sl-text-2)]" />
+														</div>
+														<div>
+															<div class="font-medium text-[var(--sl-text-1)]">
+																{device.alias || device.device_id}
+															</div>
+															<div class="text-xs text-[var(--sl-text-2)]">{device.device_id}</div>
+														</div>
+													</div>
+													<span
+														class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 dark:text-emerald-600"
+													>
+														<Wifi size={12} /> Online
+													</span>
+												</button>
+											{/each}
+										</div>
+
+										<button
+											class="btn w-full transition-all duration-100 btn-primary active:scale-[0.98] active:bg-primary/80 disabled:active:scale-100"
+											disabled={!ms.targetDeviceId}
+											onclick={handleTargetSelection}
+										>
+											Next <ArrowRight size={18} class="ml-2" />
+										</button>
+									{/if}
+								</div>
+							{/if}
+
+							<div class="flex justify-start pt-4">
+								<button
+									class="btn text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
+									onclick={() => goToStep(2)}
+								>
+									Back
+								</button>
+							</div>
+						{:else if ms.step === 4}
+							<!-- Comparison Step -->
+							<div class="space-y-4">
+								<div
+									class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-4"
+								>
+									<!-- Source -->
+									<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
+										<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase"
+											>Source</span
+										>
+										<div
+											class="mt-1 w-full truncate font-medium text-[var(--sl-text-1)]"
+											title={devices.find(
+												(d: DeviceAuthResponseModel) => d.device_id === ms.parsedBackup?.deviceId
+											)?.alias || ms.parsedBackup?.deviceId}
+										>
+											{devices.find(
+												(d: DeviceAuthResponseModel) => d.device_id === ms.parsedBackup?.deviceId
+											)?.alias || ms.parsedBackup?.deviceId}
+										</div>
+										<div
+											class="w-full truncate font-mono text-xs text-[var(--sl-text-3)]"
+											title={ms.parsedBackup?.deviceId}
+										>
+											{ms.parsedBackup?.deviceId}
+										</div>
+									</div>
+
+									<!-- Arrow -->
+									<div class="text-[var(--sl-text-3)]">
+										<ArrowRight size={24} />
+									</div>
+
+									<!-- Target -->
+									<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
+										<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase"
+											>Target</span
+										>
+										<div
+											class="mt-1 w-full truncate font-medium text-[var(--sl-text-1)]"
+											title={devices.find(
+												(d: DeviceAuthResponseModel) => d.device_id === ms.targetDeviceId
+											)?.alias || ms.targetDeviceId}
+										>
+											{devices.find(
+												(d: DeviceAuthResponseModel) => d.device_id === ms.targetDeviceId
+											)?.alias || ms.targetDeviceId}
+										</div>
+										<div
+											class="w-full truncate font-mono text-xs text-[var(--sl-text-3)]"
+											title={ms.targetDeviceId}
+										>
+											{ms.targetDeviceId}
+										</div>
+									</div>
+								</div>
+
+								<div class="flex items-center justify-between">
+									<h4 class="font-medium text-[var(--sl-text-1)]">Review Changes</h4>
+								</div>
+
+								{#if ms.isComparing}
+									<div
+										class="flex flex-col items-center justify-center rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center"
+									>
+										<Loader2 size={32} class="mb-4 animate-spin text-primary" />
+										<h5 class="text-lg font-medium text-[var(--sl-text-1)]">
+											Comparing Settings...
+										</h5>
+										<p class="mt-2 text-[var(--sl-text-2)]">{ms.status}</p>
+									</div>
+								{:else if ms.comparison.length === 0}
+									<!-- If empty, it might be loading or actually empty. We need a loading state here. -->
+									<!-- For now, assuming if we are here, comparison is done or empty. -->
+									<!-- But prepareComparison is async. We should have a loading state. -->
+									<div
+										class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-6 text-center"
+									>
+										<Check size={32} class="mx-auto mb-4 text-emerald-600 dark:text-emerald-400" />
+										<h5 class="text-lg font-medium text-[var(--sl-text-1)]">
+											No Differences Found
+										</h5>
+										<p class="mt-2 text-[var(--sl-text-2)]">
+											The target device already has all the settings from the backup.
+										</p>
+									</div>
+								{:else}
+									<div
+										class="max-h-[50vh] overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30"
+									>
+										<!-- Desktop: table layout -->
+										<table class="hidden w-full table-fixed text-left text-sm sm:table">
+											<thead
+												class="bg-[var(--sl-bg-elevated)] text-xs font-bold text-[var(--sl-text-2)] uppercase"
+											>
+												<tr>
+													<th class="w-[40%] p-3">Setting</th>
+													<th class="w-[30%] p-3">Current Value</th>
+													<th class="w-[30%] p-3">New Value</th>
+												</tr>
+											</thead>
+											<tbody class="divide-y divide-[var(--sl-border)]">
+												{#each ms.comparison as item}
+													<tr class="hover:bg-white/5">
+														<td
+															class="truncate p-3 font-medium text-[var(--sl-text-1)]"
+															title={item.label}
+														>
+															{item.label}
+														</td>
+														<td
+															class="truncate p-3 text-[var(--sl-text-2)]"
+															title={item.current !== undefined
+																? String(item.current)
+																: '(default)'}
+														>
+															{item.current !== undefined ? item.current : '(default)'}
+														</td>
+														<td
+															class="truncate p-3 font-medium text-primary"
+															title={String(item.new)}
+														>
+															{item.new}
+														</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+										<!-- Mobile: stacked card layout -->
+										<div class="divide-y divide-[var(--sl-border)] sm:hidden">
+											{#each ms.comparison as item}
+												<div class="px-3 py-3">
+													<div class="text-sm font-medium text-[var(--sl-text-1)]">
+														{item.label}
+													</div>
+													<div class="mt-1.5 flex items-center gap-2 text-sm">
+														<span class="text-[var(--sl-text-3)]"
+															>{item.current !== undefined ? item.current : '(default)'}</span
+														>
+														<ArrowRight size={12} class="shrink-0 text-[var(--sl-text-3)]" />
+														<span class="font-medium text-primary">{item.new}</span>
+													</div>
+												</div>
+											{/each}
+										</div>
+									</div>
+
+									<div
+										class="rounded-lg bg-blue-50 p-4 text-sm text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+									>
+										<p class="flex items-start gap-2">
+											<FileJson size={16} class="mt-0.5 shrink-0" />
+											<span>
+												Clicking "Apply" will <strong>stage</strong> these {ms.comparison.length} changes.
+												You will still need to click "Push to Device" to save them permanently.
+											</span>
+										</p>
 									</div>
 								{/if}
-							</div>
 
-							<div class="grid gap-3 sm:grid-cols-2">
-								<button
-									class="btn border border-[#334155] text-slate-400 btn-ghost hover:border-white hover:bg-white/10 hover:text-white"
-									onclick={handleDownloadFetchedBackup}
-								>
-									<Download size={18} class="mr-2" />
-									Download & Finish Later
-								</button>
-								<button
-									class="btn btn-primary"
-									disabled={!ms.targetDeviceId}
-									onclick={handleTargetSelection}
-								>
-									Next <ArrowRight size={18} class="ml-2" />
-								</button>
-							</div>
-						</div>
-					{:else}
-						<!-- Resume: Target Selection -->
-						<div class="flex flex-col space-y-4">
-							<div class="text-center">
-								<h4 class="text-lg font-medium text-white">Select Target Device</h4>
-								<div class="mt-1 flex items-center justify-center gap-2">
-									<p class="text-slate-400">Choose an online device to apply settings to.</p>
+								<div class="flex justify-end gap-3 pt-4">
 									<button
-										class="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
-										onclick={handleRecheckStatus}
+										class="btn text-[var(--sl-text-2)] btn-ghost hover:text-[var(--sl-text-1)]"
+										onclick={() => goToStep(3)}
 									>
-										<RefreshCw size={12} />
-										Recheck Status
+										Back
+									</button>
+									<button
+										class="btn transition-all duration-100 btn-primary active:scale-[0.97] active:bg-primary/80 disabled:active:scale-100"
+										disabled={ms.comparison.length === 0}
+										onclick={applyChanges}
+									>
+										Apply Changes
 									</button>
 								</div>
 							</div>
-
-							{#if targetDevices.length === 0}
-								<div class="rounded-lg bg-slate-800 p-4 text-center text-slate-400">
-									No online devices found.
-								</div>
-							{:else}
-								<div class="grid max-h-60 gap-3 overflow-y-auto">
-									{#each targetDevices as device}
-										<button
-											class="flex items-center justify-between rounded-lg border border-[#334155] bg-[#1e293b]/50 p-3 text-left transition-colors hover:border-primary hover:bg-[#1e293b]"
-											class:border-primary={ms.targetDeviceId === device.device_id}
-											class:bg-[#1e293b]={ms.targetDeviceId === device.device_id}
-											onclick={() => deviceState.setMigrationTarget(device.device_id || '')}
-										>
-											<div class="flex items-center gap-3">
-												<div class="rounded-full bg-slate-700 p-2">
-													<Smartphone size={16} class="text-slate-300" />
-												</div>
-												<div>
-													<div class="font-medium text-white">
-														{device.alias || device.device_id}
-													</div>
-													<div class="text-xs text-slate-400">{device.device_id}</div>
-												</div>
-											</div>
-											<span class="flex items-center gap-1 text-xs text-emerald-400">
-												<Wifi size={12} /> Online
-											</span>
-										</button>
-									{/each}
-								</div>
-
-								<button
-									class="btn w-full btn-primary"
-									disabled={!ms.targetDeviceId}
-									onclick={handleTargetSelection}
-								>
-									Next <ArrowRight size={18} class="ml-2" />
-								</button>
-							{/if}
-						</div>
-					{/if}
-
-					<div class="flex justify-start pt-4">
-						<button
-							class="btn text-slate-400 btn-ghost hover:text-white"
-							onclick={() => deviceState.setMigrationStep(2)}
-						>
-							Back
-						</button>
-					</div>
-				{:else if ms.step === 4}
-					<!-- Comparison Step -->
-					<div class="space-y-4">
-						<div
-							class="flex items-center justify-between gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/30 p-6"
-						>
-							<!-- Source -->
-							<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
-								<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">Source</span
-								>
-								<div
-									class="mt-1 w-full truncate font-medium text-white"
-									title={devices.find(
-										(d: DeviceAuthResponseModel) => d.device_id === ms.parsedBackup?.deviceId
-									)?.alias || ms.parsedBackup?.deviceId}
-								>
-									{devices.find(
-										(d: DeviceAuthResponseModel) => d.device_id === ms.parsedBackup?.deviceId
-									)?.alias || ms.parsedBackup?.deviceId}
-								</div>
-								<div
-									class="w-full truncate font-mono text-xs text-slate-500"
-									title={ms.parsedBackup?.deviceId}
-								>
-									{ms.parsedBackup?.deviceId}
-								</div>
-							</div>
-
-							<!-- Arrow -->
-							<div class="text-slate-600">
-								<ArrowRight size={24} />
-							</div>
-
-							<!-- Target -->
-							<div class="flex flex-1 flex-col items-center overflow-hidden text-center">
-								<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">Target</span
-								>
-								<div
-									class="mt-1 w-full truncate font-medium text-white"
-									title={devices.find(
-										(d: DeviceAuthResponseModel) => d.device_id === ms.targetDeviceId
-									)?.alias || ms.targetDeviceId}
-								>
-									{devices.find((d: DeviceAuthResponseModel) => d.device_id === ms.targetDeviceId)
-										?.alias || ms.targetDeviceId}
-								</div>
-								<div
-									class="w-full truncate font-mono text-xs text-slate-500"
-									title={ms.targetDeviceId}
-								>
-									{ms.targetDeviceId}
-								</div>
-							</div>
-						</div>
-
-						<div class="flex items-center justify-between">
-							<h4 class="font-medium text-white">Review Changes</h4>
-						</div>
-
-						{#if ms.isComparing}
-							<div
-								class="flex flex-col items-center justify-center rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 text-center"
-							>
-								<Loader2 size={32} class="mb-4 animate-spin text-primary" />
-								<h5 class="text-lg font-medium text-white">Comparing Settings...</h5>
-								<p class="mt-2 text-slate-400">{ms.status}</p>
-							</div>
-						{:else if ms.comparison.length === 0}
-							<!-- If empty, it might be loading or actually empty. We need a loading state here. -->
-							<!-- For now, assuming if we are here, comparison is done or empty. -->
-							<!-- But prepareComparison is async. We should have a loading state. -->
-							<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 text-center">
-								<Check size={32} class="mx-auto mb-4 text-emerald-400" />
-								<h5 class="text-lg font-medium text-white">No Differences Found</h5>
-								<p class="mt-2 text-slate-400">
-									The target device already has all the settings from the backup.
-								</p>
-							</div>
-						{:else}
-							<div
-								class="max-h-[50vh] overflow-y-auto rounded-xl border border-[#334155] bg-[#1e293b]/30"
-							>
-								<table class="w-full table-fixed text-left text-sm">
-									<thead class="bg-[#1e293b] text-xs font-bold text-slate-400 uppercase">
-										<tr>
-											<th class="w-[40%] p-3">Setting</th>
-											<th class="w-[30%] p-3">Current Value</th>
-											<th class="w-[30%] p-3">New Value</th>
-										</tr>
-									</thead>
-									<tbody class="divide-y divide-[#334155]">
-										{#each ms.comparison as item}
-											<tr class="hover:bg-white/5">
-												<td class="truncate p-3 font-medium text-white" title={item.label}>
-													{item.label}
-												</td>
-												<td
-													class="truncate p-3 text-slate-400"
-													title={item.current !== undefined ? String(item.current) : '(default)'}
-												>
-													{item.current !== undefined ? item.current : '(default)'}
-												</td>
-												<td class="truncate p-3 font-medium text-primary" title={String(item.new)}>
-													{item.new}
-												</td>
-											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</div>
-
-							<div class="rounded-lg bg-blue-500/10 p-4 text-sm text-blue-400">
-								<p class="flex items-start gap-2">
-									<FileJson size={16} class="mt-0.5 shrink-0" />
-									<span>
-										Clicking "Apply" will <strong>stage</strong> these {ms.comparison.length} changes.
-										You will still need to click "Push to Device" to save them permanently.
-									</span>
-								</p>
-							</div>
 						{/if}
-
-						<div class="flex justify-end gap-3 pt-4">
-							<button
-								class="btn text-slate-400 btn-ghost hover:text-white"
-								onclick={() => deviceState.setMigrationStep(3)}
-							>
-								Back
-							</button>
-							<button
-								class="btn btn-primary"
-								disabled={ms.comparison.length === 0}
-								onclick={applyChanges}
-							>
-								Apply Changes
-							</button>
-						</div>
 					</div>
-				{/if}
+				{/key}
 			</div>
 		</div>
 	</div>

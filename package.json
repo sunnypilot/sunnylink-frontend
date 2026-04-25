@@ -4,7 +4,7 @@
 	},
 	"name": "sunnylink",
 	"private": true,
-	"version": "0.0.1",
+	"version": "2.0.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -37,7 +37,6 @@
 		"prettier-plugin-tailwindcss": "^0.7.1",
 		"svelte": "^5.41.0",
 		"svelte-check": "^4.3.3",
-		"svelte-ios-pwa-prompt": "^0.0.4",
 		"tailwindcss": "^4.1.14",
 		"typescript": "^5.9.3",
 		"vite": "^7.1.10",
@@ -55,8 +54,10 @@
 	"dependencies": {
 		"@logto/browser": "^3.0.9",
 		"@lucide/svelte": "^0.553.0",
+		"fuse.js": "^7.3.0",
 		"heroicons": "^2.1.5",
 		"lucide-svelte": "^0.554.0",
-		"openapi-fetch": "^0.15.0"
+		"openapi-fetch": "^0.15.0",
+		"svelte-sonner": "^1.1.0"
 	}
 }

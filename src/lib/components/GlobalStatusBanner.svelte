@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
-	import { AlertCircle, AlertTriangle, ExternalLink, Info, X } from 'lucide-svelte';
+	import { AlertCircle, AlertTriangle, CheckCircle, ExternalLink, Info, X } from 'lucide-svelte';
 	// TEST: Import mock data for local testing
 	// import { mockIssues, mockFetchComments } from './GlobalStatusBanner.test-data';
 
@@ -281,7 +281,6 @@
 	}
 
 	function checkDismissals() {
-		// Read dismissed IDs from localStorage
 		let dismissedIds: string[] = [];
 		try {
 			const stored = localStorage.getItem('sunnylink_dismissed_status_ids');
@@ -293,10 +292,20 @@
 			dismissedIds = [];
 		}
 
+		// GC: prune dismissed IDs that no longer exist in current statuses
+		const currentIds = new Set(statuses.map((s) => s.id));
+		const pruned = dismissedIds.filter((id) => currentIds.has(id));
+		if (pruned.length !== dismissedIds.length) {
+			try {
+				localStorage.setItem('sunnylink_dismissed_status_ids', JSON.stringify(pruned));
+			} catch (e) {
+				/* ignore */
+			}
+		}
+		dismissedIds = pruned;
+
 		visibleStatuses = statuses.filter((s) => {
-			// If not dismissible, always show
 			if (!s.dismissible) return true;
-			// If dismissible, show only if ID is not in dismissed list
 			return !dismissedIds.includes(s.id);
 		});
 	}
@@ -323,27 +332,28 @@
 	}
 
 	const styles = {
-		info: 'bg-blue-500/10 border-blue-500/20 text-blue-200',
-		warning: 'bg-amber-500/10 border-amber-500/20 text-amber-200',
-		error: 'bg-amber-500/10 border-amber-500/20 text-amber-200',
-		success: 'bg-green-500/10 border-green-500/20 text-green-200'
+		info: 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-200',
+		warning: 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-200',
+		error: 'bg-red-50 dark:bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-200',
+		success: 'bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-200'
 	};
 
 	const icons = {
 		info: Info,
 		warning: AlertTriangle,
 		error: AlertCircle,
-		success: Info
+		success: CheckCircle
 	};
 </script>
 
 {#if visibleStatuses.length > 0}
-	<div class="relative z-[60] flex w-full flex-col">
-		{#each visibleStatuses as status (status.id)}
+	{@const displayedStatuses = visibleStatuses.slice(0, 3)}
+	{@const overflowCount = visibleStatuses.length - displayedStatuses.length}
+	<div class="flex w-full flex-col">
+		{#each displayedStatuses as status (status.id)}
 			<div
 				transition:slide={{ duration: 300 }}
-				class="w-full border-b backdrop-blur-md {styles[status.level] ||
-					styles.info} first:pt-[env(safe-area-inset-top)]"
+				class="w-full border-b backdrop-blur-md {styles[status.level] || styles.info}"
 			>
 				<div
 					class="mx-auto flex max-w-7xl items-start justify-between gap-4 p-4 sm:items-center sm:px-6 lg:px-8"
@@ -362,7 +372,7 @@
 									href={status.link}
 									target="_blank"
 									rel="noreferrer"
-									class="flex w-fit items-center gap-1 rounded text-xs font-semibold underline underline-offset-2 opacity-90 transition-opacity hover:opacity-100 sm:text-sm"
+									class="flex w-fit items-center gap-1 rounded text-xs font-semibold underline underline-offset-2 opacity-90 transition-all duration-100 hover:opacity-100 active:scale-[0.96] active:opacity-80 sm:text-sm"
 								>
 									{status.linkText || 'Learn more'}
 									<ExternalLink size={12} />
@@ -374,7 +384,7 @@
 					{#if status.dismissible}
 						<button
 							onclick={() => dismiss(status.id)}
-							class="-mr-2 rounded-lg p-2 opacity-60 hover:bg-white/10 hover:opacity-100 focus:ring-2 focus:ring-white/20 focus:outline-none"
+							class="-mr-2 rounded-lg p-2 opacity-60 transition-all duration-100 hover:bg-white/10 hover:opacity-100 focus:ring-2 focus:ring-white/20 focus:outline-none active:scale-[0.88] active:bg-white/20"
 							aria-label="Dismiss"
 						>
 							<X size={18} />
@@ -383,5 +393,22 @@
 				</div>
 			</div>
 		{/each}
+
+		{#if overflowCount > 0}
+			<div
+				transition:slide={{ duration: 300 }}
+				class="w-full border-b bg-[var(--sl-bg-subtle)] py-2 text-center text-xs text-[var(--sl-text-3)]"
+			>
+				And {overflowCount} more incident{overflowCount > 1 ? 's' : ''} —
+				<a
+					href="https://status.sunnypilot.ai"
+					target="_blank"
+					rel="noreferrer"
+					class="underline underline-offset-2 hover:text-[var(--sl-text-1)]"
+				>
+					View status page →
+				</a>
+			</div>
+		{/if}
 	</div>
 {/if}

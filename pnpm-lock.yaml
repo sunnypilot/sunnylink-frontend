@@ -14,6 +14,9 @@ importers:
       '@lucide/svelte':
         specifier: ^0.553.0
         version: 0.553.0(svelte@5.43.5)
+      fuse.js:
+        specifier: ^7.3.0
+        version: 7.3.0
       heroicons:
         specifier: ^2.1.5
         version: 2.2.0
@@ -23,6 +26,9 @@ importers:
       openapi-fetch:
         specifier: ^0.15.0
         version: 0.15.0
+      svelte-sonner:
+        specifier: ^1.1.0
+        version: 1.1.0(svelte@5.43.5)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
@@ -72,9 +78,6 @@ importers:
       svelte-check:
         specifier: ^4.3.3
         version: 4.3.3(picomatch@4.0.3)(svelte@5.43.5)(typescript@5.9.3)
-      svelte-ios-pwa-prompt:
-        specifier: ^0.0.4
-        version: 0.0.4(svelte@5.43.5)
       tailwindcss:
         specifier: ^4.1.14
         version: 4.1.17
@@ -1565,6 +1568,10 @@ packages:
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
 
+  fuse.js@7.3.0:
+    resolution: {integrity: sha512-plz8RVjfcDedTGfVngWH1jmJvBvAwi1v2jecfDerbEnMcmOYUEEwKFTHbNoCiYyzaK2Ws8lABkTCcRSqCY1q4w==}
+    engines: {node: '>=10'}
+
   generator-function@2.0.1:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
@@ -1591,6 +1598,7 @@ packages:
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   globalthis@1.0.4:
@@ -2229,6 +2237,11 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
+  runed@0.28.0:
+    resolution: {integrity: sha512-k2xx7RuO9hWcdd9f+8JoBeqWtYrm5CALfgpkg2YDB80ds/QE4w0qqu34A7fqiAwiBBSBQOid7TLxwxVC27ymWQ==}
+    peerDependencies:
+      svelte: ^5.7.0
+
   sade@1.8.1:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
     engines: {node: '>=6'}
@@ -2403,10 +2416,10 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
 
-  svelte-ios-pwa-prompt@0.0.4:
-    resolution: {integrity: sha512-TVmmaglxbPZu56HmQ1Y4B/VWpi5oi0l1IIfnTqE+K0RAsITPGZf/xINBfWXmgYiDk8xZEk9rd3c6bFiTMsXTkQ==}
+  svelte-sonner@1.1.0:
+    resolution: {integrity: sha512-3lYM6ZIqWe+p9vwwWHGWP/ZdvHiUtzURsud2quIxivrX4rvpXh6i+geBGn0m3JS6KwW6W8VgbOl3xQMcDuh6gg==}
     peerDependencies:
-      svelte: ^3.0.0
+      svelte: ^5.0.0
 
   svelte@5.43.5:
     resolution: {integrity: sha512-HQoZArIewxQVNedseDsgMgnRSC4XOXczxXLF9rOJaPIJkg58INOPUiL8aEtzqZIXNSZJyw8NmqObwg/voajiHQ==}
@@ -4353,6 +4366,8 @@ snapshots:
 
   functions-have-names@1.2.3: {}
 
+  fuse.js@7.3.0: {}
+
   generator-function@2.0.1: {}
 
   gensync@1.0.0-beta.2: {}
@@ -4939,6 +4954,11 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.53.1
       fsevents: 2.3.3
 
+  runed@0.28.0(svelte@5.43.5):
+    dependencies:
+      esm-env: 1.2.2
+      svelte: 5.43.5
+
   sade@1.8.1:
     dependencies:
       mri: 1.2.0
@@ -5153,8 +5173,9 @@ snapshots:
     transitivePeerDependencies:
       - picomatch
 
-  svelte-ios-pwa-prompt@0.0.4(svelte@5.43.5):
+  svelte-sonner@1.1.0(svelte@5.43.5):
     dependencies:
+      runed: 0.28.0(svelte@5.43.5)
       svelte: 5.43.5
 
   svelte@5.43.5:

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Check, ChevronDown, Search, X } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
+	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
 
 	type Option = {
 		value: string;
@@ -26,6 +28,44 @@
 	let isOpen = $state(false);
 	let searchQuery = $state('');
 	let inputElement = $state<HTMLInputElement | undefined>();
+	let containerElement = $state<HTMLDivElement | undefined>();
+	let triggerEl = $state<HTMLButtonElement | null>(null);
+	let menuStyle = $state('position:fixed;visibility:hidden;');
+
+	function alignMenu() {
+		if (!triggerEl) return;
+		const rect = triggerEl.getBoundingClientRect();
+		menuStyle = `position:fixed;top:${rect.bottom + 8}px;left:${rect.left}px;width:${rect.width}px;`;
+	}
+
+	$effect(() => {
+		if (!isOpen || typeof window === 'undefined' || !triggerEl) return;
+		alignMenu();
+		const handler = () => alignMenu();
+		window.addEventListener('resize', handler);
+		window.addEventListener('scroll', handler, true);
+		let lastTop = triggerEl.getBoundingClientRect().top;
+		let lastLeft = triggerEl.getBoundingClientRect().left;
+		let rafId = 0;
+		function tick() {
+			if (!triggerEl) return;
+			const r = triggerEl.getBoundingClientRect();
+			if (r.top !== lastTop || r.left !== lastLeft) {
+				lastTop = r.top;
+				lastLeft = r.left;
+				alignMenu();
+			}
+			rafId = requestAnimationFrame(tick);
+		}
+		rafId = requestAnimationFrame(tick);
+		return () => {
+			window.removeEventListener('resize', handler);
+			window.removeEventListener('scroll', handler, true);
+			cancelAnimationFrame(rafId);
+		};
+	});
+
+	// Outside-click handled by portaled backdrop (use:modalLock).
 
 	let filteredOptions = $derived(
 		options.filter((option: Option) =>
@@ -56,54 +96,64 @@
 	}
 </script>
 
-<div class="relative w-full">
+<div class="relative w-full" bind:this={containerElement}>
 	{#if label}
-		<label class="mb-2 block text-sm font-medium text-slate-300" for={id}>
+		<label class="mb-2 block text-sm font-medium text-[var(--sl-text-2)]" for={id}>
 			{label}
 		</label>
 	{/if}
 
-	<!-- Trigger -->
 	<button
 		{id}
+		bind:this={triggerEl}
 		type="button"
-		class="flex w-full items-center justify-between rounded-lg border border-[#334155] bg-[#0f1726] p-3 text-left text-sm text-white transition-colors hover:border-[#475569] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+		class="flex w-full items-center justify-between rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] p-3 text-left text-sm text-[var(--sl-text-1)] transition-all duration-100 hover:border-[var(--sl-border-emphasis)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none active:scale-[0.98] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
 		onclick={toggle}
 		{disabled}
 	>
-		<span class={selectedLabel ? 'text-white' : 'text-slate-400'}>
+		<span class={selectedLabel ? 'text-[var(--sl-text-1)]' : 'text-[var(--sl-text-2)]'}>
 			{selectedLabel || placeholder}
 		</span>
 		<ChevronDown
 			size={16}
-			class="ml-2 text-slate-500 transition-transform {isOpen ? 'rotate-180' : ''}"
+			class="ml-2 text-[var(--sl-text-3)] transition-transform {isOpen ? 'rotate-180' : ''}"
 		/>
 	</button>
 
 	<!-- Dropdown -->
 	{#if isOpen}
-		<!-- Backdrop to close on click outside -->
-		<button
-			type="button"
-			class="fixed inset-0 z-10 cursor-default bg-transparent"
-			onclick={() => (isOpen = false)}
-			aria-label="Close dropdown"
-		></button>
-
+		<!-- Portaled backdrop swallows outside-click + locks body scroll -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
-			class="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] shadow-xl ring-1 ring-black/5"
+			use:portal
+			use:modalLock
+			class="fixed inset-0 z-[9998]"
+			transition:fade={{ duration: 120 }}
+			onclick={(e) => {
+				e.stopPropagation();
+				isOpen = false;
+			}}
+		></div>
+		<div
+			use:portal
+			class="z-[9999] overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] shadow-xl ring-1 ring-black/5"
+			style={menuStyle}
 			transition:fly={{ y: 10, duration: 200 }}
 		>
 			<!-- Search Input -->
-			<div class="border-b border-[#334155] p-2">
+			<div class="border-b border-[var(--sl-border)] p-2">
 				<div class="relative">
-					<Search size={16} class="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" />
+					<Search
+						size={16}
+						class="absolute top-1/2 left-3 -translate-y-1/2 text-[var(--sl-text-2)]"
+					/>
 					<input
 						bind:this={inputElement}
 						bind:value={searchQuery}
 						onkeydown={handleKeydown}
 						type="text"
-						class="w-full rounded-lg bg-[#0f1726] py-2 pr-4 pl-9 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:outline-none"
+						class="w-full rounded-lg bg-[var(--sl-bg-input)] py-2.5 pr-4 pl-9 text-sm text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:ring-2 focus:ring-primary/50 focus:outline-none"
 						placeholder="Search..."
 					/>
 				</div>
@@ -112,17 +162,17 @@
 			<!-- Options List -->
 			<div class="max-h-60 overflow-y-auto p-1">
 				{#if filteredOptions.length === 0}
-					<div class="px-4 py-3 text-center text-sm text-slate-500">No results found</div>
+					<div class="px-4 py-3 text-center text-sm text-[var(--sl-text-3)]">No results found</div>
 				{:else}
 					{#each filteredOptions as option (option.value)}
 						<button
 							type="button"
-							class="group flex w-full items-center justify-between rounded-lg px-4 py-2 text-left text-sm text-slate-300 hover:bg-indigo-500/10 hover:text-white"
+							class="group flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-left text-sm text-[var(--sl-text-2)] hover:bg-[var(--sl-accent-muted)] hover:text-[var(--sl-text-1)]"
 							onclick={() => select(option)}
 						>
 							<span>{option.label}</span>
 							{#if value === option.value}
-								<Check size={16} class="text-indigo-400" />
+								<Check size={16} class="text-primary" />
 							{/if}
 						</button>
 					{/each}

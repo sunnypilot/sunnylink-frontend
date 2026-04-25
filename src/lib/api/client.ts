@@ -4,36 +4,119 @@ import type { paths as Athenav1Paths } from '../../sunnylink/v1/schema_athena';
 import type { paths as APIv0Paths } from '../../sunnylink/v0/schema_api';
 import type { paths as Athenav0Paths } from '../../sunnylink/v0/schema_athena';
 import { browser } from '$app/environment';
-import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
+import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
 
 /**
- * Custom fetch wrapper that handles 401/403 by retrying with a fresh token.
- * The Logto SDK handles token refresh internally, so we just need to get
- * a new token and retry the request.
+ * Custom fetch wrapper that handles 401/403 by refreshing the session
+ * (server round-trip) and retrying with a fresh token.
+ *
+ * NOTE: getIdToken() only returns cached tokens — it does NOT auto-refresh.
+ * We must call authState.refreshSession() first to get a fresh token.
  */
+const API_TIMEOUT_MS = 30_000; // 30s max for any single API call
+
+// Paths matching ws/settings/navigation (with or without v{N} prefix) are served
+// by the Athena HTTP gateway at athena.sunnylink.ai. All other paths stay on the
+// sunnylink main API. Backend is deprecating the CloudFront proxy that currently
+// forwards these paths from stg.api.sunnypilot.ai → athena.sunnylink.ai.
+const ATHENA_PATH_RE = /^\/(?:v\d+\/)?(?:ws|settings|navigation)(?:\/|$)/;
+
+function rewriteIfAthena(input: RequestInfo | URL): RequestInfo | URL {
+	try {
+		const apiHost = new URL(API_BASE_URL).host;
+		const athenaHost = new URL(ATHENA_BASE_URL).host;
+		const rawUrl =
+			typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+		const parsed = new URL(rawUrl);
+		if (parsed.host !== apiHost) return input;
+		if (!ATHENA_PATH_RE.test(parsed.pathname)) return input;
+		parsed.host = athenaHost;
+		parsed.protocol = new URL(ATHENA_BASE_URL).protocol;
+		if (typeof input === 'string') return parsed.toString();
+		if (input instanceof URL) return parsed;
+		return new Request(parsed, input);
+	} catch {
+		return input;
+	}
+}
+
 export const customFetch: typeof fetch = async (input, init) => {
-	const response = await fetch(input, init);
-
-	if (response.status === 401 || response.status === 403) {
-		if (browser && logtoClient) {
+	input = rewriteIfAthena(input);
+	// Skip the global timeout if the caller already provides an AbortSignal
+	// (e.g., setDeviceParams with its own 20s timeout). Avoids double-abort conflicts.
+	// Helper: retry a 401/403 with a fresh token (always with a timeout)
+	async function retryWithFreshToken(
+		input: RequestInfo | URL,
+		init?: RequestInit
+	): Promise<Response | null> {
+		if (!browser || !logtoClient) return null;
+		try {
+			const refreshed = await authState.refreshSession();
+			if (!refreshed) return null;
+			const newToken = await getIdToken();
+			if (!newToken) return null;
+			const newHeaders = new Headers(init?.headers);
+			newHeaders.set('Authorization', `Bearer ${newToken}`);
+			const retryController = new AbortController();
+			const retryTimeout = setTimeout(
+				() => retryController.abort('API retry timeout'),
+				API_TIMEOUT_MS
+			);
 			try {
-				// Get a fresh token - SDK handles refresh if needed
-				const newToken = await getIdToken();
-
-				if (newToken) {
-					const newHeaders = new Headers(init?.headers);
-					newHeaders.set('Authorization', `Bearer ${newToken}`);
-
-					// Retry the request with the new token
-					return fetch(input, { ...init, headers: newHeaders });
-				}
-			} catch (e) {
-				console.error('Token refresh failed during 401/403 interception:', e);
+				return await fetch(input, { ...init, signal: retryController.signal, headers: newHeaders });
+			} finally {
+				clearTimeout(retryTimeout);
 			}
+		} catch (e) {
+			console.error('Session refresh failed during 401/403 interception:', e);
+			return null;
 		}
 	}
 
-	return response;
+	// Helper: handle a 401/403 by retrying once with a fresh token. If the
+	// retry still fails (or couldn't even attempt), declare the session dead so
+	// the UI can surface a session-expired modal — without this, the user
+	// keeps clicking buttons that silently 401, which is the worst UX.
+	async function handleAuthFailure(
+		original: Response,
+		input: RequestInfo | URL,
+		init?: RequestInit
+	): Promise<Response> {
+		const retried = await retryWithFreshToken(input, init);
+		const stillBad = !retried || retried.status === 401 || retried.status === 403;
+		if (stillBad && browser) authState.markSessionExpired();
+		return retried ?? original;
+	}
+
+	if (init?.signal) {
+		const response = await fetch(input, init);
+
+		if (response.status === 401 || response.status === 403) {
+			return handleAuthFailure(response, input, init);
+		}
+
+		return response;
+	}
+
+	// No caller signal — apply global timeout so stale/slow calls
+	// never block SvelteKit navigation indefinitely.
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort('API timeout'), API_TIMEOUT_MS);
+
+	try {
+		const response = await fetch(input, {
+			...init,
+			signal: controller.signal
+		});
+
+		if (response.status === 401 || response.status === 403) {
+			return handleAuthFailure(response, input, init);
+		}
+
+		return response;
+	} finally {
+		clearTimeout(timeoutId);
+	}
 };
 
 export const API_BASE_URL = 'https://stg.api.sunnypilot.ai';

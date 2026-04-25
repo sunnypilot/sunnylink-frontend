@@ -1,0 +1,230 @@
+// Public Discourse JSON client for the /dashboard/whats-new feed.
+//
+// Routes through the Netlify redirect at /api/discourse/* → community.sunnypilot.ai
+// (see netlify.toml). All endpoints are public; no auth required.
+//
+// View-counter: pass `trackView: true` on fetchTopicDetail to increment
+// topic.views. This is what the Discourse UI sends on a topic page view via
+// the Discourse-Track-View header. Omitted by default so list-level prefetches
+// don't inflate stats.
+
+export const PROXY_PREFIX = '/api/discourse';
+export const FORUM_HOST = 'https://community.sunnypilot.ai';
+export const CATEGORY_ID = 112;
+export const CATEGORY_SLUG = 'announcements';
+export const REQUIRED_TAG = 'sunnylink-feed';
+
+// 429 retry: silent attempts at 3s, 10s. Matches GitHub Octokit / Stripe SDK
+// retry posture for rate-limit-only errors; other statuses fall straight through.
+const RETRY_DELAYS_MS = [3000, 10000];
+
+export interface DiscourseTag {
+	id: number;
+	name: string;
+	slug: string;
+}
+
+export interface DiscoursePoster {
+	extras?: string | null;
+	description?: string;
+	user_id?: number;
+	primary_group_id?: number | null;
+}
+
+export interface DiscourseTopic {
+	id: number;
+	title: string;
+	fancy_title?: string;
+	slug: string;
+	posts_count: number;
+	reply_count: number;
+	highest_post_number: number;
+	image_url: string | null;
+	created_at: string;
+	last_posted_at: string;
+	bumped_at?: string;
+	pinned: boolean;
+	unpinned?: boolean | null;
+	visible: boolean;
+	closed: boolean;
+	archived: boolean;
+	views: number;
+	like_count: number;
+	has_accepted_answer?: boolean | null;
+	tags: DiscourseTag[] | string[];
+	category_id: number;
+	excerpt?: string;
+	posters?: DiscoursePoster[];
+}
+
+export interface DiscoursePost {
+	id: number;
+	post_number: number;
+	username: string;
+	name?: string;
+	avatar_template: string;
+	cooked: string;
+	created_at: string;
+	updated_at?: string;
+	display_username?: string;
+}
+
+export interface DiscourseTopicDetail {
+	id: number;
+	title: string;
+	fancy_title: string;
+	slug: string;
+	tags: string[];
+	highest_post_number: number;
+	views: number;
+	like_count: number;
+	posts_count: number;
+	reply_count: number;
+	pinned: boolean;
+	closed: boolean;
+	archived: boolean;
+	visible: boolean;
+	created_at: string;
+	last_posted_at: string;
+	category_id: number;
+	image_url?: string | null;
+	post_stream: {
+		posts: DiscoursePost[];
+		stream: number[];
+	};
+	details?: {
+		created_by?: {
+			id: number;
+			username: string;
+			avatar_template: string;
+			name?: string;
+		};
+	};
+}
+
+export interface CategoryListResponse {
+	topic_list: {
+		per_page: number;
+		top_tags?: DiscourseTag[];
+		more_topics_url?: string | null;
+		topics: DiscourseTopic[];
+	};
+}
+
+let lastFetchError: string | null = null;
+
+export function getLastFetchError(): string | null {
+	return lastFetchError;
+}
+
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response | null> {
+	// Bypass the HTTP cache by appending a per-request timestamp. Previously
+	// relied on `cache: 'no-store'`, but iOS 26 WebKit appears to drop or error
+	// silently on `no-store` fetches against Netlify-proxied cross-origin paths
+	// — users on iOS 26 saw an empty feed on Safari / Chrome / Brave / PWA while
+	// older iOS + desktop worked. Query-string cache-bust achieves the same
+	// network-trip guarantee without the cache directive.
+	const cacheBustedUrl = url + (url.includes('?') ? '&' : '?') + '_=' + Date.now();
+	const delays = [0, ...RETRY_DELAYS_MS];
+	let res: Response | null = null;
+	let throwMsg: string | null = null;
+	for (const delay of delays) {
+		if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+		try {
+			res = await fetch(cacheBustedUrl, init);
+			if (res.status !== 429) {
+				if (res.ok) {
+					lastFetchError = null;
+				} else {
+					lastFetchError = `HTTP ${res.status} ${res.statusText || ''}`.trim();
+					console.error('[discourse] fetch non-OK', res.status, res.statusText, 'for', url);
+				}
+				return res;
+			}
+			throwMsg = `HTTP 429 (rate limited)`;
+		} catch (err) {
+			throwMsg = err instanceof Error ? err.message : String(err);
+			console.error('[discourse] fetch threw for', url, err);
+			res = null;
+		}
+	}
+	lastFetchError = throwMsg ?? 'network error';
+	if (!res) console.error('[discourse] fetch returned null after retries for', url);
+	return res;
+}
+
+// iOS 26 WebKit has been observed to fail silently on `Response.json()` for
+// some Netlify-proxied cross-origin responses (users on iOS 26 saw empty feed
+// while every other platform worked). Read the body as text, strip a UTF-8
+// BOM if present, and parse manually. If parsing fails, log the first 200
+// chars so we can see whether the server returned HTML (SW intercept, proxy
+// error page, login wall) rather than JSON.
+async function parseJsonSafe<T>(res: Response, endpoint: string): Promise<T | null> {
+	let text: string;
+	try {
+		text = await res.text();
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		lastFetchError = `read body: ${msg}`;
+		console.error('[discourse]', endpoint, 'body read threw', err);
+		return null;
+	}
+	if (text.length > 0 && text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+	try {
+		return JSON.parse(text) as T;
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		lastFetchError = `JSON parse: ${msg}`;
+		const preview = text.slice(0, 200).replace(/\s+/g, ' ');
+		console.error('[discourse]', endpoint, 'JSON parse failed. Body preview:', preview);
+		return null;
+	}
+}
+
+export function topicNameTags(topic: DiscourseTopic): string[] {
+	if (!topic.tags || topic.tags.length === 0) return [];
+	const first = topic.tags[0] as unknown;
+	if (typeof first === 'string') return topic.tags as string[];
+	return (topic.tags as DiscourseTag[]).map((t) => t.name);
+}
+
+export function hasRequiredTag(topic: DiscourseTopic): boolean {
+	return topicNameTags(topic).includes(REQUIRED_TAG);
+}
+
+export async function fetchCategoryTopics(
+	page = 0
+): Promise<{ topics: DiscourseTopic[]; hasMore: boolean } | null> {
+	const query = page > 0 ? `?page=${page}` : '';
+	const res = await fetchWithRetry(
+		`${PROXY_PREFIX}/c/${CATEGORY_SLUG}/${CATEGORY_ID}.json${query}`
+	);
+	if (!res || !res.ok) return null;
+	const data = await parseJsonSafe<CategoryListResponse>(res, 'fetchCategoryTopics');
+	if (!data) return null;
+	const topics = data?.topic_list?.topics ?? [];
+	const hasMore = Boolean(data?.topic_list?.more_topics_url);
+	return { topics, hasMore };
+}
+
+export async function fetchTopicDetail(
+	id: number,
+	slug: string,
+	opts: { trackView?: boolean } = {}
+): Promise<DiscourseTopicDetail | null> {
+	const headers: Record<string, string> = { Accept: 'application/json' };
+	if (opts.trackView) headers['Discourse-Track-View'] = 'true';
+	const res = await fetchWithRetry(`${PROXY_PREFIX}/t/${slug}/${id}.json`, { headers });
+	if (!res || !res.ok) return null;
+	return await parseJsonSafe<DiscourseTopicDetail>(res, 'fetchTopicDetail');
+}
+
+export function forumTopicUrl(topic: Pick<DiscourseTopic, 'slug' | 'id'>): string {
+	return `${FORUM_HOST}/t/${topic.slug}/${topic.id}`;
+}
+
+export function avatarUrl(template: string | undefined | null, size = 48): string | null {
+	if (!template) return null;
+	const full = template.startsWith('http') ? template : `${FORUM_HOST}${template}`;
+	return full.replace('{size}', String(size));
+}

@@ -3,22 +3,392 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
+/* Override Tailwind's dark: variant to use data-theme instead of prefers-color-scheme */
+@custom-variant dark (&:where([data-theme="sunny-dark"], [data-theme="sunny-dark"] *));
+
+@plugin 'daisyui/theme' {
+	name: 'sunny-light';
+	default: true;
+	--color-primary: #594ae2;
+	--color-primary-content: #ffffff;
+	--color-secondary: #7c6feb;
+	--color-secondary-content: #ffffff;
+	--color-accent: #a78bfa;
+	--color-accent-content: #ffffff;
+	--color-neutral: #1a1a1a;
+	--color-neutral-content: #ffffff;
+	--color-base-100: #ffffff;
+	--color-base-200: #f5f5f5;
+	--color-base-300: #ebebeb;
+	--color-base-content: #1a1a1a;
+	--color-info: #3b82f6;
+	--color-info-content: #ffffff;
+	--color-success: #22c55e;
+	--color-success-content: #ffffff;
+	--color-warning: #eab308;
+	--color-warning-content: #1a1a1a;
+	--color-error: #ef4444;
+	--color-error-content: #ffffff;
+	--rounded-box: 0.75rem;
+	--rounded-btn: 0.5rem;
+}
+
+@plugin 'daisyui/theme' {
+	name: 'sunny-dark';
+	prefersdark: true;
+	--color-primary: #7c6feb;
+	--color-primary-content: #ffffff;
+	--color-secondary: #594ae2;
+	--color-secondary-content: #ffffff;
+	--color-accent: #a78bfa;
+	--color-accent-content: #ffffff;
+	--color-neutral: #1a1a1a;
+	--color-neutral-content: #ececec;
+	--color-base-100: #101010;
+	--color-base-200: #181818;
+	--color-base-300: #222222;
+	--color-base-content: #ececec;
+	--color-info: #60a5fa;
+	--color-info-content: #101010;
+	--color-success: #4ade80;
+	--color-success-content: #101010;
+	--color-warning: #facc15;
+	--color-warning-content: #101010;
+	--color-error: #f87171;
+	--color-error-content: #101010;
+	--rounded-box: 0.75rem;
+	--rounded-btn: 0.5rem;
+}
+
+/* Light: Off-white page (Linear), white cards (Vercel), neutral grays      */
+/* Dark: Near-black neutral (Discord/Spotify), purple only on interactive   */
+:root,
+[data-theme='sunny-light'] {
+	--sl-bg-page: #f5f5f5;
+	--sl-bg-surface: #ffffff;
+	--sl-bg-elevated: #f0f0f0;
+	--sl-bg-subtle: #ebebeb;
+	--sl-bg-input: #f0f0f0;
+	--sl-border: #e0e0e0;
+	--sl-border-muted: #ebebeb;
+	--sl-border-emphasis: #d0d0d0;
+	--sl-text-1: #1a1a1a;
+	--sl-text-1b: #313231;
+	--sl-text-2: #666666;
+	--sl-text-3: #6b6b6b;
+	--sl-green: #167d2e;
+	--sl-accent-muted: rgba(89, 74, 226, 0.08);
+	--sl-toggle-off: #d4d4d4;
+	--sl-toggle-off-disabled: #e5e5e5;
+	--sl-skeleton-bar: #d4d4d4;
+	--sl-skeleton-highlight: #e8e8e8;
+	--sl-scrollbar-thumb: rgba(0, 0, 0, 0.08);
+	--sl-scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+	--sl-overlay: rgba(0, 0, 0, 0.60);
+}
+
+[data-theme='sunny-dark'] {
+	--sl-bg-page: #101010;
+	--sl-bg-surface: #181818;
+	--sl-bg-elevated: #222222;
+	--sl-bg-subtle: #1a1a1a;
+	--sl-bg-input: #1c1c1c;
+	--sl-border: #2c2c2c;
+	--sl-border-muted: #232323;
+	--sl-border-emphasis: #3a3a3a;
+	--sl-text-1: #ececec;
+	--sl-text-1b: #c8c8c8;
+	--sl-text-2: #a0a0a0;
+	--sl-text-3: #949496;
+	--sl-green: #4aba60;
+	--sl-accent-muted: rgba(124, 111, 235, 0.12);
+	--sl-toggle-off: #333333;
+	--sl-toggle-off-disabled: #282828;
+	--sl-skeleton-bar: #2e2e2e;
+	--sl-skeleton-highlight: #3a3a3a;
+	--sl-scrollbar-thumb: rgba(255, 255, 255, 0.08);
+	--sl-scrollbar-thumb-hover: rgba(255, 255, 255, 0.22);
+	--sl-overlay: rgba(0, 0, 0, 0.50);
+}
+
 @theme {
 	--font-audiowide: 'Audiowide', cursive;
 }
 
-html,
-body {
-	background-color: #0f1726;
-	min-height: 100vh;
+/* Modern cursor: default arrow everywhere. Hover states indicate interactivity,
+   pointer finger is redundant (Linear, Vercel, Radix convention). */
+a,
+button,
+[role='button'],
+label,
+summary,
+select,
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'],
+.cursor-pointer {
+	cursor: default !important;
 }
 
-/* Fix for mobile PWA input focus */
+html,
+body {
+	font-family:
+		'Inter Variable',
+		'Inter',
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		Oxygen,
+		Ubuntu,
+		Cantarell,
+		'Open Sans',
+		'Helvetica Neue',
+		sans-serif;
+	background-color: var(--sl-bg-page);
+	color: var(--sl-text-1);
+	/* Body is a fixed-size, non-scrolling shell. The app's actual scroll lives
+	   on `.drawer-content` inside the layout — moving the scroller off the
+	   document is what stops iOS Safari's pull-to-refresh (document-level
+	   gesture, doesn't fire on inner overflow:auto containers) while still
+	   letting iOS apply its rubber-band bounce to the inner scroller. */
+	height: 100dvh;
+	overflow: hidden;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-user-select: none;
+	user-select: none;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+
+	/* Defense in depth: even though body can't scroll, deny any overscroll
+	   behaviors so a stray gesture can't propagate to the viewport. */
+	overscroll-behavior: none;
+	/* `pan-x pan-y` excludes `pinch-zoom` — blocks two-finger zoom while
+	   keeping scroll/swipe intact. Applied to html+body because `touch-action`
+	   does not inherit; descendants default `auto` and would otherwise allow
+	   pinch on their own hit-test area. Paired with iOS Safari's non-standard
+	   `gesturestart` preventDefault in +layout.svelte (touch-action alone is
+	   unreliable on iOS WebKit when accessibility "allow zoom" is forced). */
+	touch-action: pan-x pan-y;
+}
+
+/* Block pinch-zoom and double-tap-zoom on every descendant. `touch-action`
+   does not inherit, so without this rule the scroll container (.drawer-content)
+   and everything below would default to `auto` and accept pinch gestures —
+   which is what started happening after we moved scroll off the document to
+   block iOS pull-to-refresh. `pan-x pan-y` keeps scroll/swipe intact.
+   Elements that need different touch behavior (SelectDropdown's pan-y-only
+   list) still override via inline style (higher specificity than `*`). */
+* {
+	touch-action: pan-x pan-y;
+}
+
+/* Linear-style thin custom scrollbar — barely visible idle, more visible on hover.
+   Applied to every scrollable surface so PC + mobile match. Neutral gray so brand
+   color stays reserved for accents. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--sl-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: var(--sl-scrollbar-thumb);
+	border-radius: 3px;
+	transition: background-color 0.15s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background-color: var(--sl-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+/* Allow text selection on interactive inputs and copyable content */
 input,
 textarea,
-[contenteditable] {
+[contenteditable],
+pre,
+code,
+.select-text {
 	-webkit-user-select: text;
 	user-select: text;
+}
+
+:root {
+	--dur-instant: 100ms;
+	--dur-fast: 150ms;
+	--dur-normal: 200ms;
+	--dur-moderate: 300ms;
+	--dur-slow: 500ms;
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+	--ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* Scale feedback: standalone action buttons only (via .btn or .btn-press) */
+.btn:not(:disabled),
+.btn-press:not(:disabled) {
+	transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.btn:not(:disabled):active,
+.btn-press:not(:disabled):active {
+	transform: scale(0.97);
+}
+
+/* Row press feedback: navigation rows and list items get bg highlight */
+.row-press {
+	transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.row-press:active {
+	background-color: var(--sl-bg-subtle);
+}
+
+.drawer-side > aside {
+	transition:
+		translate var(--dur-moderate) var(--ease-out),
+		filter 0.3s ease;
+}
+
+.drawer-toggle:checked ~ .drawer-side > aside {
+	translate: 0;
+}
+
+/* Overlay dim: opacity transition (GPU-composited) instead of daisyUI's
+   default background-color transition. Shorter than the slide (200ms vs
+   300ms) so on close the dim always resolves before the aside finishes
+   leaving — no "dim over empty viewport" artifact. */
+.drawer-side > .drawer-overlay {
+	background-color: rgb(0 0 0 / 0.5);
+	opacity: 0;
+	transition: opacity 200ms var(--ease-out);
+}
+
+.drawer-toggle:checked ~ .drawer-side > .drawer-overlay {
+	opacity: 1;
+}
+
+.skeleton-shimmer {
+	background: linear-gradient(
+		90deg,
+		var(--sl-bg-elevated) 25%,
+		var(--sl-bg-subtle) 50%,
+		var(--sl-bg-elevated) 75%
+	);
+	background-size: 200% 100%;
+	background-attachment: fixed;
+	animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Inline value placeholder used while a single field streams in.
+   Sized to the typography line-height so rows never change height. */
+.skeleton-bar {
+	display: inline-block;
+	height: 0.8125rem;
+	border-radius: 0.25rem;
+	vertical-align: middle;
+	background: linear-gradient(
+		90deg,
+		var(--sl-skeleton-bar) 25%,
+		var(--sl-skeleton-highlight) 50%,
+		var(--sl-skeleton-bar) 75%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+/* Crossfade a value in when it streams from the prefetch. Short, no layout shift. */
+@keyframes value-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.value-fade-in {
+	animation: value-fade-in var(--dur-fast) var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.skeleton-shimmer,
+	.skeleton-bar,
+	.value-fade-in {
+		animation: none !important;
+	}
+}
+
+@keyframes card-enter {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.stagger-children > * {
+	opacity: 0;
+	animation: card-enter var(--dur-moderate) var(--ease-out) forwards;
+}
+
+.stagger-children > *:nth-child(1) {
+	animation-delay: 0ms;
+}
+.stagger-children > *:nth-child(2) {
+	animation-delay: 60ms;
+}
+.stagger-children > *:nth-child(3) {
+	animation-delay: 120ms;
+}
+.stagger-children > *:nth-child(4) {
+	animation-delay: 180ms;
+}
+.stagger-children > *:nth-child(5) {
+	animation-delay: 240ms;
+}
+.stagger-children > *:nth-child(6) {
+	animation-delay: 300ms;
+}
+.stagger-children > *:nth-child(n + 7) {
+	animation-delay: 350ms;
 }
 
 @keyframes float {
@@ -26,7 +396,6 @@ textarea,
 	100% {
 		transform: translateY(0);
 	}
-
 	50% {
 		transform: translateY(-20px);
 	}
@@ -38,7 +407,6 @@ textarea,
 		opacity: 0.2;
 		transform: scale(1);
 	}
-
 	50% {
 		opacity: 0.3;
 		transform: scale(1.1);
@@ -51,7 +419,6 @@ textarea,
 		opacity: 0.1;
 		transform: scale(1);
 	}
-
 	50% {
 		opacity: 0.2;
 		transform: scale(1.2);
@@ -64,4 +431,93 @@ textarea,
 
 .animate-pulse-slower {
 	animation: pulse-slower 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Status pills next to setting titles (Device only, Unavailable, Reboot to apply, etc.).
+   Keep a single line so they never word-wrap inside the pill, and append a small
+   info glyph so the tooltip affordance is visible on touch devices. */
+.bright-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	line-height: 1;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.bright-badge::after {
+	content: '';
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	background-color: currentColor;
+	opacity: 0.7;
+	-webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='8' r='6.5'/><line x1='8' y1='7' x2='8' y2='11'/><circle cx='8' cy='4.8' r='0.6' fill='currentColor' stroke='none'/></svg>");
+	mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='8' r='6.5'/><line x1='8' y1='7' x2='8' y2='11'/><circle cx='8' cy='4.8' r='0.6' fill='currentColor' stroke='none'/></svg>");
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+}
+
+/* Setting-refresh banner deep-link highlight: pulse the target row so the user
+   can see which setting was refreshed after jumping in from the banner.
+   Keyframes inset a soft accent tint via box-shadow on the SchemaItemRenderer
+   root. Respects prefers-reduced-motion by swapping to a static border glow. */
+[data-settings-highlight='true'] {
+	animation: sl-setting-highlight 2.4s cubic-bezier(0.33, 1, 0.68, 1);
+	border-radius: 0.5rem;
+}
+
+@keyframes sl-setting-highlight {
+	0% {
+		box-shadow:
+			inset 0 0 0 2px transparent,
+			0 0 0 0 transparent;
+		background-color: transparent;
+	}
+	12% {
+		box-shadow:
+			inset 0 0 0 2px color-mix(in oklab, #06b6d4 55%, transparent),
+			0 0 0 4px color-mix(in oklab, #06b6d4 15%, transparent);
+		background-color: color-mix(in oklab, #06b6d4 8%, transparent);
+	}
+	55% {
+		box-shadow:
+			inset 0 0 0 2px color-mix(in oklab, #06b6d4 40%, transparent),
+			0 0 0 4px color-mix(in oklab, #06b6d4 8%, transparent);
+		background-color: color-mix(in oklab, #06b6d4 5%, transparent);
+	}
+	100% {
+		box-shadow:
+			inset 0 0 0 2px transparent,
+			0 0 0 0 transparent;
+		background-color: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-settings-highlight='true'] {
+		animation: none;
+		box-shadow: inset 0 0 0 2px color-mix(in oklab, #06b6d4 50%, transparent);
+		background-color: color-mix(in oklab, #06b6d4 6%, transparent);
+	}
+}
+
+/* svelte-sonner override for the "message" (default) toast variant.
+ *
+ * Out of the box sonner renders default toasts with pure black in dark mode
+ * and pure white in light mode — both read as stark blocks against the
+ * sunnylink surface palette. Retarget the --normal-* custom props to the
+ * same surface tokens the rest of the UI uses. richColors variants
+ * (success/error/warning/info) keep sonner's palette.
+ */
+[data-sonner-toaster] {
+	--normal-bg: var(--sl-bg-surface);
+	--normal-border: var(--sl-border);
+	--normal-text: var(--sl-text-1);
+}
+
+[data-sonner-toast][data-type='default'] {
+	backdrop-filter: blur(8px);
 }

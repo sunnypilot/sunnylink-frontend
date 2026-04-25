@@ -9,13 +9,23 @@ export const deviceState = $state({
 		: undefined) as string | undefined,
 	deviceSettings: {} as Record<string, ExtendedDeviceParamKey[]>,
 	deviceValues: {} as Record<string, Record<string, unknown>>,
+	/** Per-device flag: true once the GitBranch/GitCommit/GitCommitDate/Version
+	 *  info-keys fetch has resolved (success or failure). Lets the UI show
+	 *  skeleton placeholders while the fetch is in flight and only fall back
+	 *  to "—" once we know the device truly didn't return a value. */
+	infoFetchComplete: {} as Record<string, boolean>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
+	lastStatusCheck: {} as Record<string, number>,
+	/** Timestamp of the last time the device was confirmed online. Persists across polls —
+	 *  only updated when onlineStatuses transitions to 'online'. Used for "last seen" display on offline devices. */
+	lastSeenOnline: {} as Record<string, number>,
 	lastErrorMessages: {} as Record<string, string>,
 	offroadStatuses: {} as Record<string, { isOffroad: boolean; forceOffroad: boolean }>,
 	deviceTelemetry: {} as Record<
 		string,
 		{
 			started: boolean;
+			engaged: boolean;
 			networkType: string;
 			networkMetered: boolean;
 			freeSpacePercent: number;
@@ -24,20 +34,51 @@ export const deviceState = $state({
 			deviceType: string;
 		}
 	>,
+	/** In-memory list of paired devices from the API. Not persisted: live status
+	 *  (onlineStatuses, telemetry) is also session-scoped, so caching the device
+	 *  list to localStorage would render a stale list with no live data on refresh. */
+	pairedDevices: [] as any[],
+	/** Whether the device list has been fetched from the API this session */
+	pairedDevicesLoaded: false,
 	aliases: {} as Record<string, string>,
-	aliasOverrides: {} as Record<string, string>,
 	stagedChanges: {} as Record<string, Record<string, unknown>>,
+	/** Device-level flag: true after values have been fetched from device this page session.
+	 *  Shared across all settings pages — once verified, navigating between pages is instant. */
+	valuesVerifiedThisSession: {} as Record<string, boolean>,
+	/** Device-level flag: true when ParamsVersion changed since last fetch.
+	 *  Triggers full re-fetch (all keys, not delta) with stale-while-revalidate UX. */
+	valuesStale: {} as Record<string, boolean>,
 	version: 0,
 
 	// Migration State
 	migrationWizardOpen: false,
 	migrationTargetDeviceId: '',
 
+	/**
+	 * Mark all device-scoped caches as stale so the active route re-fetches
+	 * its data on the next reactive pass. `valuesStale` is the master
+	 * invalidation signal: settings layout prefetch, settings/[category],
+	 * settings/vehicle, models, and osm all watch it. Pages that read
+	 * `offroadStatuses` / `onlineStatuses` reactively (home, my-devices,
+	 * device-details) update without needing a flag flip.
+	 *
+	 * Called from anywhere that mutates onroad/offroad state outside the
+	 * normal status-poll flow (header pill toggle, per-page refresh buttons).
+	 */
+	invalidateAll(deviceId: string) {
+		if (!deviceId) return;
+		this.valuesStale[deviceId] = true;
+	},
+
 	// Helper to set selected device
-	setSelectedDevice(deviceId: string) {
-		this.selectedDeviceId = deviceId;
+	setSelectedDevice(deviceId: string | null) {
+		this.selectedDeviceId = deviceId ?? undefined;
 		if (typeof localStorage !== 'undefined') {
-			localStorage.setItem('selectedDeviceId', deviceId);
+			if (deviceId) {
+				localStorage.setItem('selectedDeviceId', deviceId);
+			} else {
+				localStorage.removeItem('selectedDeviceId');
+			}
 		}
 	},
 
@@ -97,31 +138,18 @@ export const deviceState = $state({
 		}
 	},
 
-	// Helper to update alias
-	updateAlias(deviceId: string, alias: string) {
-		this.aliases = { ...this.aliases, [deviceId]: alias };
-		this.version++;
-	},
-
-	// Helper to set alias override
-	setAliasOverride(deviceId: string, alias: string, originalAlias: string) {
-		if (alias === originalAlias) {
-			const newOverrides = { ...this.aliasOverrides };
-			delete newOverrides[deviceId];
-			this.aliasOverrides = newOverrides;
+	// Helper to update alias. Pass `null` or an empty string to clear the
+	// user-set alias — consumers then fall back to server alias / device type
+	// label / device ID via getDeviceDisplayName().
+	updateAlias(deviceId: string, alias: string | null) {
+		const next = { ...this.aliases };
+		if (alias && alias.trim()) {
+			next[deviceId] = alias;
 		} else {
-			this.aliasOverrides = { ...this.aliasOverrides, [deviceId]: alias };
+			delete next[deviceId];
 		}
-	},
-
-	// Helper to clear alias overrides
-	clearAliasOverrides() {
-		this.aliasOverrides = {};
-	},
-
-	// Helper to remove a specific alias override
-	removeAliasOverride(deviceId: string) {
-		delete this.aliasOverrides[deviceId];
+		this.aliases = next;
+		this.version++;
 	},
 
 	// Migration State
@@ -316,6 +344,22 @@ export const deviceState = $state({
 		this.migrationState.isComparing = isComparing;
 	},
 
+	// Pairing Modal State
+	pairingState: {
+		isOpen: false,
+		deviceType: null as 'c3' | 'c4' | null
+	},
+
+	openPairingModal(deviceType: 'c3' | 'c4' | null = null) {
+		this.pairingState.isOpen = true;
+		this.pairingState.deviceType = deviceType;
+	},
+
+	closePairingModal() {
+		this.pairingState.isOpen = false;
+		this.pairingState.deviceType = null;
+	},
+
 	// Global Backup State
 	backupState: {
 		isOpen: false,
@@ -380,6 +424,16 @@ export const deviceState = $state({
 
 	openBackupModal() {
 		this.backupState.isOpen = true;
+	},
+
+	// Status cache: skip redundant checkDeviceStatus calls within TTL
+	isStatusFresh(deviceId: string, ttlMs: number = 60_000): boolean {
+		const last = this.lastStatusCheck[deviceId];
+		return !!last && Date.now() - last < ttlMs;
+	},
+
+	markStatusChecked(deviceId: string) {
+		this.lastStatusCheck[deviceId] = Date.now();
 	},
 
 	// Helper to sort a list of devices

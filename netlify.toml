@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/api/discourse/*"
+  to = "https://community.sunnypilot.ai/:splat"
+  status = 200
+  force = true
