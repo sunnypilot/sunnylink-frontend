@@ -115,7 +115,7 @@
 	<div
 		use:portal
 		use:modalLock
-		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm sm:py-0"
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 py-6 sm:py-0"
 		style="padding-top: max(env(safe-area-inset-top), 1.5rem); padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);"
 		role="dialog"
 		aria-modal="true"

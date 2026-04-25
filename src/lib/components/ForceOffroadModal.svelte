@@ -97,7 +97,7 @@
 		use:modalLock
 	>
 		<button
-			class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+			class="absolute inset-0 bg-black/40"
 			transition:fade={{ duration: 200 }}
 			onclick={() => {
 				if (!pushing) open = false;

@@ -102,7 +102,7 @@
 	<div
 		use:portal
 		use:modalLock
-		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="welcome-modal-title"

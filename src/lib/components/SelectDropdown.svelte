@@ -318,7 +318,7 @@
 				use:modalLock
 				transition:fade={{ duration: 200, easing: cubicOut }}
 				class="pointer-events-auto absolute inset-0 {useBottomSheet
-					? 'bg-black/40 backdrop-blur-sm'
+					? 'bg-black/40'
 					: ''}"
 				onclick={close}
 				aria-label="Close"

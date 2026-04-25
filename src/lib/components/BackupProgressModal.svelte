@@ -84,7 +84,7 @@
 
 {#if deviceState.backupState.isOpen}
 	<div
-		class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
 		transition:fade={{ duration: 200 }}
 		use:portal
 		use:modalLock
