@@ -84,6 +84,7 @@
 	--sl-skeleton-highlight: #e8e8e8;
 	--sl-scrollbar-thumb: rgba(0, 0, 0, 0.08);
 	--sl-scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+	--sl-overlay: rgba(0, 0, 0, 0.60);
 }
 
 [data-theme='sunny-dark'] {
@@ -107,6 +108,7 @@
 	--sl-skeleton-highlight: #3a3a3a;
 	--sl-scrollbar-thumb: rgba(255, 255, 255, 0.08);
 	--sl-scrollbar-thumb-hover: rgba(255, 255, 255, 0.22);
+	--sl-overlay: rgba(0, 0, 0, 0.50);
 }
 
 @theme {

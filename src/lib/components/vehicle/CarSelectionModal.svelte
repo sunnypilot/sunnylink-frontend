@@ -74,7 +74,7 @@
 {#if open}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-[9999] flex items-end justify-center bg-black/40 p-4 motion-safe:backdrop-blur-sm [will-change:opacity] transform-gpu sm:items-center sm:p-0"
+		class="fixed inset-0 z-[9999] flex items-end justify-center bg-[var(--sl-overlay)] p-4 sm:items-center sm:p-0"
 		transition:fade={{ duration: 200 }}
 		onclick={() => (open = false)}
 		use:portal

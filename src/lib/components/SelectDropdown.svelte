@@ -318,7 +318,7 @@
 				use:modalLock
 				transition:fade={{ duration: 200, easing: cubicOut }}
 				class="pointer-events-auto absolute inset-0 {useBottomSheet
-					? 'bg-black/40 motion-safe:backdrop-blur-sm [will-change:opacity] transform-gpu'
+					? 'bg-[var(--sl-overlay)]'
 					: ''}"
 				onclick={close}
 				aria-label="Close"

@@ -218,7 +218,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-[60] touch-none bg-black/50 motion-safe:backdrop-blur-sm [will-change:opacity] transform-gpu"
+		class="fixed inset-0 z-[60] touch-none bg-[var(--sl-overlay)]"
 		onclick={() => searchState.close()}
 		transition:fade={{ duration: reducedMotion ? 0 : 150 }}
 		aria-hidden="true"

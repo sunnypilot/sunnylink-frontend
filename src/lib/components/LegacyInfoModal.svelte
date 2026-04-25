@@ -40,7 +40,7 @@
 	<div
 		use:portal
 		use:modalLock
-		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4 motion-safe:backdrop-blur-sm [will-change:opacity] transform-gpu"
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-[var(--sl-overlay)] px-4"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="legacy-modal-title"

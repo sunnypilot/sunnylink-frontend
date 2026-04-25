@@ -144,7 +144,7 @@
 		use:portal
 	>
 		<button
-			class="absolute inset-0 bg-black/40 motion-safe:backdrop-blur-sm [will-change:opacity] transform-gpu"
+			class="absolute inset-0 bg-[var(--sl-overlay)]"
 			in:fade={{ duration: 400, easing: cubicOut }}
 			out:fade={{ duration: 250 }}
 			onclick={close}
