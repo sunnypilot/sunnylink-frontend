@@ -17,7 +17,8 @@
 	import { refreshBanner } from '$lib/stores/refreshBanner.svelte';
 	import type { SchemaItem, SchemaOption } from '$lib/types/schema';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
-	import { Loader2 } from 'lucide-svelte';
+	import InfoDetailsModal from '$lib/components/InfoDetailsModal.svelte';
+	import { Info, Loader2 } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { toast } from 'svelte-sonner';
@@ -191,6 +192,7 @@
 	// Force Offroad: special handling for OffroadMode key
 	let isOffroadMode = $derived(item.key === 'OffroadMode');
 	let offroadConfirmOpen = $state(false);
+	let detailsOpen = $state(false);
 
 	// Pending change state for this specific item
 	let pendingChange = $derived(pendingChanges.getForKey(deviceId, item.key));
@@ -417,6 +419,22 @@
 	class:setting-dimmed={!visible || !enabled}
 	id={item.key}
 >
+	{#snippet detailsBtn()}
+		{#if item.details}
+			<button
+				type="button"
+				class="ml-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[var(--sl-text-3)] transition-colors hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-[var(--sl-text-2)] active:scale-[0.94]"
+				aria-label="More details about {displayTitle}"
+				onclick={(e) => {
+					e.stopPropagation();
+					detailsOpen = true;
+				}}
+			>
+				<Info size={14} />
+			</button>
+		{/if}
+	{/snippet}
+
 	{#if isOffroadMode}
 		<!-- ── Always Offroad Mode: Button pattern (matches device UI) ── -->
 		<div class="flex w-full items-center justify-between px-4 py-4">
@@ -484,6 +502,7 @@
 							if (enabled && !isPushing) handleChange(!isOn);
 						}}>{displayTitle}</button
 					>
+					{@render detailsBtn()}
 					{#if isBlocked}
 						<Tooltip
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
@@ -615,7 +634,7 @@
 		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
 					{#if isBlocked}
 						<Tooltip
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
@@ -731,7 +750,7 @@
 		<!-- ── Slider Row (range input below label) ────────────────────── -->
 		<div class="px-4 py-4">
 			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">
 						<span
@@ -921,7 +940,7 @@
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
 					{#if isBlocked}
 						<Tooltip
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
@@ -1030,7 +1049,7 @@
 		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
 					{#if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
@@ -1171,7 +1190,7 @@
 		<!-- ── Info Row (inline right-aligned value) ───────────────────── -->
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
-				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
 				{#if item.description}
 					<span class="ml-1.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]"
 						>{@html sanitizeDescription(item.description)}</span
@@ -1186,6 +1205,10 @@
 
 	{#if showDivider}
 		<div class="setting-divider mx-4 border-b border-[var(--sl-border-muted)]"></div>
+	{/if}
+
+	{#if item.details}
+		<InfoDetailsModal bind:open={detailsOpen} title={displayTitle} details={item.details} />
 	{/if}
 </div>
 

@@ -94,6 +94,9 @@ export interface SchemaItem {
 	widget: WidgetType;
 	title?: string;
 	description?: string;
+	/** Extended help shown in a modal when the user taps the info ("i") button.
+	 * Independent of `description`: either, both, or neither may be present. */
+	details?: string;
 	options?: SchemaOption[];
 	min?: number;
 	max?: number;
