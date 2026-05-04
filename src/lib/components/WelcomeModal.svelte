@@ -27,6 +27,11 @@
 	let dismissedGeneral = $state(false);
 	let dismissedNewSchema = $state(false);
 	let hydrated = $state(false);
+	let dialogEl = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		if (visible) dialogEl?.focus();
+	});
 
 	function readDismissed(key: string): boolean {
 		try {
@@ -100,12 +105,14 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
+		bind:this={dialogEl}
 		use:portal
 		use:modalLock
 		class="fixed inset-0 z-[10000] flex items-center justify-center bg-[var(--sl-overlay)] px-4"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="welcome-modal-title"
+		tabindex="-1"
 		transition:fade={{ duration: 150 }}
 		onclick={onBackdropClick}
 	>

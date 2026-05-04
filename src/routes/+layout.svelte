@@ -450,6 +450,10 @@
 			(authState.sessionExpired ||
 				(!authState.isAuthenticated && deviceFetchError === 'auth_expired'))
 	);
+	let sessionExpiredDialogEl = $state<HTMLElement | null>(null);
+	$effect(() => {
+		if (showSessionExpiredModal) sessionExpiredDialogEl?.focus();
+	});
 
 	function dismissSessionExpired() {
 		// Clear both signals so the modal stays gone after dismissal. If the
@@ -968,6 +972,8 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="session-expired-title"
+		tabindex="-1"
+		bind:this={sessionExpiredDialogEl}
 		transition:fade={{ duration: 150 }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) dismissSessionExpired();

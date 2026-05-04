@@ -125,18 +125,17 @@
 		<Info size={14} aria-hidden="true" />
 	</button>
 {:else}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<span
 		bind:this={triggerEl}
 		onmouseenter={onMouseEnter}
 		onmouseleave={onMouseLeave}
-		onclick={onClick}
 		ontouchstart={onTouchStart}
 		ontouchend={onTouchEnd}
-		onfocus={onFocus}
-		onblur={onBlur}
+		onfocusin={onFocus}
+		onfocusout={onBlur}
 		class="inline-flex shrink-0"
-		tabindex="0"
-		role="note"
+		role="presentation"
 	>
 		{#if children}{@render children()}{/if}
 	</span>

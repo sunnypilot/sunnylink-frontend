@@ -25,6 +25,7 @@
 	let { options, value, disabled = false, disabledValues, onchange, title = '' }: Props = $props();
 
 	const BOTTOM_SHEET_THRESHOLD = 10;
+	const listboxId = `sl-listbox-${Math.random().toString(36).slice(2)}`;
 
 	let open = $state(false);
 	// Two-stage mount mirrors PWAInstallPrompt: `mounted` puts the portal wrapper
@@ -278,6 +279,7 @@
 	role="combobox"
 	aria-expanded={open}
 	aria-haspopup="listbox"
+	aria-controls={listboxId}
 >
 	<span class="truncate">{selectedLabel}</span>
 	<span
@@ -357,7 +359,7 @@
 						</button>
 					</div>
 				{/if}
-				<div role="listbox" aria-label={title || 'Options'} class="contents">
+				<div id={listboxId} role="listbox" aria-label={title || 'Options'} class="contents">
 					<div
 						bind:this={scrollEl}
 						class="flex-1 overflow-y-auto"
@@ -405,6 +407,7 @@
 				style:right="{menuRightPx}px"
 				style:min-width="{menuMinWidthPx}px"
 				style:max-height={menuMaxHeightPx !== null ? `${menuMaxHeightPx}px` : null}
+				id={listboxId}
 				role="listbox"
 			>
 				{#if canScrollUp}

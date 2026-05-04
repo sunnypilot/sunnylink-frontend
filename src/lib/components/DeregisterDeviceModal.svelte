@@ -103,6 +103,12 @@
 		if (e.key === 'Escape' && open) close();
 	}
 
+	let dialogEl = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		if (open) dialogEl?.focus();
+	});
+
 	onMount(() => {
 		window.addEventListener('keydown', onKeydown);
 		return () => window.removeEventListener('keydown', onKeydown);
@@ -113,6 +119,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
+		bind:this={dialogEl}
 		use:portal
 		use:modalLock
 		class="fixed inset-0 z-[10000] flex items-center justify-center bg-[var(--sl-overlay)] px-4 py-6 sm:py-0"
@@ -120,6 +127,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="deregister-modal-title"
+		tabindex="-1"
 		transition:fade={{ duration: 200 }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) close();

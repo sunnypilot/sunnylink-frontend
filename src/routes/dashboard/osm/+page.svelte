@@ -16,7 +16,7 @@
 	import { toast } from 'svelte-sonner';
 
 	const OSM_CACHE_PREFIX = 'sunnylink_osm_';
-	const OSM_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+	const OSM_CACHE_TTL = 48 * 60 * 60 * 1000; // 48 hours
 
 	interface OsmCacheEntry {
 		params: Array<{ key?: string; value?: string; type?: string }>;
@@ -82,12 +82,9 @@
 
 	let { data } = $props();
 
-	// Hydrate from cache on mount/device change for instant render
-	$effect(() => {
-		const did = deviceState.selectedDeviceId;
-		if (!did) return;
-		// Only hydrate if we don't already have data — read via untrack to avoid loop
-		const existing = untrack(() => deviceState.deviceSettings[did]);
+	// Synchronous cache hydration — mirrors Models pattern, runs before first render.
+	function hydrateOsmCache(did: string) {
+		const existing = deviceState.deviceSettings[did];
 		const hasOsmData = existing?.some((p) => p.key === 'OsmLocationName');
 		if (hasOsmData) return;
 		const cached = loadOsmCache(did);
@@ -95,6 +92,17 @@
 			const filtered = (existing || []).filter((i) => i.key && !OSM_PARAMS.includes(i.key));
 			deviceState.deviceSettings[did] = [...filtered, ...(cached.params as any)];
 		}
+	}
+
+	// Hydrate immediately for current device before first render
+	if (deviceState.selectedDeviceId) {
+		hydrateOsmCache(deviceState.selectedDeviceId);
+	}
+
+	// Re-hydrate reactively when device changes
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did) untrack(() => hydrateOsmCache(did));
 	});
 
 	let isOffline = $derived(

@@ -54,7 +54,7 @@
 	};
 
 	const MODELS_CACHE_PREFIX = 'sunnylink_models_';
-	const MODELS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+	const MODELS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 	interface ModelsCacheEntry {
 		modelList: ModelBundle[];
@@ -1187,6 +1187,15 @@
 															selectedModelShortName === model.short_name
 																? undefined
 																: model.short_name)}
+													onkeydown={(e) => {
+														if (e.key === 'Enter' || e.key === ' ') {
+															e.preventDefault();
+															selectedModelShortName =
+																selectedModelShortName === model.short_name
+																	? undefined
+																	: model.short_name;
+														}
+													}}
 												>
 													<div class="flex items-center gap-2">
 														<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">

@@ -47,7 +47,7 @@
 		carListCache[deviceId] ?? loadCarListFromStorage()
 	);
 	let isFetchingCarList = $state(false);
-	let hasAttemptedAutoFetch = $state(carList ? true : false);
+	let hasAttemptedAutoFetch = $state(!!(carListCache[deviceId] ?? loadCarListFromStorage()));
 	let modalOpen = $state(false);
 	let detailsOpen = $state(false);
 	let rawOpen = $state(false);
@@ -123,7 +123,13 @@
 			deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined
 	);
 
-	let isLoadingValues = $state(!hasCachedValues);
+	let isLoadingValues = $state(
+		!(
+			deviceState.deviceValues[deviceId]?.['CarPlatformBundle'] !== undefined ||
+			deviceState.deviceValues[deviceId]?.['CarFingerprint'] !== undefined ||
+			deviceState.deviceValues[deviceId]?.['_ExtractedFingerprint'] !== undefined
+		)
+	);
 	let isRevalidatingValues = $state(false);
 
 	async function fetchValues() {

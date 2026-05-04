@@ -11,13 +11,6 @@
 	const isDev =
 		import.meta.env.DEV || (browser && localStorage.getItem('debug_override') === 'true');
 
-	const landingPageOptions: { value: string; label: string }[] = [
-		{ value: 'overview', label: 'Home' },
-		{ value: 'steering', label: 'Steering' },
-		{ value: 'device', label: 'Device' },
-		{ value: 'last_visited', label: 'Last Visited' }
-	];
-
 	function clearSchemaCache() {
 		const deviceId = deviceState.selectedDeviceId;
 		if (deviceId) {
@@ -100,194 +93,66 @@
 	>
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">Default Landing Page</p>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-					Page shown when you open sunnylink
-				</p>
-			</div>
-			<SelectDropdown
-				options={landingPageOptions}
-				value={preferences.defaultLandingPage}
-				title="Default Landing Page"
-				onchange={(v) => {
-					preferences.defaultLandingPage = String(v) as typeof preferences.defaultLandingPage;
-				}}
-			/>
-		</div>
-
-		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
-
-		<div class="flex items-center justify-between px-4 py-3.5">
-			<div>
-				<button
-					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}
-					>Device Connection Help</button
+				<label
+					for="pref-device-online-help"
+					class="cursor-pointer text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					>Device Connection Help</label
 				>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
 					Show the explanation modal when visiting settings
 				</p>
 			</div>
-			<button
+			<input
+				id="pref-device-online-help"
+				type="checkbox"
+				class="sr-only"
+				bind:checked={preferences.showDeviceOnlineHelp}
+			/>
+			<label
+				for="pref-device-online-help"
 				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
 				class:bg-primary={preferences.showDeviceOnlineHelp}
 				class:bg-[var(--sl-toggle-off)]={!preferences.showDeviceOnlineHelp}
-				onclick={() => (preferences.showDeviceOnlineHelp = !preferences.showDeviceOnlineHelp)}
-				role="switch"
-				aria-checked={preferences.showDeviceOnlineHelp}
+				aria-hidden="true"
 			>
 				<span
 					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
 					class:translate-x-[18px]={preferences.showDeviceOnlineHelp}
 				></span>
-			</button>
+			</label>
 		</div>
 
 		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
 
 		<div class="flex items-center justify-between px-4 py-3.5">
 			<div>
-				<button
-					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					onclick={() => (preferences.showLegacyBanner = !preferences.showLegacyBanner)}
-					>Legacy Device Banner</button
+				<label
+					for="pref-legacy-banner"
+					class="cursor-pointer text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+					>Legacy Device Banner</label
 				>
 				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
 					Show the top banner when this device runs legacy sunnylink
 				</p>
 			</div>
-			<button
+			<input
+				id="pref-legacy-banner"
+				type="checkbox"
+				class="sr-only"
+				bind:checked={preferences.showLegacyBanner}
+			/>
+			<label
+				for="pref-legacy-banner"
 				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
 				class:bg-primary={preferences.showLegacyBanner}
 				class:bg-[var(--sl-toggle-off)]={!preferences.showLegacyBanner}
-				onclick={() => (preferences.showLegacyBanner = !preferences.showLegacyBanner)}
-				role="switch"
-				aria-checked={preferences.showLegacyBanner}
+				aria-hidden="true"
 			>
 				<span
 					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
 					class:translate-x-[18px]={preferences.showLegacyBanner}
 				></span>
-			</button>
-		</div>
-
-		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
-
-		<div class="flex items-center justify-between px-4 py-3.5">
-			<div>
-				<button
-					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					onclick={() => (preferences.autoRefresh = !preferences.autoRefresh)}>Auto-refresh</button
-				>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-					Automatically poll device status and settings. Disable to reduce data usage.
-				</p>
-			</div>
-			<button
-				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-				class:bg-primary={preferences.autoRefresh}
-				class:bg-[var(--sl-toggle-off)]={!preferences.autoRefresh}
-				onclick={() => (preferences.autoRefresh = !preferences.autoRefresh)}
-				role="switch"
-				aria-checked={preferences.autoRefresh}
-			>
-				<span
-					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
-					class:translate-x-[18px]={preferences.autoRefresh}
-				></span>
-			</button>
-		</div>
-	</div>
-
-	<div class="px-4">
-		<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Notifications</p>
-		<p class="mt-0.5 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
-			Control which alerts and status updates you see
-		</p>
-	</div>
-	<div
-		class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
-	>
-		<div class="flex items-center justify-between px-4 py-3.5">
-			<div>
-				<button
-					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}
-					>Device Offline Alerts</button
-				>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-					Notify when device loses connection
-				</p>
-			</div>
-			<button
-				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-				class:bg-primary={preferences.notifyDeviceOffline}
-				class:bg-[var(--sl-toggle-off)]={!preferences.notifyDeviceOffline}
-				onclick={() => (preferences.notifyDeviceOffline = !preferences.notifyDeviceOffline)}
-				role="switch"
-				aria-checked={preferences.notifyDeviceOffline}
-			>
-				<span
-					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
-					class:translate-x-[18px]={preferences.notifyDeviceOffline}
-				></span>
-			</button>
-		</div>
-
-		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
-
-		<div class="flex items-center justify-between px-4 py-3.5">
-			<div>
-				<button
-					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}
-					>Sync Failure Alerts</button
-				>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-					Notify when settings fail to push to device
-				</p>
-			</div>
-			<button
-				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-				class:bg-primary={preferences.notifySyncFailure}
-				class:bg-[var(--sl-toggle-off)]={!preferences.notifySyncFailure}
-				onclick={() => (preferences.notifySyncFailure = !preferences.notifySyncFailure)}
-				role="switch"
-				aria-checked={preferences.notifySyncFailure}
-			>
-				<span
-					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
-					class:translate-x-[18px]={preferences.notifySyncFailure}
-				></span>
-			</button>
-		</div>
-
-		<div class="mx-4 border-b border-[var(--sl-border-muted)]"></div>
-
-		<div class="flex items-center justify-between px-4 py-3.5">
-			<div>
-				<button
-					class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-					onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}
-					>Settings Drift Alerts</button
-				>
-				<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
-					Notify when device values differ from your last known state
-				</p>
-			</div>
-			<button
-				class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-				class:bg-primary={preferences.notifySettingsDrift}
-				class:bg-[var(--sl-toggle-off)]={!preferences.notifySettingsDrift}
-				onclick={() => (preferences.notifySettingsDrift = !preferences.notifySettingsDrift)}
-				role="switch"
-				aria-checked={preferences.notifySettingsDrift}
-			>
-				<span
-					class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
-					class:translate-x-[18px]={preferences.notifySettingsDrift}
-				></span>
-			</button>
+			</label>
 		</div>
 	</div>
 
@@ -360,30 +225,35 @@
 		<div
 			class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
 		>
-			<!-- Debug Mode -->
 			<div class="flex items-center justify-between px-4 py-3.5">
 				<div>
-					<button
-						class="text-left text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
-						onclick={() => (preferences.debugMode = !preferences.debugMode)}>Debug Mode</button
+					<label
+						for="pref-debug-mode"
+						class="cursor-pointer text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+						>Debug Mode</label
 					>
 					<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
 						Show setting keys instead of labels
 					</p>
 				</div>
-				<button
+				<input
+					id="pref-debug-mode"
+					type="checkbox"
+					class="sr-only"
+					bind:checked={preferences.debugMode}
+				/>
+				<label
+					for="pref-debug-mode"
 					class="relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
 					class:bg-primary={preferences.debugMode}
 					class:bg-[var(--sl-toggle-off)]={!preferences.debugMode}
-					onclick={() => (preferences.debugMode = !preferences.debugMode)}
-					role="switch"
-					aria-checked={preferences.debugMode}
+					aria-hidden="true"
 				>
 					<span
 						class="absolute top-[2px] left-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200"
 						class:translate-x-[18px]={preferences.debugMode}
 					></span>
-				</button>
+				</label>
 			</div>
 		</div>
 	{/if}

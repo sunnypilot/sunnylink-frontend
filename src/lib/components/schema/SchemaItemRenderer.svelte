@@ -22,6 +22,7 @@
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { toast } from 'svelte-sonner';
+	import SchemaItemRenderer from './SchemaItemRenderer.svelte';
 
 	interface Props {
 		deviceId: string;
@@ -855,6 +856,7 @@
 							<button
 								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 								disabled={!enabled || isPushing}
+								aria-label="Decrease {item.title}"
 								onclick={() => {
 									const current =
 										displayValue !== undefined ? Number(displayValue) : Number(item.min);
@@ -913,6 +915,7 @@
 							<button
 								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
 								disabled={!enabled || isPushing}
+								aria-label="Increase {item.title}"
 								onclick={() => {
 									const current =
 										displayValue !== undefined ? Number(displayValue) : Number(item.min);
@@ -1219,7 +1222,7 @@
 
 {#if item.sub_items}
 	{#each item.sub_items as subItem, i (subItem.key)}
-		<svelte:self
+		<SchemaItemRenderer
 			{deviceId}
 			item={subItem}
 			{loadingValues}

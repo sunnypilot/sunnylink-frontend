@@ -23,7 +23,7 @@
 	import { quintOut } from 'svelte/easing';
 	import SplashScreen from '$lib/components/SplashScreen.svelte';
 
-	let isMenuOpen = false;
+	let isMenuOpen = $state(false);
 
 	// Authenticated visitors land on /dashboard, not the marketing page.
 	// Pattern matches Linear (linear.app/login → redirects), GitHub (auth-aware
@@ -344,6 +344,7 @@
 					></div>
 
 					{#each [{ title: '1. Install sunnypilot', description: 'Install sunnypilot to your comma device to unlock its potential with sunnylink.', icon: Download, color: 'text-[#594AE2]', borderColor: 'border-[#594AE2]/30', shadowColor: 'shadow-[#594AE2]/20', hoverBorder: 'group-hover:border-[#594AE2]/50', hoverShadow: 'group-hover:shadow-[0_0_30px_-5px_#594AE2]', hoverText: 'group-hover:text-[#594AE2]', link: 'https://community.sunnypilot.ai/t/recommended-branch-installations/235', target: '_blank' }, { title: '2. Pair via sunnylink', description: 'Scan the QR code on your comma device to pair with your account.', icon: LinkIcon, color: 'text-blue-500', borderColor: 'border-blue-500/30', shadowColor: 'shadow-blue-500/20', hoverBorder: 'group-hover:border-blue-500/50', hoverShadow: 'group-hover:shadow-[0_0_30px_-5px_#3b82f6]', hoverText: 'group-hover:text-blue-500', link: null }, { title: '3. Manage & Drive', description: 'Change settings securely, view stats, and enjoy your drive.', icon: Car, color: 'text-emerald-500', borderColor: 'border-emerald-500/30', shadowColor: 'shadow-emerald-500/20', hoverBorder: 'group-hover:border-emerald-500/50', hoverShadow: 'group-hover:shadow-[0_0_30px_-5px_#10b981]', hoverText: 'group-hover:text-emerald-500', link: '/dashboard' }] as step}
+						{@const StepIcon = step.icon}
 						<svelte:element
 							this={step.link ? 'a' : 'div'}
 							href={step.link}
@@ -355,7 +356,7 @@
 							<div
 								class="relative z-10 mb-6 flex h-24 w-24 items-center justify-center rounded-full border bg-[#0f1726] shadow-lg transition-all {step.borderColor} {step.shadowColor} {step.hoverShadow} {step.hoverBorder}"
 							>
-								<svelte:component this={step.icon} class="h-10 w-10 {step.color}" />
+								<StepIcon class="h-10 w-10 {step.color}" />
 							</div>
 							<h3 class="text-xl font-semibold text-white transition-colors {step.hoverText}">
 								{step.title}

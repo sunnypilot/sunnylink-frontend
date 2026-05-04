@@ -14,6 +14,12 @@
 
 	let { open = $bindable(false), onClose }: Props = $props();
 
+	let dialogEl = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		if (open) dialogEl?.focus();
+	});
+
 	function dismiss() {
 		open = false;
 		onClose?.();
@@ -38,12 +44,14 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
+		bind:this={dialogEl}
 		use:portal
 		use:modalLock
 		class="fixed inset-0 z-[10000] flex items-center justify-center bg-[var(--sl-overlay)] px-4"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="legacy-modal-title"
+		tabindex="-1"
 		transition:fade={{ duration: 200 }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) dismiss();

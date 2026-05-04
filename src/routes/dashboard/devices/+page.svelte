@@ -336,7 +336,7 @@
 				{@const isLegacy = schemaState.schemaUnavailable[device.device_id] === true}
 				{@const hasBadges = isLegacy}
 
-				<article
+				<div
 					data-device-id={device.device_id}
 					class="group relative cursor-pointer rounded-xl border bg-[var(--sl-bg-surface)] transition-[border-color,background-color,box-shadow] duration-150 hover:bg-[var(--sl-bg-elevated)]/30 hover:shadow-sm {isSelected
 						? 'border-2 border-primary'
@@ -348,7 +348,7 @@
 							handleCardClick(device);
 						}
 					}}
-					role="listitem"
+					role="button"
 					tabindex="0"
 					aria-label="{getAlias(device)} - {isError
 						? 'Check failed, tap to retry'
@@ -434,7 +434,7 @@
 							</button>
 						{/if}
 					</div>
-				</article>
+				</div>
 			{/snippet}
 
 			<div class="flex flex-col gap-3" role="list" aria-label="Device list">

@@ -4,6 +4,7 @@
 	import { browser } from '$app/environment';
 	import { portal } from '$lib/utils/portal';
 	import { modalLock } from '$lib/utils/modalLock';
+	import { tick } from 'svelte';
 
 	let {
 		open = $bindable(false),
@@ -54,8 +55,14 @@
 		open = false;
 	}
 
+	let searchInputEl = $state<HTMLInputElement | null>(null);
+
 	$effect(() => {
-		if (!open) searchQuery = '';
+		if (!open) {
+			searchQuery = '';
+			return;
+		}
+		tick().then(() => searchInputEl?.focus());
 	});
 
 	// Body scroll lock handled by `use:modalLock` on the overlay itself.
@@ -73,6 +80,7 @@
 
 {#if open}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		class="fixed inset-0 z-[9999] flex items-end justify-center bg-[var(--sl-overlay)] p-4 sm:items-center sm:p-0"
 		transition:fade={{ duration: 200 }}
@@ -82,6 +90,7 @@
 	>
 		<!-- Modal Content — stop propagation so clicking inside doesn't close -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			class="relative flex w-full max-w-[480px] flex-col rounded-t-xl border border-[var(--sl-border)] bg-[var(--sl-bg-page)] shadow-2xl sm:rounded-xl"
 			style="max-height: min(70vh, 600px);"
@@ -106,11 +115,11 @@
 						class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[var(--sl-text-3)]"
 					/>
 					<input
+						bind:this={searchInputEl}
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search vehicles..."
 						class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] py-2 pr-3 pl-8 text-[13px] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-						autofocus
 					/>
 				</div>
 			</div>
