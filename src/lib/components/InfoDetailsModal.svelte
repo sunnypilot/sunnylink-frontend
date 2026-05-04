@@ -17,10 +17,7 @@
 	 * Mirrors SchemaItemRenderer.sanitizeDescription so this widget can
 	 * accept the same content the inline `description` accepts. */
 	function sanitize(text: string): string {
-		const escaped = text
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;');
+		const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 		return escaped.replace(/&lt;br\s*\/?&gt;/g, '<br />');
 	}
 
@@ -85,7 +82,7 @@
 				class="flex justify-end border-t border-[var(--sl-border)] bg-[var(--sl-bg-input)] px-5 py-3"
 			>
 				<button
-					class="btn btn-ghost text-[var(--sl-text-2)] transition-transform hover:text-[var(--sl-text-1)] active:scale-[0.98]"
+					class="btn text-[var(--sl-text-2)] btn-ghost transition-transform hover:text-[var(--sl-text-1)] active:scale-[0.98]"
 					onclick={close}
 				>
 					Close

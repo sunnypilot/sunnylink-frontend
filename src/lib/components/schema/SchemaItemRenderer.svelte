@@ -634,7 +634,8 @@
 		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span
+					>{@render detailsBtn()}
 					{#if isBlocked}
 						<Tooltip
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
@@ -750,7 +751,8 @@
 		<!-- ── Slider Row (range input below label) ────────────────────── -->
 		<div class="px-4 py-4">
 			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span
+				>{@render detailsBtn()}
 				{#if isQueued || pushState === 'pending'}
 					<Tooltip text="Changes queued — will sync to device when pushed.">
 						<span
@@ -940,7 +942,8 @@
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span
+					>{@render detailsBtn()}
 					{#if isBlocked}
 						<Tooltip
 							text="Blocked — this setting requires offroad. Will sync when the car is powered off."
@@ -1049,7 +1052,8 @@
 		<div class="flex items-center justify-between gap-4 px-4 py-3.5">
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
+					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span
+					>{@render detailsBtn()}
 					{#if isQueued || pushState === 'pending'}
 						<Tooltip text="Changes queued — will sync to device when pushed.">
 							<span
@@ -1190,7 +1194,8 @@
 		<!-- ── Info Row (inline right-aligned value) ───────────────────── -->
 		<div class="flex w-full items-center justify-between px-4 py-4">
 			<div class="mr-4 min-w-0 flex-1">
-				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span>{@render detailsBtn()}
+				<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">{displayTitle}</span
+				>{@render detailsBtn()}
 				{#if item.description}
 					<span class="ml-1.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]"
 						>{@html sanitizeDescription(item.description)}</span

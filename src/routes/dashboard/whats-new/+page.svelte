@@ -215,9 +215,8 @@
 					class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{#if manualRefreshing}
-						<span
-							class="loading loading-spinner text-primary"
-							style="width: 14px; height: 14px;"></span>
+						<span class="loading loading-spinner text-primary" style="width: 14px; height: 14px;"
+						></span>
 					{:else}
 						<RefreshCw size={14} />
 					{/if}
@@ -259,9 +258,8 @@
 				class="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-all duration-150 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{#if manualRefreshing}
-					<span
-						class="loading loading-spinner text-primary"
-						style="width: 12px; height: 12px;"></span>
+					<span class="loading loading-spinner text-primary" style="width: 12px; height: 12px;"
+					></span>
 				{:else}
 					<RefreshCw size={12} />
 				{/if}

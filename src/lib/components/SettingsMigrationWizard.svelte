@@ -609,7 +609,8 @@
 												{#if isCheckingStatus}
 													<span
 														class="loading loading-spinner text-primary"
-														style="width: 12px; height: 12px;"></span>
+														style="width: 12px; height: 12px;"
+													></span>
 												{:else}
 													<RefreshCw size={12} />
 												{/if}

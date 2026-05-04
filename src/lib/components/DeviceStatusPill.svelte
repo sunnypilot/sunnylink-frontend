@@ -454,9 +454,8 @@
 						aria-label="Refresh status"
 					>
 						{#if refreshing}
-							<span
-								class="loading loading-spinner text-primary"
-								style="width: 14px; height: 14px;"></span>
+							<span class="loading loading-spinner text-primary" style="width: 14px; height: 14px;"
+							></span>
 						{:else}
 							<RefreshCw size={14} />
 						{/if}
