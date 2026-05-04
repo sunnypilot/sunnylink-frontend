@@ -9,7 +9,7 @@
 
 	let displayTime = $derived.by(() => {
 		statusPolling.tickCounter;
-		if (statusPolling.isRefreshing) return 'Refreshing…';
+		if (statusPolling.isRefreshing) return '';
 		if (statusPolling.lastCheckedAt === 0) return '';
 		return formatRelativeTime(statusPolling.lastCheckedAt);
 	});
@@ -36,11 +36,13 @@
 	}
 </script>
 
-{#if displayTime}
+{#if displayTime || statusPolling.isRefreshing}
 	<div class="flex items-center gap-1.5">
-		<span class="text-[0.6875rem] {staleClass}">
-			{displayTime}
-		</span>
+		{#if displayTime}
+			<span class="text-[0.6875rem] {staleClass}">
+				{displayTime}
+			</span>
+		{/if}
 		<button
 			type="button"
 			class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-[var(--sl-bg-elevated)]/40 text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-2)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
