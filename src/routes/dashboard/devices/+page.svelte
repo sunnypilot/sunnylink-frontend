@@ -11,6 +11,7 @@
 	import { APIv0Client } from '$lib/api/client';
 	import LegacyDeviceBadge from '$lib/components/LegacyDeviceBadge.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
+	import { FEATURES } from '$lib/config/features';
 	import { getDeviceDisplayName } from '$lib/utils/deviceDisplay';
 
 	let { data } = $props();
@@ -195,7 +196,7 @@
 				{@const isError = status === 'error'}
 				{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 				{@const isPolling = statusPolling.isRefreshing && !isLoading}
-				{@const isLegacy = schemaState.schemaUnavailable[device.device_id] === true}
+				{@const isLegacy = FEATURES.legacyUi && schemaState.schemaUnavailable[device.device_id] === true}
 
 				<div
 					data-device-id={device.device_id}
