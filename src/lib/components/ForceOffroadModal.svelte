@@ -3,6 +3,7 @@
 	import { Athenav0Client } from '$lib/api/client';
 	import { logtoClient } from '$lib/logto/auth.svelte';
 	import { encodeParamValue } from '$lib/utils/device';
+	import { checkDeviceStatus } from '$lib/api/device';
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -68,8 +69,11 @@
 			// Success
 			if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
 			deviceState.deviceValues[deviceId]['OffroadMode'] = true;
+			// Optimistic: device received OffroadMode=1 and will stop immediately.
+			// Setting isOffroad=true unlocks offroad_only settings without waiting
+			// for the next status poll. checkDeviceStatus below confirms actual state.
 			deviceState.offroadStatuses[deviceId] = {
-				isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
+				isOffroad: true,
 				forceOffroad: true
 			};
 			const baseline = driftStore.getBaseline(deviceId);
@@ -77,8 +81,16 @@
 				driftStore.updateBaseline(deviceId, { ...baseline, OffroadMode: true });
 			}
 			driftStore.resolveKeys(deviceId, ['OffroadMode']);
+			// Invalidate caches so settings/models/osm pages re-fetch values against
+			// the new offroad state (mirrors DeviceStatusPill.onForceOffroadSuccess).
+			deviceState.invalidateAll(deviceId);
 			onSuccess();
 			open = false;
+			// Background status recheck — updates offroadStatuses from live device
+			// state and re-triggers the layout prefetch via valuesStale.
+			checkDeviceStatus(deviceId, token, true).catch((err) => {
+				console.error('Background status refresh after ForceOffroad failed', err);
+			});
 		} catch (e: any) {
 			console.error('Force offroad failed', e);
 			error = e.message || 'Failed to force offroad mode';
