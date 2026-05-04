@@ -18,7 +18,9 @@
 				class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-3.5"
 			>
 				<div class="flex items-center gap-3">
-					<div class="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"></div>
+					<div
+						class="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[var(--sl-bg-elevated)]"
+					></div>
 					<div class="min-w-0 flex-1 space-y-1.5">
 						<div class="h-3.5 w-28 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 						<div class="h-2.5 w-36 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>

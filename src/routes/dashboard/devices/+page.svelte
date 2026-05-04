@@ -196,7 +196,8 @@
 				{@const isError = status === 'error'}
 				{@const isSelected = deviceState.selectedDeviceId === device.device_id}
 				{@const isPolling = statusPolling.isRefreshing && !isLoading}
-				{@const isLegacy = FEATURES.legacyUi && schemaState.schemaUnavailable[device.device_id] === true}
+				{@const isLegacy =
+					FEATURES.legacyUi && schemaState.schemaUnavailable[device.device_id] === true}
 
 				<div
 					data-device-id={device.device_id}
@@ -221,14 +222,14 @@
 				>
 					<div class="flex items-center gap-3 px-4 py-3.5">
 						<span
-							class="block h-2.5 w-2.5 shrink-0 rounded-full {getStatusDotClass(
-								device
-							)} {isPolling ? 'animate-pulse' : ''}"
+							class="block h-2.5 w-2.5 shrink-0 rounded-full {getStatusDotClass(device)} {isPolling
+								? 'animate-pulse'
+								: ''}"
 							aria-hidden="true"
 						></span>
 						<div class="min-w-0 flex-1">
 							<div
-								class="truncate text-sm font-medium leading-5 {isOffline
+								class="truncate text-sm leading-5 font-medium {isOffline
 									? 'text-[var(--sl-text-2)]'
 									: 'text-[var(--sl-text-1)]'}"
 							>
