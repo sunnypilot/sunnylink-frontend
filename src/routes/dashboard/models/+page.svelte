@@ -12,10 +12,13 @@
 	} from '$lib/types/settings';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ForceOffroadModal from '$lib/components/ForceOffroadModal.svelte';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
-	import SettingCard from '$lib/components/SettingCard.svelte';
+	import SchemaItemRenderer from '$lib/components/schema/SchemaItemRenderer.svelte';
+	import SchemaPanel from '$lib/components/schema/SchemaPanel.svelte';
+	import type { Panel } from '$lib/types/schema';
+	import { schemaState } from '$lib/stores/schema.svelte';
+	import { settingToSchemaItem } from '$lib/utils/settingAdapter';
 	import SettingsActionBar from '$lib/components/SettingsActionBar.svelte';
 	import PushSettingsModal from '$lib/components/PushSettingsModal.svelte';
 	import {
@@ -31,10 +34,15 @@
 		Star,
 		CircleHelp,
 		Trash2,
-		RefreshCw
+		RefreshCw,
+		WifiOff
 	} from 'lucide-svelte';
 	import { slide, fade, fly } from 'svelte/transition';
-	import { toastState } from '$lib/stores/toast.svelte';
+	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
+	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
+	import { toast } from 'svelte-sonner';
 
 	const DEFAULT_MODEL: ModelBundle = {
 		short_name: 'default',
@@ -45,7 +53,78 @@
 		models: []
 	};
 
+	const MODELS_CACHE_PREFIX = 'sunnylink_models_';
+	const MODELS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+	interface ModelsCacheEntry {
+		modelList: ModelBundle[];
+		currentModelShortName: string | undefined;
+		favorites: string[];
+		timestamp: number;
+	}
+
+	function loadModelsCache(deviceId: string): ModelsCacheEntry | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			const raw = localStorage.getItem(`${MODELS_CACHE_PREFIX}${deviceId}`);
+			if (!raw) return null;
+			const entry: ModelsCacheEntry = JSON.parse(raw);
+			if (Date.now() - entry.timestamp > MODELS_CACHE_TTL) {
+				localStorage.removeItem(`${MODELS_CACHE_PREFIX}${deviceId}`);
+				return null;
+			}
+			return entry;
+		} catch {
+			return null;
+		}
+	}
+
+	function saveModelsCache(
+		deviceId: string,
+		list: ModelBundle[],
+		activeShortName: string | undefined,
+		favs: Set<string>
+	): void {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const entry: ModelsCacheEntry = {
+				modelList: list,
+				currentModelShortName: activeShortName,
+				favorites: Array.from(favs),
+				timestamp: Date.now()
+			};
+			localStorage.setItem(`${MODELS_CACHE_PREFIX}${deviceId}`, JSON.stringify(entry));
+		} catch {}
+	}
+
 	let { data } = $props();
+
+	// Load schema when device is selected (same pattern as settings pages)
+	let deviceId = $derived(deviceState.selectedDeviceId);
+	$effect(() => {
+		if (
+			deviceId &&
+			logtoClient &&
+			!schemaState.schemas[deviceId] &&
+			!schemaState.loading[deviceId] &&
+			!schemaState.schemaUnavailable[deviceId]
+		) {
+			loadSchema();
+		}
+	});
+
+	async function loadSchema() {
+		if (!deviceId || !logtoClient) return;
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+			const gitCommit = deviceState.deviceValues[deviceId]?.['GitCommit'] as string | undefined;
+			await schemaState.loadSchema(deviceId, token, gitCommit);
+		} catch (e) {
+			console.error('Failed to load schema:', e);
+		}
+	}
+
 	let modelList = $state<ModelBundle[] | undefined>();
 	let currentModelShortName = $state<string | undefined>(undefined);
 	let selectedModelShortName = $state<string | undefined>(undefined);
@@ -54,8 +133,60 @@
 
 	let loadingModels = $state(false);
 	let sendingModel = $state(false);
-	let updatingFavShortName = $state<string | null>(null);
 	let favorites = $state<Set<string>>(new Set());
+	// Track which model refs were toggled in this batch for per-row badge display
+	let toggledFavRefs = $state<Set<string>>(new Set());
+
+	// Sync favorites from deviceValues (handles batchPush rollback + device-side changes)
+	// Clear the per-row badge refs when the batch completes
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (!did || toggledFavRefs.size === 0) return;
+		const state = batchPush.getKeyState(did, 'ModelManager_Favs');
+		if (!state) toggledFavRefs = new Set();
+	});
+
+	let deviceFavString = $derived(
+		deviceState.selectedDeviceId
+			? ((deviceState.deviceValues[deviceState.selectedDeviceId]?.[
+					'ModelManager_Favs'
+				] as string) ?? '')
+			: ''
+	);
+	let prevDeviceFavString = $state('');
+	$effect(() => {
+		const current = deviceFavString;
+		if (current !== prevDeviceFavString) {
+			prevDeviceFavString = current;
+			// Only sync from device if it wasn't our own optimistic update
+			// (deviceValues is set by toggleFavorite AND by batchPush rollback/fetch)
+			favorites = new Set(current ? current.split(';').filter(Boolean) : []);
+		}
+	});
+
+	// Synchronous cache hydration — runs before first render, no $effect loop.
+	function hydrateModelsCache(did: string) {
+		if (!did || modelList) return;
+		const cached = loadModelsCache(did);
+		if (cached) {
+			modelList = cached.modelList;
+			currentModelShortName = cached.currentModelShortName;
+			favorites = new Set(cached.favorites);
+		}
+	}
+
+	// Hydrate immediately for current device (synchronous, before first render)
+	if (deviceState.selectedDeviceId) {
+		hydrateModelsCache(deviceState.selectedDeviceId);
+	}
+
+	// Re-hydrate reactively when device changes
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did) {
+			untrack(() => hydrateModelsCache(did));
+		}
+	});
 	let pushModalOpen = $state(false);
 	let downloadingModelIndex = $state<number | undefined>(undefined);
 
@@ -99,12 +230,13 @@
 			const downloadingModel = modelList.find((m) => m.index === downloadingModelIndex);
 			if (downloadingModel) return downloadingModel;
 		}
-		return (
-			modelList?.find((m) => m.short_name === currentModelShortName) ??
-			(currentModelShortName === undefined && !loadingModels && modelList
-				? DEFAULT_MODEL
-				: undefined)
-		);
+		if (!modelList) return undefined;
+		if (currentModelShortName !== undefined) {
+			return modelList.find((m) => m.short_name === currentModelShortName) ?? DEFAULT_MODEL;
+		}
+		// Don't flash DEFAULT_MODEL while still loading/resolving
+		if (loadingModels) return undefined;
+		return DEFAULT_MODEL;
 	});
 	let isLegacyActive = $derived(
 		currentModel?.overrides?.folder?.toLowerCase().includes('legacy') ?? false
@@ -121,6 +253,37 @@
 	let clearCacheModalOpen = $state(false);
 	let clearingCache = $state(false);
 
+	// Retry state for offline/error banner (matches settings layout)
+	let retrying = $state(false);
+	let retryFailed = $state(false);
+	let lastRetryAt = $state<Date | null>(null);
+
+	async function handleRetry() {
+		if (!deviceState.selectedDeviceId || !logtoClient) return;
+		retrying = true;
+		// Reset verification so sync indicator shows "Refreshing..." during retry
+		deviceState.valuesVerifiedThisSession[deviceState.selectedDeviceId] = false;
+		try {
+			const token = await logtoClient.getIdToken();
+			if (token) await checkDeviceStatus(deviceState.selectedDeviceId, token, true);
+			lastRetryAt = new Date();
+			// If still offline/error after retry
+			const status = deviceState.onlineStatuses[deviceState.selectedDeviceId];
+			retryFailed = status === 'offline' || status === 'error';
+		} catch {
+			retryFailed = true;
+		} finally {
+			retrying = false;
+		}
+	}
+
+	function formatRelativeTime(date: Date): string {
+		const seconds = Math.round((Date.now() - date.getTime()) / 1000);
+		if (seconds < 60) return 'just now';
+		const minutes = Math.floor(seconds / 60);
+		return `${minutes}m ago`;
+	}
+
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
 			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'offline'
@@ -136,6 +299,33 @@
 			(deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'loading' ||
 				deviceState.onlineStatuses[deviceState.selectedDeviceId] === undefined)
 	);
+
+	// Tracks any active fetch (silent or not) for the sync indicator
+	let isFetchingModels = $state(false);
+
+	// True only when refreshing with data already present (not cold load)
+	let isRevalidating = $derived(isFetchingModels && modelList !== null);
+
+	let batchActive = $derived(
+		deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false
+	);
+	let isStale = $derived(!!(deviceId && deviceState.valuesStale[deviceId]));
+	const sync = createSyncStatus(
+		() => isCheckingStatus || isRevalidating || batchActive || isStale,
+		() => !isOffline && !isError && !isCheckingStatus && !batchActive && !isStale
+	);
+
+	// Reset on device change (skip initial mount)
+	let prevDeviceId = $state(deviceState.selectedDeviceId);
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		untrack(() => {
+			if (did !== prevDeviceId) {
+				prevDeviceId = did;
+				sync.reset();
+			}
+		});
+	});
 
 	// Group models by folder
 	let groupedModels = $derived.by(() => {
@@ -241,13 +431,34 @@
 		}
 	});
 
-	// Auto-refresh when device comes online
+	// Auto-refresh when device comes online OR immediately revalidate cached data
+	// When cached data exists, fetch starts immediately (shows "Refreshing..." right away)
+	// When no cache, waits for online status before cold loading
 	$effect(() => {
-		if (
-			deviceState.selectedDeviceId &&
-			deviceState.onlineStatuses[deviceState.selectedDeviceId] === 'online'
-		) {
-			fetchModelsForDevice();
+		const did = deviceState.selectedDeviceId;
+		const online = did ? deviceState.onlineStatuses[did] === 'online' : false;
+		if (did && authState.isAuthenticated) {
+			const hasCached = untrack(() => !!modelList);
+			const alreadyFetching = untrack(() => isFetchingModels);
+			if (alreadyFetching) return;
+			if (hasCached) {
+				// Revalidate immediately — don't wait for online status
+				fetchModelsForDevice(true);
+			} else if (online) {
+				// Cold load — only when device is confirmed online
+				fetchModelsForDevice(false);
+			}
+		}
+	});
+
+	// Re-fetch models when valuesStale is set (header offroad toggle, manual
+	// refresh button, version-poll drift). Mirrors the osm/+page guard pattern.
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did && deviceState.valuesStale[did] && !untrack(() => isFetchingModels)) {
+			fetchModelsForDevice(true).finally(() => {
+				if (deviceState.valuesStale[did]) deviceState.valuesStale[did] = false;
+			});
 		}
 	});
 
@@ -263,6 +474,7 @@
 	});
 
 	async function fetchModelsForDevice(silent = false) {
+		isFetchingModels = true;
 		if (!silent) {
 			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
 			currentModelShortName = undefined;
@@ -304,7 +516,7 @@
 					const message: string =
 						(err && err in errorMessages ? errorMessages[err] : errorMessages.error) ??
 						'Failed to fetch models. Please try again.';
-					toastState.show(message, 'error');
+					toast.error(message);
 				}
 				return;
 			}
@@ -384,10 +596,15 @@
 					downloadingModelIndex = undefined;
 				}
 			}
+			// Persist to cache for SWR on next visit
+			if (modelList && deviceState.selectedDeviceId) {
+				saveModelsCache(deviceState.selectedDeviceId, modelList, currentModelShortName, favorites);
+			}
 		} catch (e) {
 			console.error('Error fetching models:', e);
 		} finally {
 			loadingModels = false;
+			isFetchingModels = false;
 		}
 	}
 
@@ -527,7 +744,7 @@
 		} catch (e: unknown) {
 			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);
-			toastState.show(message, 'error');
+			toast.error(message);
 		} finally {
 			sendingModel = false;
 		}
@@ -540,8 +757,17 @@
 	}
 
 	async function resetToDefaultModel() {
-		await pushModelToDevice(DEFAULT_MODEL);
+		// Optimistic UI: immediately show default model, close modal
+		const previousModel = currentModelShortName;
+		currentModelShortName = undefined;
 		resetModalOpen = false;
+
+		try {
+			await pushModelToDevice(DEFAULT_MODEL);
+		} catch {
+			// Rollback on failure
+			currentModelShortName = previousModel;
+		}
 	}
 
 	async function clearModelsCache() {
@@ -570,60 +796,43 @@
 					Authorization: `Bearer ${await logtoClient.getIdToken()}`
 				}
 			});
-			toastState.show('Models cache cleared successfully!', 'success');
+			toast.success('Models cache cleared successfully!');
 		} catch (e) {
 			console.error('Error clearing models cache:', e);
-			toastState.show('Failed to clear models cache.', 'error');
+			toast.error('Failed to clear models cache.');
 		} finally {
 			clearingCache = false;
 			clearCacheModalOpen = false;
 		}
 	}
 
-	async function toggleFavorite(bundle: ModelBundle, event?: Event) {
+	function toggleFavorite(bundle: ModelBundle, event?: Event) {
 		if (event) {
 			event.stopPropagation();
 		}
-		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		const did = deviceState.selectedDeviceId;
+		if (!did) return;
 
+		// Optimistic: update UI immediately
 		const newFavorites = new Set(favorites);
 		if (newFavorites.has(bundle.ref)) {
 			newFavorites.delete(bundle.ref);
 		} else {
 			newFavorites.add(bundle.ref);
 		}
+		favorites = newFavorites;
+		toggledFavRefs = new Set([...toggledFavRefs, bundle.ref]);
 
-		const favString = Array.from(newFavorites).join(';');
+		const favString = Array.from(newFavorites).sort().join(';');
 
-		try {
-			updatingFavShortName = bundle.short_name;
-			await Athenav0Client.POST('/settings/{deviceId}', {
-				params: {
-					path: {
-						deviceId: deviceState.selectedDeviceId
-					}
-				},
-				body: [
-					{
-						key: 'ModelManager_Favs',
-						value: encodeParamValue({
-							key: 'ModelManager_Favs',
-							value: favString,
-							type: 'string'
-						}),
-						is_compressed: false
-					}
-				],
-				headers: {
-					Authorization: `Bearer ${await logtoClient.getIdToken()}`
-				}
-			});
-			favorites = newFavorites;
-		} catch (e) {
-			console.error('Error updating favorites:', e);
-		} finally {
-			updatingFavShortName = null;
-		}
+		// Update deviceValues so it's tracked, then batch push.
+		// Normalize previousValue to sorted form so net-change detection works
+		// (device may return favorites in a different order than Set iteration).
+		if (!deviceState.deviceValues[did]) deviceState.deviceValues[did] = {};
+		const rawPrev = (deviceState.deviceValues[did]['ModelManager_Favs'] as string) ?? '';
+		const previousValue = rawPrev.split(';').filter(Boolean).sort().join(';');
+		deviceState.deviceValues[did]['ModelManager_Favs'] = favString;
+		batchPush.enqueue(did, 'ModelManager_Favs', favString, previousValue, 'String');
 	}
 
 	const FOLDER_EXPLANATIONS: Record<string, string> = {
@@ -652,53 +861,37 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
-		<div>
-			<h1 class="text-2xl font-bold text-white">Models</h1>
-			<p class="text-slate-400">
-				Manage and switch driving models & related settings for your device.
-			</p>
-		</div>
-
-		<div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-			<button
-				class="btn border-red-500/30 bg-red-500/10 text-red-400 transition-all btn-md hover:border-red-500/50 hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
-				onclick={() => (clearCacheModalOpen = true)}
-				disabled={clearingCache || sendingModel || loadingModels || !isOffroad}
-			>
-				{#if clearingCache}
-					<span class="loading loading-xs loading-spinner"></span>
-				{:else}
-					<Trash2 size={14} class="mr-1.5" />
-				{/if}
-				Clear Models Cache
-			</button>
-			{#if currentModelShortName !== undefined && (!loadingModels || modelList)}
-				<button
-					class="btn border-slate-700 bg-slate-800 text-slate-200 transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
-					onclick={() => (resetModalOpen = true)}
-					disabled={sendingModel || clearingCache || loadingModels || !isOffroad}
-				>
-					{#if sendingModel}
-						<span class="loading loading-xs loading-spinner"></span>
-					{:else}
-						<RotateCcw size={14} class="mr-1.5" />
-					{/if}
-					Reset to Default Model
-				</button>
-			{/if}
-		</div>
-	</div>
-
+<SettingsPageShell
+	title="Models"
+	description="Manage and switch driving models & related settings for your device."
+	syncStatus={modelList ? sync.status : undefined}
+	loading={!!(loadingModels || isCheckingStatus) && !modelList}
+	onRefresh={async () => {
+		if (!deviceId || !logtoClient) return;
+		// Master invalidation signal — also drives the valuesStale $effect so
+		// the spinner shows "Refreshing..." instantly and consumers re-fetch.
+		deviceState.invalidateAll(deviceId);
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+			await Promise.all([
+				checkDeviceStatus(deviceId, token, true, false),
+				fetchModelsForDevice(true)
+			]);
+		} finally {
+			// Clear stale so the title-bar sync indicator can transition to "synced"
+			deviceState.valuesStale[deviceId] = false;
+		}
+	}}
+>
 	{#if authState.loading}
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
 		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="mb-4 rounded-full bg-slate-700/50 p-4">
+			<div class="mb-4 rounded-full bg-[var(--sl-bg-elevated)]/50 p-4">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					class="h-12 w-12 text-slate-400"
+					class="h-12 w-12 text-[var(--sl-text-2)]"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -711,299 +904,250 @@
 					/>
 				</svg>
 			</div>
-			<h3 class="text-xl font-semibold text-white">No Device Selected</h3>
-			<p class="mt-2 text-slate-400">Select a device to view available models.</p>
+			<h3 class="text-xl font-semibold text-[var(--sl-text-1)]">No Device Selected</h3>
+			<p class="mt-2 text-[var(--sl-text-2)]">Select a device to view available models.</p>
 		</div>
-	{:else if isOffline}
-		{#await data.streamed.devices then devices}
-			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
-			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-red-500/10 p-4">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-12 w-12 text-red-500"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-						/>
-					</svg>
-				</div>
-				<h3 class="text-xl font-semibold text-white">
-					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
-					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-slate-400"
-							>({selectedDevice?.device_id})</span
-						>
-					{/if}
-				</h3>
-				<p class="mt-2 max-w-md text-slate-400">
-					Your device needs to be online to fetch and manage models.
-				</p>
-				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
-					<button
-						class="btn btn-sm btn-primary"
-						onclick={async () => {
-							if (deviceState.selectedDeviceId && logtoClient) {
-								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceState.selectedDeviceId, token);
-								}
-							}
-						}}
-					>
-						Retry Connection
-					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
-						<DeviceSelector {devices} />
-					{/if}
-				</div>
-			</div>
-		{/await}
 	{:else if (loadingModels || isCheckingStatus) && !modelList}
 		<div class="animate-pulse space-y-6">
 			{#if isCheckingStatus}
-				<div class="flex items-center gap-2 text-slate-400">
+				<div class="flex items-center gap-2 text-[var(--sl-text-2)]">
 					<span class="loading loading-sm loading-spinner"></span>
 					<span>Checking device status...</span>
 				</div>
 			{/if}
-			<div class="h-12 w-full rounded bg-slate-700"></div>
-			<div class="h-48 w-full rounded bg-slate-700"></div>
+			<div class="h-12 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
+			<div class="h-48 w-full rounded bg-[var(--sl-bg-elevated)]"></div>
 		</div>
-	{:else if isError}
-		{#await data.streamed.devices then devices}
-			{@const selectedDevice = devices?.find(
-				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
-			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-amber-500/10 p-4">
-					<!-- AlertTriangle is already imported -->
-					<AlertTriangle class="h-12 w-12 text-amber-500" />
-				</div>
-				<h3 class="text-xl font-semibold text-white">Connection Error</h3>
-				<p class="mt-2 max-w-md text-slate-400">
-					{deviceState.lastErrorMessages[deviceState.selectedDeviceId || ''] ||
-						'Failed to connect to device.'}
-				</p>
-				<div class="mt-6">
-					<button
-						class="btn btn-sm btn-primary"
-						onclick={async () => {
-							if (deviceState.selectedDeviceId && logtoClient) {
-								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceState.selectedDeviceId, token);
-								}
-							}
-						}}
-					>
-						Retry Connection
-					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
-						<DeviceSelector {devices} />
-					{/if}
-				</div>
-			</div>
-		{/await}
 	{:else}
-		<div class="space-y-6">
-			{#if currentModel}
-				<div class="overflow-hidden rounded-xl border border-violet-500/30 bg-violet-500/5">
-					<div class="border-b border-violet-500/20 bg-violet-500/10 px-4 py-3">
-						<div class="flex items-center gap-2">
-							<Smartphone size={16} class="text-violet-400" />
-							<span class="text-xs font-bold tracking-wider text-violet-300 uppercase">
-								Active On Device
-							</span>
-						</div>
+		<!-- Inline offline/error banner — identical to settings/+layout.svelte -->
+		{#if isOffline || isError}
+			<div
+				class="flex items-center gap-2.5 rounded-lg border px-4 py-2.5
+				{isError
+					? 'border-orange-500/20 bg-orange-50 dark:bg-orange-500/5'
+					: 'border-amber-500/20 bg-amber-50 dark:bg-yellow-500/5'}"
+			>
+				{#if isError}
+					<AlertTriangle size={16} class="shrink-0 text-orange-600 dark:text-orange-400" />
+					<div class="flex-1">
+						<p class="text-sm text-orange-800 dark:text-orange-200/80">
+							<span class="font-medium">Connection error</span> — {deviceState.lastErrorMessages[
+								deviceState.selectedDeviceId || ''
+							] || 'Unable to reach device.'} Showing cached models.
+						</p>
+						{#if lastRetryAt}
+							<p class="mt-0.5 text-[0.6875rem] text-orange-600/60 dark:text-orange-300/50">
+								Checked {formatRelativeTime(lastRetryAt)}
+							</p>
+						{/if}
 					</div>
-					<div class="p-4">
-						<div class="flex items-start justify-between gap-4">
-							<div>
-								<h3 class="text-lg font-bold text-white">{currentModel.display_name}</h3>
-								<code
-									class="mt-1 inline-block rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-xs text-violet-300"
-								>
-									{currentModel.short_name}
-								</code>
-							</div>
-							{#if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
-								<div
-									class="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-200"
-								>
-									<span class="loading loading-xs loading-spinner text-blue-400"></span>
-									Downloading...
-								</div>
+				{:else}
+					<WifiOff size={16} class="shrink-0 text-amber-600 dark:text-yellow-500" />
+					<div class="flex-1">
+						<p class="text-sm text-amber-800 dark:text-yellow-200/80">
+							{#if retryFailed}
+								<span class="font-medium">Still offline</span> — Device not reachable. Showing cached
+								models.
 							{:else}
-								<div
-									class="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-200"
-								>
-									Active
-								</div>
+								<span class="font-medium">Offline</span> — Showing cached models. Changes disabled until
+								device is online.
 							{/if}
-						</div>
-						<div class="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Environment</span>
-								<span class="text-slate-300">{currentModel.environment}</span>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Generation</span>
-								<span class="text-slate-300">{currentModel.generation ?? 'N/A'}</span>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Runner</span>
-								<span class="text-slate-300">{currentModel.runner ?? 'N/A'}</span>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-slate-500 uppercase">Build Date</span>
-								<span class="text-slate-300">
-									{currentModel.build_time
-										? new Date(currentModel.build_time).toLocaleDateString()
-										: 'N/A'}
-								</span>
-							</div>
-						</div>
+						</p>
+						{#if lastRetryAt}
+							<p class="mt-0.5 text-[0.6875rem] text-amber-600/60 dark:text-yellow-300/50">
+								Checked {formatRelativeTime(lastRetryAt)}
+							</p>
+						{/if}
 					</div>
-				</div>
-
-				<div class="space-y-3">
-					<div class="label px-0">
-						<span
-							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
-							>Model Settings</span
+				{/if}
+				<button
+					class="btn shrink-0 btn-ghost transition-all duration-100 btn-xs active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 {isError
+						? 'text-orange-700 dark:text-orange-400'
+						: 'text-yellow-700 dark:text-yellow-400'}"
+					disabled={retrying}
+					onclick={handleRetry}
+				>
+					{#if retrying}
+						<span class="loading loading-xs loading-spinner"></span>
+						Checking...
+					{:else}
+						<RefreshCw size={14} />
+						Retry
+					{/if}
+				</button>
+			</div>
+		{/if}
+		<div>
+			{#if currentModel}
+				<div
+					class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel
+						? 'opacity-60'
+						: ''}  transition-opacity duration-200"
+				>
+					<div class="flex items-center justify-between px-4 py-4">
+						<div class="flex min-w-0 items-center gap-3">
+							<div
+								class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]"
+							>
+								<Smartphone size={14} class="text-[var(--sl-text-2)]" />
+							</div>
+							<div class="min-w-0">
+								<div class="flex items-center gap-2">
+									<span class="truncate text-sm font-medium text-[var(--sl-text-1)]"
+										>{currentModel.display_name}</span
+									>
+									<code
+										class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
+										>{currentModel.short_name}</code
+									>
+								</div>
+							</div>
+						</div>
+						{#if sendingModel}
+							<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
+								<span class="loading loading-xs loading-spinner"></span>
+								Sending...
+							</div>
+						{:else if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
+							<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
+								<span class="loading loading-xs loading-spinner"></span>
+								Downloading
+							</div>
+						{:else}
+							<div class="flex shrink-0 items-center gap-1.5 text-xs text-[var(--sl-green)]">
+								<span class="h-1.5 w-1.5 rounded-full bg-[var(--sl-green)]"></span>
+								Active
+							</div>
+						{/if}
+					</div>
+					<!-- Metadata: label-value rows (consistent with Dashboard card pattern) -->
+					{#if currentModel.environment !== 'N/A' || currentModel.generation || currentModel.runner}
+						<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
+							<div class="max-w-[280px] space-y-1.5">
+								{#if currentModel.environment && currentModel.environment !== 'N/A'}
+									<div class="flex items-center gap-3">
+										<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
+											>Environment</span
+										>
+										<span class="text-[0.75rem] text-[var(--sl-text-2)]"
+											>{currentModel.environment}</span
+										>
+									</div>
+								{/if}
+								{#if currentModel.runner && currentModel.runner !== 'N/A'}
+									<div class="flex items-center gap-3">
+										<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]">Runner</span>
+										<span class="text-[0.75rem] text-[var(--sl-text-2)]">{currentModel.runner}</span
+										>
+									</div>
+								{/if}
+								{#if currentModel.generation}
+									<div class="flex items-center gap-3">
+										<span class="w-20 shrink-0 text-[0.75rem] text-[var(--sl-text-3)]"
+											>Generation</span
+										>
+										<span class="text-[0.75rem] text-[var(--sl-text-2)]"
+											>{currentModel.generation}</span
+										>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
+					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
+						{#if currentModelShortName !== undefined}
+							<button
+								class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100"
+								onclick={() => (resetModalOpen = true)}
+								disabled={sendingModel}
+								title={!isOffroad ? 'Device must be offroad' : undefined}
+							>
+								Reset to Default
+							</button>
+							<span class="text-[var(--sl-border)]">|</span>
+						{/if}
+						<button
+							class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
+							onclick={() => (clearCacheModalOpen = true)}
+							disabled={clearingCache}
+							title={!isOffroad ? 'Device must be offroad' : undefined}
 						>
-					</div>
-					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-						{#if cameraOffsetParam && currentModel !== DEFAULT_MODEL}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={cameraOffsetParam} />
-						{/if}
-
-						{#if lagdToggleParam}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={lagdToggleParam} />
-						{/if}
-
-						{#if lagdToggleDelayParam && lagdToggleValue === false}
-							<SettingCard
-								deviceId={deviceState.selectedDeviceId!}
-								setting={lagdToggleDelayParam}
-							/>
-						{/if}
-
-						{#if laneTurnDesireParam}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnDesireParam} />
-						{/if}
-
-						{#if laneTurnValueParam && laneTurnDesireParamValue === true}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={laneTurnValueParam} />
-						{/if}
-
-						{#if nnlcParam && isLegacyActive}
-							<SettingCard deviceId={deviceState.selectedDeviceId!} setting={nnlcParam} />
-						{/if}
+							Clear Cache
+						</button>
 					</div>
 				</div>
 			{/if}
 
-			<div class="space-y-3">
-				<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-					<div class="label px-0">
-						<span
-							class="label-text text-sm font-semibold tracking-[0.28em] text-slate-400 uppercase"
-							>Available Models</span
-						>
-					</div>
-					<div
-						class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
-					>
-						<button
-							type="button"
-							class="btn border-slate-700 bg-slate-800 text-slate-200 btn-ghost transition-all btn-md hover:border-slate-600 hover:bg-slate-700 active:scale-95 disabled:opacity-50"
-							onclick={refreshModels}
-							disabled={loadingModels}
-							aria-label="Fetch Latest"
-						>
-							<RefreshCw size={20} class={loadingModels ? 'animate-spin' : ''} />
-							Fetch Latest
-						</button>
-						<div class="relative w-full">
-							<input
-								type="text"
-								placeholder="Search models..."
-								class="input input-md w-full border-slate-700 bg-slate-900 pr-9 pl-10 text-slate-200 focus:border-violet-500 focus:outline-none"
-								bind:value={searchQuery}
-							/>
-							<div
-								class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3"
-							>
-								<Search size={14} class="text-slate-500" />
-							</div>
-							{#if searchQuery}
-								<button
-									type="button"
-									class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-300"
-									onclick={() => {
-										searchQuery = '';
-									}}
-									aria-label="Clear search"
-								>
-									<X size={14} />
-								</button>
-							{/if}
+			<div class="mt-12 px-4">
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Available Models</p>
+			</div>
+
+			<div
+				class="relative mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-subtle)]"
+			>
+				<div class="border-b border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)] px-4 py-2.5">
+					<div class="relative">
+						<input
+							type="text"
+							placeholder="Search models..."
+							class="w-full rounded-lg border-none bg-[var(--sl-bg-input)] py-2 pr-9 pl-9 text-[0.8125rem] text-[var(--sl-text-1)] placeholder:text-[var(--sl-text-3)] focus:ring-1 focus:ring-[var(--sl-border)] focus:outline-none"
+							bind:value={searchQuery}
+						/>
+						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+							<Search size={14} class="text-[var(--sl-text-3)]" />
 						</div>
+						{#if searchQuery}
+							<button
+								type="button"
+								class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--sl-text-3)] transition-all duration-100 hover:text-[var(--sl-text-2)] active:scale-[0.88] active:opacity-80"
+								onclick={() => {
+									searchQuery = '';
+								}}
+								aria-label="Clear search"
+							>
+								<X size={14} />
+							</button>
+						{/if}
 					</div>
 				</div>
 
-				<div class="relative overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
-					{#if loadingModels && modelList}
-						<div
-							class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/50 backdrop-blur-[1px]"
-							transition:fade={{ duration: 200 }}
-						>
-							<span class="loading loading-lg loading-spinner text-violet-500"></span>
-						</div>
-					{/if}
+				<div class="relative">
 					{#if loadingModels && !modelList}
-						<div class="p-6 text-center text-slate-500">
-							<span class="loading loading-spinner text-violet-500"></span>
+						<div class="p-6 text-center text-[var(--sl-text-3)]">
+							<span class="loading loading-spinner text-primary"></span>
 						</div>
 					{:else if groupedModels.length === 0 && searchQuery}
-						<div class="p-6 text-center text-slate-500">
+						<div class="p-6 text-center text-[var(--sl-text-3)]">
 							No models available matching "{searchQuery}"
 						</div>
 					{:else}
-						<div class="custom-scrollbar max-h-[calc(100vh-250px)] overflow-y-auto">
+						<div>
 							{#each groupedModels as group (group.name)}
-								<div class="border-b border-slate-700/50 last:border-0">
+								<div class="border-b border-[var(--sl-border-muted)] last:border-0">
 									<button
-										class="flex w-full items-center gap-3 bg-slate-800/80 px-4 py-3 text-left transition-colors hover:bg-slate-800 focus:outline-none"
+										class="flex w-full items-center gap-3 bg-[var(--sl-bg-surface)]/80 px-4 py-3.5 text-left transition-colors hover:bg-[var(--sl-bg-subtle)] focus:outline-none"
 										onclick={() => toggleFolder(group.name)}
 									>
 										<ChevronRight
 											size={16}
-											class="text-slate-400 transition-transform duration-200 {openFolders[
+											class="text-[var(--sl-text-3)] transition-transform duration-200 {openFolders[
 												group.name
 											]
 												? 'rotate-90'
 												: ''}"
 										/>
 										{#if group.name === 'Favorites'}
-											<Star size={16} class="fill-amber-400 text-amber-400" />
+											<Star
+												size={16}
+												class="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400"
+											/>
 										{:else}
-											<Folder size={16} class="text-violet-400" />
+											<Folder size={16} class="text-primary" />
 										{/if}
 										<div class="flex items-center gap-2">
-											<span class="font-medium text-slate-200">{group.name}</span>
+											<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
+												>{group.name}</span
+											>
 											{#if getFolderExplanation(group.name)}
 												<div
 													class="tooltip tooltip-right flex items-center"
@@ -1011,72 +1155,186 @@
 												>
 													<CircleHelp
 														size={14}
-														class="text-slate-500 transition-colors hover:text-slate-300"
+														class="text-[var(--sl-text-3)] transition-colors hover:text-[var(--sl-text-2)]"
 													/>
 												</div>
 											{/if}
 										</div>
-										<span
-											class="ml-auto rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400"
-										>
+										<span class="ml-auto text-[0.75rem] text-[var(--sl-text-3)]">
 											{group.models.length}
 										</span>
 									</button>
 
 									{#if openFolders[group.name]}
-										<div transition:slide={{ duration: 200 }} class="bg-slate-900/50">
+										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
 											{#each group.models as model (model.short_name)}
+												{@const favKeyState =
+													toggledFavRefs.has(model.ref) && deviceState.selectedDeviceId
+														? batchPush.getKeyState(
+																deviceState.selectedDeviceId,
+																'ModelManager_Favs'
+															)
+														: undefined}
+												{@const isFavSyncing = favKeyState === 'syncing'}
 												<div
-													class="group relative flex w-full items-center justify-between px-4 py-2.5 pl-11 text-left transition-all hover:bg-slate-800/50 {selectedModelShortName ===
-													model.short_name
-														? 'bg-violet-500/10 hover:bg-violet-500/20'
-														: ''}"
+													role="button"
+													tabindex="0"
+													class="group flex w-full items-center justify-between px-4 py-3.5 pl-11 text-left transition-all hover:bg-[var(--sl-bg-subtle)]"
+													class:opacity-50={isFavSyncing}
+													class:pointer-events-none={isFavSyncing}
+													onclick={() =>
+														(selectedModelShortName =
+															selectedModelShortName === model.short_name
+																? undefined
+																: model.short_name)}
+													onkeydown={(e) => {
+														if (e.key === 'Enter' || e.key === ' ') {
+															e.preventDefault();
+															selectedModelShortName =
+																selectedModelShortName === model.short_name
+																	? undefined
+																	: model.short_name;
+														}
+													}}
 												>
-													{#if selectedModelShortName === model.short_name}
-														<div
-															class="absolute top-0 left-0 h-full w-0.5 bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-														></div>
-													{/if}
-
-													<button
-														class="flex flex-1 items-center gap-3 py-1 text-left focus:outline-none"
-														onclick={() => (selectedModelShortName = model.short_name)}
-													>
-														<span
-															class="text-sm font-medium transition-colors {selectedModelShortName ===
-															model.short_name
-																? 'text-violet-200'
-																: 'text-slate-400 group-hover:text-slate-200'}"
-														>
+													<div class="flex items-center gap-2">
+														<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
 															{model.display_name}
 														</span>
-													</button>
-
-													<div class="flex items-center gap-3">
+														{#if favKeyState === 'pending'}
+															<span
+																class="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-[3px] text-[0.625rem] leading-none font-semibold text-amber-700 dark:text-amber-400"
+																>Pending</span
+															>
+														{:else if isFavSyncing}
+															<span class="loading loading-xs loading-spinner text-primary"></span>
+														{:else if favKeyState === 'confirmed'}
+															<svg
+																xmlns="http://www.w3.org/2000/svg"
+																width="12"
+																height="12"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2.5"
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																class="text-emerald-600 dark:text-emerald-400"
+																><path d="M20 6 9 17l-5-5" /></svg
+															>
+														{/if}
+													</div>
+													<div class="flex items-center gap-2">
 														<button
-															class="p-1.5 text-slate-500 transition-colors hover:text-amber-400 active:scale-90 disabled:opacity-50 {updatingFavShortName &&
-															updatingFavShortName === model.short_name
-																? 'animate-pulse-slow'
-																: ''}"
-															onclick={(e) => toggleFavorite(model, e)}
-															disabled={updatingFavShortName !== null}
+															class="p-1.5 text-[var(--sl-text-3)] transition-all duration-150 hover:text-amber-600 active:scale-90 dark:hover:text-amber-400"
+															class:pointer-events-none={isFavSyncing}
+															onclick={(e) => {
+																e.stopPropagation();
+																toggleFavorite(model, e);
+															}}
 															title={favorites.has(model.ref)
 																? 'Remove from Favorites'
 																: 'Add to Favorites'}
 														>
 															<Star
-																size={16}
-																class={favorites.has(model.ref)
-																	? 'fill-amber-400 text-amber-400'
-																	: ''}
+																size={14}
+																class="transition-all duration-150 {favorites.has(model.ref)
+																	? 'scale-110 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+																	: 'scale-100'}"
 															/>
 														</button>
-
-														{#if selectedModelShortName === model.short_name}
-															<Check size={16} class="text-violet-400" />
-														{/if}
+														<ChevronRight
+															size={14}
+															class="text-[var(--sl-text-3)] transition-transform duration-150 {selectedModelShortName ===
+															model.short_name
+																? 'rotate-90'
+																: ''}"
+														/>
 													</div>
 												</div>
+												{#if selectedModelShortName === model.short_name}
+													<div
+														transition:slide={{ duration: 150 }}
+														class="border-t border-[var(--sl-border-muted)] bg-[var(--sl-bg-surface)]/60 px-4 py-4 pl-11"
+													>
+														<div class="flex items-start justify-between gap-4">
+															<div class="min-w-0 flex-1">
+																<code
+																	class="rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
+																	>{model.short_name}</code
+																>
+																<div class="mt-3 flex max-w-xs flex-col gap-1.5 text-xs">
+																	<div class="flex items-baseline justify-between">
+																		<span class="text-[var(--sl-text-3)]">Environment</span>
+																		<span class="text-[var(--sl-text-2)]">{model.environment}</span>
+																	</div>
+																	<div class="flex items-baseline justify-between">
+																		<span class="text-[var(--sl-text-3)]">Runner</span>
+																		<span class="text-[var(--sl-text-2)]"
+																			>{model.runner ?? 'Unknown'}</span
+																		>
+																	</div>
+																	<div class="flex items-baseline justify-between">
+																		<span class="text-[var(--sl-text-3)]">Generation</span>
+																		<span class="text-[var(--sl-text-2)]"
+																			>{model.generation ?? 'Unknown'}</span
+																		>
+																	</div>
+																	<div class="flex items-baseline justify-between">
+																		<span class="text-[var(--sl-text-3)]">Build</span>
+																		<span class="text-[var(--sl-text-2)]"
+																			>{model.build_time
+																				? new Date(model.build_time).toLocaleDateString(undefined, {
+																						year: 'numeric',
+																						month: 'short',
+																						day: 'numeric'
+																					})
+																				: 'Unknown'}</span
+																		>
+																	</div>
+																</div>
+															</div>
+														</div>
+														{#if !isOffroad}
+															<p class="mt-3 text-xs text-amber-700 dark:text-amber-400">
+																Device is onroad. Models cannot be changed while driving.
+															</p>
+														{/if}
+														<div class="mt-4 flex items-center gap-3">
+															{#if currentModel?.short_name === model.short_name}
+																<div
+																	class="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400"
+																>
+																	<svg
+																		xmlns="http://www.w3.org/2000/svg"
+																		width="12"
+																		height="12"
+																		viewBox="0 0 24 24"
+																		fill="none"
+																		stroke="currentColor"
+																		stroke-width="2.5"
+																		stroke-linecap="round"
+																		stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg
+																	>
+																	Active
+																</div>
+															{:else}
+																<button
+																	class="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-40"
+																	onclick={() => sendModelToDevice()}
+																	disabled={sendingModel || !isOffroad}
+																>
+																	{#if sendingModel}
+																		<span class="loading mr-1 loading-xs loading-spinner"></span>
+																		Activating...
+																	{:else}
+																		Activate
+																	{/if}
+																</button>
+															{/if}
+														</div>
+													</div>
+												{/if}
 											{/each}
 										</div>
 									{/if}
@@ -1086,154 +1344,59 @@
 					{/if}
 				</div>
 			</div>
+
+			{#if deviceState.selectedDeviceId}
+				{@const modelsPanel = schemaState.schemas[deviceState.selectedDeviceId]?.panels?.find(
+					(p) => p.id === 'models'
+				)}
+				{#if modelsPanel}
+					<div class="mt-12">
+						<SchemaPanel
+							deviceId={deviceState.selectedDeviceId}
+							panel={modelsPanel}
+							loadingValues={loadingModels}
+						/>
+					</div>
+				{:else if currentModel}
+					<!-- Schema-driven: enablement rules in settings_ui.json gate disable state.
+					     NNLC is the only remaining frontend-side conditional and exists solely for
+					     legacy model support. Drop the `nnlcParam && isLegacyActive` line below
+					     when legacy mode is removed. -->
+					{@const modelSettingItems = [
+						cameraOffsetParam,
+						lagdToggleParam,
+						lagdToggleDelayParam,
+						laneTurnDesireParam,
+						laneTurnValueParam,
+						nnlcParam && isLegacyActive ? nnlcParam : null
+					].filter((p): p is NonNullable<typeof p> => p !== null)}
+					{#if modelSettingItems.length > 0 && deviceState.selectedDeviceId}
+						{@const modelPanel: Panel = {
+							id: 'model-settings',
+							label: 'Model Settings',
+							icon: 'models',
+							order: 0,
+							remote_configurable: true,
+							items: modelSettingItems.map(settingToSchemaItem)
+						}}
+						<div class="mt-12 px-4">
+							<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Model Settings</p>
+						</div>
+						<div class="mt-3">
+							<SchemaPanel
+								deviceId={deviceState.selectedDeviceId}
+								panel={modelPanel}
+								loadingValues={loadingModels}
+							/>
+						</div>
+					{/if}
+				{/if}
+			{/if}
 		</div>
 
-		{#if selectedModel}
-			<!-- Backdrop -->
-			<button
-				class="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-sm transition-opacity"
-				transition:fade={{ duration: 200 }}
-				onclick={() => {
-					selectedModelShortName = undefined;
-				}}
-				aria-label="Close modal"
-			></button>
-
-			<!-- Modal -->
-			<div
-				class="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 p-4"
-				transition:fly={{ y: 20, duration: 300 }}
-			>
-				<div
-					class="relative overflow-hidden rounded-xl border border-slate-700 bg-[#0f1726] p-6 shadow-2xl"
-				>
-					<button
-						class="absolute top-4 right-4 text-slate-400 hover:text-white"
-						onclick={() => (selectedModelShortName = undefined)}
-					>
-						<X size={20} />
-					</button>
-
-					<div class="mb-6">
-						<div class="flex items-center justify-between gap-4">
-							<h3 class="text-2xl font-bold text-white">
-								{selectedModel.display_name}
-							</h3>
-							<button
-								class="rounded-full p-2 text-slate-400 transition-all hover:bg-slate-800 hover:text-amber-400 active:scale-95 disabled:opacity-50 {updatingFavShortName &&
-								updatingFavShortName === selectedModel.short_name
-									? 'animate-pulse-slow'
-									: ''}"
-								onclick={() => toggleFavorite(selectedModel)}
-								disabled={updatingFavShortName !== null}
-								title={favorites.has(selectedModel.ref)
-									? 'Remove from Favorites'
-									: 'Add to Favorites'}
-							>
-								<Star
-									size={24}
-									class={favorites.has(selectedModel.ref) ? 'fill-amber-400 text-amber-400' : ''}
-								/>
-							</button>
-						</div>
-
-						<div class="mt-2">
-							<code class="rounded bg-slate-800 px-2 py-1 font-mono text-xs text-violet-300">
-								{selectedModel.short_name}
-							</code>
-						</div>
-					</div>
-
-					<div class="mb-8 grid grid-cols-2 gap-6">
-						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
-								Environment
-							</div>
-							<div class="mt-1 text-sm text-slate-200">{selectedModel.environment}</div>
-						</div>
-						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
-								Build Date
-							</div>
-							<div class="mt-1 text-sm text-slate-200">
-								{selectedModel.build_time
-									? new Date(selectedModel.build_time).toLocaleDateString(undefined, {
-											year: 'numeric',
-											month: 'short',
-											day: 'numeric'
-										})
-									: 'Unknown'}
-							</div>
-						</div>
-						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">Runner</div>
-							<div class="mt-1 text-sm text-slate-200">{selectedModel.runner ?? 'Unknown'}</div>
-						</div>
-						<div>
-							<div class="text-xs font-medium tracking-wider text-slate-500 uppercase">
-								Generation
-							</div>
-							<div class="mt-1 text-sm text-slate-200">
-								{selectedModel.generation ?? 'Unknown'}
-							</div>
-						</div>
-					</div>
-
-					{#if !isOffroad}
-						<div class="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-							<div class="flex items-start gap-3">
-								<ShieldAlert class="mt-0.5 shrink-0 text-amber-500" size={20} />
-								<div class="space-y-2">
-									<p class="text-sm font-medium text-amber-200">Device is Onroad</p>
-									<p class="text-xs text-amber-200/80">Models cannot be changed while driving.</p>
-									<div class="flex flex-wrap gap-3">
-										<button
-											class="text-xs font-semibold text-amber-500 underline decoration-amber-500/50 underline-offset-2 hover:text-amber-400"
-											onclick={() => (forceOffroadModalOpen = true)}
-										>
-											Force Offroad Mode
-										</button>
-										<button
-											class="text-xs font-semibold text-slate-400 underline decoration-slate-500/50 underline-offset-2 hover:text-slate-300"
-											onclick={recheckStatus}
-										>
-											Recheck Status
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					{/if}
-
-					<div class="flex gap-3">
-						<button
-							class="btn flex-1 border-[#334155] bg-[#1e293b] text-white hover:bg-[#334155]"
-							onclick={() => (selectedModelShortName = undefined)}
-						>
-							Cancel
-						</button>
-						<button
-							class="btn flex-[2] border-violet-500 bg-violet-600 text-white hover:border-violet-600 hover:bg-violet-700"
-							onclick={sendModelToDevice}
-							disabled={sendingModel || !selectedModel || !isOffroad}
-						>
-							{#if sendingModel}
-								<span class="loading loading-xs loading-spinner"></span>
-								Sending...
-							{:else}
-								Send to Device 🚀
-							{/if}
-						</button>
-					</div>
-
-					{#if sendingModel}
-						<progress class="progress mt-4 w-full progress-primary"></progress>
-					{/if}
-				</div>
-			</div>
-		{/if}
+		<!-- Modal removed — model selection is now inline within the folder list -->
 	{/if}
-</div>
+</SettingsPageShell>
 
 <ForceOffroadModal
 	bind:open={forceOffroadModalOpen}
@@ -1273,7 +1436,7 @@
 	bind:open={pushModalOpen}
 	onPushSuccess={() => {
 		fetchModelsForDevice(true);
-		toastState.show('Settings pushed successfully!', 'success');
+		toast.success('Settings pushed successfully!');
 	}}
 />
 

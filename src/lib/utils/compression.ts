@@ -60,3 +60,13 @@ export async function decodeCompressedJson<T>(base64String: string): Promise<T> 
 
 	return JSON.parse(new TextDecoder().decode(result)) as T;
 }
+
+/**
+ * Check if a string looks like gzip-compressed base64 data.
+ *
+ * Gzip data starts with magic bytes 0x1F 0x8B. In base64, this encodes
+ * to strings starting with "H4sI" (most common gzip header).
+ */
+export function isCompressedBase64(value: string): boolean {
+	return value.startsWith('H4sI');
+}

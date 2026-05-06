@@ -3,6 +3,7 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { preferences } from '$lib/stores/preferences.svelte';
 	import type { RenderableSetting } from '$lib/types/settings';
+	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 
 	interface Props {
 		deviceId: string;
@@ -53,9 +54,8 @@
 	let isNumber = $derived(setting.value?.type === 'Int' || setting.value?.type === 'Float');
 	let isLoading = $derived(loadingValues && currentValue === undefined);
 
-	let title = $derived(
-		setting._extra?.title || (preferences.debugMode ? setting.key : setting.label)
-	);
+	let title = $derived(setting._extra?.title || setting.label || setting.key);
+	let showDebugKey = $derived(preferences.debugMode && title !== setting.key);
 	let description = $derived(setting._extra?.description || setting.description);
 	let options = $derived(setting._extra?.options);
 	let min = $derived(setting._extra?.min);
@@ -82,9 +82,9 @@
 
 {#if isBool}
 	<button
-		class="relative flex w-full cursor-default flex-col justify-between rounded-xl border bg-[#101a29] p-4 text-left transition-all duration-200 sm:p-6"
+		class="relative flex w-full cursor-default flex-col justify-between rounded-xl border bg-[var(--sl-bg-surface)] p-4 text-left transition-all duration-200 active:scale-[0.99] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100 sm:p-6"
 		class:border-primary={hasStaged}
-		class:border-[#334155]={!hasStaged}
+		class:border-[var(--sl-border)]={!hasStaged}
 		class:opacity-50={setting.readonly}
 		class:cursor-not-allowed={setting.readonly}
 		disabled={setting.readonly}
@@ -102,7 +102,7 @@
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[#101a29] px-2 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 uppercase dark:text-purple-400"
 				>
 					Advanced
 				</div>
@@ -110,24 +110,24 @@
 		{/if}
 		<span class="mb-4 w-full">
 			<span class="flex items-start justify-between gap-4">
-				<h3 class="min-w-0 flex-1 font-medium break-words text-white">
+				<h3 class="min-w-0 flex-1 font-medium break-words text-[var(--sl-text-1)]">
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 						>
 							RO
 						</span>
 					{/if}
 					{#if hasStaged}
 						<span
-							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-primary uppercase"
+							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-primary uppercase"
 						>
 							Modified
 						</span>
 					{/if}
 				</h3>
-				<span class="text-xs font-bold tracking-wider text-slate-500 uppercase">
+				<span class="text-xs font-bold tracking-wider text-[var(--sl-text-3)] uppercase">
 					{#if displayValue === true}
 						Enabled
 					{:else}
@@ -135,9 +135,12 @@
 					{/if}
 				</span>
 			</span>
-			<p class="mt-1 text-sm text-slate-400">{description}</p>
+			{#if showDebugKey}
+				<p class="mt-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{setting.key}</p>
+			{/if}
+			<p class="mt-1 text-sm text-[var(--sl-text-2)]">{description}</p>
 			{#if (decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading) || unit}
-				<p class="mt-2 text-xs text-slate-500">
+				<p class="mt-2 text-xs text-[var(--sl-text-3)]">
 					{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
 						Default: {options
 							? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
@@ -156,17 +159,19 @@
 
 		<span class="mt-auto flex w-full items-end justify-end">
 			{#if isLoading}
-				<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
+				<div class="h-8 w-full animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else}
 				<div
-					class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
+					class="relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full"
 					class:bg-primary={displayValue === true}
-					class:bg-slate-700={displayValue !== true}
+					class:bg-[var(--sl-toggle-off)]={displayValue !== true && !setting.readonly}
+					class:bg-[var(--sl-toggle-off-disabled)]={displayValue !== true && setting.readonly}
+					style="transition: background-color var(--dur-normal) var(--ease-out);"
 				>
 					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-						class:translate-x-6={displayValue === true}
-						class:translate-x-1={displayValue !== true}
+						class="absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-sm"
+						class:translate-x-[20px]={displayValue === true}
+						style="transition: transform var(--dur-normal) var(--ease-spring);"
 					></span>
 				</div>
 			{/if}
@@ -174,15 +179,15 @@
 	</button>
 {:else}
 	<div
-		class="relative flex flex-col justify-between rounded-xl border bg-[#101a29] p-4 transition-colors sm:p-6"
+		class="relative flex flex-col justify-between rounded-xl border bg-[var(--sl-bg-surface)] p-4 transition-colors sm:p-6"
 		class:border-primary={hasStaged}
-		class:border-[#334155]={!hasStaged}
+		class:border-[var(--sl-border)]={!hasStaged}
 		id={setting.key}
 	>
 		{#if setting.advanced}
 			<div class="absolute top-0 left-6 -translate-y-1/2">
 				<div
-					class="rounded-full border border-purple-500/50 bg-[#101a29] px-2 py-0.5 text-[0.6rem] font-bold tracking-wider text-purple-400 uppercase"
+					class="rounded-full border border-purple-500/50 bg-[var(--sl-bg-surface)] px-2 py-0.5 text-xs font-bold tracking-wider text-purple-600 uppercase dark:text-purple-400"
 				>
 					Advanced
 				</div>
@@ -190,27 +195,30 @@
 		{/if}
 		<div class="mb-4">
 			<div class="flex items-start justify-between">
-				<h3 class="min-w-0 flex-1 font-medium break-words text-white">
+				<h3 class="min-w-0 flex-1 font-medium break-words text-[var(--sl-text-1)]">
 					{title}
 					{#if setting.readonly}
 						<span
-							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-amber-500 uppercase"
+							class="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400"
 						>
 							RO
 						</span>
 					{/if}
 					{#if hasStaged}
 						<span
-							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-primary uppercase"
+							class="ml-2 rounded bg-primary/20 px-1.5 py-0.5 text-xs font-bold tracking-wider text-primary uppercase"
 						>
 							Modified
 						</span>
 					{/if}
 				</h3>
 			</div>
-			<p class="mt-1 text-sm text-slate-400">{description}</p>
+			{#if showDebugKey}
+				<p class="mt-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]">{setting.key}</p>
+			{/if}
+			<p class="mt-1 text-sm text-[var(--sl-text-2)]">{description}</p>
 			{#if (decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading) || unit}
-				<p class="mt-2 text-xs text-slate-500">
+				<p class="mt-2 text-xs text-[var(--sl-text-3)]">
 					{#if decodedDefaultValue !== undefined && decodedDefaultValue !== null && !isLoading}
 						Default: {options
 							? options.find((o) => String(o.value) === String(decodedDefaultValue))?.label ||
@@ -235,27 +243,24 @@
 
 		<div class="mt-auto flex items-end justify-end">
 			{#if isLoading}
-				<div class="h-8 w-full animate-pulse rounded bg-slate-700"></div>
+				<div class="h-8 w-full animate-pulse rounded bg-[var(--sl-bg-elevated)]"></div>
 			{:else if options}
-				<select
-					class="select w-full bg-[#0f1726] select-sm text-white focus:border-primary focus:outline-none"
+				<SelectDropdown
+					{options}
 					value={displayValue}
-					onchange={(e: Event & { currentTarget: HTMLSelectElement }) => {
-						const val = e.currentTarget.value;
+					{title}
+					onchange={(val) => {
 						let newValue: string | number = val;
-						// Try to convert to number if the original type is Int/Float
-						if (setting.value?.type === 'Int') newValue = parseInt(val, 10);
-						if (setting.value?.type === 'Float') newValue = parseFloat(val);
+						if (setting.value?.type === 'Int')
+							newValue = typeof val === 'string' ? parseInt(val, 10) : val;
+						if (setting.value?.type === 'Float')
+							newValue = typeof val === 'string' ? parseFloat(val) : val;
 						handleChange(newValue);
 					}}
-				>
-					{#each options as option}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				/>
 			{:else if isJson}
 				<button
-					class="btn w-full text-slate-300 btn-outline btn-sm hover:border-primary hover:text-primary"
+					class="btn w-full text-[var(--sl-text-2)] transition-all duration-100 btn-outline hover:border-primary hover:text-primary active:scale-[0.97] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => onJsonClick?.(setting.label, displayValue)}
 				>
 					View JSON
@@ -264,7 +269,7 @@
 				{#if isNumber && min !== undefined && max !== undefined}
 					<div class="flex w-full flex-col gap-2">
 						<div class="flex items-center justify-between">
-							<span class="text-xs font-medium text-slate-400">
+							<span class="text-xs font-medium text-[var(--sl-text-2)]">
 								{setting.value?.type === 'Float' && typeof min === 'number' ? min.toFixed(2) : min}
 							</span>
 							<span class="text-lg font-bold text-primary">
@@ -276,13 +281,13 @@
 									{displayValue !== undefined ? displayValue : decodedDefaultValue || min}
 								{/if}
 							</span>
-							<span class="text-xs font-medium text-slate-400">
+							<span class="text-xs font-medium text-[var(--sl-text-2)]">
 								{setting.value?.type === 'Float' && typeof max === 'number' ? max.toFixed(2) : max}
 							</span>
 						</div>
 						<div class="flex items-center gap-4">
 							<button
-								class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
+								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 								aria-label="Decrease value"
 								onclick={() => {
 									let current =
@@ -321,7 +326,7 @@
 								}}
 							/>
 							<button
-								class="btn btn-circle text-slate-400 btn-ghost btn-sm hover:text-white"
+								class="btn btn-circle text-[var(--sl-text-2)] btn-ghost transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 								aria-label="Increase value"
 								onclick={() => {
 									let current =
@@ -350,7 +355,7 @@
 					<input
 						type={isNumber ? 'number' : 'text'}
 						value={displayValue !== undefined ? displayValue : ''}
-						class="input input-sm w-full bg-[#0f1726] text-white focus:border-primary focus:outline-none"
+						class="input w-full bg-[var(--sl-bg-input)] text-[var(--sl-text-1)] focus:border-primary focus:outline-none"
 						placeholder={decodedDefaultValue !== undefined ? String(decodedDefaultValue) : ''}
 						{min}
 						{max}
@@ -366,12 +371,14 @@
 				{/if}
 			{:else if isString && String(displayValue).length > 50}
 				<div
-					class="max-h-32 w-full overflow-y-auto rounded bg-[#0f1726] p-2 text-xs whitespace-pre-wrap text-slate-300"
+					class="max-h-32 w-full overflow-y-auto rounded bg-[var(--sl-bg-input)] p-2 text-xs whitespace-pre-wrap text-[var(--sl-text-2)]"
 				>
 					{displayValue}
 				</div>
 			{:else}
-				<div class="w-full rounded bg-[#0f1726] p-2 text-center text-sm font-medium text-white">
+				<div
+					class="w-full rounded bg-[var(--sl-bg-input)] p-2 text-center text-sm font-medium text-[var(--sl-text-1)]"
+				>
 					{displayValue !== undefined ? String(displayValue) : '-'}
 				</div>
 			{/if}

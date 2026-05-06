@@ -1,863 +1,216 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
-	import { checkDeviceStatus } from '$lib/api/device';
-	import UpdateAliasModal from '$lib/components/UpdateAliasModal.svelte';
-	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
-	import PairingModal from '$lib/components/PairingModal.svelte';
+	import { AlertTriangle } from 'lucide-svelte';
 	import DashboardSkeleton from './DashboardSkeleton.svelte';
-	import {
-		Wifi,
-		WifiOff,
-		Activity,
-		Cpu,
-		Save,
-		X,
-		Loader2,
-		ChevronDown,
-		ChevronRight,
-		Calendar,
-		Copy,
-		Check,
-		Trash2,
-		Download,
-		TriangleAlert,
-		Plus
-	} from 'lucide-svelte';
-	import { slide } from 'svelte/transition';
+	import DashboardHero from '$lib/components/dashboard/DashboardHero.svelte';
+	import DashboardTiles from '$lib/components/dashboard/DashboardTiles.svelte';
+	import DashboardEmptyState from '$lib/components/dashboard/DashboardEmptyState.svelte';
 	import BackupProgressModal from '$lib/components/BackupProgressModal.svelte';
-	import { downloadSettingsBackup, fetchAllSettings } from '$lib/utils/settings';
-	import { Athenav1Client } from '$lib/api/client';
+	import { startBackup, retryFailedBackup } from '$lib/utils/backup';
+	import { formatRelativeTime } from '$lib/utils/time';
+	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 
-	let { data } = $props();
+	let devices = $derived(deviceState.pairedDevices);
 
-	let updateAliasModalOpen = $state(false);
-	let deregisterModalOpen = $state(false);
-	let deviceToDeregister = $state<string | null>(null);
-	let deviceToDeregisterAlias = $state<string>('');
-	let deviceToDeregisterPairedAt = $state<number>(0);
-	let deviceToDeregisterIsOnline = $state<boolean>(false);
-	let offlineSectionOpen = $state(false);
-	let copiedDeviceId = $state<string | null>(null);
-	let pairingModalOpen = $state(false);
-	let pairingType = $state<'c3' | 'c4' | null>(null);
-
-	async function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
-		if (!deviceId || deviceState.backupState.isDownloading) return;
-
-		// If there's a previous partial backup for this device, clear it for full refresh
-		const currentValues =
-			fullRefresh || deviceState.backupState.deviceId !== deviceId
-				? deviceState.deviceValues[deviceId] || {}
-				: {
-						...(deviceState.deviceValues[deviceId] || {}),
-						...(deviceState.backupState.fetchedSettings || {})
-					};
-
-		deviceState.startBackup(deviceId);
-
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-
-			const result = await fetchAllSettings(
-				deviceId,
-				Athenav1Client,
-				token,
-				currentValues,
-				(progress, status) => {
-					deviceState.setBackupProgress(progress, status);
-				},
-				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[deviceId]
-			);
-
-			// Update store with any new values fetched
-			Object.entries(result.settings).forEach(([key, value]) => {
-				if (currentValues[key] === undefined) {
-					if (!deviceState.deviceValues[deviceId]) deviceState.deviceValues[deviceId] = {};
-					(deviceState.deviceValues[deviceId] as Record<string, unknown>)[key] = value;
-				}
-			});
-
-			deviceState.setBackupFetchedSettings(result.settings);
-
-			if (result.failedKeys.length > 0) {
-				// Show failure summary — let user decide via modal
-				deviceState.finishBackup(
-					false,
-					`${result.failedKeys.length} of ${Object.keys(result.settings).length + result.failedKeys.length} settings could not be fetched.`,
-					result.failedKeys
-				);
-			} else {
-				downloadSettingsBackup(deviceId, result.settings);
-				deviceState.finishBackup(true);
-
-				// Keep modal open briefly to show completion if it's open
-				if (deviceState.backupState.isOpen) {
-					setTimeout(() => {
-						deviceState.closeBackupModal();
-					}, 1000);
-				}
-			}
-		} catch (e: any) {
-			if (e.message === 'Backup cancelled') {
-				deviceState.finishBackup(false, 'Backup cancelled');
-			} else {
-				console.error('Failed to download backup', e);
-				deviceState.finishBackup(false, 'Failed to download backup');
-				alert('Failed to download backup. Please try again.');
-			}
-		}
-	}
-
-	async function handleRetryFailedBackup() {
-		const bs = deviceState.backupState;
-		if (!bs.deviceId || !bs.failedKeys.length || !bs.fetchedSettings) return;
-
-		// Capture values before startBackup() resets them
-		const deviceId = bs.deviceId;
-		const failedKeyNames = bs.failedKeys.map((f) => f.key);
-		const previousSettings = { ...bs.fetchedSettings };
-
-		deviceState.startBackup(deviceId);
-
-		try {
-			const token = await logtoClient?.getIdToken();
-			if (!token) throw new Error('Not authenticated');
-
-			const result = await fetchAllSettings(
-				deviceId,
-				Athenav1Client,
-				token,
-				previousSettings,
-				(progress, status) => {
-					deviceState.setBackupProgress(progress, status);
-				},
-				deviceState.backupState.abortController?.signal,
-				deviceState.deviceSettings[deviceId],
-				failedKeyNames
-			);
-
-			// Merge newly fetched settings
-			const mergedSettings = { ...previousSettings, ...result.settings };
-			deviceState.setBackupFetchedSettings(mergedSettings);
-
-			if (result.failedKeys.length > 0) {
-				deviceState.finishBackup(
-					false,
-					`${result.failedKeys.length} settings still could not be fetched.`,
-					result.failedKeys
-				);
-			} else {
-				downloadSettingsBackup(deviceId, mergedSettings);
-				deviceState.finishBackup(true);
-				if (deviceState.backupState.isOpen) {
-					setTimeout(() => {
-						deviceState.closeBackupModal();
-					}, 1000);
-				}
-			}
-		} catch (e: any) {
-			if (e.message === 'Backup cancelled') {
-				deviceState.finishBackup(false, 'Backup cancelled');
-			} else {
-				console.error('Failed to retry backup', e);
-				deviceState.finishBackup(false, 'Retry failed');
-			}
-		}
-	}
+	let selectedDevice = $derived(
+		devices.find((d: any) => d.device_id === deviceState.selectedDeviceId) ?? null
+	);
 
 	$effect(() => {
-		if (!authState.loading && !authState.isAuthenticated) {
+		// Skip the redirect when the session was killed mid-use — the modal in
+		// +layout.svelte handles that recovery (Sign in / Maybe later). Without
+		// this guard the redirect races the modal: modal flashes for a frame,
+		// pathname changes to '/', isAuthRequiredRoute flips false → modal
+		// hides, user lands on landing without ever seeing the prompt.
+		if (!authState.loading && !authState.isAuthenticated && !authState.sessionExpired) {
 			goto('/');
 		}
 	});
 
-	// When modal closes (saved or cancelled), remove focus from any active element
-	$effect(() => {
-		if (!updateAliasModalOpen && !deregisterModalOpen) {
-			if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-				document.activeElement.blur();
-			}
-		}
-	});
+	// Fresh sign-in routing: when the user just completed OAuth (flag set by
+	// /auth/callback), check the resolved selected device's online status. If
+	// it's offline (or there's no usable selection), route to /dashboard/devices
+	// so the user can pick a live device instead of landing on a dead one.
+	// We hold the dashboard skeleton until this resolves to avoid a "flash of
+	// offline device" before the redirect.
+	// Consume the flag on read so a page refresh after sign-in doesn't re-trigger
+	// the redirect (which would override navigation the user just made manually).
+	let justSignedIn = $state(
+		browser &&
+			(() => {
+				const v = sessionStorage.getItem('justSignedIn') === '1';
+				if (v) {
+					try {
+						sessionStorage.removeItem('justSignedIn');
+					} catch {
+						// ignore
+					}
+				}
+				return v;
+			})()
+	);
+	let signInRouteResolved = $state(false);
 
-	function handleAliasChange(device: any, newAlias: string) {
-		if (!newAlias.trim()) return;
-		const originalAlias = deviceState.aliases[device.device_id] ?? device.alias ?? device.device_id;
-		deviceState.setAliasOverride(device.device_id, newAlias, originalAlias);
+	function clearJustSignedIn() {
+		signInRouteResolved = true;
+		justSignedIn = false;
 	}
-
-	function getAlias(device: any) {
-		// Priority: Unsaved override > Saved store alias > Device alias > Device ID
-		return (
-			deviceState.aliasOverrides[device.device_id] ??
-			deviceState.aliases[device.device_id] ??
-			device.alias ??
-			device.device_id
-		);
-	}
-
-	function getPendingChanges(devices: any[]) {
-		return Object.entries(deviceState.aliasOverrides)
-			.map(([deviceId, newAlias]) => {
-				const device = devices.find((d) => d.device_id === deviceId);
-				const oldAlias = deviceState.aliases[deviceId] ?? device?.alias ?? deviceId;
-				if (newAlias === oldAlias) return null;
-				return { deviceId, oldAlias, newAlias };
-			})
-			.filter((c) => c !== null) as Array<{
-			deviceId: string;
-			oldAlias: string;
-			newAlias: string;
-		}>;
-	}
-
-	function clearChanges() {
-		deviceState.clearAliasOverrides();
-	}
-
-	function formatDate(timestamp: number | undefined) {
-		if (!timestamp) return 'Unknown';
-		return new Date(timestamp * 1000).toLocaleDateString(undefined, {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	}
-
-	function copyToClipboard(text: string, deviceId: string) {
-		navigator.clipboard.writeText(text);
-		copiedDeviceId = deviceId;
-		setTimeout(() => {
-			if (copiedDeviceId === deviceId) {
-				copiedDeviceId = null;
-			}
-		}, 2000);
-	}
-
-	function openDeregisterModal(device: any, isOnline: boolean) {
-		deviceToDeregister = device.device_id;
-		deviceToDeregisterAlias = getAlias(device);
-		deviceToDeregisterPairedAt = device.created_at;
-		deviceToDeregisterIsOnline = isOnline;
-		deregisterModalOpen = true;
-	}
-
-	let devices = $state<any[]>([]);
 
 	$effect(() => {
-		if (data.streamed.devices) {
-			data.streamed.devices.then((d) => {
-				devices = d || [];
-			});
+		if (!justSignedIn || signInRouteResolved) return;
+		if (!deviceState.pairedDevicesLoaded) return;
+
+		// No devices paired — let the empty state render on Home, no routing needed.
+		if (devices.length === 0) {
+			clearJustSignedIn();
+			return;
 		}
+
+		const sel = deviceState.selectedDeviceId;
+		// autoSelect should have committed a selection by now if devices exist;
+		// if not, route to picker rather than gambling on a default.
+		if (!sel) {
+			clearJustSignedIn();
+			toast.message('Pick a device to continue', { duration: 3_000 });
+			goto('/dashboard/devices');
+			return;
+		}
+
+		// Wait for the selected device's status check to resolve. statusPolling
+		// kicks off in /+layout.svelte after deviceResult resolves, so this fills
+		// in within a few seconds.
+		const status = deviceState.onlineStatuses[sel];
+		if (!status || status === 'loading') return;
+
+		if (status === 'offline') {
+			const alias =
+				deviceState.aliases[sel] ?? devices.find((d: any) => d.device_id === sel)?.alias ?? sel;
+			toast.message(`${alias} is offline — pick another device`, { duration: 4_000 });
+			clearJustSignedIn();
+			goto('/dashboard/devices');
+			return;
+		}
+
+		// online or error: stay on Home and render normally.
+		clearJustSignedIn();
 	});
 
-	let onlineDevices = $derived.by(() => {
-		deviceState.version; // Dependency
-		if (!devices) return [];
-		const list = devices.filter((d) => {
-			const status = deviceState.onlineStatuses[d.device_id];
-			return (
-				status === 'online' || status === 'loading' || status === 'error' || status === undefined
-			);
-		});
-		return deviceState.sortDevices(list);
+	let waitingForSignInRoute = $derived(justSignedIn && !signInRouteResolved);
+
+	let isOffline = $derived(
+		selectedDevice ? deviceState.onlineStatuses[selectedDevice.device_id] === 'offline' : false
+	);
+
+	let offlineSinceTs = $derived.by(() => {
+		if (!selectedDevice || !isOffline) return null;
+		return deviceState.lastSeenOnline[selectedDevice.device_id] ?? null;
 	});
 
-	let offlineDevices = $derived.by(() => {
-		deviceState.version; // Dependency
-		if (!devices) return [];
-		const list = devices.filter((d) => deviceState.onlineStatuses[d.device_id] === 'offline');
-		return deviceState.sortDevices(list);
+	let offlineSince = $derived(offlineSinceTs ? formatRelativeTime(offlineSinceTs) : null);
+
+	// Duration-tiered subtitle — pattern from Ring / Nest / Find My.
+	// <30m: parking-is-likely; 30m-24h: neutral; >24h: warn-ish; >7d: pairing hint.
+	let offlineSubtitle = $derived.by(() => {
+		if (!offlineSinceTs) {
+			return 'Settings you change here will sync when the device reconnects.';
+		}
+		const hoursAgo = (Date.now() - offlineSinceTs * 1000) / 3_600_000;
+		if (hoursAgo < 0.5) {
+			return 'Likely parked. Settings you change here will sync when it reconnects.';
+		}
+		if (hoursAgo < 24) {
+			return 'Settings you change here will sync when the device reconnects.';
+		}
+		if (hoursAgo < 24 * 7) {
+			return `Not seen in ${Math.round(hoursAgo / 24)} day(s). Changes will still queue.`;
+		}
+		return 'Not seen in over a week. Make sure the device is still paired.';
 	});
+
+	async function handleRefreshStatus() {
+		if (!selectedDevice) return;
+		// Master invalidation signal — keeps every page in lock-step with the
+		// header refresh: settings/models/osm re-fetch on next reactive pass.
+		deviceState.invalidateAll(selectedDevice.device_id);
+		const token = await logtoClient?.getIdToken();
+		if (!token) return;
+		const { checkDeviceStatus } = await import('$lib/api/device');
+		await checkDeviceStatus(selectedDevice.device_id, token, true);
+	}
+
+	function handleDownloadBackup(deviceId: string, fullRefresh: boolean = false) {
+		void startBackup(deviceId, fullRefresh);
+	}
 </script>
 
 {#if authState.loading}
-	<DashboardSkeleton />
+	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+{:else if !authState.isAuthenticated}
+	<!-- Guard $effect above handles goto('/'); render nothing while redirect is in flight -->
+{:else if devices.length === 0 && !deviceState.pairedDevicesLoaded}
+	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+{:else if waitingForSignInRoute}
+	<!-- Fresh sign-in: hold the skeleton until smart-routing $effect decides
+	     whether to stay or redirect to /dashboard/devices. Avoids flashing
+	     an offline device before the redirect. -->
+	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
+{:else if devices.length === 0}
+	<main class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+		<DashboardEmptyState />
+	</main>
+{:else if !selectedDevice}
+	<!-- Devices exist but MRU auto-select is in flight; render skeleton briefly -->
+	<DashboardSkeleton name={authState.profile?.name ?? undefined} />
 {:else}
-	{#await data.streamed.devices}
-		<DashboardSkeleton name={authState.profile?.name ?? undefined} />
-	{:then _}
-		<div class="space-y-4 pb-24 sm:space-y-6 lg:space-y-8">
-			<!-- Header Card -->
-			<div class="card border border-[#1e293b] bg-[#0f1726]">
-				<div class="card-body p-4 sm:p-6 lg:p-8">
+	<main class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+		<div class="flex flex-col gap-4 sm:gap-5">
+			<DashboardHero device={selectedDevice} />
+
+			{#if isOffline}
+				{#key statusPolling.tickCounter}
 					<div
-						class="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8"
+						role="status"
+						aria-live="polite"
+						class="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[var(--sl-text-1)]"
 					>
-						<div class="max-w-2xl space-y-3 sm:space-y-4">
-							<p class="text-xs tracking-[0.3em] text-slate-400 uppercase">Daily sunnypilot</p>
-							<h1 class="text-2xl font-bold text-white sm:text-3xl md:text-4xl lg:text-5xl">
-								Hi {authState.profile?.name || 'there'}!
-							</h1>
-							<p class="text-lg text-slate-300 sm:text-xl">
-								Here's your latest sunnypilot snapshot
+						<AlertTriangle
+							size={18}
+							class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+							aria-hidden="true"
+						/>
+						<div class="min-w-0 flex-1">
+							<p class="text-[0.875rem] font-medium">
+								Device offline{offlineSince ? ` — last seen ${offlineSince}` : ''}
 							</p>
-							<p class="text-sm text-slate-400 sm:text-base">
-								Dive in to see new routes, backups, and model insights. Everything you need, all in
-								one place.
+							<p class="mt-0.5 text-[0.75rem] text-[var(--sl-text-2)]">
+								{offlineSubtitle}
 							</p>
 						</div>
-
-						<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-none xl:max-w-2xl">
-							<!-- Migration CTA -->
-							<div
-								class="flex w-full flex-col items-start justify-between gap-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4"
-							>
-								<div class="space-y-2">
-									<h3 class="font-bold text-blue-400">Device Migration Wizard</h3>
-									<p class="text-sm text-slate-300">
-										Whether you have your new device or are waiting for it to arrive, you can start
-										your settings migration now and resume it later.
-									</p>
-								</div>
-								<button
-									class="btn btn-sm btn-primary"
-									onclick={() => deviceState.openMigrationWizard()}
-								>
-									Open Migration Wizard
-								</button>
-							</div>
-
-							<!-- Pair Device CTA -->
-							<div
-								class="flex w-full flex-col items-start justify-between gap-4 rounded-xl border border-primary/20 bg-primary/10 p-4"
-							>
-								<div class="space-y-2">
-									<h3 class="font-bold text-white">Add a Device</h3>
-									<p class="text-sm text-slate-300">Learn how to pair your device with sunnylink</p>
-								</div>
-								<div class="flex w-full gap-2">
-									<button
-										class="btn flex-1 btn-sm btn-primary"
-										onclick={() => {
-											pairingType = 'c3';
-											pairingModalOpen = true;
-										}}
-									>
-										Comma 3/3X
-									</button>
-									<button
-										class="btn flex-1 btn-sm btn-primary"
-										onclick={() => {
-											pairingType = 'c4';
-											pairingModalOpen = true;
-										}}
-									>
-										Comma 4
-									</button>
-								</div>
-							</div>
-						</div>
+						<button
+							type="button"
+							class="shrink-0 rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-[var(--sl-text-1)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary active:scale-[0.96] active:bg-[var(--sl-bg-subtle)]"
+							onclick={handleRefreshStatus}
+							aria-label="Refresh device status"
+						>
+							Refresh
+						</button>
 					</div>
-				</div>
-			</div>
-
-			{#if !deviceState.selectedDeviceId && devices.length > 0}
-				<div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
-					<div class="flex items-start gap-3">
-						<div class="mt-0.5 text-blue-400">
-							<Activity size={20} />
-						</div>
-						<div>
-							<h3 class="font-medium text-blue-400">Select a Device</h3>
-							<p class="text-sm text-slate-400">
-								Please select a device from the list below to manage its settings, view models, and
-								access other features.
-							</p>
-						</div>
-					</div>
-				</div>
+				{/key}
 			{/if}
 
-			{#if !devices || devices.length === 0}
-				<div class="card mt-2 border border-[#1e293b] bg-[#0f1726]">
-					<div class="card-body p-4 sm:p-6 lg:p-8">
-						<div class="flex flex-col items-center justify-center py-12 text-center">
-							<div class="mb-4 rounded-full bg-slate-700/50 p-4">
-								<Cpu class="h-12 w-12 text-slate-400" />
-							</div>
-							<h3 class="text-xl font-semibold text-white sm:text-2xl lg:text-3xl">
-								No Devices Found
-							</h3>
-							<p class="mt-2 text-sm text-slate-400">
-								Pair a device to get started with sunnypilot.
-							</p>
-							<button class="btn mt-6 gap-2 btn-primary" onclick={() => (pairingModalOpen = true)}>
-								<Plus size={20} />
-								Pair Device
-							</button>
-						</div>
-					</div>
-				</div>
-			{:else}
-				<!-- Device List -->
-				<div class="space-y-6">
-					<!-- Online / Checking Devices -->
-					{#each onlineDevices as device (device.device_id)}
-						{@const status = deviceState.onlineStatuses[device.device_id]}
-						{@const isOnline = status === 'online'}
-						{@const isLoading = !status || status === 'loading'}
-						{@const isUnregistered =
-							device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') === 'unregistereddevice'}
-						{@const currentAlias = getAlias(device)}
-						{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
-
-						{@const isSelected = deviceState.selectedDeviceId === device.device_id}
-
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="card relative cursor-pointer border bg-[#0f1726] transition-all duration-300 hover:border-primary/50 hover:shadow-lg {hasPendingChange
-								? 'border-primary ring-1 ring-primary/50'
-								: isSelected
-									? 'border-primary ring-1 ring-primary/50'
-									: 'border-[#1e293b]'}"
-							onclick={() => deviceState.setSelectedDevice(device.device_id)}
-						>
-							<div
-								class="flex flex-row items-center justify-between gap-2 border-b border-[#1e293b] bg-[#0f1726]/50 px-4 py-4 sm:gap-4 sm:px-6"
-							>
-								<div class="flex flex-1 items-center gap-4">
-									<!-- Online Status Badge -->
-									{#if isLoading}
-										<div
-											class="flex items-center gap-2 rounded-full bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400"
-										>
-											<Loader2 size={14} class="animate-spin" />
-											<span>Checking...</span>
-										</div>
-									{:else if status === 'error'}
-										<div
-											class="flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-500"
-											title={deviceState.lastErrorMessages[device.device_id]}
-										>
-											<TriangleAlert size={14} />
-											<span>Error</span>
-										</div>
-									{:else}
-										<div
-											class="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400"
-										>
-											<Wifi size={14} />
-											<span>Online</span>
-										</div>
-									{/if}
-
-									<!-- Alias Input -->
-									<div class="min-w-0 flex-1">
-										<input
-											id="alias-{device.device_id}"
-											type="text"
-											value={currentAlias}
-											oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-											onclick={(e) => e.stopPropagation()}
-											class="input w-full border-0 bg-transparent px-0 text-base font-bold text-white placeholder-slate-600 focus:ring-0 focus:outline-none"
-											placeholder={device.device_id}
-										/>
-									</div>
-								</div>
-
-								<div class="flex items-center gap-4">
-									<!-- Paired Date -->
-									<div class="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
-										<Calendar size={14} />
-										<span>Paired {formatDate(device.created_at)}</span>
-									</div>
-
-									<!-- Action Buttons -->
-									<div class="flex items-center gap-1">
-										<button
-											class="rounded-lg p-2 text-slate-400 transition-all hover:bg-white/5 hover:text-white"
-											onclick={(e) => {
-												e.stopPropagation();
-												handleDownloadBackup(device.device_id);
-											}}
-											title="Download Settings Backup"
-											disabled={deviceState.backupState.isDownloading &&
-												deviceState.backupState.deviceId === device.device_id}
-										>
-											{#if deviceState.backupState.isDownloading && deviceState.backupState.deviceId === device.device_id}
-												<Loader2 size={20} class="animate-spin" />
-											{:else}
-												<Download size={20} />
-											{/if}
-										</button>
-
-										<button
-											class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
-											onclick={(e) => {
-												e.stopPropagation();
-												openDeregisterModal(device, isOnline);
-											}}
-											title="Deregister Device"
-										>
-											<Trash2 size={20} />
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<div class="card-body p-6 lg:p-8">
-								<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-									<!-- sunnylink ID Card -->
-									<button
-										class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-										onclick={(e) => {
-											e.stopPropagation();
-											copyToClipboard(device.device_id, `id-${device.device_id}`);
-										}}
-									>
-										<span class="mb-2 flex items-center justify-between text-slate-400">
-											<span class="flex items-center gap-2">
-												<Cpu size={18} />
-												<span class="text-xs font-bold tracking-wider uppercase">sunnylink ID</span>
-											</span>
-											{#if copiedDeviceId === `id-${device.device_id}`}
-												<Check size={16} class="text-emerald-400" />
-											{:else}
-												<Copy
-													size={16}
-													class="opacity-0 transition-opacity group-hover:opacity-100"
-												/>
-											{/if}
-										</span>
-										<span class="truncate font-mono text-sm font-bold text-white">
-											{device.device_id}
-										</span>
-									</button>
-
-									<!-- Status Card -->
-									<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-										<div class="mb-2 flex items-center gap-2 text-slate-400">
-											<Activity size={18} />
-											<span class="text-xs font-bold tracking-wider uppercase">Status</span>
-										</div>
-										<div class="text-lg font-medium text-white">
-											{#if isLoading}
-												<span class="flex items-center gap-2">
-													<Loader2 size={16} class="animate-spin" />
-													Checking...
-												</span>
-											{:else if status === 'error'}
-												<span class="text-sm text-amber-500">
-													{deviceState.lastErrorMessages[device.device_id] || 'Connection Error'}
-												</span>
-											{:else}
-												Connected
-											{/if}
-										</div>
-									</div>
-
-									<!-- Comma Dongle ID Card -->
-									{#if !isUnregistered}
-										<button
-											class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-											onclick={(e) => {
-												e.stopPropagation();
-												copyToClipboard(device.comma_dongle_id, device.device_id);
-											}}
-										>
-											<span class="mb-2 flex items-center justify-between text-slate-400">
-												<span class="flex items-center gap-2">
-													<Cpu size={18} />
-													<span class="text-xs font-bold tracking-wider uppercase"
-														>Comma Dongle ID</span
-													>
-												</span>
-												{#if copiedDeviceId === device.device_id}
-													<Check size={16} class="text-emerald-400" />
-												{:else}
-													<Copy
-														size={16}
-														class="opacity-0 transition-opacity group-hover:opacity-100"
-													/>
-												{/if}
-											</span>
-											<span class="truncate text-xl font-bold text-white">
-												{device.comma_dongle_id}
-											</span>
-										</button>
-									{/if}
-								</div>
-							</div>
-						</div>
-					{/each}
-
-					<!-- Offline Devices Section -->
-					{#if offlineDevices.length > 0}
-						<div class="rounded-xl border border-[#1e293b] bg-[#0f1726]/50">
-							<button
-								class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-[#1e293b]/50"
-								onclick={() => (offlineSectionOpen = !offlineSectionOpen)}
-							>
-								<span class="flex items-center gap-3">
-									<span
-										class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400"
-									>
-										<WifiOff size={16} />
-									</span>
-									<span>
-										<h3 class="font-medium text-slate-300">Offline Devices</h3>
-										<p class="text-xs text-slate-500">
-											{offlineDevices.length} device{offlineDevices.length === 1 ? '' : 's'}
-										</p>
-									</span>
-								</span>
-								{#if offlineSectionOpen}
-									<ChevronDown class="text-slate-500" size={20} />
-								{:else}
-									<ChevronRight class="text-slate-500" size={20} />
-								{/if}
-							</button>
-
-							{#if offlineSectionOpen}
-								<div transition:slide class="space-y-4 border-t border-[#1e293b] p-4">
-									{#each offlineDevices as device (device.device_id)}
-										{@const isUnregistered =
-											device.comma_dongle_id?.toLowerCase().replace(/\s/g, '') ===
-											'unregistereddevice'}
-										{@const currentAlias = getAlias(device)}
-										{@const hasPendingChange = !!deviceState.aliasOverrides[device.device_id]}
-
-										<!-- svelte-ignore a11y_click_events_have_key_events -->
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<div
-											class="card relative cursor-pointer border bg-[#0f1726] transition-all duration-300 {hasPendingChange
-												? 'border-primary ring-1 ring-primary/50'
-												: 'border-[#1e293b]'}"
-											onclick={() => deviceState.setSelectedDevice(device.device_id)}
-										>
-											<div
-												class="flex flex-row items-center justify-between gap-2 border-b border-[#1e293b] bg-[#0f1726]/50 px-4 py-4 sm:gap-4 sm:px-6"
-											>
-												<div class="flex flex-1 items-center gap-4">
-													<!-- Offline Status Badge -->
-													<div
-														class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400"
-													>
-														<WifiOff size={14} />
-														<span>Offline</span>
-													</div>
-
-													<!-- Alias Input -->
-													<div class="min-w-0 flex-1">
-														<input
-															id="alias-{device.device_id}"
-															type="text"
-															value={currentAlias}
-															oninput={(e) => handleAliasChange(device, e.currentTarget.value)}
-															onclick={(e) => e.stopPropagation()}
-															class="input w-full border-0 bg-transparent px-0 text-base font-bold text-white placeholder-slate-600 focus:ring-0 focus:outline-none"
-															placeholder={device.device_id}
-														/>
-													</div>
-												</div>
-
-												<div class="flex items-center gap-4">
-													<!-- Paired Date -->
-													<div class="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
-														<Calendar size={14} />
-														<span>Paired {formatDate(device.created_at)}</span>
-													</div>
-
-													<!-- Trash Icon -->
-													<button
-														class="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10 hover:text-red-400"
-														onclick={(e) => {
-															e.stopPropagation();
-															openDeregisterModal(device, false);
-														}}
-														title="Deregister Device"
-													>
-														<Trash2 size={20} />
-													</button>
-												</div>
-											</div>
-
-											<div class="card-body p-6 lg:p-8">
-												<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-													<!-- sunnylink ID Card -->
-													<button
-														class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-														onclick={(e) => {
-															e.stopPropagation();
-															copyToClipboard(device.device_id, `id-${device.device_id}`);
-														}}
-													>
-														<span class="mb-2 flex items-center justify-between text-slate-400">
-															<span class="flex items-center gap-2">
-																<Cpu size={18} />
-																<span class="text-xs font-bold tracking-wider uppercase"
-																	>sunnylink ID</span
-																>
-															</span>
-															{#if copiedDeviceId === `id-${device.device_id}`}
-																<Check size={16} class="text-emerald-400" />
-															{:else}
-																<Copy
-																	size={16}
-																	class="opacity-0 transition-opacity group-hover:opacity-100"
-																/>
-															{/if}
-														</span>
-														<span class="truncate font-mono text-sm font-bold text-white">
-															{device.device_id}
-														</span>
-													</button>
-
-													<!-- Status Card (Offline) -->
-													<div class="rounded-xl border border-[#334155] bg-[#101a29] p-4">
-														<div class="mb-2 flex items-center gap-2 text-slate-400">
-															<Activity size={18} />
-															<span class="text-xs font-bold tracking-wider uppercase">Status</span>
-														</div>
-														<div class="text-lg font-medium text-slate-400">Disconnected</div>
-													</div>
-
-													<!-- Comma Dongle ID Card -->
-													{#if !isUnregistered}
-														<button
-															class="group relative rounded-xl border border-[#334155] bg-[#101a29] p-4 text-left transition-colors hover:border-primary/50 hover:bg-[#101a29]/80"
-															onclick={(e) => {
-																e.stopPropagation();
-																copyToClipboard(device.comma_dongle_id, device.device_id);
-															}}
-														>
-															<span class="mb-2 flex items-center justify-between text-slate-400">
-																<span class="flex items-center gap-2">
-																	<Cpu size={18} />
-																	<span class="text-xs font-bold tracking-wider uppercase"
-																		>Comma Dongle ID</span
-																	>
-																</span>
-																{#if copiedDeviceId === device.device_id}
-																	<Check size={16} class="text-emerald-400" />
-																{:else}
-																	<Copy
-																		size={16}
-																		class="opacity-0 transition-opacity group-hover:opacity-100"
-																	/>
-																{/if}
-															</span>
-															<span class="truncate text-xl font-bold text-white">
-																{device.comma_dongle_id}
-															</span>
-														</button>
-													{/if}
-												</div>
-
-												<div
-													class="mt-6 flex items-center gap-4 rounded-lg border border-red-500/20 bg-red-500/5 p-4"
-												>
-													<WifiOff class="h-5 w-5 shrink-0 text-red-500" />
-													<p class="flex-1 text-sm text-slate-400">
-														Device is offline. Some features are unavailable.
-													</p>
-													<button
-														class="btn text-red-400 btn-ghost btn-xs hover:bg-red-500/10"
-														onclick={async (e) => {
-															e.stopPropagation();
-															if (logtoClient) {
-																const token = await logtoClient.getIdToken();
-																if (token) {
-																	await checkDeviceStatus(device.device_id, token);
-																}
-															}
-														}}
-													>
-														Retry
-													</button>
-												</div>
-											</div>
-										</div>
-									{/each}
-								</div>
-							{/if}
-						</div>
-					{/if}
-				</div>
-
-				<!-- Unsaved Changes Bar -->
-				{@const pendingChanges = getPendingChanges(devices)}
-				{#if pendingChanges.length > 0}
-					<div
-						class="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 duration-300"
-					>
-						<div
-							class="flex items-center justify-between gap-4 rounded-xl border border-[#334155] bg-[#1e293b]/95 p-4 shadow-2xl backdrop-blur-md"
-						>
-							<div class="flex items-center gap-3">
-								<div
-									class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary"
-								>
-									<Save size={20} />
-								</div>
-								<div>
-									<p class="font-medium text-white">Unsaved Changes</p>
-									<p class="text-xs text-slate-400">
-										You have modified {pendingChanges.length} device alias{pendingChanges.length ===
-										1
-											? ''
-											: 'es'}.
-									</p>
-								</div>
-							</div>
-							<div class="flex items-center gap-2">
-								<button
-									class="btn text-slate-400 btn-ghost btn-sm hover:text-white"
-									onclick={clearChanges}
-								>
-									Discard
-								</button>
-								<button
-									class="btn btn-sm btn-primary"
-									onclick={() => (updateAliasModalOpen = true)}
-								>
-									Review & Save
-								</button>
-							</div>
-						</div>
-					</div>
-
-					<UpdateAliasModal bind:open={updateAliasModalOpen} changes={pendingChanges} />
-				{/if}
-
-				{#if deviceToDeregister}
-					<DeregisterDeviceModal
-						bind:open={deregisterModalOpen}
-						deviceId={deviceToDeregister}
-						alias={deviceToDeregisterAlias}
-						pairedAt={deviceToDeregisterPairedAt}
-						isOnline={deviceToDeregisterIsOnline}
-						onDeregistered={() => {
-							// Refresh page or list
-							window.location.reload();
-						}}
-					/>
-				{/if}
-			{/if}
+			<DashboardTiles />
 		</div>
-	{/await}
-
-	<button
-		class="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 hover:shadow-primary/20 active:scale-95 sm:right-10 sm:bottom-10"
-		onclick={() => (pairingModalOpen = true)}
-		title="Pair New Device"
-	>
-		<Plus size={28} />
-	</button>
-
-	<BackupProgressModal
-		onRetry={handleRetryFailedBackup}
-		onFullBackup={() => {
-			const deviceId = deviceState.backupState.deviceId;
-			if (deviceId) handleDownloadBackup(deviceId, true);
-		}}
-	/>
-	<PairingModal bind:open={pairingModalOpen} bind:deviceType={pairingType} />
+	</main>
 {/if}
+
+<BackupProgressModal
+	onRetry={retryFailedBackup}
+	onFullBackup={() => {
+		const deviceId = deviceState.backupState.deviceId;
+		if (deviceId) handleDownloadBackup(deviceId, true);
+	}}
+/>

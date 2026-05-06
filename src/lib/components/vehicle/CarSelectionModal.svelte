@@ -2,6 +2,9 @@
 	import { X, Search, ChevronRight, Car } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { browser } from '$app/environment';
+	import { portal } from '$lib/utils/portal';
+	import { modalLock } from '$lib/utils/modalLock';
+	import { tick } from 'svelte';
 
 	let {
 		open = $bindable(false),
@@ -43,7 +46,7 @@
 			.sort()
 			.map((make) => ({
 				make,
-				cars: groups[make] // Cars are already sorted by platform key from earlier loop
+				cars: groups[make]
 			}));
 	});
 
@@ -52,101 +55,120 @@
 		open = false;
 	}
 
+	let searchInputEl = $state<HTMLInputElement | null>(null);
+
 	$effect(() => {
-		if (!open) searchQuery = '';
+		if (!open) {
+			searchQuery = '';
+			return;
+		}
+		tick().then(() => searchInputEl?.focus());
 	});
 
-	// Lock body scroll when open
+	// Body scroll lock handled by `use:modalLock` on the overlay itself.
+
+	// Close on Escape key
 	$effect(() => {
-		if (!browser) return;
-		if (open) {
-			document.body.style.overflow = 'hidden';
-			return () => {
-				document.body.style.overflow = '';
-			};
-		}
+		if (!browser || !open) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') open = false;
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
 	});
 </script>
 
 {#if open}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
-		class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[9999] flex items-end justify-center bg-[var(--sl-overlay)] p-4 sm:items-center sm:p-0"
 		transition:fade={{ duration: 200 }}
+		onclick={() => (open = false)}
+		use:portal
+		use:modalLock
 	>
-		<!-- Modal Content -->
+		<!-- Modal Content — stop propagation so clicking inside doesn't close -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
-			class="relative flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-slate-700 bg-[#0f1726] shadow-2xl"
+			class="relative flex w-full max-w-[480px] flex-col rounded-t-xl border border-[var(--sl-border)] bg-[var(--sl-bg-page)] shadow-2xl sm:rounded-xl"
+			style="max-height: min(70vh, 600px);"
 			transition:fly={{ y: 20, duration: 300 }}
+			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-slate-800 p-6">
-				<div>
-					<h2 class="text-xl font-bold text-white">Select a Vehicle</h2>
-					<p class="mt-1 text-sm text-slate-400">
-						Choose your vehicle to force a specific fingerprint.
-					</p>
-				</div>
+			<div class="flex items-center justify-between border-b border-[var(--sl-border)] px-5 py-4">
+				<h2 class="text-[15px] font-semibold text-[var(--sl-text-1)]">Select a Vehicle</h2>
 				<button
-					class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+					class="rounded-md p-1 text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-surface)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)]"
 					onclick={() => (open = false)}
 				>
-					<X size={24} />
+					<X size={16} />
 				</button>
 			</div>
 
 			<!-- Search -->
-			<div class="border-b border-slate-800 p-4">
+			<div class="border-b border-[var(--sl-border)] px-4 py-3">
 				<div class="relative">
-					<Search class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-slate-500" />
+					<Search
+						class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[var(--sl-text-3)]"
+					/>
 					<input
+						bind:this={searchInputEl}
 						type="text"
 						bind:value={searchQuery}
-						placeholder="Search make, model, year (e.g. 'Toyota Corolla 2021')"
-						class="w-full rounded-xl border border-slate-700 bg-slate-900 py-3 pr-4 pl-10 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-						autofocus
+						placeholder="Search vehicles..."
+						class="w-full rounded-lg border border-[var(--sl-border)] bg-[var(--sl-bg-input)] py-2 pr-3 pl-8 text-[13px] text-[var(--sl-text-1)] placeholder-[var(--sl-text-3)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
 					/>
 				</div>
 			</div>
 
 			<!-- List -->
-			<div class="flex-1 overflow-y-auto p-2">
+			<div class="min-h-0 flex-1 overflow-y-auto p-2">
 				{#if !carList}
-					<div class="flex h-40 items-center justify-center text-slate-500">
+					<div class="flex h-40 items-center justify-center text-[var(--sl-text-3)]">
 						<span class="flex items-center gap-2"> Loading vehicle list... </span>
 					</div>
 				{:else if groupedCars.length === 0}
-					<div class="flex h-40 items-center justify-center text-slate-500">
+					<div class="flex h-40 items-center justify-center text-[var(--sl-text-3)]">
 						No vehicles found matching "{searchQuery}"
 					</div>
 				{:else}
 					<div class="space-y-4 p-2">
 						{#each groupedCars as group (group.make)}
-							<div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
+							<div
+								class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+							>
 								<div
-									class="bg-slate-800/50 px-4 py-2 text-xs font-bold tracking-wider text-slate-400 uppercase"
+									class="px-4 py-2 text-xs font-semibold tracking-wider text-[var(--sl-text-3)] uppercase"
 								>
 									{group.make}
 								</div>
-								<div class="divide-y divide-slate-800">
+								<div class="divide-y divide-[var(--sl-border-muted)]">
 									{#each group.cars as car (car.id)}
 										<button
-											class="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-slate-800"
+											class="flex w-full items-center justify-between px-4 py-3 text-left transition-all duration-100 hover:bg-[var(--sl-bg-subtle)] active:scale-[0.99] active:bg-[var(--sl-bg-elevated)]"
 											onclick={() => handleSelect(car)}
 										>
 											<div class="flex items-center gap-3">
 												<div
-													class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-slate-400"
+													class="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)] text-[var(--sl-text-3)]"
 												>
-													<Car size={20} />
+													<Car size={16} />
 												</div>
 												<div>
-													<div class="font-medium text-white">{car.id}</div>
+													<div class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+														{car.id}
+													</div>
 													{#if car.package}
-														<div class="text-xs text-slate-500">{car.package}</div>
+														<div class="text-[0.6875rem] text-[var(--sl-text-3)]">
+															{car.package}
+														</div>
 													{/if}
 												</div>
 											</div>
-											<ChevronRight size={16} class="text-slate-600" />
+											<ChevronRight size={14} class="text-[var(--sl-text-3)]" />
 										</button>
 									{/each}
 								</div>

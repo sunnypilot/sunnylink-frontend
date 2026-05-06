@@ -3,8 +3,26 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { readFileSync } from 'node:fs';
+
+const pkgVersion = JSON.parse(readFileSync('./package.json', 'utf-8')).version;
 
 export default defineConfig({
+	define: {
+		__APP_VERSION__: JSON.stringify(pkgVersion)
+	},
+	// Netlify handles /api/discourse/* in production via netlify.toml; in dev we
+	// need Vite to perform the same pass-through so the What's new feed works
+	// against the live Discourse forum without CORS.
+	server: {
+		proxy: {
+			'/api/discourse': {
+				target: 'https://community.sunnypilot.ai',
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/api\/discourse/, '')
+			}
+		}
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit(),
@@ -14,7 +32,7 @@ export default defineConfig({
 			manifest: {
 				name: 'sunnylink',
 				short_name: 'sunnylink',
-				description: 'Connect with sunnypilot.',
+				description: `Connect with sunnypilot. v${pkgVersion}`,
 				theme_color: '#0f1726',
 				background_color: '#0f1726',
 				display: 'standalone',
@@ -44,6 +62,10 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
 				navigateFallback: '/',
+				// Never serve the SPA shell in place of the Logto sign-in callback —
+				// /auth/callback must reach the live app so handleSignInCallback() can
+				// process ?code= params.
+				navigateFallbackDenylist: [/^\/auth\//],
 				cleanupOutdatedCaches: true
 			},
 			devOptions: {

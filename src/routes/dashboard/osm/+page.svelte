@@ -7,10 +7,59 @@
 	import { logtoClient, authState } from '$lib/logto/auth.svelte';
 	import { decodeParamValue } from '$lib/utils/device';
 	import type { OSMRegion } from '$lib/types/osm';
-	import { toastState } from '$lib/stores/toast.svelte';
-	import DeviceSelector from '$lib/components/DeviceSelector.svelte';
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
+	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
+	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
+	import { createSyncStatus } from '$lib/utils/syncStatus.svelte';
+	import { batchPush } from '$lib/stores/batchPush.svelte';
+	import { toast } from 'svelte-sonner';
+
+	const OSM_CACHE_PREFIX = 'sunnylink_osm_';
+	const OSM_CACHE_TTL = 48 * 60 * 60 * 1000; // 48 hours
+
+	interface OsmCacheEntry {
+		params: Array<{ key?: string; value?: string; type?: string }>;
+		timestamp: number;
+	}
+
+	function loadOsmCache(deviceId: string): OsmCacheEntry | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			const raw = localStorage.getItem(`${OSM_CACHE_PREFIX}${deviceId}`);
+			if (!raw) return null;
+			const entry: OsmCacheEntry = JSON.parse(raw);
+			if (Date.now() - entry.timestamp > OSM_CACHE_TTL) {
+				localStorage.removeItem(`${OSM_CACHE_PREFIX}${deviceId}`);
+				return null;
+			}
+			return entry;
+		} catch {
+			return null;
+		}
+	}
+
+	function saveOsmCache(
+		deviceId: string,
+		params: Array<{ key?: string; value?: string; type?: string }>
+	): void {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const entry: OsmCacheEntry = { params, timestamp: Date.now() };
+			localStorage.setItem(`${OSM_CACHE_PREFIX}${deviceId}`, JSON.stringify(entry));
+		} catch {}
+	}
+
+	const OSM_PARAMS = [
+		'OsmLocationName',
+		'OsmLocationTitle',
+		'OsmStateName',
+		'OsmStateTitle',
+		'OSMDownloadProgress',
+		'OsmDbUpdatesCheck',
+		'OsmDownloadedDate',
+		'OsmLocal'
+	];
 
 	let countries: OSMRegion[] = $state([]);
 	let states: OSMRegion[] = $state([]);
@@ -19,7 +68,42 @@
 	let loadingOsmParams = $state(false);
 	let error = $state<string | null>(null);
 
+	// Sync status indicator (consistent with settings pages)
+	let batchActive = $derived(
+		deviceState.selectedDeviceId ? batchPush.isActive(deviceState.selectedDeviceId) : false
+	);
+	let isStale = $derived(
+		!!(deviceState.selectedDeviceId && deviceState.valuesStale[deviceState.selectedDeviceId])
+	);
+	const sync = createSyncStatus(
+		() => !isOffline && (isCheckingStatus || loadingOsmParams || batchActive || isStale),
+		() => !isOffline && !isCheckingStatus && !loadingOsmParams && !error && !batchActive && !isStale
+	);
+
 	let { data } = $props();
+
+	// Synchronous cache hydration — mirrors Models pattern, runs before first render.
+	function hydrateOsmCache(did: string) {
+		const existing = deviceState.deviceSettings[did];
+		const hasOsmData = existing?.some((p) => p.key === 'OsmLocationName');
+		if (hasOsmData) return;
+		const cached = loadOsmCache(did);
+		if (cached) {
+			const filtered = (existing || []).filter((i) => i.key && !OSM_PARAMS.includes(i.key));
+			deviceState.deviceSettings[did] = [...filtered, ...(cached.params as any)];
+		}
+	}
+
+	// Hydrate immediately for current device before first render
+	if (deviceState.selectedDeviceId) {
+		hydrateOsmCache(deviceState.selectedDeviceId);
+	}
+
+	// Re-hydrate reactively when device changes
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did) untrack(() => hydrateOsmCache(did));
+	});
 
 	let isOffline = $derived(
 		deviceState.selectedDeviceId &&
@@ -39,17 +123,6 @@
 		if (!param) return null;
 		return decodeParamValue(param);
 	}
-
-	const OSM_PARAMS = [
-		'OsmLocationName',
-		'OsmLocationTitle',
-		'OsmStateName',
-		'OsmStateTitle',
-		'OSMDownloadProgress',
-		'OsmDbUpdatesCheck',
-		'OsmDownloadedDate',
-		'OsmLocal'
-	];
 
 	// Derived values for the current device
 	let currentCountryName = $derived(
@@ -127,7 +200,11 @@
 	async function fetchOsmParams(deviceId: string, token: string, silent: boolean = false) {
 		if (!silent) loadingOsmParams = true;
 		try {
-			const res = await fetchSettingsAsync(deviceId, OSM_PARAMS, token);
+			const controller = new AbortController();
+			const res = await fetchSettingsAsync(deviceId, OSM_PARAMS, token, {
+				maxPollTimeMs: 8000,
+				signal: controller.signal
+			});
 
 			if (res.items) {
 				const existing = deviceState.deviceSettings[deviceId] || [];
@@ -137,6 +214,9 @@
 				const filtered = existing.filter((i) => i.key && !osmParamsSet.has(i.key));
 				// Add new ones
 				deviceState.deviceSettings[deviceId] = [...filtered, ...res.items];
+
+				// Persist to cache for SWR on next visit
+				saveOsmCache(deviceId, res.items);
 			}
 		} catch (e) {
 			console.error('Failed to fetch OSM params', e);
@@ -145,16 +225,34 @@
 		}
 	}
 
+	let osmFetchDone = $state<Record<string, boolean>>({});
+
+	// Reset fetch guard when valuesStale is set (manual refresh or version change)
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (did && deviceState.valuesStale[did]) {
+			osmFetchDone[did] = false;
+		}
+	});
+
 	$effect(() => {
 		const deviceId = deviceState.selectedDeviceId;
+		const isOnline = deviceId ? deviceState.onlineStatuses[deviceId] === 'online' : false;
+		const downloading = isDownloading;
 		if (
 			deviceId &&
 			logtoClient &&
-			deviceState.onlineStatuses[deviceId] === 'online' &&
-			!isDownloading
+			isOnline &&
+			!downloading &&
+			!untrack(() => osmFetchDone[deviceId])
 		) {
+			// Use silent fetch when we already have cached data to avoid spinner flash
+			const hasCachedData = untrack(() =>
+				deviceState.deviceSettings[deviceId]?.some((p: any) => p.key === 'OsmLocationName')
+			);
+			osmFetchDone[deviceId] = true;
 			logtoClient.getIdToken().then((token) => {
-				if (token) fetchOsmParams(deviceId, token);
+				if (token) fetchOsmParams(deviceId, token, hasCachedData);
 			});
 		}
 	});
@@ -189,22 +287,31 @@
 		await fetchCountries();
 	});
 
+	// Sync device values → local selections (read-only deps, write via untrack)
 	$effect(() => {
-		if (currentCountryName && !selectedCountry && !isDownloading) {
-			selectedCountry = currentCountryName;
+		const country = currentCountryName;
+		const state = currentStateName;
+		const downloading = isDownloading;
+		if (country && !untrack(() => selectedCountry) && !downloading) {
+			selectedCountry = country;
 		}
-		if (currentStateName && !selectedState && !isDownloading) {
-			if (selectedCountry === 'US' && states.length === 0) {
-				fetchStates().then(() => {
-					selectedState = currentStateName;
-				});
-			} else {
-				selectedState = currentStateName;
-			}
+		if (state && !untrack(() => selectedState) && !downloading) {
+			selectedState = state;
 		}
+	});
 
-		if (selectedCountry === 'US' && states.length === 0) {
-			fetchStates();
+	// Fetch US states when country is US (separate effect to avoid loop)
+	let fetchStatesRequested = $state(false);
+	$effect(() => {
+		if (selectedCountry === 'US' && states.length === 0 && !untrack(() => fetchStatesRequested)) {
+			fetchStatesRequested = true;
+			fetchStates().then(() => {
+				// After states load, sync state selection if available
+				const state = untrack(() => currentStateName);
+				if (state && !untrack(() => selectedState)) {
+					selectedState = state;
+				}
+			});
 		}
 	});
 
@@ -278,10 +385,10 @@
 			}
 
 			await setDeviceParams(deviceState.selectedDeviceId, paramsToSet, token);
-			toastState.show('Download started on device', 'success');
+			toast.success('Download started on device');
 		} catch (e) {
 			console.error('Failed to start download', e);
-			toastState.show('Failed to start download', 'error');
+			toast.error('Failed to start download');
 			localDownloadingOverride = false;
 		}
 	}
@@ -291,7 +398,7 @@
 		const token = await logtoClient.getIdToken();
 		if (!token) return;
 
-		toastState.show('Checking for updates...', 'info');
+		toast.info('Checking for updates...');
 		localDownloadingOverride = true;
 
 		try {
@@ -300,9 +407,9 @@
 				[{ key: 'OsmDbUpdatesCheck', value: '1' }],
 				token
 			);
-			toastState.show('Update initiated on device', 'success');
+			toast.success('Update initiated on device');
 		} catch (e) {
-			toastState.show('Failed to check for updates', 'error');
+			toast.error('Failed to check for updates');
 			localDownloadingOverride = false;
 		}
 	}
@@ -329,231 +436,212 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-4">
-			<div
-				class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400"
-			>
-				<MapIcon size={24} />
-			</div>
-			<div>
-				<h1 class="text-2xl font-bold text-white">OpenStreetMap</h1>
-				<p class="text-slate-400">Manage offline maps</p>
-			</div>
-		</div>
-	</div>
-
+<SettingsPageShell
+	title="Maps"
+	description="Manage offline OpenStreetMap data on your device"
+	syncStatus={!loadingOsmParams ? sync.status : undefined}
+	loading={loadingOsmParams}
+	onRefresh={async () => {
+		const did = deviceState.selectedDeviceId;
+		if (!did || !logtoClient) return;
+		// Master invalidation signal — also drives the valuesStale $effect so
+		// the spinner shows "Refreshing..." instantly and consumers re-fetch.
+		deviceState.invalidateAll(did);
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+			await Promise.all([
+				checkDeviceStatus(did, token, true, false),
+				fetchOsmParams(did, token, false)
+			]);
+		} finally {
+			// Clear stale so the title-bar sync indicator can transition to "synced"
+			deviceState.valuesStale[did] = false;
+		}
+	}}
+>
 	{#if authState.loading}
 		<DashboardSkeleton />
 	{:else if !deviceState.selectedDeviceId}
-		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="mb-4 rounded-full bg-slate-700/50 p-4">
-				<MapIcon class="h-12 w-12 text-slate-400" />
-			</div>
-			<h3 class="text-xl font-semibold text-white">No Device Selected</h3>
-			<p class="mt-2 text-slate-400">Select a device to manage maps.</p>
+		<div
+			class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
+		>
+			<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">
+				Select a device to manage maps
+			</p>
 		</div>
 	{:else if isOffline}
-		{#await data.streamed.devices then devices}
+		{#await data.streamed.deviceResult then result}
+			{@const devices = result.devices ?? []}
 			{@const selectedDevice = devices?.find(
 				(d: { device_id: string | null }) => d.device_id === deviceState.selectedDeviceId
 			)}
-			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<div class="mb-4 rounded-full bg-red-500/10 p-4">
-					<AlertCircle class="h-12 w-12 text-red-500" />
-				</div>
-				<h3 class="text-xl font-semibold text-white">
-					Device Offline: {selectedDevice?.alias ?? selectedDevice?.device_id ?? 'Unknown'}
-					{#if selectedDevice?.alias}
-						<span class="block text-sm font-normal text-slate-400"
-							>({selectedDevice?.device_id})</span
-						>
-					{/if}
-				</h3>
-				<p class="mt-2 max-w-md text-slate-400">Your device needs to be online to manage maps.</p>
-				<div class="mt-6 flex w-full max-w-sm flex-col items-center gap-4">
+			<div
+				class="rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] px-4 py-12 text-center"
+			>
+				<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+					Device Offline{selectedDevice?.alias ? `: ${selectedDevice.alias}` : ''}
+				</p>
+				<p class="mt-1 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+					Your device needs to be online to manage maps.
+				</p>
+				<div class="mt-4 flex flex-col items-center gap-3">
 					<button
 						class="btn btn-sm btn-primary"
 						onclick={async () => {
 							if (deviceState.selectedDeviceId && logtoClient) {
 								const token = await logtoClient.getIdToken();
-								if (token) {
-									await checkDeviceStatus(deviceState.selectedDeviceId, token);
-								}
+								if (token) await checkDeviceStatus(deviceState.selectedDeviceId, token);
 							}
 						}}
 					>
 						Retry Connection
 					</button>
-					<div class="divider text-xs tracking-widest text-slate-600">OR SELECT ANOTHER DEVICE</div>
-					{#if devices}
-						<DeviceSelector {devices} />
+					{#if devices && devices.length > 1}
+						<a
+							href="/dashboard/devices"
+							class="text-[0.8125rem] text-[var(--sl-text-2)] underline decoration-[var(--sl-text-3)]/30 underline-offset-2 hover:text-[var(--sl-text-1)]"
+						>
+							Switch to another device
+						</a>
 					{/if}
 				</div>
 			</div>
 		{/await}
-	{:else if isCheckingStatus}
-		<div class="animate-pulse space-y-6">
-			<div class="flex items-center gap-2 text-slate-400">
-				<span class="loading loading-sm loading-spinner"></span>
-				<span>Checking device status...</span>
-			</div>
-			<div class="h-48 w-full rounded bg-slate-700"></div>
-			<div class="h-64 w-full rounded bg-slate-700"></div>
-		</div>
 	{:else}
-		<div class="space-y-6">
-			{#if loadingOsmParams && !isDownloading && !hasMap}
-				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-12 backdrop-blur-sm">
-					<div class="flex flex-col items-center justify-center text-center">
-						<Loader2 size={32} class="animate-spin text-indigo-400" />
-						<p class="mt-4 text-sm text-slate-400">Fetching map details...</p>
+		<div>
+			<!-- ── Current Map Section ──────────────────────────────── -->
+			<div class="px-4">
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Current Map</p>
+				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+					Offline map data downloaded on device
+				</p>
+			</div>
+
+			<div
+				class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
+			>
+				{#if loadingOsmParams && !isDownloading && !hasMap}
+					<div class="flex items-center gap-2.5 px-4 py-3.5">
+						<span class="loading loading-xs loading-spinner text-[var(--sl-text-3)]"></span>
+						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]"
+							>Loading map details...</span
+						>
 					</div>
-				</div>
-			{:else if hasMap || isDownloading}
-				<!-- Status Card: Shown if we have a map OR if we are currently downloading one -->
-				<div class="overflow-hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5">
-					<div class="border-b border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+				{:else if isCheckingStatus && !hasMap}
+					<div class="flex items-center gap-2.5 px-4 py-3.5">
+						<span class="loading loading-xs loading-spinner text-[var(--sl-text-3)]"></span>
+						<span class="text-[0.8125rem] font-[450] text-[var(--sl-text-2)]"
+							>Checking device status...</span
+						>
+					</div>
+				{:else if hasMap || isDownloading}
+					<div class="px-4 py-3.5">
 						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								{#if isDownloading}
-									<Loader2 size={16} class="animate-spin text-indigo-400" />
-								{:else}
-									<MapIcon size={16} class="text-indigo-400" />
-								{/if}
-								<span class="text-xs font-bold tracking-wider text-indigo-300 uppercase">
-									{#if isDownloading}
-										Downloading
-									{:else}
-										Downloaded
-									{/if}
-									On Device
-								</span>
-							</div>
-						</div>
-					</div>
-					<div class="p-4">
-						<div class="flex items-start justify-between gap-4">
 							<div>
 								{#if isDownloading && !currentCountryTitle}
-									<h3 class="text-lg font-bold text-white">Downloading Map...</h3>
-									<p class="mt-1 text-sm font-medium text-slate-400">Please wait...</p>
+									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+										Downloading map...
+									</p>
 								{:else}
-									<h3 class="text-lg font-bold text-white">
-										{currentCountryTitle || currentCountryName || 'Unknown Location'}
-									</h3>
-									{#if currentStateTitle || currentStateName}
-										<p class="mt-1 text-sm font-medium text-slate-400">
-											{currentStateTitle || currentStateName}
-										</p>
-									{/if}
+									<p class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]">
+										{currentCountryTitle || currentCountryName || 'Unknown'}
+										{#if currentStateTitle || currentStateName}
+											— {currentStateTitle || currentStateName}
+										{/if}
+									</p>
+								{/if}
+								{#if isDownloading}
+									<p class="mt-0.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+										{downloadProgress ? `Downloading ${downloadProgress}` : 'Processing...'}
+									</p>
+								{:else}
+									<p class="mt-0.5 text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+										Updated {formatTimeAgo(downloadedDateParam)}
+									</p>
 								{/if}
 							</div>
-							{#if isDownloading}
-								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
-								>
-									{#if downloadProgress}
-										Downloading {downloadProgress}
-									{:else}
-										Pending / Processing...
-									{/if}
-								</div>
-							{:else}
-								<div
-									class="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-200"
-								>
-									Last Updated {formatTimeAgo(downloadedDateParam)}
-								</div>
-							{/if}
-						</div>
-
-						<div class="mt-6 flex flex-col gap-3 sm:flex-row">
-							<button
-								class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-white/40"
-								onclick={handleCheckForUpdates}
-								disabled={isDownloading}
-							>
-								<RefreshCw size={14} />
-								Download Updates
-							</button>
+							<div class="flex items-center gap-2">
+								{#if isDownloading}
+									<Loader2 size={14} class="animate-spin text-[var(--sl-text-3)]" />
+								{:else}
+									<button
+										class="text-[0.75rem] font-[450] text-[var(--sl-text-2)] transition-colors hover:text-[var(--sl-text-1)]"
+										onclick={handleCheckForUpdates}
+									>
+										Check for Updates
+									</button>
+								{/if}
+							</div>
 						</div>
 					</div>
-				</div>
-			{:else}
-				<!-- Empty State -->
-				<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-8 backdrop-blur-sm">
-					<div class="flex flex-col items-center justify-center text-center">
-						<div class="mb-3 rounded-full bg-slate-800 p-3">
-							<MapIcon class="h-6 w-6 text-slate-500" />
-						</div>
-						<p class="text-sm text-slate-400">No offline map downloaded on this device</p>
+				{:else}
+					<div class="px-4 py-8 text-center">
+						<p class="text-[0.8125rem] font-[450] text-[var(--sl-text-3)]">
+							No offline map downloaded on this device
+						</p>
 					</div>
-				</div>
-			{/if}
+				{/if}
+			</div>
 
-			<!-- Configuration/Download Form -->
-			<div class="rounded-xl border border-[#334155] bg-[#1e293b]/50 p-6 backdrop-blur-sm">
-				<div class="mb-6 flex items-center justify-between">
-					<h3 class="font-medium text-white">Download New Map</h3>
-				</div>
+			<!-- ── Download Section: 48px from previous card ──────── -->
+			<div class="mt-12 px-4">
+				<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Download Map</p>
+				<p class="mt-2 text-[0.8125rem] font-[450] text-[var(--sl-text-2)]">
+					Select a region to download for offline use
+				</p>
+			</div>
 
-				<div class="space-y-4">
-					<div class="form-control">
-						<ComboBox
-							label="Country"
-							placeholder="Select a country"
-							options={countries.map((c) => ({ value: c.ref, label: c.display_name }))}
-							bind:value={selectedCountry}
-							disabled={isDownloading || loadingRegions}
-						/>
-					</div>
+			<div class="mt-3 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]">
+				<div class="space-y-4 px-4 py-4">
+					<ComboBox
+						label="Country"
+						placeholder="Select a country"
+						options={countries.map((c) => ({ value: c.ref, label: c.display_name }))}
+						bind:value={selectedCountry}
+						disabled={isDownloading || loadingRegions}
+					/>
 
 					{#if selectedCountry === 'US'}
-						<div class="form-control">
-							<ComboBox
-								label="State"
-								placeholder="Select a state"
-								options={states.map((s) => ({ value: s.ref, label: s.display_name }))}
-								bind:value={selectedState}
-								disabled={isDownloading || loadingRegions}
-							/>
-						</div>
+						<ComboBox
+							label="State"
+							placeholder="Select a state"
+							options={states.map((s) => ({ value: s.ref, label: s.display_name }))}
+							bind:value={selectedState}
+							disabled={isDownloading || loadingRegions}
+						/>
 					{/if}
 
-					<div class="flex flex-col gap-3 pt-4 sm:flex-row">
+					{#if selectedCountry === 'US' && !selectedState}
+						<p class="text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+							State selection is required for US maps
+						</p>
+					{/if}
+				</div>
+
+				<div class="border-t border-[var(--sl-border-muted)] px-4 py-3">
+					<div class="flex items-center justify-between">
+						<p class="text-[0.75rem] font-[450] text-[var(--sl-text-3)]">
+							Map downloads can be large (up to several GB)
+						</p>
 						<button
-							class="btn w-full border-none bg-indigo-600 text-sm font-medium text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-600/40 disabled:text-white/40"
+							class="btn btn-sm btn-primary"
 							disabled={!selectedCountry ||
 								(selectedCountry === 'US' && !selectedState) ||
 								isDownloading}
 							onclick={handleSaveAndDownload}
 						>
 							{#if isDownloading}
-								<Loader2 size={18} class="animate-spin" />
+								<Loader2 size={14} class="animate-spin" />
+								Downloading...
 							{:else}
-								<Download size={18} />
-							{/if}
-							{#if isDownloading}
-								Download in Progress...
-							{:else}
-								Download Map
+								<Download size={14} />
+								Download
 							{/if}
 						</button>
 					</div>
-
-					{#if selectedCountry === 'US' && !selectedState}
-						<p class="flex items-center gap-1 text-xs text-amber-400">
-							<AlertCircle size={12} />
-							State selection is required for US maps
-						</p>
-					{/if}
-					<p class="text-xs text-slate-500">
-						Map downloads can be large (up to several GB). Wi-Fi connection is recommended.
-					</p>
 				</div>
 			</div>
 		</div>
 	{/if}
-</div>
+</SettingsPageShell>

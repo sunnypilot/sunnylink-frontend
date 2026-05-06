@@ -8,6 +8,8 @@ export interface ParamExtra {
 	max?: number;
 	step?: number;
 	options?: { value: number | string; label: string }[];
+	/** Widget type from the device schema — authoritative when present */
+	widget?: string;
 }
 
 export type ExtendedDeviceParamKey = components['schemas']['DeviceParamKey'] & {
@@ -48,12 +50,30 @@ export const MODEL_SETTINGS = [
 	'NeuralNetworkLateralControl'
 ];
 
+/**
+ * @deprecated Legacy settings definitions — used as fallback when the device
+ * does not provide a SettingsSchema param (older sunnypilot versions).
+ *
+ * New devices generate a SettingsSchema at runtime with panel structure,
+ * widget types, and visibility/enablement rules. The frontend uses that
+ * schema via SchemaPanel/SchemaItemRenderer when available.
+ *
+ * This array is still used by:
+ * - Legacy settings route fallback (no SettingsSchema)
+ * - getBackupKeys() fallback (no device-reported keys)
+ * - Preferences page (custom definitions editor)
+ * - Models page (type lookup for legacy value fetching)
+ *
+ * Once all devices ship with SettingsSchema, this array can be reduced to
+ * just the backup key list.
+ */
 export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	// Device
 	{
 		key: 'OffroadMode',
-		label: 'Force Offroad Mode',
-		description: 'Forced offroad mode',
+		label: 'Always Offroad Mode',
+		description:
+			'Force the device to behave as if the car is off. Useful for editing settings that need an offroad/onroad cycle to apply, preventing recording while charging (Tesla/EV cars keep the ignition signal on), or debugging without driving. Toggle off when ready to drive — sunnypilot will not engage or record while this is on.',
 		category: 'device'
 	},
 	{
@@ -1477,7 +1497,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'IsReleaseSpBranch',
 		label: 'SP Release Branch',
-		description: 'On Sunnypilot release branch',
+		description: 'On sunnypilot release branch',
 		category: 'developer',
 		readonly: true,
 		hidden: true
@@ -1485,7 +1505,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'CarParamsSPCache',
 		label: 'SP Car Params Cache',
-		description: 'Cached Sunnypilot car params',
+		description: 'Cached sunnypilot car params',
 		category: 'developer',
 		readonly: true,
 		hidden: true
@@ -1493,7 +1513,7 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 	{
 		key: 'CarParamsSP',
 		label: 'SP Car Params',
-		description: 'Sunnypilot vehicle parameters',
+		description: 'sunnypilot vehicle parameters',
 		category: 'developer',
 		readonly: true,
 		hidden: true

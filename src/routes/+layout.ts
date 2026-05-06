@@ -1,25 +1,63 @@
 import { APIv1Client, APIv0Client } from '$lib/api/client';
-import { logtoClient, getIdToken } from '$lib/logto/auth.svelte';
+import { logtoClient, getIdToken, authState } from '$lib/logto/auth.svelte';
 import type { LayoutLoad } from './$types';
 import type { DeviceAuthResponseModel } from '../sunnylink/types';
 
-export const load: LayoutLoad = async ({ url }) => {
-	if (url.pathname === '/') {
+export type DeviceFetchError = 'auth_expired' | 'api_error' | null;
+export type DeviceFetchResult = {
+	/** Detail records that have been fully hydrated. On root navigation this is
+	 *  just the selected device; on /dashboard/devices the page hydrates the rest. */
+	devices: DeviceAuthResponseModel[];
+	/** Lightweight list items for every paired device. Used by switchers and
+	 *  routes that only need device_id / created_at / token_hash. */
+	pairedList: { device_id?: string; created_at?: string | number; updated_at?: string | number }[];
+	error: DeviceFetchError;
+};
+
+export const load: LayoutLoad = async ({ depends }) => {
+	// Only re-run this load when explicitly invalidated via invalidate('app:devices').
+	// IMPORTANT: Do NOT access `url` here — SvelteKit treats it as a dependency and
+	// re-runs the load on every route change, causing redundant device list fetches.
+	depends('app:devices');
+
+	// Skip the device fetch on the OAuth callback route. The callback page owns
+	// the sign-in flow (handleSignInCallback runs in its onMount); racing
+	// authState.init() here would falsely report auth_expired before the code
+	// exchange completes, surfacing as a "Session expired" modal flash on top
+	// of the chromeless callback page. Reading window.location directly (not
+	// the SvelteKit `url` param) avoids registering a dependency.
+	if (typeof window !== 'undefined' && window.location.pathname === '/auth/callback') {
 		return {
 			streamed: {
-				devices: Promise.resolve([])
+				deviceResult: Promise.resolve<DeviceFetchResult>({
+					devices: [],
+					pairedList: [],
+					error: null
+				})
 			}
 		};
 	}
 
-	// Define the heavy logic as a standalone async function
-	const fetchAllDeviceData = async () => {
-		if (url.pathname === '/') return [];
-		if (!logtoClient || !(await logtoClient.isAuthenticated())) return [];
+	const fetchAllDeviceData = async (): Promise<DeviceFetchResult> => {
+		if (!logtoClient) {
+			return { devices: [], pairedList: [], error: 'auth_expired' };
+		}
+
+		// Wait for authState to finish init before checking auth. The SDK refreshes
+		// stale tokens via refresh-token grant inside init() / fetchUserInfo, so
+		// checking logtoClient.isAuthenticated() (local-only check) before this
+		// completes is racy and can falsely report auth_expired during the loading
+		// window after a long-idle browser refresh.
+		await authState.init();
+		if (!authState.isAuthenticated) {
+			return { devices: [], pairedList: [], error: 'auth_expired' };
+		}
 
 		// Get the token - SDK handles refresh automatically
 		let token = await getIdToken();
-		if (!token) return [];
+		if (!token) {
+			return { devices: [], pairedList: [], error: 'auth_expired' };
+		}
 
 		// Helper to fetch list
 		const fetchList = async (t: string) => {
@@ -29,52 +67,88 @@ export const load: LayoutLoad = async ({ url }) => {
 			});
 		};
 
-		// Fetch the list with retry
-		let devices = await fetchList(token);
+		try {
+			// Fetch the list with retry
+			let devices = await fetchList(token);
 
-		// If 401, get a fresh token and retry
-		if (devices.response.status === 401) {
-			token = await getIdToken();
-			if (token) {
-				devices = await fetchList(token);
-			}
-		}
-
-		const items = devices.data?.items ?? [];
-
-		// Parallelize the detail fetches
-		const detailPromises = items.map(async (device) => {
-			const fetchDetail = async (t: string) => {
-				return await APIv0Client.GET('/device/{deviceId}', {
-					params: { path: { deviceId: device.device_id ?? '' } },
-					headers: { Authorization: `Bearer ${t}` }
-				});
-			};
-
-			let response = await fetchDetail(token || '');
-
-			// Retry detail fetch if 401
-			if (response.response.status === 401) {
-				const freshToken = await getIdToken();
-				if (freshToken) {
-					response = await fetchDetail(freshToken);
+			// If 401, refresh session (re-validates with server) and retry
+			if (devices.response.status === 401) {
+				const refreshed = await authState.refreshSession();
+				if (refreshed) {
+					token = await getIdToken();
+					if (token) {
+						devices = await fetchList(token);
+					} else {
+						return { devices: [], pairedList: [], error: 'auth_expired' };
+					}
+				} else {
+					return { devices: [], pairedList: [], error: 'auth_expired' };
 				}
 			}
 
-			return response.data;
-		});
+			// If still failing after retry, it's an auth or API error
+			if (!devices.response.ok) {
+				const isAuthError = devices.response.status === 401 || devices.response.status === 403;
+				return {
+					devices: [],
+					pairedList: [],
+					error: isAuthError ? 'auth_expired' : 'api_error'
+				};
+			}
 
-		// Wait for all requests to finish in parallel
-		const allDetails = await Promise.all(detailPromises);
+			const items = devices.data?.items ?? [];
+			const ids = items.map((d) => d.device_id).filter((s): s is string => !!s);
 
-		// Filter out any undefined results (failed requests)
-		return allDetails.filter((d): d is DeviceAuthResponseModel => !!d);
+			// Resolve which device to fetch full detail for. Keep cost constant —
+			// only the selected device gets a detail fetch on root navigation; the
+			// /dashboard/devices page hydrates the rest when visited.
+			//
+			// IMPORTANT: only honor a persisted selection. We deliberately do NOT
+			// fall back to ids[0] — auto-picking a random (often offline) device
+			// on fresh sign-in / cleared cache surfaced as "why is this offline
+			// device pinned?" confusion. Smart routing in /dashboard/+page.svelte
+			// sends the user to /dashboard/devices to pick explicitly.
+			const persisted =
+				typeof localStorage !== 'undefined'
+					? localStorage.getItem('selectedDeviceId') || undefined
+					: undefined;
+			const selectedId = persisted && ids.includes(persisted) ? persisted : null;
+
+			let selectedDetail: DeviceAuthResponseModel | null = null;
+			if (selectedId && token) {
+				const detailResp = await APIv0Client.GET('/device/{deviceId}', {
+					params: { path: { deviceId: selectedId } },
+					headers: { Authorization: `Bearer ${token}` }
+				});
+				if (detailResp.response.status === 401) {
+					const fresh = await getIdToken();
+					if (fresh) {
+						const retry = await APIv0Client.GET('/device/{deviceId}', {
+							params: { path: { deviceId: selectedId } },
+							headers: { Authorization: `Bearer ${fresh}` }
+						});
+						selectedDetail = retry.data ?? null;
+					}
+				} else {
+					selectedDetail = detailResp.data ?? null;
+				}
+			}
+
+			return {
+				devices: selectedDetail ? [selectedDetail] : [],
+				pairedList: items,
+				error: null
+			};
+		} catch (e) {
+			console.error('Failed to fetch devices:', e);
+			return { devices: [], pairedList: [], error: 'api_error' };
+		}
 	};
 
 	return {
 		// Return the Promise directly for streaming
 		streamed: {
-			devices: fetchAllDeviceData()
+			deviceResult: fetchAllDeviceData()
 		}
 	};
 };
