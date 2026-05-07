@@ -9,7 +9,9 @@
 
 const CACHE_PREFIX = 'sunnylink_values_';
 const COMMIT_PREFIX = 'sunnylink_commit_';
+const CONFIRMED_PREFIX = 'sunnylink_confirmed_';
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CONFIRMED_GRACE_MS = 30_000;
 const MAX_ENTRIES_PER_DEVICE = 5;
 
 /**
@@ -121,6 +123,29 @@ export function updateCachedValue(
 		localStorage.setItem(key, JSON.stringify(entry));
 	} catch {
 		// Silently ignore
+	}
+}
+
+export function markKeyConfirmed(deviceId: string, paramKey: string): void {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		const key = `${CONFIRMED_PREFIX}${deviceId}`;
+		const map: Record<string, number> = JSON.parse(localStorage.getItem(key) || '{}');
+		map[paramKey] = Date.now();
+		localStorage.setItem(key, JSON.stringify(map));
+	} catch {}
+}
+
+export function wasKeyRecentlyConfirmed(deviceId: string, paramKey: string): boolean {
+	if (typeof localStorage === 'undefined') return false;
+	try {
+		const raw = localStorage.getItem(`${CONFIRMED_PREFIX}${deviceId}`);
+		if (!raw) return false;
+		const map: Record<string, number> = JSON.parse(raw);
+		const ts = map[paramKey];
+		return typeof ts === 'number' && Date.now() - ts < CONFIRMED_GRACE_MS;
+	} catch {
+		return false;
 	}
 }
 

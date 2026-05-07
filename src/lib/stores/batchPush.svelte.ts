@@ -4,7 +4,7 @@ import { setDeviceParams, fetchSettingsAsync, DeviceRejectionError } from '$lib/
 import { encodeParamValue, decodeParamValue } from '$lib/utils/device';
 import { deviceState } from '$lib/stores/device.svelte';
 import { logtoClient } from '$lib/logto/auth.svelte';
-import { updateCachedValue } from '$lib/stores/valuesCache';
+import { updateCachedValue, markKeyConfirmed } from '$lib/stores/valuesCache';
 import { pushStateStore } from '$lib/stores/pushState.svelte';
 import { driftStore } from '$lib/stores/driftStore.svelte';
 import { schemaState } from '$lib/stores/schema.svelte';
@@ -455,6 +455,7 @@ class BatchPushStore {
 			this.setKeyState(deviceId, k, 'confirmed');
 			pushStateStore.endPush(deviceId, k);
 			if (gitCommit) updateCachedValue(deviceId, gitCommit, k, entries[k]!.desiredValue);
+			markKeyConfirmed(deviceId, k);
 			const baseline = driftStore.getBaseline(deviceId);
 			if (Object.keys(baseline).length > 0) {
 				driftStore.updateBaseline(deviceId, { ...baseline, [k]: entries[k]!.desiredValue });

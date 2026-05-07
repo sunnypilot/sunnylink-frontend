@@ -9,7 +9,8 @@
 		saveCachedValues,
 		getLastKnownCommit,
 		setLastKnownCommit,
-		updateCachedValue
+		updateCachedValue,
+		wasKeyRecentlyConfirmed
 	} from '$lib/stores/valuesCache';
 	import { detectDrift, filterMeaningfulDrift } from '$lib/utils/drift';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
@@ -416,7 +417,11 @@
 											(pcEntry.status === 'pending' ||
 												pcEntry.status === 'pushing' ||
 												pcEntry.status === 'blocked_onroad');
-										if (!batchPush.hasPendingKey(did, item.key) && !pcInFlight) {
+										if (
+											!batchPush.hasPendingKey(did, item.key) &&
+											!pcInFlight &&
+											!wasKeyRecentlyConfirmed(did, item.key)
+										) {
 											vals[item.key] = decoded;
 										}
 										freshValues[item.key] = decoded;
