@@ -20,7 +20,9 @@
 	let pushing = $state(false);
 	let error = $state<string | null>(null);
 	let confirmed = $state(false);
-	let engaged = $derived(deviceId ? (deviceState.deviceTelemetry[deviceId]?.engaged ?? false) : false);
+	let engaged = $derived(
+		deviceId ? (deviceState.deviceTelemetry[deviceId]?.engaged ?? false) : false
+	);
 
 	$effect(() => {
 		if (open) {

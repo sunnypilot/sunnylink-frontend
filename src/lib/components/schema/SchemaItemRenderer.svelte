@@ -470,7 +470,7 @@
 					</button>
 				{:else}
 					<button
-						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 focus-visible:outline-2 focus-visible:outline-red-500 active:scale-[0.98] active:bg-red-500/35 dark:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+						class="rounded-full bg-red-500/15 px-4 py-1.5 text-[0.8125rem] font-medium text-red-600 transition-colors hover:bg-red-500/25 focus-visible:outline-2 focus-visible:outline-red-500 active:scale-[0.98] active:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400"
 						disabled={!enabled || ruleContext.engaged}
 						title={ruleContext.engaged ? 'Disengage sunnypilot first' : undefined}
 						onclick={() => (offroadConfirmOpen = true)}

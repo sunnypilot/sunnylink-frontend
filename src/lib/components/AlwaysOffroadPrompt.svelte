@@ -8,7 +8,9 @@
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let offroadStatus = $derived(deviceId ? deviceState.offroadStatuses[deviceId] : undefined);
 	let onlineStatus = $derived(deviceId ? deviceState.onlineStatuses[deviceId] : undefined);
-	let engaged = $derived(deviceId ? (deviceState.deviceTelemetry[deviceId]?.engaged ?? false) : false);
+	let engaged = $derived(
+		deviceId ? (deviceState.deviceTelemetry[deviceId]?.engaged ?? false) : false
+	);
 
 	// Show the prompt only when we have a live reading that the car is actively driving
 	// (isOffroad === false, not undefined) and no forceOffroad override already active.
@@ -40,7 +42,7 @@
 		</div>
 		<button
 			type="button"
-			class="shrink-0 rounded-md border border-amber-500/40 bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-amber-700 transition-all duration-100 hover:bg-amber-500/10 focus-visible:outline-2 focus-visible:outline-amber-500 active:scale-[0.96] active:bg-amber-500/30 dark:text-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+			class="shrink-0 rounded-md border border-amber-500/40 bg-[var(--sl-bg-surface)] px-2.5 py-1 text-[0.75rem] font-medium text-amber-700 transition-all duration-100 hover:bg-amber-500/10 focus-visible:outline-2 focus-visible:outline-amber-500 active:scale-[0.96] active:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-400"
 			disabled={engaged}
 			title={engaged ? 'Disengage sunnypilot first' : undefined}
 			onclick={() => (modalOpen = true)}

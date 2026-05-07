@@ -638,11 +638,13 @@
 				<button
 					onclick={handleForceOffroadClick}
 					disabled={stoppingForce || (!isForceOffroad && (telemetry?.engaged ?? false))}
-					title={!isForceOffroad && (telemetry?.engaged ?? false) ? 'Disengage sunnypilot first' : undefined}
+					title={!isForceOffroad && (telemetry?.engaged ?? false)
+						? 'Disengage sunnypilot first'
+						: undefined}
 					role="switch"
 					aria-checked={isForceOffroad}
 					aria-label="Always Offroad Mode"
-					class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
+					class="group flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:bg-[var(--sl-bg-elevated)] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					<span class="text-[0.8125rem] font-medium text-[var(--sl-text-1)]"
 						>Always Offroad Mode</span
