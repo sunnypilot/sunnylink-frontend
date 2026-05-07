@@ -346,6 +346,10 @@ class BatchPushStore {
 					// means the device changed it independently → conflict.
 					// Equal to baseline → write pending, not a conflict.
 					const baselineVal = baselineAtPushTime[item.key];
+					if (!Object.prototype.hasOwnProperty.call(baselineAtPushTime, item.key)) {
+						allMatch = false;
+						continue;
+					}
 					if (!this.valuesEqual(deviceValue, baselineVal)) {
 						conflicts.push({ key: item.key, deviceValue });
 					}

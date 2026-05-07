@@ -542,6 +542,19 @@
 					const resolvedKeys = Object.keys(freshValues).filter((k) => !driftedKeys.has(k));
 					if (resolvedKeys.length > 0) driftStore.resolveKeys(did, resolvedKeys);
 				}
+
+				{
+					const currentBaseline = driftStore.getBaseline(did);
+					const additions: Record<string, unknown> = {};
+					for (const [key, val] of Object.entries(freshValues)) {
+						if (!Object.prototype.hasOwnProperty.call(currentBaseline, key)) {
+							additions[key] = val;
+						}
+					}
+					if (Object.keys(additions).length > 0) {
+						driftStore.updateBaseline(did, { ...currentBaseline, ...additions });
+					}
+				}
 			} catch {
 				// Errors are non-fatal — flags still cleared in finally so the UI
 				// recovers from spinner-stuck state even on partial failure.
