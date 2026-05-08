@@ -341,10 +341,10 @@ class BatchPushStore {
 						continue; // Write applied successfully
 					}
 
-					// Compare readback against the baseline we held when the
-					// push fired. Mismatch vs both desiredValue AND baseline
-					// means the device changed it independently → conflict.
-					// Equal to baseline → write pending, not a conflict.
+					if (!Object.prototype.hasOwnProperty.call(baselineAtPushTime, item.key)) {
+						allMatch = false;
+						continue;
+					}
 					const baselineVal = baselineAtPushTime[item.key];
 					if (!this.valuesEqual(deviceValue, baselineVal)) {
 						conflicts.push({ key: item.key, deviceValue });
@@ -384,7 +384,7 @@ class BatchPushStore {
 	): void {
 		const currentBaseline = driftStore.getBaseline(deviceId);
 		const real = conflicts.filter((c) => {
-			if (!Object.prototype.hasOwnProperty.call(currentBaseline, c.key)) return true;
+			if (!Object.prototype.hasOwnProperty.call(currentBaseline, c.key)) return false;
 			return !this.valuesEqual(c.deviceValue, currentBaseline[c.key]);
 		});
 		if (real.length === 0) return;
