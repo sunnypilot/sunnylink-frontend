@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { logtoClient } from '$lib/logto/auth.svelte';
@@ -69,6 +70,7 @@
 	// Fetch brand setting values when brand settings are available
 	let loadingBrandValues = $state(false);
 	let brandValuesFetchFailed = $state(false);
+	let brandValuesVerified = $state(false);
 
 	$effect(() => {
 		if (deviceId && logtoClient && brandSettings.length > 0) {
@@ -82,7 +84,10 @@
 		const existing = deviceState.deviceValues[deviceId] ?? {};
 		const keys = brandSettings.map((item) => item.key);
 		const missing = force ? keys : keys.filter((k) => existing[k] === undefined);
-		if (missing.length === 0) return;
+		if (missing.length === 0) {
+			brandValuesVerified = true;
+			return;
+		}
 
 		loadingBrandValues = true;
 		brandValuesFetchFailed = false;
@@ -119,8 +124,25 @@
 			brandValuesFetchFailed = true;
 		} finally {
 			loadingBrandValues = false;
+			brandValuesVerified = true;
 		}
 	}
+
+	// Scroll to hash anchor after brand values are ready (search result deep-link).
+	$effect(() => {
+		if (!brandValuesVerified) return;
+		const hash = page.url.hash.slice(1);
+		if (!hash) return;
+		const timer = window.setTimeout(() => {
+			const el = document.getElementById(hash);
+			if (!el) return;
+			const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			el.scrollIntoView({ block: 'nearest', behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+			el.setAttribute('data-settings-highlight', 'true');
+			window.setTimeout(() => el.removeAttribute('data-settings-highlight'), 2500);
+		}, 200);
+		return () => window.clearTimeout(timer);
+	});
 
 	let schemaRevalStatus = $derived(
 		deviceId ? (schemaState.revalidationStatus[deviceId] ?? null) : null
