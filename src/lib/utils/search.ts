@@ -68,8 +68,8 @@ function getFuse(settings: readonly RenderableSetting[]): Fuse<SearchRecord> {
 
 export interface SchemaItemRecord {
 	key: string;
-	/** Key to use for URL fragment (#anchor). Differs from key for sub_items,
-	 *  which anchor to their parent (sub_items have no DOM id of their own). */
+	/** The key used in the URL fragment (#key). For sub_items this is the parent's key,
+	 *  since sub_items don't get their own DOM id. */
 	anchorKey: string;
 	title: string;
 	description: string;
@@ -130,7 +130,7 @@ export function buildSchemaRecords(schema: SettingsSchema): SchemaItemRecord[] {
 			for (const sub of item.sub_items ?? []) {
 				records.push({
 					key: sub.key,
-					anchorKey: item.key, // sub_items have no own DOM id; scroll to parent
+					anchorKey: item.key, // sub_items don't get their own DOM id; anchor to parent
 					title: sub.title ?? sub.key,
 					description: sub.description ?? '',
 					panelId,
@@ -152,7 +152,7 @@ export function buildSchemaRecords(schema: SettingsSchema): SchemaItemRecord[] {
 		}
 	}
 
-	// Vehicle-specific settings — all brands indexed, filtered post-search by currentBrand.
+	// Vehicle-specific settings: all brands are indexed here, filtered post-search by currentBrand.
 	for (const [brand, brandData] of Object.entries(schema.vehicle_settings ?? {})) {
 		const panelLabel = brandData.title ?? brand;
 		for (const item of brandData.items ?? []) {

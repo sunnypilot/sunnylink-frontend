@@ -36,7 +36,7 @@
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
 	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
-	// Legacy fallback — only evaluated when device has no schema.
+	// Legacy fallback, only used when the device has no schema.
 	let searchable = $derived(
 		getAllSettings(settings, true, false).filter((s) => !s.hidden || MODEL_SETTINGS.includes(s.key))
 	);
