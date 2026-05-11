@@ -89,6 +89,9 @@
 		if (!isDeviceRequiredRoute) return;
 		if (deviceState.selectedDeviceId) return;
 		if (pathname === '/dashboard/devices') return;
+		// /dashboard has its own empty state, so don't redirect when there
+		// are no devices. Only redirect when devices exist but none is selected.
+		if (deviceState.pairedDevices.length === 0 && pathname === '/dashboard') return;
 		goto('/dashboard/devices');
 	});
 
@@ -270,7 +273,7 @@
 	);
 
 	let navSections = $derived<NavSection[]>(
-		authState.isAuthenticated && deviceState.selectedDeviceId
+		authState.isAuthenticated && deviceState.pairedDevicesLoaded && deviceState.selectedDeviceId
 			? [
 					{
 						label: 'Device Settings',
@@ -404,6 +407,17 @@
 						}
 						statusPolling.start();
 					});
+				}
+			} else if (!result.error) {
+				// No devices on this account — mark loaded so the skeleton clears.
+				devices = [];
+				deviceState.pairedDevices = [];
+				deviceState.pairedDevicesLoaded = true;
+				// Wipe any stale device ID carried over from a previous session.
+				// Otherwise the sidebar shows Device Settings and the settings layout
+				// starts making athena calls to a device this account doesn't own.
+				if (deviceState.selectedDeviceId) {
+					deviceState.setSelectedDevice(null);
 				}
 			}
 		});

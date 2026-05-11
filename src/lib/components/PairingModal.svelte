@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { X, RectangleHorizontal, ArrowLeft } from 'lucide-svelte';
+	import { X, ArrowLeft } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
 
 	let { open = $bindable(false), deviceType = $bindable(null) } = $props<{
@@ -202,14 +202,15 @@
 										class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 										onclick={() => selectDevice('c4')}
 									>
-										<div
-											class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
-										>
-											<RectangleHorizontal size={28} />
+										<div class="flex h-20 w-full items-center justify-center">
+											<img
+												src="/comma_four.png"
+												alt="comma four"
+												class="h-20 w-auto object-contain"
+											/>
 										</div>
 										<div class="text-center">
 											<h4 class="font-bold text-[var(--sl-text-1)]">comma four</h4>
-											<p class="text-xs text-[var(--sl-text-3)]">Next generation</p>
 										</div>
 									</button>
 
@@ -217,14 +218,11 @@
 										class="group flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/50 p-4 transition-all duration-150 hover:border-primary/50 hover:bg-[var(--sl-bg-elevated)] active:scale-[0.98] active:opacity-70"
 										onclick={() => selectDevice('c3')}
 									>
-										<div
-											class="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sl-bg-surface)] text-[var(--sl-text-2)] transition-colors group-hover:bg-primary/10 group-hover:text-primary"
-										>
-											<RectangleHorizontal size={40} />
+										<div class="flex h-20 w-full items-center justify-center">
+											<img src="/comma_3x.png" alt="comma 3X" class="h-20 w-auto object-contain" />
 										</div>
 										<div class="text-center">
 											<h4 class="font-bold text-[var(--sl-text-1)]">comma 3X</h4>
-											<p class="text-xs text-[var(--sl-text-3)]">Standard generation</p>
 										</div>
 									</button>
 								</div>
