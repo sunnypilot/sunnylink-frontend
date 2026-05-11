@@ -219,11 +219,7 @@
 										onclick={() => selectDevice('c3')}
 									>
 										<div class="flex h-20 w-full items-center justify-center">
-											<img
-												src="/comma_3x.png"
-												alt="comma 3X"
-												class="h-20 w-auto object-contain"
-											/>
+											<img src="/comma_3x.png" alt="comma 3X" class="h-20 w-auto object-contain" />
 										</div>
 										<div class="text-center">
 											<h4 class="font-bold text-[var(--sl-text-1)]">comma 3X</h4>
