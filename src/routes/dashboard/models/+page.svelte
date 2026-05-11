@@ -614,7 +614,8 @@
 					modelList,
 					currentModelShortName,
 					favorites,
-					deviceState.deviceValues[deviceState.selectedDeviceId]?.['DefaultModel'] as string
+					deviceState.deviceValues[deviceState.selectedDeviceId]?.['DefaultModel'] as
+						| string
 						| undefined
 				);
 			}
