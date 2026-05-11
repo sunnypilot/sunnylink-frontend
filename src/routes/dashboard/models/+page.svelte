@@ -614,7 +614,8 @@
 					modelList,
 					currentModelShortName,
 					favorites,
-					deviceState.deviceValues[deviceState.selectedDeviceId]?.['DefaultModel'] as string | undefined
+					deviceState.deviceValues[deviceState.selectedDeviceId]?.['DefaultModel'] as string
+						| undefined
 				);
 			}
 		} catch (e) {
