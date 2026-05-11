@@ -601,12 +601,7 @@
 			}
 			// Persist to cache for SWR on next visit
 			if (modelList && deviceState.selectedDeviceId) {
-				saveModelsCache(
-					deviceState.selectedDeviceId,
-					modelList,
-					currentModelShortName,
-					favorites
-				);
+				saveModelsCache(deviceState.selectedDeviceId, modelList, currentModelShortName, favorites);
 			}
 		} catch (e) {
 			console.error('Error fetching models:', e);
