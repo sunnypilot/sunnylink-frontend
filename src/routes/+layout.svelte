@@ -89,9 +89,8 @@
 		if (!isDeviceRequiredRoute) return;
 		if (deviceState.selectedDeviceId) return;
 		if (pathname === '/dashboard/devices') return;
-		// Home has its own empty state for zero-device accounts — don't
-		// redirect away. Redirect only makes sense when devices exist but
-		// none is selected (user needs to pick one).
+		// /dashboard has its own empty state, so don't redirect when there
+		// are no devices. Only redirect when devices exist but none is selected.
 		if (deviceState.pairedDevices.length === 0 && pathname === '/dashboard') return;
 		goto('/dashboard/devices');
 	});
@@ -410,15 +409,13 @@
 					});
 				}
 			} else if (!result.error) {
-				// API confirmed: no devices on this account. Set loaded so
-				// skeleton resolves and device-required redirect guard can fire.
+				// No devices on this account — mark loaded so the skeleton clears.
 				devices = [];
 				deviceState.pairedDevices = [];
 				deviceState.pairedDevicesLoaded = true;
-				// Clear stale selectedDeviceId from a prior browser session —
-				// without this, the sidebar shows Device Settings nav and the
-				// settings layout fires athena calls for a device this account
-				// doesn't own, causing a 403 → session-expired loop.
+				// Wipe any stale device ID carried over from a previous session.
+				// Otherwise the sidebar shows Device Settings and the settings layout
+				// starts making athena calls to a device this account doesn't own.
 				if (deviceState.selectedDeviceId) {
 					deviceState.setSelectedDevice(null);
 				}
