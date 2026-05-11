@@ -44,14 +44,11 @@
 	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import { toast } from 'svelte-sonner';
 
-	let cachedDefaultModelName = $state<string | undefined>();
-
 	let DEFAULT_MODEL = $derived<ModelBundle>({
 		short_name: 'default',
 		display_name:
 			(deviceState.selectedDeviceId &&
-				(deviceState.deviceValues[deviceState.selectedDeviceId]?.['DefaultModel'] as string)) ||
-			cachedDefaultModelName ||
+				schemaState.schemas[deviceState.selectedDeviceId]?.default_model) ||
 			'Default Model',
 		is_20hz: false,
 		ref: 'default',
@@ -66,7 +63,6 @@
 		modelList: ModelBundle[];
 		currentModelShortName: string | undefined;
 		favorites: string[];
-		defaultModelName?: string;
 		timestamp: number;
 	}
 
@@ -90,8 +86,7 @@
 		deviceId: string,
 		list: ModelBundle[],
 		activeShortName: string | undefined,
-		favs: Set<string>,
-		defaultModelName: string | undefined
+		favs: Set<string>
 	): void {
 		if (typeof localStorage === 'undefined') return;
 		try {
@@ -99,7 +94,6 @@
 				modelList: list,
 				currentModelShortName: activeShortName,
 				favorites: Array.from(favs),
-				defaultModelName,
 				timestamp: Date.now()
 			};
 			localStorage.setItem(`${MODELS_CACHE_PREFIX}${deviceId}`, JSON.stringify(entry));
@@ -181,7 +175,6 @@
 			modelList = cached.modelList;
 			currentModelShortName = cached.currentModelShortName;
 			favorites = new Set(cached.favorites);
-			cachedDefaultModelName = cached.defaultModelName;
 		}
 	}
 
@@ -508,7 +501,6 @@
 					'ModelManager_ActiveBundle',
 					'ModelManager_DownloadIndex',
 					'ModelManager_Favs',
-					'DefaultModel',
 					...MODEL_SETTINGS
 				],
 				token
@@ -613,10 +605,7 @@
 					deviceState.selectedDeviceId,
 					modelList,
 					currentModelShortName,
-					favorites,
-					deviceState.deviceValues[deviceState.selectedDeviceId]?.['DefaultModel'] as
-						| string
-						| undefined
+					favorites
 				);
 			}
 		} catch (e) {
