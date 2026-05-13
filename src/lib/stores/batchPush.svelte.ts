@@ -12,7 +12,7 @@ import { toast } from 'svelte-sonner';
 
 const DEBOUNCE_MS = 4_000;
 const CONFIRMED_CLEAR_MS = 3_000;
-const VERIFY_SETTLE_MS = 500; // give the device a beat before the readback
+const VERIFY_SETTLE_MS = 2_500; // POST round-trip for uncommon keys (Ford etc.) can exceed 3s
 const VERIFY_POLL_INTERVAL_MS = 0; // unused: single-shot verify now
 const VERIFY_MAX_ATTEMPTS = 1; // one quick readback; fall through to optimistic confirm on miss (was 9s — caused 20s spinner regression)
 
@@ -303,10 +303,9 @@ class BatchPushStore {
 	 *  causes false-positive conflicts when compared against the boolean
 	 *  desiredValue.
 	 *
-	 *  Timing budget is tight (user perceives anything past ~4s as a regression):
-	 *  one short settle, single read. If we can't confirm, fall back to
-	 *  optimistic confirm — periodic drift detection will surface any mismatch
-	 *  later. Previous 6-attempt loop added ~9s to every push. */
+	 *  Settle (2.5s) accounts for slow POST round-trips (Ford/uncommon keys
+	 *  observed at 1.2–3.5s). confirmKeys fires optimistically before this
+	 *  runs, so the settle window has no UX cost. */
 	private async verifyWrite(
 		deviceId: string,
 		keys: string[],
