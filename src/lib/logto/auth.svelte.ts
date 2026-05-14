@@ -114,26 +114,19 @@ class AuthState {
 
 		try {
 			if (await logtoClient.isAuthenticated()) {
+				// Phase 1: Validate session via access token. getAccessToken() triggers
+				// the refresh-token grant if the cached token expired — if the grant
+				// itself is invalid (revoked, rotated out, TTL exceeded), this throws
+				// LogtoRequestError and we know the session is genuinely dead.
+				// Separated from phase 2 because fetchUserInfo() also throws
+				// LogtoRequestError on transient userinfo-endpoint errors (5xx, rate-
+				// limit), and the old single-catch wiped valid sessions on those blips.
 				try {
-					// 10s timeout — fetchUserInfo can hang on stale sessions. The SDK auto-refreshes
-					// the access token via the refresh token here, so a revoked/invalid grant
-					// surfaces as a LogtoRequestError from this call.
-					const profile = await withTimeout(logtoClient.fetchUserInfo(), 10000);
-					if (profile) {
+					const token = await withTimeout(logtoClient.getAccessToken(), 7000);
+					if (token) {
 						finalAuthed = true;
-						finalProfile = profile;
 					}
-					// Timeout (profile === undefined): treat as unauthenticated rather than committing
-					// a half-authenticated state. User retries via Sign In; no cascade.
 				} catch (e) {
-					// Distinguish refresh-grant failure from transient network failure. Only the
-					// former should wipe local tokens — clearing on a network blip would sign the
-					// user out whenever they lose connectivity briefly, which is unacceptable UX.
-					//
-					// `LogtoRequestError` is thrown only when the server responded with a non-2xx
-					// and a parseable OIDC error body (see SDK requester.js). `fetch()` failures,
-					// timeouts, and CORS errors throw native `TypeError`/`AbortError` instead, so
-					// they slip past this branch and leave tokens intact for the next try.
 					if (e instanceof LogtoRequestError) {
 						console.error('Auth init: refresh grant invalid, clearing stale tokens', e);
 						try {
@@ -142,7 +135,22 @@ class AuthState {
 							console.error('Failed to clear stale tokens:', clearErr);
 						}
 					} else {
-						console.error('Auth init: transient fetchUserInfo failure, keeping tokens', e);
+						console.error('Auth init: transient token failure, keeping tokens', e);
+					}
+				}
+
+				// Phase 2: Fetch profile (best-effort). Does not affect auth state —
+				// all profile consumers use optional chaining already. The SDK's
+				// getAccessToken is memoized, so fetchUserInfo's internal call reuses
+				// the token obtained in phase 1 without a second refresh round-trip.
+				if (finalAuthed) {
+					try {
+						const profile = await withTimeout(logtoClient.fetchUserInfo(), 10000);
+						if (profile) {
+							finalProfile = profile;
+						}
+					} catch (e) {
+						console.error('Auth init: profile fetch failed (non-fatal)', e);
 					}
 				}
 			}
