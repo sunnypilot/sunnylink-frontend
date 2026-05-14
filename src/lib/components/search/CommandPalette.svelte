@@ -3,14 +3,27 @@
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { schemaState } from '$lib/stores/schema.svelte';
 	import { searchState } from '$lib/stores/search.svelte';
 	import { getAllSettings } from '$lib/utils/settings';
-	import { searchSettings, type SearchResult } from '$lib/utils/search';
+	import { searchSettings, searchSchemaItems } from '$lib/utils/search';
 	import { MODEL_SETTINGS } from '$lib/types/settings';
 	import { modalLock } from '$lib/utils/modalLock';
 	import { portal } from '$lib/utils/portal';
 	import { goto } from '$app/navigation';
 	import type { FuseResultMatch } from 'fuse.js';
+
+	interface DisplayResult {
+		key: string;
+		anchorKey: string;
+		title: string;
+		description: string;
+		panelId: string;
+		panelLabel: string;
+		subPanelId?: string;
+		score: number;
+		matches?: readonly FuseResultMatch[];
+	}
 
 	const SUGGESTED_QUERIES = ['Cruise', 'Lateral', 'Experimental', 'MADS', 'Models'];
 
@@ -22,17 +35,53 @@
 
 	let deviceId = $derived(deviceState.selectedDeviceId);
 	let settings = $derived(deviceId ? deviceState.deviceSettings[deviceId] : undefined);
+	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
+	// Legacy fallback, only used when the device has no schema.
 	let searchable = $derived(
 		getAllSettings(settings, true, false).filter((s) => !s.hidden || MODEL_SETTINGS.includes(s.key))
 	);
-	let deviceValues = $derived(deviceId ? deviceState.deviceValues[deviceId] : undefined);
 
 	const MIN_QUERY_LENGTH = 3;
 
-	let results: SearchResult[] = $derived.by(() => {
+	let results: DisplayResult[] = $derived.by(() => {
 		const q = searchState.query.trim();
 		if (q.length < MIN_QUERY_LENGTH) return [];
-		return searchSettings(q, searchable, deviceValues).slice(0, 20);
+
+		const schema =
+			deviceId && schemaState.hasSchema(deviceId) ? schemaState.schemas[deviceId] : undefined;
+
+		if (schema) {
+			const currentBrand = schemaState.capabilities[deviceId!]?.brand || undefined;
+			return searchSchemaItems(q, schema, deviceValues, currentBrand).map((r) => ({
+				key: r.item.key,
+				anchorKey: r.item.anchorKey,
+				title: r.item.title,
+				description: r.item.description,
+				panelId: r.item.panelId,
+				panelLabel: r.item.panelLabel,
+				subPanelId: r.item.subPanelId,
+				score: r.score,
+				matches: r.matches
+			}));
+		}
+
+		// Legacy path: SETTINGS_DEFINITIONS for non-schema devices.
+		return searchSettings(q, searchable, deviceValues)
+			.slice(0, 20)
+			.map((r) => {
+				const isModel = MODEL_SETTINGS.includes(r.setting.key);
+				const panelId = isModel ? 'models' : r.setting.category;
+				return {
+					key: r.setting.key,
+					anchorKey: r.setting.key,
+					title: r.setting._extra?.title || r.setting.label,
+					description: r.setting._extra?.description || r.setting.description,
+					panelId,
+					panelLabel: isModel ? 'models' : r.setting.category,
+					score: r.score,
+					matches: r.matches
+				};
+			});
 	});
 
 	$effect(() => {
@@ -85,14 +134,15 @@
 		};
 	});
 
-	function handleSelect(result: SearchResult) {
-		const { setting } = result;
+	function handleSelect(result: DisplayResult) {
 		searchState.pushHistory(searchState.query);
 		searchState.close();
-		if (MODEL_SETTINGS.includes(setting.key)) {
-			goto(`/dashboard/models#${setting.key}`);
+		if (result.panelId === 'models') {
+			goto(`/dashboard/models#${result.anchorKey}`);
+		} else if (result.subPanelId) {
+			goto(`/dashboard/settings/${result.panelId}?panel=${result.subPanelId}#${result.anchorKey}`);
 		} else {
-			goto(`/dashboard/settings/${setting.category}#${setting.key}`);
+			goto(`/dashboard/settings/${result.panelId}#${result.anchorKey}`);
 		}
 	}
 
@@ -198,18 +248,6 @@
 		html += escapeHtml(text.slice(cursor));
 		return html;
 	}
-
-	function categoryLabel(r: SearchResult): string {
-		return MODEL_SETTINGS.includes(r.setting.key) ? 'models' : r.setting.category;
-	}
-
-	function titleOf(r: SearchResult): string {
-		return r.setting._extra?.title || r.setting.label;
-	}
-
-	function descOf(r: SearchResult): string {
-		return r.setting._extra?.description || r.setting.description;
-	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -297,7 +335,7 @@
 					</div>
 				{:else if searchState.query.trim()}
 					<ul id="command-palette-list" role="listbox" class="py-1" aria-label="Search results">
-						{#each results as result, i (result.setting.key)}
+						{#each results as result, i (result.key)}
 							{@const active = i === activeIdx}
 							<li role="option" aria-selected={active}>
 								<button
@@ -311,22 +349,22 @@
 								>
 									<span class="flex items-center justify-between gap-3">
 										<span class="truncate text-[0.875rem] font-medium text-[var(--sl-text-1)]">
-											{@html highlight(titleOf(result), 'title', result.matches)}
+											{@html highlight(result.title, 'title', result.matches)}
 										</span>
 										<span
 											class="shrink-0 rounded-md bg-[var(--sl-bg-input)] px-1.5 py-0.5 text-[0.6875rem] font-medium text-[var(--sl-text-3)] capitalize"
 										>
-											{categoryLabel(result)}
+											{result.panelLabel}
 										</span>
 									</span>
-									{#if result.setting.key !== titleOf(result)}
+									{#if result.key !== result.title}
 										<span class="truncate font-mono text-[0.75rem] text-[var(--sl-text-3)]">
-											{@html highlight(result.setting.key, 'key', result.matches)}
+											{@html highlight(result.key, 'key', result.matches)}
 										</span>
 									{/if}
-									{#if descOf(result)}
+									{#if result.description}
 										<span class="line-clamp-2 text-[0.8125rem] text-[var(--sl-text-2)]">
-											{@html highlight(descOf(result), 'description', result.matches)}
+											{@html highlight(result.description, 'description', result.matches)}
 										</span>
 									{/if}
 								</button>

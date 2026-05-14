@@ -29,30 +29,6 @@
 		Manage sunnypilot settings, push models, and keep your build in sync from anywhere.
 	</p>
 
-	<ol class="mt-6 flex w-full flex-col gap-3 text-left text-[0.875rem] text-[var(--sl-text-2)]">
-		<li class="flex items-start gap-3">
-			<span
-				class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sl-bg-elevated)] text-[0.75rem] font-semibold text-[var(--sl-text-1)]"
-				>1</span
-			>
-			<span>Open sunnypilot on your device and go to <strong>Account</strong>.</span>
-		</li>
-		<li class="flex items-start gap-3">
-			<span
-				class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sl-bg-elevated)] text-[0.75rem] font-semibold text-[var(--sl-text-1)]"
-				>2</span
-			>
-			<span>Copy the pairing code shown under <strong>Link sunnylink</strong>.</span>
-		</li>
-		<li class="flex items-start gap-3">
-			<span
-				class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sl-bg-elevated)] text-[0.75rem] font-semibold text-[var(--sl-text-1)]"
-				>3</span
-			>
-			<span>Paste it below and confirm.</span>
-		</li>
-	</ol>
-
 	<button
 		class="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[0.9375rem] font-semibold text-[var(--sl-bg-page)] transition-all duration-100 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] active:bg-primary/80"
 		type="button"

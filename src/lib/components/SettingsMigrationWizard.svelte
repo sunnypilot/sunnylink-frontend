@@ -517,7 +517,7 @@
 				</div>
 			</div>
 
-			<div class="flex-1 overflow-hidden p-4 sm:p-5" style="display: grid; align-content: start;">
+			<div class="flex-1 overflow-y-auto p-4 sm:p-5" style="display: grid;">
 				{#key ms.step}
 					<div
 						style="grid-area: 1 / 1;"
@@ -910,7 +910,7 @@
 							</div>
 						{:else if ms.step === 4}
 							<!-- Comparison Step -->
-							<div class="space-y-4">
+							<div class="flex h-full flex-col gap-4">
 								<div
 									class="flex items-center justify-between gap-4 rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30 p-4"
 								>
@@ -997,7 +997,7 @@
 									</div>
 								{:else}
 									<div
-										class="max-h-[50vh] overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30"
+										class="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)]/30"
 									>
 										<!-- Desktop: table layout -->
 										<table class="hidden w-full table-fixed text-left text-sm sm:table">

@@ -162,4 +162,5 @@ export interface SettingsSchema {
 	capability_fields?: string[];
 	capability_labels?: Record<string, string>;
 	capabilities?: Capabilities;
+	default_model?: string;
 }
