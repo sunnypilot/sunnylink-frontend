@@ -288,17 +288,18 @@
 	}
 
 	// Two-tier overflow check using Canvas text measurement for accuracy:
-	//   Normal (14px, px-2.5=20px pad): if labels fit → standard segments
-	//   Compact (13px, px-1.5=12px pad, tracking-tight): if labels fit → compact segments
+	//   Normal (14px, px-3=24px pad): if labels fit → standard segments
+	//   Compact (13px, px-2=16px pad, tracking-tight): if labels fit → compact segments
 	//   Otherwise → dropdown
-	// Container: card px-4 (32px) + segment wrapper p-1 (8px) = 40px overhead.
+	// Segment wrapper has p-1 (8px) own padding subtracted from budget.
 	// Right-aligned segmented control budget (Apple HIG iOS Settings pattern).
 	// Title takes the left ~40-50%, segmented control sits in remaining right space.
 	// When labels don't fit this budget, segmentMode falls through to 'dropdown'.
 	const MOBILE_CONTAINER_PX = 200;
 	const DESKTOP_CONTAINER_PX = 280;
-	const NORMAL_PAD_PX = 20;
-	const COMPACT_PAD_PX = 12;
+	const SEGMENT_WRAPPER_PAD_PX = 8;
+	const NORMAL_PAD_PX = 24;
+	const COMPACT_PAD_PX = 16;
 
 	let isMobile = $state(false);
 	let measureCtx: CanvasRenderingContext2D | null = null;
@@ -329,7 +330,7 @@
 		fontSpec: string,
 		padPx: number
 	): boolean {
-		const segmentWidth = containerPx / options.length;
+		const segmentWidth = (containerPx - SEGMENT_WRAPPER_PAD_PX) / options.length;
 		// 6px buffer for sub-pixel rounding, letter-spacing, and font rendering differences
 		return options.some((opt) => measureLabel(opt.label, fontSpec) + padPx + 6 > segmentWidth);
 	}
@@ -1153,7 +1154,7 @@
 					)}
 					{@const optCount = item.options.length}
 					<div
-						class="relative flex min-w-[140px] rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200"
+						class="relative flex min-w-[200px] rounded-lg bg-[var(--sl-bg-input)] p-1 transition-opacity duration-200 md:min-w-[280px]"
 						class:opacity-50={isPushing}
 						class:pointer-events-none={isPushing || !enabled}
 					>
