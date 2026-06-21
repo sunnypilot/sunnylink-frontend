@@ -6,25 +6,14 @@
 
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { deviceState } from '$lib/stores/device.svelte';
+	import { schemaState } from '$lib/stores/schema.svelte';
 	import {
-		Bot,
-		Car,
 		ChevronDown,
-		Gauge,
-		HardDrive,
 		House,
 		LogIn,
 		Loader2,
-		Map as MapIcon,
 		Menu,
-		Monitor,
-		Package,
-		Palette,
-		Settings,
 		Sparkles,
-		ToggleLeft,
-		Wind,
-		Wrench,
 		ArrowLeftRight,
 		Smartphone,
 		X
@@ -54,6 +43,7 @@
 	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
 	import { FEATURES } from '$lib/config/features';
+	import { getBuiltinNavItems, getCustomSchemaNavItems } from '$lib/utils/schemaNav';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -202,24 +192,29 @@
 	let settingsOpen = $state(true);
 
 	const getPageTitle = (path: string) => {
-		const titles: Record<string, string> = {
+		const staticTitles: Record<string, string> = {
 			'/': 'Home',
 			'/dashboard': 'Home',
 			'/dashboard/models': 'Models',
-			'/dashboard/settings/device': 'Device Settings',
-			'/dashboard/settings/toggles': 'Toggles',
-			'/dashboard/settings/steering': 'Steering',
-			'/dashboard/settings/cruise': 'Cruise',
-			'/dashboard/settings/visuals': 'Visuals',
 			'/dashboard/settings/vehicle': 'Vehicle',
-			'/dashboard/settings/display': 'Display',
-			'/dashboard/settings/software': 'Software',
-			'/dashboard/settings/developer': 'Developer',
 			'/dashboard/osm': 'Maps',
 			'/dashboard/preferences': 'Preferences',
 			'/dashboard/whats-new': "What's new"
 		};
-		return `sunnylink${titles[path] ? ` - ${titles[path]}` : ''}`;
+
+		if (staticTitles[path]) return `sunnylink - ${staticTitles[path]}`;
+
+		if (path.startsWith('/dashboard/settings/')) {
+			const category = path.slice('/dashboard/settings/'.length);
+			const schema = deviceState.selectedDeviceId
+				? schemaState.schemas[deviceState.selectedDeviceId]
+				: undefined;
+			const panel = schema?.panels.find((p) => p.id === category);
+			if (panel?.label) return `sunnylink - ${panel.label}`;
+			if (category) return `sunnylink - Settings`;
+		}
+
+		return 'sunnylink';
 	};
 
 	const closeDrawerOnMobile = () => {
@@ -277,20 +272,29 @@
 			? [
 					{
 						label: 'Device Settings',
-						items: [
-							{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
-							{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
-							{ icon: Bot, label: 'Models', href: '/dashboard/models' },
-							{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
-							{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
-							{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-							{ icon: Monitor, label: 'Display', href: '/dashboard/settings/display' },
-							{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
-							{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
-							{ icon: Package, label: 'Software', href: '/dashboard/settings/software' },
-							{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
-						]
-					}
+						items: getBuiltinNavItems().map((item) => ({
+							icon: item.icon,
+							label: item.label,
+							href: item.href
+						}))
+					},
+					...(() => {
+						const customItems = getCustomSchemaNavItems(
+							schemaState.schemas[deviceState.selectedDeviceId]
+						);
+						return customItems.length > 0
+							? [
+									{
+										label: 'Custom Device Settings',
+										items: customItems.map((item) => ({
+											icon: item.icon,
+											label: item.label,
+											href: item.href
+										}))
+									}
+								]
+							: [];
+					})()
 				]
 			: []
 	);
