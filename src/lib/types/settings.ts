@@ -23,7 +23,8 @@ export type SettingCategory =
 	| 'cruise'
 	| 'visuals'
 	| 'developer'
-	| 'other';
+	| 'other'
+	| (string & {});
 
 export interface SettingDefinition {
 	key: string;
