@@ -3,6 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { X, ArrowLeft } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
+	import { translateRuntimeText } from '$lib/i18n/runtime';
 
 	let { open = $bindable(false), deviceType = $bindable(null) } = $props<{
 		open: boolean;
@@ -251,10 +252,7 @@
 								<div class="rounded-xl bg-blue-500/10 p-4">
 									<ol class="list-inside list-decimal space-y-2 text-sm text-[var(--sl-text-2)]">
 										<li>Note: <strong>Wi-Fi</strong> is NOT required for pairing.</li>
-										<li>
-											Go to <strong class="text-[var(--sl-text-1)]">Settings &gt; sunnylink</strong>
-											on your device.
-										</li>
+										<li>{translateRuntimeText('Go to Settings > sunnylink on your device.')}</li>
 										<li>
 											Tap on
 											{#if selectedDeviceType === 'c4'}
@@ -265,9 +263,7 @@
 											(or <strong class="text-[var(--sl-text-1)]">Paired</strong>
 											if adding another user).
 										</li>
-										<li>
-											Scan the <strong>QR code</strong> shown on your device screen.
-										</li>
+										<li>{translateRuntimeText('Scan the QR code shown on your device screen.')}</li>
 									</ol>
 								</div>
 							</div>
