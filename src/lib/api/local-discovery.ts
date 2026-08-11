@@ -1,9 +1,15 @@
 /**
- * Manual local-device registry for sunnylink.
+ * Local-device discovery for sunnylink.
  *
- * Users enter a device's LAN IP on the device details page.  The IP is probed
- * once to verify it really hosts that device, then cached in localStorage
- * so subsequent visits reconnect instantly.  No automatic discovery.
+ * Two strategies:
+ *   1. mDNS — try http://sunnylink-<dongle_id>.local:8456/ping.
+ *      Works when the device runs its mDNS responder and the OS/browser
+ *      supports .local resolution (macOS, most Linux, some Windows).
+ *   2. Manual IP — user enters a device's LAN IP on the device details
+ *      page. Probed once then cached in localStorage.
+ *
+ * Both paths cache results in-memory + localStorage so subsequent
+ * visits reconnect instantly.
  */
 import { browser } from '$app/environment';
 
@@ -183,6 +189,44 @@ export async function restoreCachedDevices(): Promise<void> {
 		if (!ok) forgetLocalDevice(deviceId);
 		return ok;
 	});
+	await Promise.allSettled(probes);
+}
+
+/**
+ * Try mDNS for one device.  Resolves sunnylink-<deviceId>.local →
+ * pings to verify the correct dongle_id, then caches.
+ * Returns true if discovered.
+ */
+async function _probeMdns(deviceId: string): Promise<boolean> {
+	const mdnsUrl = `http://sunnylink-${deviceId}.local:${LOCAL_PORT}/ping`;
+	try {
+		const resp = await _xhrGet(mdnsUrl, 2000); // mDNS can take ~1s on Linux
+		if (!resp.ok) return false;
+		const data = (await resp.json()) as PingResponse;
+		if (data?.dongle_id !== deviceId) return false;
+
+		// Use the .local hostname as the base URL — subsequent XHRs will
+		// use the same resolved IP thanks to OS DNS caching.
+		const device: DiscoveredDevice = {
+			baseUrl: `http://sunnylink-${deviceId}.local:${LOCAL_PORT}`,
+			dongleId: deviceId,
+			lastSeen: Date.now(),
+		};
+		discoveredDevices.set(deviceId, device);
+		console.log(`[local-discovery] ✅ mDNS: ${deviceId.slice(0, 8)}... → sunnylink-${deviceId}.local`);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Try mDNS discovery for a list of device IDs.  Call on page load with
+ * all paired-device IDs.  Devices found via mDNS are added to the cache
+ * so subsequent traffic routes locally.
+ */
+export async function discoverByMdns(deviceIds: string[]): Promise<void> {
+	const probes = deviceIds.map((id) => _probeMdns(id).catch(() => false));
 	await Promise.allSettled(probes);
 }
 

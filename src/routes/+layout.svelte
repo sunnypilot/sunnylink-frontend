@@ -50,7 +50,7 @@
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
-	import { restoreCachedDevices, getLocalBaseUrl } from '$lib/api/local-discovery';
+	import { restoreCachedDevices, getLocalBaseUrl, discoverByMdns } from '$lib/api/local-discovery';
 	import { navHistory } from '$lib/stores/navHistory.svelte';
 	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
@@ -379,10 +379,13 @@
 						deviceState.aliases = { ...deviceState.aliases, [d.device_id]: d.alias };
 					}
 				}
-				// Restore cached local-device IPs (manually entered by the user).
-				// Runs in background — results update deviceState.localOnline reactively.
+				// Try local discovery: mDNS first, then cached manual IPs.
+				// Both run in background — results update deviceState.localOnline reactively.
 				const pairedIds = merged.map((d: any) => d.device_id).filter(Boolean);
-				restoreCachedDevices().then(() => {
+				Promise.all([
+					discoverByMdns(pairedIds),
+					restoreCachedDevices(),
+				]).then(() => {
 					for (const id of pairedIds) {
 						const local = !!getLocalBaseUrl(id);
 						deviceState.localOnline[id] = local;
