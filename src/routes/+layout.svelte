@@ -50,6 +50,7 @@
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import { statusPolling } from '$lib/stores/statusPolling.svelte';
 	import { pendingChanges } from '$lib/stores/pendingChanges.svelte';
+	import { restoreCachedDevices, getLocalBaseUrl } from '$lib/api/local-discovery';
 	import { navHistory } from '$lib/stores/navHistory.svelte';
 	import { scrollPositions } from '$lib/stores/scrollPositions.svelte';
 	import { whatsNewStore } from '$lib/stores/whatsNew.svelte';
@@ -378,6 +379,16 @@
 						deviceState.aliases = { ...deviceState.aliases, [d.device_id]: d.alias };
 					}
 				}
+				// Restore cached local-device IPs (manually entered by the user).
+				// Runs in background — results update deviceState.localOnline reactively.
+				const pairedIds = merged.map((d: any) => d.device_id).filter(Boolean);
+				restoreCachedDevices().then(() => {
+					for (const id of pairedIds) {
+						const local = !!getLocalBaseUrl(id);
+						deviceState.localOnline[id] = local;
+						if (local) console.log('[local-discovery] ✅ device', id.slice(0, 8) + '...', 'is LOCAL');
+					}
+				});
 				// Resolve selectedDeviceId. Only clear if the persisted selection is
 				// stale (device removed from the account); we no longer auto-fall-back
 				// to ids[0], because surprise-picking a random (often offline) device

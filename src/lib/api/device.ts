@@ -12,6 +12,11 @@ import { decodeParamValue } from '$lib/utils/device';
 import { decodeCompressedJson } from '$lib/utils/compression';
 import type { SettingsSchema } from '$lib/types/schema';
 import type { components } from '../../sunnylink/v1/schema_athena';
+import {
+	isDeviceLocal,
+	getLocalBaseUrl,
+	isDeviceLocalSync
+} from '$lib/api/local-discovery';
 
 type DeviceParam = components['schemas']['DeviceParam'];
 type ParamType = components['schemas']['ParamType'];
@@ -178,6 +183,45 @@ export interface AsyncFetchOptions {
 }
 
 /**
+ * Fetch settings synchronously from a locally-connected device.
+ * Uses the local server's /api/v1/settings/values endpoint which
+ * returns values directly (no WebSocket proxy, no async polling).
+ */
+async function fetchSettingsSyncLocal(
+	deviceId: string,
+	paramKeys: string[],
+	token: string,
+	signal?: AbortSignal
+): Promise<AsyncFetchResult> {
+	const baseUrl = getLocalBaseUrl(deviceId);
+	if (!baseUrl) return { items: null, error: 'error' };
+
+	const url = `${baseUrl}/api/v1/settings/values?paramKeys=${encodeURIComponent(paramKeys.join(','))}`;
+
+	try {
+		// Use customFetch to get XHR bypass for local HTTP URLs
+		const response = await customFetch(url, {
+			signal,
+			headers: { Accept: 'application/json' }
+		});
+
+		if (!response.ok) return { items: null, error: 'error' };
+
+		const data = await response.json();
+		if (data?.items && Array.isArray(data.items)) {
+			return { items: data.items };
+		}
+		return { items: null, error: 'error' };
+	} catch (e) {
+		if ((e as { name?: string })?.name === 'AbortError' || signal?.aborted) {
+			return { items: null, error: 'error' };
+		}
+		console.error(`Local fetch failed for ${deviceId}, falling back to cloud:`, e);
+		return { items: null, error: 'error' };
+	}
+}
+
+/**
  * Fetches settings using the async endpoint with polling.
  *
  * Flow:
@@ -194,13 +238,15 @@ export async function fetchSettingsAsync(
 ): Promise<AsyncFetchResult> {
 	const {
 		maxPollTimeMs = 30000,
-		// Most async values resolve fast device-side. 500ms was conservative;
-		// 200ms catches the common case in one fewer poll round-trip without
-		// noticeably increasing 404-not-ready noise.
 		initialPollDelayMs = 200,
 		maxPollDelayMs = 1000,
 		signal
 	} = options;
+
+	// If device is local, use synchronous values endpoint (no WebSocket proxy delay).
+	if (isDeviceLocalSync(deviceId) || getLocalBaseUrl(deviceId)) {
+		return fetchSettingsSyncLocal(deviceId, paramKeys, token, signal);
+	}
 
 	try {
 		// 1. Initiate async request
@@ -453,6 +499,14 @@ export async function checkDeviceStatus(
 
 	// Skip if we have a fresh status (< 60s old) and not forcing
 	if (!force && deviceState.isStatusFresh(deviceId)) return;
+
+	// Probe local network availability. Runs in parallel with cloud checks
+	// below to avoid adding latency. Fire-and-forget — localOnline updates
+	// reactively in the UI.
+	const localPromise = isDeviceLocal(deviceId).then((local) => {
+		deviceState.localOnline[deviceId] = local;
+		return local;
+	});
 
 	// Only show 'loading' when device status is genuinely unknown.
 	// Never regress from 'online' to 'loading' — a re-check of an already-online
