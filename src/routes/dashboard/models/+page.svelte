@@ -251,6 +251,13 @@
 			? (deviceState.offroadStatuses[deviceState.selectedDeviceId]?.isOffroad ?? false)
 			: false
 	);
+
+	let usbGpuActive =  $derived(
+		deviceState.selectedDeviceId
+			? (deviceState.deviceValues[deviceState.selectedDeviceId]?.['UsbGpuActive'] ?? false)
+			: false
+	);
+
 	let forceOffroadModalOpen = $state(false);
 	let resetModalOpen = $state(false);
 	let clearCacheModalOpen = $state(false);
@@ -476,6 +483,38 @@
 		}
 	});
 
+	async function fetchModelJsonFromUrl(url: string): Promise<ModelBundle[] | null> {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort('Model JSON fetch timeout'), 15_000);
+
+		try {
+			const response = await fetch(url, { signal: controller.signal });
+			if (!response.ok) {
+				console.error(
+					`Failed to fetch model JSON: ${response.status} ${response.statusText}`
+				);
+				return null;
+			}
+
+			const json = await response.json();
+			if (isModelManifest(json)) {
+				return json.bundles;
+			}
+
+			console.warn('Model JSON from URL is invalid');
+			return null;
+		} catch (e) {
+			if ((e as { name?: string })?.name === 'AbortError') {
+				console.error('Model JSON fetch timed out');
+			} else {
+				console.error('Error fetching model JSON from URL:', e);
+			}
+			return null;
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
 	async function fetchModelsForDevice(silent = false) {
 		isFetchingModels = true;
 		if (!silent) {
@@ -497,10 +536,11 @@
 			const models = await fetchSettingsAsync(
 				deviceState.selectedDeviceId,
 				[
-					'ModelManager_ModelsCache',
+					'ModelManager_ActiveJson',
 					'ModelManager_ActiveBundle',
 					'ModelManager_DownloadIndex',
 					'ModelManager_Favs',
+					'UsbGpuActive',
 					...MODEL_SETTINGS
 				],
 				token
@@ -525,7 +565,7 @@
 			}
 
 			if (models.items) {
-				const modelsCacheParam = models.items.find((i) => i.key === 'ModelManager_ModelsCache');
+				const activeJsonParam = models.items.find((i) => i.key === 'ModelManager_ActiveJson');
 				const activeBundleParam = models.items.find((i) => i.key === 'ModelManager_ActiveBundle');
 				const downloadIndexParam = models.items.find((i) => i.key === 'ModelManager_DownloadIndex');
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
@@ -549,10 +589,15 @@
 					}
 				}
 
-				if (modelsCacheParam) {
-					const decodedValue = decodeParamValue(modelsCacheParam);
-					if (isModelManifest(decodedValue)) {
-						modelList = decodedValue.bundles;
+				if (activeJsonParam) {
+					const decodedValue = decodeParamValue(activeJsonParam);
+					if (typeof decodedValue === 'string' && decodedValue.trim()) {
+						const bundles = await fetchModelJsonFromUrl(decodedValue.trim());
+						if (bundles) {
+							modelList = bundles;
+						}
+					} else {
+						console.warn('ModelManager_ActiveJson did not contain a URL string');
 					}
 				}
 
@@ -1003,6 +1048,13 @@
 										class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 										>{currentModel.short_name}</code
 									>
+									{#if usbGpuActive}
+										<span
+											class="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[0.6875rem] text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+										>
+											eGPU
+										</span>
+									{/if}
 								</div>
 							</div>
 						</div>
