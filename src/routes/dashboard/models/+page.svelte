@@ -252,7 +252,7 @@
 			: false
 	);
 
-	let usbGpuActive =  $derived(
+	let usbGpuActive = $derived(
 		deviceState.selectedDeviceId
 			? (deviceState.deviceValues[deviceState.selectedDeviceId]?.['UsbGpuActive'] ?? false)
 			: false
@@ -490,9 +490,7 @@
 		try {
 			const response = await fetch(url, { signal: controller.signal });
 			if (!response.ok) {
-				console.error(
-					`Failed to fetch model JSON: ${response.status} ${response.statusText}`
-				);
+				console.error(`Failed to fetch model JSON: ${response.status} ${response.statusText}`);
 				return null;
 			}
 
