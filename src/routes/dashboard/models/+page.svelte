@@ -254,7 +254,7 @@
 
 	let usbGpuActive = $derived(
 		deviceState.selectedDeviceId
-			? (deviceState.deviceValues[deviceState.selectedDeviceId]?.['UsbGpuActive'] ?? false)
+			? (deviceState.deviceTelemetry[deviceState.selectedDeviceId]?.chestnutPresent ?? false)
 			: false
 	);
 
@@ -563,7 +563,6 @@
 					'ModelManager_ActiveBundle',
 					'ModelManager_DownloadIndex',
 					'ModelManager_Favs',
-					'UsbGpuActive',
 					...MODEL_SETTINGS
 				],
 				token

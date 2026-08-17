@@ -32,6 +32,7 @@ export const deviceState = $state({
 			thermalStatus: string;
 			maxTempC: number;
 			deviceType: string;
+			chestnutPresent: boolean;
 		}
 	>,
 	/** In-memory list of paired devices from the API. Not persisted: live status
