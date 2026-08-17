@@ -628,7 +628,9 @@
 					}
 				} else {
 					// Fallback: pull the json directly from the device
-					console.warn('Fallback: ModelManager_ActiveJson not found, using ModelManager_ModelsCache');
+					console.warn(
+						'Fallback: ModelManager_ActiveJson not found, using ModelManager_ModelsCache'
+					);
 					const bundles = await fetchModelsCacheFromDevice(deviceId, token);
 					if (bundles) {
 						modelList = bundles;
