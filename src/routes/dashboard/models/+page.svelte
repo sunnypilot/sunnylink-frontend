@@ -513,6 +513,31 @@
 		}
 	}
 
+	async function fetchModelsCacheFromDevice(
+		deviceId: string,
+		token: string
+	): Promise<ModelBundle[] | null> {
+		const result = await fetchSettingsAsync(deviceId, ['ModelManager_ModelsCache'], token);
+		if (result.error || !result.items) {
+			console.warn(`ModelManager_ModelsCache fallback fetch failed: ${result.error ?? 'no items'}`);
+			return null;
+		}
+
+		const cacheParam = result.items.find((i) => i.key === 'ModelManager_ModelsCache');
+		if (!cacheParam) {
+			console.warn('ModelManager_ModelsCache not returned by device');
+			return null;
+		}
+
+		let decoded = decodeParamValue(cacheParam);
+		if (isModelManifest(decoded)) {
+			return decoded.bundles;
+		}
+
+		console.warn('ModelManager_ModelsCache is not a valid model manifest');
+		return null;
+	}
+
 	async function fetchModelsForDevice(silent = false) {
 		isFetchingModels = true;
 		if (!silent) {
@@ -596,6 +621,18 @@
 						}
 					} else {
 						console.warn('ModelManager_ActiveJson did not contain a URL string');
+						// Fallback: pull the json directly from the device
+						const bundles = await fetchModelsCacheFromDevice(deviceId, token);
+						if (bundles) {
+							modelList = bundles;
+						}
+					}
+				} else {
+					// Fallback: pull the json directly from the device
+					console.warn('Fallback: ModelManager_ActiveJson not found, using ModelManager_ModelsCache');
+					const bundles = await fetchModelsCacheFromDevice(deviceId, token);
+					if (bundles) {
+						modelList = bundles;
 					}
 				}
 
