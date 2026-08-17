@@ -28,6 +28,7 @@ export interface DriftEntry {
 function normalize(value: unknown): string {
 	if (value === undefined || value === null) return '';
 	if (typeof value === 'boolean') return value ? '1' : '0';
+	if (typeof value === 'number') return String(Number(value.toFixed(2)));
 	return String(value);
 }
 
