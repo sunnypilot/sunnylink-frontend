@@ -550,7 +550,8 @@ export async function checkDeviceStatus(
 				freeSpacePercent: (deviceMessage.freeSpacePercent as number) ?? 0,
 				thermalStatus: (deviceMessage.thermalStatus as string) ?? 'unknown',
 				maxTempC: (deviceMessage.maxTempC as number) ?? 0,
-				deviceType: (deviceMessage.deviceType as string) ?? 'unknown'
+				deviceType: (deviceMessage.deviceType as string) ?? 'unknown',
+				chestnutPresent: (deviceMessage.chestnutPresent as boolean) ?? false
 			};
 		} else if (forceOffroad !== null) {
 			deviceState.offroadStatuses[deviceId] = {
