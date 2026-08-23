@@ -472,15 +472,43 @@
 		}
 	});
 
-	// Poll for updates while downloading a model
+	// Poll for updates while downloading a model; re-fetch once when download completes
+	let wasDownloading = $state(false);
 	$effect(() => {
 		if (downloadingModelIndex !== undefined && deviceState.selectedDeviceId) {
+			wasDownloading = true;
 			const interval = setInterval(() => {
 				fetchModelsForDevice(true);
 			}, 5000);
 
 			return () => clearInterval(interval);
 		}
+		if (wasDownloading) {
+			wasDownloading = false;
+			fetchModelsForDevice(true);
+		}
+	});
+
+	// Re-fetch models + schema when USBGPU state changes (different model list, different default)
+	let prevChestnutDevice = $state<string | undefined>(undefined);
+	let prevChestnutValue = $state<boolean | undefined>(undefined);
+	$effect(() => {
+		const current = usbGpuActive;
+		const did = deviceId;
+		const isDeviceSwitch = did !== prevChestnutDevice;
+		if (
+			!isDeviceSwitch &&
+			prevChestnutValue !== undefined &&
+			current !== prevChestnutValue &&
+			did
+		) {
+			toast.info(
+				current ? 'eGPU detected — refreshing models' : 'eGPU disconnected — refreshing models'
+			);
+			fetchModelsForDevice(true);
+		}
+		prevChestnutDevice = did;
+		prevChestnutValue = current;
 	});
 
 	async function fetchModelJsonFromUrl(url: string): Promise<ModelBundle[] | null> {
@@ -517,15 +545,17 @@
 		deviceId: string,
 		token: string
 	): Promise<ModelBundle[] | null> {
-		const result = await fetchSettingsAsync(deviceId, ['ModelManager_ModelsCache'], token);
+		const chestnut = deviceState.deviceTelemetry[deviceId]?.chestnutPresent ?? false;
+		const cacheKey = chestnut ? 'ModelManager_ModelsCache_USBGPU' : 'ModelManager_ModelsCache';
+		const result = await fetchSettingsAsync(deviceId, [cacheKey], token);
 		if (result.error || !result.items) {
-			console.warn(`ModelManager_ModelsCache fallback fetch failed: ${result.error ?? 'no items'}`);
+			console.warn(`${cacheKey} fallback fetch failed: ${result.error ?? 'no items'}`);
 			return null;
 		}
 
-		const cacheParam = result.items.find((i) => i.key === 'ModelManager_ModelsCache');
+		const cacheParam = result.items.find((i) => i.key === cacheKey);
 		if (!cacheParam) {
-			console.warn('ModelManager_ModelsCache not returned by device');
+			console.warn(`${cacheKey} not returned by device`);
 			return null;
 		}
 
@@ -539,6 +569,11 @@
 	}
 
 	async function fetchModelsForDevice(silent = false) {
+		if (isFetchingModels) return;
+		const client = logtoClient;
+		if (!client) return;
+		const did = deviceState.selectedDeviceId;
+		if (!did) return;
 		isFetchingModels = true;
 		if (!silent) {
 			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
@@ -547,17 +582,12 @@
 			downloadingModelIndex = undefined;
 			loadingModels = true;
 		}
-		// isOffroad is derived, no need to reset local state
-
-		const client = logtoClient;
-		if (!client) return;
-		if (!deviceState.selectedDeviceId) return;
 		try {
 			const token = await client.getIdToken();
 			if (!token) return;
 
 			const models = await fetchSettingsAsync(
-				deviceState.selectedDeviceId,
+				did,
 				[
 					'ModelManager_ActiveJson',
 					'ModelManager_ActiveBundle',
@@ -593,11 +623,11 @@
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
 
 				// Populate deviceValues for the other settings too to ensure they are available
-				const deviceId = deviceState.selectedDeviceId!;
-				if (!deviceState.deviceValues[deviceId]) {
-					deviceState.deviceValues[deviceId] = {};
+				if (did !== deviceState.selectedDeviceId) return;
+				if (!deviceState.deviceValues[did]) {
+					deviceState.deviceValues[did] = {};
 				}
-				const values = deviceState.deviceValues[deviceId];
+				const values = deviceState.deviceValues[did];
 				models.items.forEach((item) => {
 					if (item.key && values) {
 						values[item.key] = decodeParamValue(item);
@@ -615,13 +645,15 @@
 					const decodedValue = decodeParamValue(activeJsonParam);
 					if (typeof decodedValue === 'string' && decodedValue.trim()) {
 						const bundles = await fetchModelJsonFromUrl(decodedValue.trim());
+						if (did !== deviceState.selectedDeviceId) return;
 						if (bundles) {
 							modelList = bundles;
 						}
 					} else {
 						console.warn('ModelManager_ActiveJson did not contain a URL string');
 						// Fallback: pull the json directly from the device
-						const bundles = await fetchModelsCacheFromDevice(deviceId, token);
+						const bundles = await fetchModelsCacheFromDevice(did, token);
+						if (did !== deviceState.selectedDeviceId) return;
 						if (bundles) {
 							modelList = bundles;
 						}
@@ -631,7 +663,8 @@
 					console.warn(
 						'Fallback: ModelManager_ActiveJson not found, using ModelManager_ModelsCache'
 					);
-					const bundles = await fetchModelsCacheFromDevice(deviceId, token);
+					const bundles = await fetchModelsCacheFromDevice(did, token);
+					if (did !== deviceState.selectedDeviceId) return;
 					if (bundles) {
 						modelList = bundles;
 					}
@@ -673,6 +706,12 @@
 					const idx = parseInt(String(val), 10);
 					if (!isNaN(idx) && idx > 0) {
 						downloadingModelIndex = idx;
+					} else if (downloadingModelIndex === 0) {
+						// device returns 0 for missing INT params — clear once ActiveBundle matches
+						const activeModel = modelList?.find((m) => m.short_name === currentModelShortName);
+						if (activeModel?.index === 0) {
+							downloadingModelIndex = undefined;
+						}
 					} else {
 						downloadingModelIndex = undefined;
 					}
@@ -681,8 +720,8 @@
 				}
 			}
 			// Persist to cache for SWR on next visit
-			if (modelList && deviceState.selectedDeviceId) {
-				saveModelsCache(deviceState.selectedDeviceId, modelList, currentModelShortName, favorites);
+			if (modelList && did === deviceState.selectedDeviceId) {
+				saveModelsCache(did, modelList, currentModelShortName, favorites);
 			}
 		} catch (e) {
 			console.error('Error fetching models:', e);
@@ -703,23 +742,27 @@
 
 	async function refreshModels() {
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		const refreshDid = deviceState.selectedDeviceId;
 
 		try {
 			loadingModels = true;
 			const token = await logtoClient.getIdToken();
+			if (refreshDid !== deviceState.selectedDeviceId) return;
+			const chestnut = deviceState.deviceTelemetry[refreshDid]?.chestnutPresent ?? false;
+			const syncKey = chestnut ? 'ModelManager_LastSyncTime_USBGPU' : 'ModelManager_LastSyncTime';
 
 			// 1. Clear the last update time to force a refresh
 			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
-						deviceId: deviceState.selectedDeviceId
+						deviceId: refreshDid
 					}
 				},
 				body: [
 					{
-						key: 'ModelManager_LastSyncTime',
+						key: syncKey,
 						value: encodeParamValue({
-							key: 'ModelManager_LastSyncTime',
+							key: syncKey,
 							value: '0',
 							type: 'String'
 						})
@@ -747,6 +790,11 @@
 	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
+		if (bundle.short_name === currentModelShortName) {
+			toast.info('Model already active');
+			selectedModelShortName = undefined;
+			return;
+		}
 
 		try {
 			sendingModel = true;
@@ -823,8 +871,8 @@
 			selectedModelShortName = undefined;
 			sendingModel = false;
 
-			// Refresh status silently
-			fetchModelsForDevice(true);
+			// Device processes DownloadIndex at ~1Hz; poll after a short delay
+			setTimeout(() => fetchModelsForDevice(true), 1500);
 		} catch (e: unknown) {
 			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);
@@ -1413,7 +1461,9 @@
 																<button
 																	class="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-40"
 																	onclick={() => sendModelToDevice()}
-																	disabled={sendingModel || !isOffroad}
+																	disabled={sendingModel ||
+																		!isOffroad ||
+																		downloadingModelIndex !== undefined}
 																>
 																	{#if sendingModel}
 																		<span class="loading mr-1 loading-xs loading-spinner"></span>

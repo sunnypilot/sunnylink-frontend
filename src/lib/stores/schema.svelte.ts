@@ -117,7 +117,8 @@ class SchemaStore {
 					this.schemas[deviceId] = {
 						...existingSchema,
 						capabilities: parsed.capabilities,
-						capability_labels: parsed.capability_labels
+						capability_labels: parsed.capability_labels,
+						default_model: parsed.default_model
 					};
 				}
 
@@ -151,7 +152,12 @@ class SchemaStore {
 				// Update capabilities in the existing schema without replacing the whole schema
 				const existing = this.schemas[deviceId];
 				if (existing) {
-					this.schemas[deviceId] = { ...existing, capabilities: parsed.capabilities };
+					this.schemas[deviceId] = {
+						...existing,
+						capabilities: parsed.capabilities,
+						capability_labels: parsed.capability_labels,
+						default_model: parsed.default_model
+					};
 				} else {
 					this.schemas[deviceId] = parsed;
 				}
