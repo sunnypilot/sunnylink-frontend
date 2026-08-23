@@ -704,7 +704,7 @@
 				if (downloadIndexParam) {
 					const val = decodeParamValue(downloadIndexParam);
 					const idx = parseInt(String(val), 10);
-					if (!isNaN(idx) && idx > 0) {
+					if (!isNaN(idx) && idx >= 0) {
 						downloadingModelIndex = idx;
 					} else {
 						downloadingModelIndex = undefined;
