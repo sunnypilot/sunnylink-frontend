@@ -778,6 +778,11 @@
 	async function pushModelToDevice(bundle: ModelBundle) {
 		if (!logtoClient) return;
 		if (!deviceState.selectedDeviceId) return;
+		if (bundle.short_name === currentModelShortName) {
+			toast.info('Model already active');
+			selectedModelShortName = undefined;
+			return;
+		}
 
 		try {
 			sendingModel = true;
