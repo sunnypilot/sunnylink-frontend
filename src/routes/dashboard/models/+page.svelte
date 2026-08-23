@@ -704,8 +704,14 @@
 				if (downloadIndexParam) {
 					const val = decodeParamValue(downloadIndexParam);
 					const idx = parseInt(String(val), 10);
-					if (!isNaN(idx) && idx >= 0) {
+					if (!isNaN(idx) && idx > 0) {
 						downloadingModelIndex = idx;
+					} else if (downloadingModelIndex === 0) {
+						// device returns 0 for missing INT params — clear once ActiveBundle matches
+						const activeModel = modelList?.find((m) => m.short_name === currentModelShortName);
+						if (activeModel?.index === 0) {
+							downloadingModelIndex = undefined;
+						}
 					} else {
 						downloadingModelIndex = undefined;
 					}
