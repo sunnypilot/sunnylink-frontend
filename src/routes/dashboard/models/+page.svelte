@@ -499,7 +499,6 @@
 			toast.info(
 				current ? 'eGPU detected — refreshing models' : 'eGPU disconnected — refreshing models'
 			);
-			deviceState.invalidateAll(did);
 			fetchModelsForDevice(true);
 		}
 		prevChestnutDevice = did;
