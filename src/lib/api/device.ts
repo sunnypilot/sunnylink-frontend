@@ -618,7 +618,8 @@ export async function checkDeviceStatus(
 				schemaState.schemas[deviceId] = {
 					...existing,
 					capabilities: compressedSettings.capabilities,
-					capability_labels: compressedSettings.capability_labels
+					capability_labels: compressedSettings.capability_labels,
+					default_model: compressedSettings.default_model
 				};
 			}
 			// Got new metadata schema — device is on a sunnylink-2.0-ready sunnypilot

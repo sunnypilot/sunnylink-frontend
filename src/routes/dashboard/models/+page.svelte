@@ -483,6 +483,29 @@
 		}
 	});
 
+	// Re-fetch models + schema when USBGPU state changes (different model list, different default)
+	let prevChestnutDevice = $state<string | undefined>(undefined);
+	let prevChestnutValue = $state<boolean | undefined>(undefined);
+	$effect(() => {
+		const current = usbGpuActive;
+		const did = deviceId;
+		const isDeviceSwitch = did !== prevChestnutDevice;
+		if (
+			!isDeviceSwitch &&
+			prevChestnutValue !== undefined &&
+			current !== prevChestnutValue &&
+			did
+		) {
+			toast.info(
+				current ? 'eGPU detected — refreshing models' : 'eGPU disconnected — refreshing models'
+			);
+			deviceState.invalidateAll(did);
+			fetchModelsForDevice(true);
+		}
+		prevChestnutDevice = did;
+		prevChestnutValue = current;
+	});
+
 	async function fetchModelJsonFromUrl(url: string): Promise<ModelBundle[] | null> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort('Model JSON fetch timeout'), 15_000);
@@ -517,15 +540,17 @@
 		deviceId: string,
 		token: string
 	): Promise<ModelBundle[] | null> {
-		const result = await fetchSettingsAsync(deviceId, ['ModelManager_ModelsCache'], token);
+		const chestnut = deviceState.deviceTelemetry[deviceId]?.chestnutPresent ?? false;
+		const cacheKey = chestnut ? 'ModelManager_ModelsCache_USBGPU' : 'ModelManager_ModelsCache';
+		const result = await fetchSettingsAsync(deviceId, [cacheKey], token);
 		if (result.error || !result.items) {
-			console.warn(`ModelManager_ModelsCache fallback fetch failed: ${result.error ?? 'no items'}`);
+			console.warn(`${cacheKey} fallback fetch failed: ${result.error ?? 'no items'}`);
 			return null;
 		}
 
-		const cacheParam = result.items.find((i) => i.key === 'ModelManager_ModelsCache');
+		const cacheParam = result.items.find((i) => i.key === cacheKey);
 		if (!cacheParam) {
-			console.warn('ModelManager_ModelsCache not returned by device');
+			console.warn(`${cacheKey} not returned by device`);
 			return null;
 		}
 
@@ -539,6 +564,11 @@
 	}
 
 	async function fetchModelsForDevice(silent = false) {
+		if (isFetchingModels) return;
+		const client = logtoClient;
+		if (!client) return;
+		const did = deviceState.selectedDeviceId;
+		if (!did) return;
 		isFetchingModels = true;
 		if (!silent) {
 			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
@@ -547,17 +577,12 @@
 			downloadingModelIndex = undefined;
 			loadingModels = true;
 		}
-		// isOffroad is derived, no need to reset local state
-
-		const client = logtoClient;
-		if (!client) return;
-		if (!deviceState.selectedDeviceId) return;
 		try {
 			const token = await client.getIdToken();
 			if (!token) return;
 
 			const models = await fetchSettingsAsync(
-				deviceState.selectedDeviceId,
+				did,
 				[
 					'ModelManager_ActiveJson',
 					'ModelManager_ActiveBundle',
@@ -593,11 +618,11 @@
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
 
 				// Populate deviceValues for the other settings too to ensure they are available
-				const deviceId = deviceState.selectedDeviceId!;
-				if (!deviceState.deviceValues[deviceId]) {
-					deviceState.deviceValues[deviceId] = {};
+				if (did !== deviceState.selectedDeviceId) return;
+				if (!deviceState.deviceValues[did]) {
+					deviceState.deviceValues[did] = {};
 				}
-				const values = deviceState.deviceValues[deviceId];
+				const values = deviceState.deviceValues[did];
 				models.items.forEach((item) => {
 					if (item.key && values) {
 						values[item.key] = decodeParamValue(item);
@@ -615,13 +640,15 @@
 					const decodedValue = decodeParamValue(activeJsonParam);
 					if (typeof decodedValue === 'string' && decodedValue.trim()) {
 						const bundles = await fetchModelJsonFromUrl(decodedValue.trim());
+						if (did !== deviceState.selectedDeviceId) return;
 						if (bundles) {
 							modelList = bundles;
 						}
 					} else {
 						console.warn('ModelManager_ActiveJson did not contain a URL string');
 						// Fallback: pull the json directly from the device
-						const bundles = await fetchModelsCacheFromDevice(deviceId, token);
+						const bundles = await fetchModelsCacheFromDevice(did, token);
+						if (did !== deviceState.selectedDeviceId) return;
 						if (bundles) {
 							modelList = bundles;
 						}
@@ -631,7 +658,8 @@
 					console.warn(
 						'Fallback: ModelManager_ActiveJson not found, using ModelManager_ModelsCache'
 					);
-					const bundles = await fetchModelsCacheFromDevice(deviceId, token);
+					const bundles = await fetchModelsCacheFromDevice(did, token);
+					if (did !== deviceState.selectedDeviceId) return;
 					if (bundles) {
 						modelList = bundles;
 					}
@@ -681,8 +709,8 @@
 				}
 			}
 			// Persist to cache for SWR on next visit
-			if (modelList && deviceState.selectedDeviceId) {
-				saveModelsCache(deviceState.selectedDeviceId, modelList, currentModelShortName, favorites);
+			if (modelList && did === deviceState.selectedDeviceId) {
+				saveModelsCache(did, modelList, currentModelShortName, favorites);
 			}
 		} catch (e) {
 			console.error('Error fetching models:', e);
@@ -703,23 +731,27 @@
 
 	async function refreshModels() {
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		const refreshDid = deviceState.selectedDeviceId;
 
 		try {
 			loadingModels = true;
 			const token = await logtoClient.getIdToken();
+			if (refreshDid !== deviceState.selectedDeviceId) return;
+			const chestnut = deviceState.deviceTelemetry[refreshDid]?.chestnutPresent ?? false;
+			const syncKey = chestnut ? 'ModelManager_LastSyncTime_USBGPU' : 'ModelManager_LastSyncTime';
 
 			// 1. Clear the last update time to force a refresh
 			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
-						deviceId: deviceState.selectedDeviceId
+						deviceId: refreshDid
 					}
 				},
 				body: [
 					{
-						key: 'ModelManager_LastSyncTime',
+						key: syncKey,
 						value: encodeParamValue({
-							key: 'ModelManager_LastSyncTime',
+							key: syncKey,
 							value: '0',
 							type: 'String'
 						})
