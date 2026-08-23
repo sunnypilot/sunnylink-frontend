@@ -472,14 +472,20 @@
 		}
 	});
 
-	// Poll for updates while downloading a model
+	// Poll for updates while downloading a model; re-fetch once when download completes
+	let wasDownloading = $state(false);
 	$effect(() => {
 		if (downloadingModelIndex !== undefined && deviceState.selectedDeviceId) {
+			wasDownloading = true;
 			const interval = setInterval(() => {
 				fetchModelsForDevice(true);
 			}, 5000);
 
 			return () => clearInterval(interval);
+		}
+		if (wasDownloading) {
+			wasDownloading = false;
+			fetchModelsForDevice(true);
 		}
 	});
 
@@ -859,8 +865,8 @@
 			selectedModelShortName = undefined;
 			sendingModel = false;
 
-			// Refresh status silently
-			fetchModelsForDevice(true);
+			// Device processes DownloadIndex at ~1Hz; poll after a short delay
+			setTimeout(() => fetchModelsForDevice(true), 1500);
 		} catch (e: unknown) {
 			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);
@@ -1449,7 +1455,9 @@
 																<button
 																	class="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-40"
 																	onclick={() => sendModelToDevice()}
-																	disabled={sendingModel || !isOffroad}
+																	disabled={sendingModel ||
+																		!isOffroad ||
+																		downloadingModelIndex !== undefined}
 																>
 																	{#if sendingModel}
 																		<span class="loading mr-1 loading-xs loading-spinner"></span>
