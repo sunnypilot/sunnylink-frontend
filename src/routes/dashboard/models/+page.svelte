@@ -44,21 +44,16 @@
 	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import { toast } from 'svelte-sonner';
 
-	let DEFAULT_MODEL = $derived.by<ModelBundle>(() => {
-		const did = deviceState.selectedDeviceId;
-		const schema = did ? schemaState.schemas[did] : undefined;
-		const chestnut = did ? (deviceState.deviceTelemetry[did]?.chestnutPresent ?? false) : false;
-		const name = chestnut && schema?.default_big_model
-			? schema.default_big_model
-			: schema?.default_model || 'Default Model';
-		return {
-			short_name: 'default',
-			display_name: name,
-			is_20hz: false,
-			ref: 'default',
-			environment: 'N/A',
-			models: []
-		};
+	let DEFAULT_MODEL = $derived<ModelBundle>({
+		short_name: 'default',
+		display_name:
+			(deviceState.selectedDeviceId &&
+				schemaState.schemas[deviceState.selectedDeviceId]?.default_model) ||
+			'Default Model',
+		is_20hz: false,
+		ref: 'default',
+		environment: 'N/A',
+		models: []
 	});
 
 	const MODELS_CACHE_PREFIX = 'sunnylink_models_';
