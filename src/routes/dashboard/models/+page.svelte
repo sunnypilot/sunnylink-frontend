@@ -48,9 +48,10 @@
 		const did = deviceState.selectedDeviceId;
 		const schema = did ? schemaState.schemas[did] : undefined;
 		const chestnut = did ? (deviceState.deviceTelemetry[did]?.chestnutPresent ?? false) : false;
-		const name = chestnut && schema?.default_big_model
-			? schema.default_big_model
-			: schema?.default_model || 'Default Model';
+		const name =
+			chestnut && schema?.default_big_model
+				? schema.default_big_model
+				: schema?.default_model || 'Default Model';
 		return {
 			short_name: 'default',
 			display_name: name,
