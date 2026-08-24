@@ -258,12 +258,6 @@
 			: false
 	);
 
-	let usbGpuRunning = $derived(
-		deviceState.selectedDeviceId
-			? (schemaState.schemas[deviceState.selectedDeviceId]?.usbgpu_active ?? false)
-			: false
-	);
-
 	let forceOffroadModalOpen = $state(false);
 	let resetModalOpen = $state(false);
 	let clearCacheModalOpen = $state(false);
@@ -1138,7 +1132,7 @@
 										class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 										>{currentModel.short_name}</code
 									>
-									{#if usbGpuRunning}
+									{#if usbGpuActive}
 										<span
 											class="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[0.6875rem] text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
 										>
