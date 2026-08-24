@@ -163,5 +163,6 @@ export interface SettingsSchema {
 	capability_labels?: Record<string, string>;
 	capabilities?: Capabilities;
 	default_model?: string;
+	default_big_model?: string;
 	usbgpu_active?: boolean;
 }
