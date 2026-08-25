@@ -597,6 +597,8 @@
 				[
 					'ModelManager_ActiveJson',
 					'ModelManager_ActiveBundle',
+					'ModelManager_PrevBundle',
+					'ModelManager_PrevBundle_USBGPU',
 					'ModelManager_DownloadIndex',
 					'ModelManager_Favs',
 					...MODEL_SETTINGS
