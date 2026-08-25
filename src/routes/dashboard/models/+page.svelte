@@ -977,9 +977,9 @@
 
 	const FOLDER_EXPLANATIONS: Record<string, string> = {
 		release:
-			'Release models are the models that made release for OpenPilot so ideally they should be what a user wants for a "stable" Experience',
+			'Release models are the models that made release for openpilot so ideally they should be what a user wants for a "stable" Experience',
 		master:
-			'Master models are the models that made it to OpenPilot master which every new model there should ideally be better than the prior model there.',
+			'master models are the models that made it to openpilot master which every new model there should ideally be better than the prior model there.',
 		pre_world:
 			'These are the experimental MLSIM models that may have not made it to commas master  branch, and are considered experimental by nature',
 		world:
