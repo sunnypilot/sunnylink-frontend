@@ -5,7 +5,8 @@
 	import { deviceState } from '$lib/stores/device.svelte';
 	import { setDeviceParams, checkDeviceStatus, fetchSettingsAsync } from '$lib/api/device';
 	import { logtoClient, authState } from '$lib/logto/auth.svelte';
-	import { decodeParamValue } from '$lib/utils/device';
+	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
+	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import type { OSMRegion } from '$lib/types/osm';
 	import ComboBox from '$lib/components/ComboBox.svelte';
 	import DashboardSkeleton from '../DashboardSkeleton.svelte';
@@ -66,6 +67,8 @@
 	let loadingRegions = $state(false);
 	let localDownloadingOverride = $state(false);
 	let loadingOsmParams = $state(false);
+	let clearingCache = $state(false);
+	let clearCacheModalOpen = $state(false);
 	let error = $state<string | null>(null);
 
 	// Sync status indicator (consistent with settings pages)
@@ -414,6 +417,39 @@
 		}
 	}
 
+	async function handleDeleteOfflineMaps() {
+		if (!deviceState.selectedDeviceId || !logtoClient) return;
+		const token = await logtoClient.getIdToken();
+		if (!token) return;
+
+		clearingCache = true;
+
+		try {
+			await setDeviceParams(
+				deviceState.selectedDeviceId,
+				[
+					{
+						key: 'Mapd_ClearCache',
+						value: encodeParamValue({
+							key: 'Mapd_ClearCache',
+							value: '1',
+							type: 'Bool'
+						}),
+						is_compressed: false
+					}
+				],
+				token
+			);
+			toast.success('Offline maps deletion request sent to device');
+		} catch (e) {
+			console.error('Failed to delete offline maps', e);
+			toast.error('Failed to delete offline maps');
+		} finally {
+			clearingCache = false;
+			clearCacheModalOpen = false;
+		}
+	}
+
 	function formatTimeAgo(timestamp: string | null) {
 		if (!timestamp) return 'Never';
 		try {
@@ -582,6 +618,19 @@
 						</p>
 					</div>
 				{/if}
+				{#if true}
+					<div
+						class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5"
+					>
+						<button
+							class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
+							onclick={() => (clearCacheModalOpen = true)}
+							disabled={clearingCache}
+						>
+							Delete Offline Maps
+						</button>
+					</div>
+				{/if}
 			</div>
 
 			<!-- ── Download Section: 48px from previous card ──────── -->
@@ -645,3 +694,13 @@
 		</div>
 	{/if}
 </SettingsPageShell>
+
+<ConfirmationModal
+	bind:open={clearCacheModalOpen}
+	title="Delete Offline Maps"
+	message="Are you sure you want to delete all offline maps on this device? This will clear the downloaded map data."
+	confirmText="Delete Offline Maps"
+	variant="danger"
+	isProcessing={clearingCache}
+	onConfirm={handleDeleteOfflineMaps}
+/>
