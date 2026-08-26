@@ -757,7 +757,6 @@
 				} else {
 					currentModelShortName = undefined;
 				}
-
 			}
 			// Persist to cache for SWR on next visit
 			if (modelList && did === deviceState.selectedDeviceId) {
