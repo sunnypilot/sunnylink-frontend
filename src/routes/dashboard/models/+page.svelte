@@ -3,8 +3,18 @@
 	import { decodeParamValue, encodeParamValue } from '$lib/utils/device';
 	import { authState, logtoClient } from '$lib/logto/auth.svelte';
 	import { Athenav0Client } from '$lib/api/client';
-	import { checkDeviceStatus, fetchSettingsAsync, fetchDeviceMessage } from '$lib/api/device';
-	import { isModelManifest, type ModelBundle } from '$lib/types/models';
+	import {
+		checkDeviceStatus,
+		fetchSettingsAsync,
+		fetchDeviceMessage,
+		fetchModelManagerSP
+	} from '$lib/api/device';
+	import {
+		isModelManifest,
+		computeDownloadProgress,
+		type ModelBundle,
+		type ModelManagerSPMessage
+	} from '$lib/types/models';
 	import {
 		SETTINGS_DEFINITIONS,
 		MODEL_SETTINGS,
@@ -197,7 +207,8 @@
 		}
 	});
 	let pushModalOpen = $state(false);
-	let downloadingModelIndex = $state<number | undefined>(undefined);
+
+	let modelManagerMsg = $state<ModelManagerSPMessage | null>(null);
 
 	let lagdToggleValue = $derived(
 		deviceState.selectedDeviceId
@@ -234,9 +245,17 @@
 	let laneTurnValueParam = $derived(getModelSetting('LaneTurnValue'));
 	let nnlcParam = $derived(getModelSetting('NeuralNetworkLateralControl'));
 
+	let activeDownload = $derived.by<{ ref: string; percent: number } | undefined>(() => {
+		const progress = computeDownloadProgress(modelManagerMsg?.selectedBundle?.models);
+		if (progress?.anyDownloading && modelManagerMsg?.selectedBundle?.ref) {
+			return { ref: modelManagerMsg.selectedBundle.ref, percent: progress.percent };
+		}
+		return undefined;
+	});
+
 	let currentModel = $derived.by(() => {
-		if (downloadingModelIndex !== undefined && modelList) {
-			const downloadingModel = modelList.find((m) => m.index === downloadingModelIndex);
+		if (activeDownload && modelList) {
+			const downloadingModel = modelList.find((m) => m.ref === activeDownload.ref);
 			if (downloadingModel) return downloadingModel;
 		}
 		if (!modelList) return undefined;
@@ -481,7 +500,7 @@
 	// Poll for updates while downloading a model; re-fetch once when download completes
 	let wasDownloading = $state(false);
 	$effect(() => {
-		if (downloadingModelIndex !== undefined && deviceState.selectedDeviceId) {
+		if (activeDownload !== undefined && deviceState.selectedDeviceId) {
 			wasDownloading = true;
 			const interval = setInterval(() => {
 				fetchModelsForDevice(true);
@@ -493,6 +512,39 @@
 			wasDownloading = false;
 			fetchModelsForDevice(true);
 		}
+	});
+
+	$effect(() => {
+		const did = deviceState.selectedDeviceId;
+		if (!did || !logtoClient) return;
+
+		modelManagerMsg = null;
+		if (deviceState.onlineStatuses[did] !== 'online') return;
+
+		let cancelled = false;
+		let inflight = false;
+		const tick = async () => {
+			if (inflight || cancelled) return;
+			inflight = true;
+			try {
+				const token = await logtoClient!.getIdToken();
+				if (!token || cancelled || did !== deviceState.selectedDeviceId) return;
+				const msg = await fetchModelManagerSP(did, token);
+				if (cancelled || did !== deviceState.selectedDeviceId || !msg) return;
+				modelManagerMsg = msg as ModelManagerSPMessage;
+			} catch (e) {
+				console.error('Failed to fetch modelManagerSP:', e);
+			} finally {
+				inflight = false;
+			}
+		};
+
+		tick();
+		const interval = setInterval(tick, 2000);
+		return () => {
+			cancelled = true;
+			clearInterval(interval);
+		};
 	});
 
 	// Re-fetch models + schema when USBGPU state changes (different model list, different default)
@@ -585,7 +637,6 @@
 			// Don't clear modelList here to avoid UI flickering ("keep-alive" pattern)
 			currentModelShortName = undefined;
 			selectedModelShortName = undefined;
-			downloadingModelIndex = undefined;
 			loadingModels = true;
 		}
 		try {
@@ -599,7 +650,6 @@
 					'ModelManager_ActiveBundle',
 					'ModelManager_PrevBundle',
 					'ModelManager_PrevBundle_USBGPU',
-					'ModelManager_DownloadIndex',
 					'ModelManager_Favs',
 					...MODEL_SETTINGS
 				],
@@ -627,7 +677,6 @@
 			if (models.items) {
 				const activeJsonParam = models.items.find((i) => i.key === 'ModelManager_ActiveJson');
 				const activeBundleParam = models.items.find((i) => i.key === 'ModelManager_ActiveBundle');
-				const downloadIndexParam = models.items.find((i) => i.key === 'ModelManager_DownloadIndex');
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
 
 				// Populate deviceValues for the other settings too to ensure they are available
@@ -707,24 +756,6 @@
 					}
 				} else {
 					currentModelShortName = undefined;
-				}
-
-				if (downloadIndexParam) {
-					const val = decodeParamValue(downloadIndexParam);
-					const idx = parseInt(String(val), 10);
-					if (!isNaN(idx) && idx > 0) {
-						downloadingModelIndex = idx;
-					} else if (downloadingModelIndex === 0) {
-						// device returns 0 for missing INT params — clear once ActiveBundle matches
-						const activeModel = modelList?.find((m) => m.short_name === currentModelShortName);
-						if (activeModel?.index === 0) {
-							downloadingModelIndex = undefined;
-						}
-					} else {
-						downloadingModelIndex = undefined;
-					}
-				} else {
-					downloadingModelIndex = undefined;
 				}
 			}
 			// Persist to cache for SWR on next visit
@@ -871,9 +902,6 @@
 			// On success, update the current model and clear selection
 			if (bundle.short_name === 'default') {
 				currentModelShortName = undefined;
-				downloadingModelIndex = undefined;
-			} else if (bundle.index !== undefined) {
-				downloadingModelIndex = bundle.index;
 			}
 
 			selectedModelShortName = undefined;
@@ -1155,10 +1183,10 @@
 								<span class="loading loading-xs loading-spinner"></span>
 								Sending...
 							</div>
-						{:else if downloadingModelIndex !== undefined && currentModel.index === downloadingModelIndex}
+						{:else if activeDownload && currentModel.ref === activeDownload.ref}
 							<div class="flex shrink-0 items-center gap-2 text-xs text-[var(--sl-text-2)]">
 								<span class="loading loading-xs loading-spinner"></span>
-								Downloading
+								Downloading {activeDownload.percent}%
 							</div>
 						{:else}
 							<div class="flex shrink-0 items-center gap-1.5 text-xs text-[var(--sl-green)]">
@@ -1475,7 +1503,7 @@
 																	onclick={() => sendModelToDevice()}
 																	disabled={sendingModel ||
 																		!isOffroad ||
-																		downloadingModelIndex !== undefined}
+																		activeDownload !== undefined}
 																>
 																	{#if sendingModel}
 																		<span class="loading mr-1 loading-xs loading-spinner"></span>

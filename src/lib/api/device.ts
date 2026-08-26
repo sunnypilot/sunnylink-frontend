@@ -355,6 +355,13 @@ export async function fetchDeviceMessage(
 	return fetchCerealService(deviceId, token, 'deviceState');
 }
 
+export async function fetchModelManagerSP(
+	deviceId: string,
+	token: string
+): Promise<Record<string, unknown> | null> {
+	return fetchCerealService(deviceId, token, 'modelManagerSP');
+}
+
 async function fetchCerealService(
 	deviceId: string,
 	token: string,
