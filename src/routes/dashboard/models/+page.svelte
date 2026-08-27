@@ -80,6 +80,7 @@
 		usbgpuModelList?: ModelBundle[];
 		currentSmallModelShortName?: string;
 		currentBigModelShortName?: string;
+		dualModel?: boolean;
 		favorites: string[];
 		timestamp: number;
 	}
@@ -106,7 +107,8 @@
 		usbgpuList: ModelBundle[] | undefined,
 		smallShortName: string | undefined,
 		bigShortName: string | undefined,
-		favs: Set<string>
+		favs: Set<string>,
+		dualModel: boolean | undefined
 	): void {
 		if (typeof localStorage === 'undefined') return;
 		try {
@@ -115,6 +117,7 @@
 				usbgpuModelList: usbgpuList,
 				currentSmallModelShortName: smallShortName,
 				currentBigModelShortName: bigShortName,
+				dualModel,
 				favorites: Array.from(favs),
 				timestamp: Date.now()
 			};
@@ -156,6 +159,7 @@
 	let currentBigModelShortName = $state<string | undefined>(undefined);
 	let selectedModelRef = $state<string | undefined>(undefined);
 	let activeModelTab = $state<'qcom' | 'usbgpu'>('qcom');
+	let dualModelSupport = $state<boolean | undefined>(undefined);
 	let searchQuery = $state('');
 	let lastSearchQuery = '';
 
@@ -196,11 +200,22 @@
 		if (!did || qcomModelList || usbgpuModelList) return;
 		const cached = loadModelsCache(did);
 		if (cached) {
-			qcomModelList = cached.qcomModelList;
+			// Migrate caches written before dual-model support (single catalog)
+			const legacyCached = cached as ModelsCacheEntry & {
+				modelList?: ModelBundle[];
+				currentModelShortName?: string;
+			};
+			const migratedFromLegacy = !!legacyCached.modelList && !cached.qcomModelList;
+			qcomModelList = cached.qcomModelList ?? legacyCached.modelList;
 			usbgpuModelList = cached.usbgpuModelList;
-			currentSmallModelShortName = cached.currentSmallModelShortName;
+			currentSmallModelShortName =
+				cached.currentSmallModelShortName ?? legacyCached.currentModelShortName;
 			currentBigModelShortName = cached.currentBigModelShortName;
 			favorites = new Set(cached.favorites);
+			dualModelSupport = cached.dualModel ?? (migratedFromLegacy ? false : undefined);
+			if (migratedFromLegacy && activeModelTab !== 'qcom') {
+				activeModelTab = 'qcom';
+			}
 		}
 	}
 
@@ -296,16 +311,20 @@
 			[
 				{
 					type: 'qcom' as const,
-					label: 'Small Model',
+					label: dualModelSupport === false ? 'Active Model' : 'Small Model',
 					model: currentSmallModel,
 					activeShortName: currentSmallModelShortName
 				},
-				{
-					type: 'usbgpu' as const,
-					label: 'Big Model',
-					model: currentBigModel,
-					activeShortName: currentBigModelShortName
-				}
+				...(dualModelSupport === false
+					? []
+					: [
+							{
+								type: 'usbgpu' as const,
+								label: 'Big Model',
+								model: currentBigModel,
+								activeShortName: currentBigModelShortName
+							}
+						])
 			] as ActiveModelCard[]
 		).filter((c): c is ActiveModelCard => c.model !== undefined)
 	);
@@ -638,6 +657,37 @@
 		return undefined;
 	}
 
+	async function fetchModelsCacheFromDevice(
+		deviceId: string,
+		token: string,
+		cacheKey?: string
+	): Promise<ModelBundle[] | null> {
+		// Legacy devices only keep one cache key; pick the USB GPU variant when an
+		// eGPU is present (matches the pre-dual-model behavior).
+		const chestnut = deviceState.deviceTelemetry[deviceId]?.chestnutPresent ?? false;
+		const key =
+			cacheKey ?? (chestnut ? 'ModelManager_ModelsCache_USBGPU' : 'ModelManager_ModelsCache');
+		const result = await fetchSettingsAsync(deviceId, [key], token);
+		if (result.error || !result.items) {
+			console.warn(`${key} fallback fetch failed: ${result.error ?? 'no items'}`);
+			return null;
+		}
+
+		const cacheParam = result.items.find((i) => i.key === key);
+		if (!cacheParam) {
+			console.warn(`${key} not returned by device`);
+			return null;
+		}
+
+		const decoded = decodeParamValue(cacheParam);
+		if (isModelManifest(decoded)) {
+			return decoded.bundles;
+		}
+
+		console.warn(`${key} is not a valid model manifest`);
+		return null;
+	}
+
 	async function fetchModelsForDevice(silent = false) {
 		if (isFetchingModels) return;
 		const client = logtoClient;
@@ -667,6 +717,7 @@
 					'ModelManager_PrevBundle',
 					'ModelManager_PrevBundle_USBGPU',
 					'ModelManager_DownloadRef',
+					'ModelManager_DownloadIndex',
 					'ModelManager_Favs',
 					...MODEL_SETTINGS
 				],
@@ -698,6 +749,7 @@
 					(i) => i.key === 'ModelManager_ActiveBundleUSBGPU'
 				);
 				const downloadRefParam = models.items.find((i) => i.key === 'ModelManager_DownloadRef');
+				const downloadIndexParam = models.items.find((i) => i.key === 'ModelManager_DownloadIndex');
 				const favsParam = models.items.find((i) => i.key === 'ModelManager_Favs');
 
 				// Populate deviceValues for the other settings too to ensure they are available
@@ -719,14 +771,33 @@
 					}
 				}
 
-				if (activeJsonParam) {
-					const urls = decodeActiveJsonUrls(decodeParamValue(activeJsonParam));
+				const activeJsonValue = activeJsonParam ? decodeParamValue(activeJsonParam) : undefined;
+				const urlMap = decodeActiveJsonUrls(activeJsonValue);
+				const legacyActiveJsonUrl =
+					urlMap === null && typeof activeJsonValue === 'string' && activeJsonValue.trim()
+						? activeJsonValue.trim()
+						: undefined;
+				const dualModelDevice =
+					urlMap !== null ||
+					activeBundleUsbGpuParam !== undefined ||
+					downloadRefParam !== undefined;
+				dualModelSupport = dualModelDevice;
+				if (!dualModelDevice) {
+					// Clear stale dual-model state (e.g. from a previously selected device
+					// or an old cache) so only a single active model card is shown.
+					usbgpuModelList = undefined;
+					currentBigModelShortName = undefined;
+					if (activeModelTab !== 'qcom') {
+						activeModelTab = 'qcom';
+					}
+				}
 
-					if (urls) {
+				if (dualModelDevice) {
+					if (urlMap) {
 						// Fetch both catalogs in parallel directly from their URLs
 						const [qcomBundles, usbgpuBundles] = await Promise.all([
-							urls.qcom ? fetchModelJsonFromUrl(urls.qcom) : Promise.resolve(null),
-							urls.usbgpu ? fetchModelJsonFromUrl(urls.usbgpu) : Promise.resolve(null)
+							urlMap.qcom ? fetchModelJsonFromUrl(urlMap.qcom) : Promise.resolve(null),
+							urlMap.usbgpu ? fetchModelJsonFromUrl(urlMap.usbgpu) : Promise.resolve(null)
 						]);
 						if (did !== deviceState.selectedDeviceId) return;
 						if (qcomBundles) {
@@ -735,11 +806,72 @@
 						if (usbgpuBundles) {
 							usbgpuModelList = usbgpuBundles;
 						}
+
+						// Fallback: if a catalog failed to load from its URL, pull the json
+						// directly from the device.
+						if (!qcomBundles) {
+							const fromDevice = await fetchModelsCacheFromDevice(
+								did,
+								token,
+								'ModelManager_ModelsCache'
+							);
+							if (did !== deviceState.selectedDeviceId) return;
+							if (fromDevice) {
+								qcomModelList = fromDevice;
+							}
+						}
+						if (!usbgpuBundles) {
+							const fromDevice = await fetchModelsCacheFromDevice(
+								did,
+								token,
+								'ModelManager_ModelsCache_USBGPU'
+							);
+							if (did !== deviceState.selectedDeviceId) return;
+							if (fromDevice) {
+								usbgpuModelList = fromDevice;
+							}
+						}
 					} else {
-						console.warn('ModelManager_ActiveJson did not contain a valid {qcom, usbgpu} URL map');
+						// No URL map (missing or invalid) — pull both catalogs from the device
+						console.warn(
+							'ModelManager_ActiveJson did not contain a valid {qcom, usbgpu} URL map — falling back to device cache'
+						);
+						const [qcomBundles, usbgpuBundles] = await Promise.all([
+							fetchModelsCacheFromDevice(did, token, 'ModelManager_ModelsCache'),
+							fetchModelsCacheFromDevice(did, token, 'ModelManager_ModelsCache_USBGPU')
+						]);
+						if (did !== deviceState.selectedDeviceId) return;
+						if (qcomBundles) {
+							qcomModelList = qcomBundles;
+						}
+						if (usbgpuBundles) {
+							usbgpuModelList = usbgpuBundles;
+						}
 					}
 				} else {
-					console.warn('ModelManager_ActiveJson not found — no model catalogs available');
+					// Legacy single-model device
+					if (legacyActiveJsonUrl) {
+						const bundles = await fetchModelJsonFromUrl(legacyActiveJsonUrl);
+						if (did !== deviceState.selectedDeviceId) return;
+						if (bundles) {
+							qcomModelList = bundles;
+						} else {
+							console.warn('Failed to fetch model JSON from URL — falling back to device cache');
+							const fromDevice = await fetchModelsCacheFromDevice(did, token);
+							if (did !== deviceState.selectedDeviceId) return;
+							if (fromDevice) {
+								qcomModelList = fromDevice;
+							}
+						}
+					} else {
+						// Fallback: pull the json directly from the device
+						console.warn('ModelManager_ActiveJson not found — falling back to device cache');
+						const fromDevice = await fetchModelsCacheFromDevice(did, token);
+						if (did !== deviceState.selectedDeviceId) return;
+						if (fromDevice) {
+							qcomModelList = fromDevice;
+						}
+					}
 				}
 
 				currentSmallModelShortName = activeBundleParam
@@ -749,18 +881,35 @@
 					? shortNameFromActiveBundle(decodeParamValue(activeBundleUsbGpuParam))
 					: undefined;
 
-				const deviceRef = downloadRefParam
-					? (() => {
-							const val = decodeParamValue(downloadRefParam);
-							return typeof val === 'string' && val.trim() ? val.trim() : undefined;
-						})()
-					: undefined;
-				if (deviceRef) {
-					downloadingRef = deviceRef;
-					downloadRefConfirmed = true;
-				} else if (downloadingRef !== undefined && downloadRefConfirmed) {
-					downloadingRef = undefined;
-					downloadRefConfirmed = false;
+				if (dualModelDevice) {
+					// downloads by ref
+					const deviceRef = downloadRefParam
+						? (() => {
+								const val = decodeParamValue(downloadRefParam);
+								return typeof val === 'string' && val.trim() ? val.trim() : undefined;
+							})()
+						: undefined;
+					if (deviceRef) {
+						downloadingRef = deviceRef;
+						downloadRefConfirmed = true;
+					} else if (downloadingRef !== undefined && downloadRefConfirmed) {
+						downloadingRef = undefined;
+						downloadRefConfirmed = false;
+					}
+				} else {
+					// downloads by index
+					const val = downloadIndexParam ? decodeParamValue(downloadIndexParam) : undefined;
+					const idx = parseInt(String(val), 10);
+					if (!isNaN(idx) && idx > 0) {
+						const modelByIndex = qcomModelList?.find((m) => m.index === idx);
+						if (modelByIndex) {
+							downloadingRef = modelByIndex.ref;
+							downloadRefConfirmed = true;
+						}
+					} else if (downloadingRef !== undefined && downloadRefConfirmed) {
+						downloadingRef = undefined;
+						downloadRefConfirmed = false;
+					}
 				}
 
 				// The download is complete once the matching catalog's active bundle
@@ -788,7 +937,8 @@
 					usbgpuModelList,
 					currentSmallModelShortName,
 					currentBigModelShortName,
-					favorites
+					favorites,
+					dualModelSupport
 				);
 			}
 		} catch (e) {
@@ -817,31 +967,26 @@
 			const token = await logtoClient.getIdToken();
 			if (refreshDid !== deviceState.selectedDeviceId) return;
 
-			// 1. Clear the last update times to force a refresh of both catalogs
+			const chestnut = deviceState.deviceTelemetry[refreshDid]?.chestnutPresent ?? false;
+			const syncKeys =
+				dualModelSupport === false
+					? [chestnut ? 'ModelManager_LastSyncTime_USBGPU' : 'ModelManager_LastSyncTime']
+					: ['ModelManager_LastSyncTime', 'ModelManager_LastSyncTime_USBGPU'];
 			await Athenav0Client.POST('/settings/{deviceId}', {
 				params: {
 					path: {
 						deviceId: refreshDid
 					}
 				},
-				body: [
-					{
-						key: 'ModelManager_LastSyncTime',
-						value: encodeParamValue({
-							key: 'ModelManager_LastSyncTime',
-							value: '0',
-							type: 'String'
-						})
-					},
-					{
-						key: 'ModelManager_LastSyncTime_USBGPU',
-						value: encodeParamValue({
-							key: 'ModelManager_LastSyncTime_USBGPU',
-							value: '0',
-							type: 'String'
-						})
-					}
-				],
+				body: syncKeys.map((key) => ({
+					key,
+					value: encodeParamValue({
+						key,
+						value: '0',
+						type: 'String'
+					}),
+					is_compressed: false
+				})),
 				headers: {
 					Authorization: `Bearer ${token}`
 				}
@@ -914,6 +1059,17 @@
 					}),
 					is_compressed: false
 				});
+			} else if (dualModelSupport === false) {
+				// download by index
+				params.push({
+					key: 'ModelManager_DownloadIndex',
+					value: encodeParamValue({
+						key: 'ModelManager_DownloadIndex',
+						value: String(bundle.index ?? ''),
+						type: 'String'
+					}),
+					is_compressed: false
+				});
 			} else {
 				params.push({
 					key: 'ModelManager_DownloadRef',
@@ -955,7 +1111,7 @@
 			selectedModelRef = undefined;
 			sendingModelType = undefined;
 
-			// Device processes DownloadRef at ~1Hz; poll after a short delay
+			// Device processes the download param at ~1Hz; poll after a short delay
 			setTimeout(() => fetchModelsForDevice(true), 1500);
 		} catch (e: unknown) {
 			const message = (e as Error)?.message || 'Failed to send model to device.';
@@ -1032,6 +1188,8 @@
 
 	async function cancelDownload() {
 		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		// downloads by index
+		if (dualModelSupport === false) return;
 		if (downloadingRef === undefined) return;
 		const did = deviceState.selectedDeviceId;
 
@@ -1264,14 +1422,16 @@
 							<div class="flex items-center gap-3 text-xs text-[var(--sl-text-2)]">
 								<span class="loading loading-xs loading-spinner"></span>
 								Downloading
-								<button
-									class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
-									onclick={cancelDownload}
-									disabled={sendingModel}
-									title="Cancel the download and clear the download ref on the device"
-								>
-									Cancel Download
-								</button>
+								{#if dualModelSupport !== false}
+									<button
+										class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
+										onclick={cancelDownload}
+										disabled={sendingModel}
+										title="Cancel the download and clear the download ref on the device"
+									>
+										Cancel Download
+									</button>
+								{/if}
 							</div>
 						{/if}
 						{#if card.activeShortName !== undefined && !downloading}
@@ -1360,15 +1520,17 @@
 					>
 						Small Model
 					</button>
-					<button
-						class="rounded-t-lg border-b-2 px-4 py-2 text-[0.8125rem] font-medium transition-colors {activeModelTab ===
-						'usbgpu'
-							? 'border-primary text-[var(--sl-text-1)]'
-							: 'border-transparent text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]'}"
-						onclick={() => switchModelTab('usbgpu')}
-					>
-						Big Models
-					</button>
+					{#if dualModelSupport !== false}
+						<button
+							class="rounded-t-lg border-b-2 px-4 py-2 text-[0.8125rem] font-medium transition-colors {activeModelTab ===
+							'usbgpu'
+								? 'border-primary text-[var(--sl-text-1)]'
+								: 'border-transparent text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]'}"
+							onclick={() => switchModelTab('usbgpu')}
+						>
+							Big Models
+						</button>
+					{/if}
 					<span class="ml-auto pb-2.5 text-[0.75rem] text-[var(--sl-text-3)]">
 						{activeModelList?.length ?? 0} models
 					</span>
@@ -1683,9 +1845,11 @@
 <ConfirmationModal
 	bind:open={resetModalOpen}
 	title="Reset to Default Model"
-	message="Are you sure you want to reset to the default {resetModalType === 'usbgpu'
-		? 'big'
-		: 'small'} driving model? This will clear the active bundle on the device."
+	message={dualModelSupport === false
+		? 'Are you sure you want to reset to the default driving model? This will clear the active bundle on the device.'
+		: `Are you sure you want to reset to the default ${
+				resetModalType === 'usbgpu' ? 'big' : 'small'
+			} driving model? This will clear the active bundle on the device.`}
 	confirmText="Reset to Default"
 	variant="danger"
 	isProcessing={sendingModel}
