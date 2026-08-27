@@ -1289,7 +1289,7 @@
 					{/snippet}
 					{#each activeModelCards as card (card.type)}
 						<div
-							class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-[var(--sl-border-muted)] px-4 py-4 last:border-b-0 {sendingModel
+							class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--sl-border-muted)] px-4 py-4 last:border-b-0 {sendingModel
 								? 'opacity-60'
 								: ''} transition-opacity duration-200"
 						>
@@ -1319,12 +1319,14 @@
 									</div>
 								</div>
 							</div>
-							<div class="flex shrink-0 items-center gap-x-3">
+							<div class="ml-auto flex shrink-0 items-center gap-x-3">
 								{@render modelActions(card)}
 							</div>
 						</div>
 					{/each}
-					<div class="flex items-center gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5">
+					<div
+						class="flex items-center justify-end gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5"
+					>
 						<button
 							class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
 							onclick={() => (clearCacheModalOpen = true)}
