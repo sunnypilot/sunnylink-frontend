@@ -217,6 +217,7 @@
 	});
 	let pushModalOpen = $state(false);
 	let downloadingRef = $state<string | undefined>(undefined);
+	let downloadRefConfirmed = $state(false);
 	let sendingModelType = $state<'qcom' | 'usbgpu' | undefined>(undefined);
 	let resetModalType = $state<'qcom' | 'usbgpu'>('qcom');
 	let sendingModel = $derived(sendingModelType !== undefined);
@@ -649,6 +650,7 @@
 			currentBigModelShortName = undefined;
 			selectedModelRef = undefined;
 			downloadingRef = undefined;
+			downloadRefConfirmed = false;
 			loadingModels = true;
 		}
 		try {
@@ -754,6 +756,10 @@
 					: undefined;
 				if (deviceRef) {
 					downloadingRef = deviceRef;
+					downloadRefConfirmed = true;
+				} else if (downloadingRef !== undefined && downloadRefConfirmed) {
+					downloadingRef = undefined;
+					downloadRefConfirmed = false;
 				}
 
 				// The download is complete once the matching catalog's active bundle
@@ -769,6 +775,7 @@
 						pendingBig !== undefined && pendingBig.short_name === currentBigModelShortName;
 					if (smallDone || bigDone) {
 						downloadingRef = undefined;
+						downloadRefConfirmed = false;
 					}
 				}
 			}
@@ -938,8 +945,10 @@
 					currentSmallModelShortName = undefined;
 				}
 				downloadingRef = undefined;
+				downloadRefConfirmed = false;
 			} else {
 				downloadingRef = bundle.ref;
+				downloadRefConfirmed = false;
 			}
 
 			selectedModelRef = undefined;
@@ -1017,6 +1026,47 @@
 		} finally {
 			clearingCache = false;
 			clearCacheModalOpen = false;
+		}
+	}
+
+	async function cancelDownload() {
+		if (!logtoClient || !deviceState.selectedDeviceId) return;
+		if (downloadingRef === undefined) return;
+		const did = deviceState.selectedDeviceId;
+
+		try {
+			const token = await logtoClient.getIdToken();
+			if (!token) return;
+
+			// Clear the download ref on the device to cancel download
+			await Athenav0Client.POST('/settings/{deviceId}', {
+				params: {
+					path: {
+						deviceId: did
+					}
+				},
+				body: [
+					{
+						key: 'ModelManager_DownloadRef',
+						value: encodeParamValue({
+							key: 'ModelManager_DownloadRef',
+							value: '',
+							type: 'String'
+						}),
+						is_compressed: false
+					}
+				],
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			downloadingRef = undefined;
+			downloadRefConfirmed = false;
+			toast.success('Download cancelled');
+		} catch (e) {
+			console.error('Error cancelling model download:', e);
+			toast.error('Failed to cancel download.');
 		}
 	}
 
@@ -1238,9 +1288,17 @@
 										Sending...
 									</div>
 								{:else if downloadingRef !== undefined && card.model.ref === downloadingRef && card.model.short_name !== card.activeShortName}
-									<div class="flex items-center gap-2 text-xs text-[var(--sl-text-2)]">
+									<div class="flex items-center gap-3 text-xs text-[var(--sl-text-2)]">
 										<span class="loading loading-xs loading-spinner"></span>
 										Downloading
+										<button
+											class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
+											onclick={cancelDownload}
+											disabled={sendingModel}
+											title="Cancel the download and clear the download ref on the device"
+										>
+											Cancel Download
+										</button>
 									</div>
 								{/if}
 								{#if card.activeShortName !== undefined}
