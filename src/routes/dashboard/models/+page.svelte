@@ -1478,29 +1478,13 @@
 													>
 														<div class="flex items-start justify-between gap-4">
 															<div class="min-w-0 flex-1">
-																<code
-																	class="rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
-																	>{model.short_name}</code
-																>
-																<div class="mt-3 flex max-w-xs flex-col gap-1.5 text-xs">
+																<div class="flex max-w-xs flex-col gap-1.5 text-xs">
 																	<div class="flex items-baseline justify-between">
-																		<span class="text-[var(--sl-text-3)]">Environment</span>
-																		<span class="text-[var(--sl-text-2)]">{model.environment}</span>
+																		<span class="text-[var(--sl-text-3)]">Short Name</span>
+																		<span class="text-[var(--sl-text-2)]">{model.short_name}</span>
 																	</div>
 																	<div class="flex items-baseline justify-between">
-																		<span class="text-[var(--sl-text-3)]">Runner</span>
-																		<span class="text-[var(--sl-text-2)]"
-																			>{model.runner ?? 'Unknown'}</span
-																		>
-																	</div>
-																	<div class="flex items-baseline justify-between">
-																		<span class="text-[var(--sl-text-3)]">Generation</span>
-																		<span class="text-[var(--sl-text-2)]"
-																			>{model.generation ?? 'Unknown'}</span
-																		>
-																	</div>
-																	<div class="flex items-baseline justify-between">
-																		<span class="text-[var(--sl-text-3)]">Build</span>
+																		<span class="text-[var(--sl-text-3)]">Build Date</span>
 																		<span class="text-[var(--sl-text-2)]"
 																			>{model.build_time
 																				? new Date(model.build_time).toLocaleDateString(undefined, {
