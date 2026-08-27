@@ -164,5 +164,5 @@ export interface SettingsSchema {
 	capabilities?: Capabilities;
 	default_model?: string;
 	default_big_model?: string;
-	usbgpu_active?: boolean;
+	chestnut_active?: boolean;
 }
