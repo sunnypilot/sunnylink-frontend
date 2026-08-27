@@ -16,6 +16,7 @@
 	import LegacyInfoModal from '$lib/components/LegacyInfoModal.svelte';
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { driftStore } from '$lib/stores/driftStore.svelte';
+	import { isDeviceLocalSync } from '$lib/api/local-discovery';
 	import {
 		RefreshCw,
 		Loader2,
@@ -54,6 +55,7 @@
 	let offroadStatus = $derived(deviceId ? deviceState.offroadStatuses[deviceId] : undefined);
 	let telemetry = $derived(deviceId ? deviceState.deviceTelemetry[deviceId] : undefined);
 	let isOnline = $derived(onlineStatus === 'online');
+	let isLocal = $derived(deviceId ? deviceState.localOnline[deviceId] ?? false : false);
 	let errorMessage = $derived(deviceId ? deviceState.lastErrorMessages[deviceId] : undefined);
 	let lastSeen = $derived.by(() => {
 		if (!deviceId) return undefined;
@@ -411,6 +413,12 @@
 		<span class="text-[0.75rem] leading-none font-medium {pillState.textClass}">
 			{pillState.label}
 		</span>
+		{#if isLocal}
+			<span class="flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-px text-[0.6rem] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+				<span class="block h-[4px] w-[4px] shrink-0 rounded-full bg-emerald-400"></span>
+				LAN
+			</span>
+		{/if}
 		<LegacyDeviceBadge {deviceId} variant="dot" className="ml-0.5" />
 		<ChevronDown
 			size={12}
@@ -494,16 +502,24 @@
 				{#if mayBeOnline}
 					<div class="flex min-h-[28px] items-center justify-between rounded-md px-1.5 py-1">
 						<span class="text-[0.75rem] leading-none text-[var(--sl-text-3)]">Network</span>
-						{#if telemetry}
-							<span class="text-[0.75rem] text-[var(--sl-text-2)]">
-								{formatNetworkType(telemetry.networkType)}
-								{#if telemetry.networkMetered}
-									<span class="text-amber-700 dark:text-amber-400">(metered)</span>
-								{/if}
-							</span>
-						{:else}
-							<span class="h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
-						{/if}
+						<span class="flex items-center gap-1.5">
+							{#if isLocal}
+								<span class="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-px text-[0.625rem] font-semibold text-emerald-600 dark:text-emerald-400 uppercase">
+									<span class="block h-[5px] w-[5px] shrink-0 rounded-full bg-emerald-400"></span>
+									LAN
+								</span>
+							{/if}
+							{#if telemetry}
+								<span class="text-[0.75rem] text-[var(--sl-text-2)]">
+									{formatNetworkType(telemetry.networkType)}
+									{#if telemetry.networkMetered}
+										<span class="text-amber-700 dark:text-amber-400">(metered)</span>
+									{/if}
+								</span>
+							{:else}
+								<span class="h-3 w-14 animate-pulse rounded bg-[var(--sl-bg-elevated)]"></span>
+							{/if}
+						</span>
 					</div>
 				{/if}
 				{#if branchName || valuesLoading}

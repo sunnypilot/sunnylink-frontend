@@ -15,6 +15,8 @@ export const deviceState = $state({
 	 *  to "—" once we know the device truly didn't return a value. */
 	infoFetchComplete: {} as Record<string, boolean>,
 	onlineStatuses: {} as Record<string, 'loading' | 'online' | 'offline' | 'error'>,
+	/** Whether the device is reachable via local network (no cloud proxy). */
+	localOnline: {} as Record<string, boolean>,
 	lastStatusCheck: {} as Record<string, number>,
 	/** Timestamp of the last time the device was confirmed online. Persists across polls —
 	 *  only updated when onlineStatuses transitions to 'online'. Used for "last seen" display on offline devices. */
