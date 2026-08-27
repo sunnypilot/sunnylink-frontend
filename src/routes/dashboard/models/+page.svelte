@@ -311,7 +311,7 @@
 			[
 				{
 					type: 'qcom' as const,
-					label: dualModelSupport === false ? 'Active Model' : 'Small Model',
+					label: dualModelSupport === false ? 'active model' : 'small model',
 					model: currentSmallModel,
 					activeShortName: currentSmallModelShortName
 				},
@@ -320,7 +320,7 @@
 					: [
 							{
 								type: 'usbgpu' as const,
-								label: 'Big Model',
+								label: 'big model',
 								model: currentBigModel,
 								activeShortName: currentBigModelShortName
 							}
@@ -1402,12 +1402,23 @@
 		{/if}
 		<div>
 			{#if activeModelCards.length > 0}
-				<div class="mt-2 px-4">
+				<div class="mt-2 flex items-center justify-between gap-3 px-4">
 					<p class="text-[0.9375rem] font-medium text-[var(--sl-text-1)]">Active Models</p>
+					<button
+						class="btn shrink-0 border border-[var(--sl-border)] text-[var(--sl-text-2)] btn-ghost transition-all duration-100 btn-xs hover:border-[var(--sl-border)] hover:bg-[var(--sl-bg-subtle)] hover:text-[var(--sl-text-1)] active:scale-[0.94] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
+						onclick={() => (clearCacheModalOpen = true)}
+						disabled={clearingCache}
+						title={!isOffroad ? 'Device must be offroad' : undefined}
+					>
+						{#if clearingCache}
+							<span class="loading loading-xs loading-spinner"></span>
+							Clearing...
+						{:else}
+							Clear Models Cache
+						{/if}
+					</button>
 				</div>
-				<div
-					class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
-				>
+				<div class="mt-3 space-y-3">
 					{#snippet modelActions(card: ActiveModelCard)}
 						{@const downloading =
 							downloadingRef !== undefined &&
@@ -1450,54 +1461,47 @@
 					{/snippet}
 					{#each activeModelCards as card (card.type)}
 						<div
-							class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--sl-border-muted)] px-4 py-4 last:border-b-0 {sendingModel
+							class="overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)] {sendingModel
 								? 'opacity-60'
 								: ''} transition-opacity duration-200"
 						>
-							<div class="flex min-w-0 items-center gap-3">
-								<div
-									class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]"
+							<!-- Subsection header: tag up & left, like Linear's badge next to the title -->
+							<div
+								class="flex items-center gap-2 border-b border-[var(--sl-border-muted)] bg-[var(--sl-bg-subtle)]/60 px-4 py-2"
+							>
+								<span
+									class="inline-flex items-center gap-1.5 rounded-md bg-zinc-200 px-2 py-0.5 font-mono text-[0.6875rem] font-medium tracking-wide text-zinc-700 ring-1 ring-zinc-300 ring-inset dark:bg-zinc-950 dark:text-zinc-300 dark:ring-zinc-700"
 								>
-									{#if card.type === 'qcom'}
-										<Cpu size={14} class="text-[var(--sl-text-2)]" />
-									{:else}
-										<Gpu size={14} class="text-[var(--sl-text-2)]" />
-									{/if}
-								</div>
-								<div class="min-w-0">
-									<div class="flex min-w-0 items-center gap-2">
-										<span
-											class="flex min-w-[6rem] shrink-0 items-center justify-center rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 text-center font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
-											>{card.label}</span
-										>
-										<code
-											class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
-											>{card.model.short_name}</code
-										>
-										<MarqueeText
-											text={card.model.display_name}
-											className="text-sm font-medium text-[var(--sl-text-1)] min-w-0 flex-1"
-										/>
-									</div>
-								</div>
+									{card.label}
+								</span>
+								<code
+									class="rounded-md bg-zinc-200 px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium text-zinc-700 ring-1 ring-zinc-300 ring-inset dark:bg-zinc-950 dark:text-zinc-300 dark:ring-zinc-700"
+									>{card.model.short_name}</code
+								>
 							</div>
-							<div class="ml-auto flex shrink-0 items-center gap-x-3">
-								{@render modelActions(card)}
+							<!-- Body: bigger icon + display name + actions (wraps when space is limited) -->
+							<div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5">
+								<div class="flex min-w-0 items-center gap-3">
+									<div
+										class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]"
+									>
+										{#if card.type === 'qcom'}
+											<Cpu size={20} class="text-[var(--sl-text-2)]" />
+										{:else}
+											<Gpu size={20} class="text-[var(--sl-text-2)]" />
+										{/if}
+									</div>
+									<MarqueeText
+										text={card.model.display_name}
+										className="text-sm font-medium text-[var(--sl-text-1)] min-w-0 flex-1"
+									/>
+								</div>
+								<div class="ml-auto flex shrink-0 items-center gap-x-3">
+									{@render modelActions(card)}
+								</div>
 							</div>
 						</div>
 					{/each}
-					<div
-						class="flex items-center justify-end gap-3 border-t border-[var(--sl-border-muted)] px-4 py-2.5"
-					>
-						<button
-							class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
-							onclick={() => (clearCacheModalOpen = true)}
-							disabled={clearingCache}
-							title={!isOffroad ? 'Device must be offroad' : undefined}
-						>
-							Clear Models Cache
-						</button>
-					</div>
 				</div>
 			{/if}
 
@@ -1518,7 +1522,7 @@
 							: 'border-transparent text-[var(--sl-text-3)] hover:text-[var(--sl-text-2)]'}"
 						onclick={() => switchModelTab('qcom')}
 					>
-						Small Model
+						Small Models
 					</button>
 					{#if dualModelSupport !== false}
 						<button
