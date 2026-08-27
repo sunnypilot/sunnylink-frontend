@@ -47,9 +47,10 @@
 
 <style>
 	.marquee-container {
-		display: block;
+		display: inline-block;
 		max-width: 100%;
 		overflow: hidden;
+		vertical-align: bottom;
 	}
 	.marquee-container:not(.overflows) {
 		white-space: nowrap;

@@ -16,7 +16,6 @@ export interface ModelBundle {
 	short_name: string;
 	display_name: string;
 	is_20hz: boolean;
-	is_big?: boolean;
 	ref: string;
 	environment: string;
 	runner?: string;

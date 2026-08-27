@@ -1623,35 +1623,17 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		hidden: true
 	},
 	{
-		key: 'ModelManager_DownloadRef',
-		label: 'Model Download Ref',
-		description: 'Download queue model ref',
+		key: 'ModelManager_DownloadIndex',
+		label: 'Model Download Index',
+		description: 'Download queue index',
 		category: 'developer',
-		readonly: true,
-		hidden: true
-	},
-	{
-		key: 'ModelManager_ActiveJson',
-		label: 'Active Model JSON',
-		description: 'Model catalog URLs for small and big models',
-		category: 'developer',
-		advanced: true,
 		readonly: true,
 		hidden: true
 	},
 	{
 		key: 'ModelManager_ActiveBundle',
 		label: 'Active Model Bundle',
-		description: 'Currently active small model',
-		category: 'developer',
-		advanced: true,
-		readonly: true,
-		hidden: true
-	},
-	{
-		key: 'ModelManager_ActiveBundleUSBGPU',
-		label: 'Active Big Model Bundle',
-		description: 'Currently active big model (USB GPU)',
+		description: 'Currently active model',
 		category: 'developer',
 		advanced: true,
 		readonly: true,
