@@ -1295,7 +1295,7 @@
 						>
 							<div class="flex min-w-0 items-center gap-3">
 								<div
-									class="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)] sm:flex"
+									class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sl-bg-elevated)]"
 								>
 									{#if card.type === 'qcom'}
 										<Cpu size={14} class="text-[var(--sl-text-2)]" />
@@ -1313,13 +1313,9 @@
 											class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 											>{card.model.short_name}</code
 										>
-										<span
-											class="hidden truncate text-sm font-medium text-[var(--sl-text-1)] sm:inline"
+										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]"
 											>{card.model.display_name}</span
 										>
-									</div>
-									<div class="mt-1 truncate text-sm font-medium text-[var(--sl-text-1)] sm:hidden">
-										{card.model.display_name}
 									</div>
 								</div>
 							</div>
