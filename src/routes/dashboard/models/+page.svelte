@@ -1249,9 +1249,47 @@
 				<div
 					class="mt-3 overflow-hidden rounded-xl border border-[var(--sl-border)] bg-[var(--sl-bg-surface)]"
 				>
+					{#snippet modelActions(card: ActiveModelCard)}
+						{@const downloading =
+							downloadingRef !== undefined &&
+							card.model.ref === downloadingRef &&
+							card.model.short_name !== card.activeShortName}
+						{#if sendingModelType === card.type}
+							<div class="flex items-center gap-2 text-xs text-[var(--sl-text-2)]">
+								<span class="loading loading-xs loading-spinner"></span>
+								Sending...
+							</div>
+						{:else if downloading}
+							<div class="flex items-center gap-3 text-xs text-[var(--sl-text-2)]">
+								<span class="loading loading-xs loading-spinner"></span>
+								Downloading
+								<button
+									class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
+									onclick={cancelDownload}
+									disabled={sendingModel}
+									title="Cancel the download and clear the download ref on the device"
+								>
+									Cancel Download
+								</button>
+							</div>
+						{/if}
+						{#if card.activeShortName !== undefined && !downloading}
+							<button
+								class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100"
+								onclick={() => {
+									resetModalType = card.type;
+									resetModalOpen = true;
+								}}
+								disabled={sendingModel}
+								title={!isOffroad ? 'Device must be offroad' : undefined}
+							>
+								Reset to Default
+							</button>
+						{/if}
+					{/snippet}
 					{#each activeModelCards as card (card.type)}
 						<div
-							class="flex items-center justify-between border-b border-[var(--sl-border-muted)] px-4 py-4 last:border-b-0 {sendingModel
+							class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-[var(--sl-border-muted)] px-4 py-4 last:border-b-0 {sendingModel
 								? 'opacity-60'
 								: ''} transition-opacity duration-200"
 						>
@@ -1266,54 +1304,23 @@
 									{/if}
 								</div>
 								<div class="min-w-0">
-									<div class="flex items-center gap-2">
+									<div class="flex flex-wrap items-center gap-2">
 										<span
 											class="flex min-w-[6rem] shrink-0 items-center justify-center rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 text-center font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 											>{card.label}</span
-										>
-										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]"
-											>{card.model.display_name}</span
 										>
 										<code
 											class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 											>{card.model.short_name}</code
 										>
+										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]"
+											>{card.model.display_name}</span
+										>
 									</div>
 								</div>
 							</div>
-							<div class="flex shrink-0 items-center gap-3">
-								{#if sendingModelType === card.type}
-									<div class="flex items-center gap-2 text-xs text-[var(--sl-text-2)]">
-										<span class="loading loading-xs loading-spinner"></span>
-										Sending...
-									</div>
-								{:else if downloadingRef !== undefined && card.model.ref === downloadingRef && card.model.short_name !== card.activeShortName}
-									<div class="flex items-center gap-3 text-xs text-[var(--sl-text-2)]">
-										<span class="loading loading-xs loading-spinner"></span>
-										Downloading
-										<button
-											class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-red-600 active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100 dark:hover:text-red-400"
-											onclick={cancelDownload}
-											disabled={sendingModel}
-											title="Cancel the download and clear the download ref on the device"
-										>
-											Cancel Download
-										</button>
-									</div>
-								{/if}
-								{#if card.activeShortName !== undefined}
-									<button
-										class="text-[0.75rem] text-[var(--sl-text-2)] transition-all duration-100 hover:text-[var(--sl-text-1)] active:scale-[0.94] active:opacity-80 disabled:opacity-40 disabled:active:scale-100"
-										onclick={() => {
-											resetModalType = card.type;
-											resetModalOpen = true;
-										}}
-										disabled={sendingModel}
-										title={!isOffroad ? 'Device must be offroad' : undefined}
-									>
-										Reset to Default
-									</button>
-								{/if}
+							<div class="flex shrink-0 items-center gap-x-3">
+								{@render modelActions(card)}
 							</div>
 						</div>
 					{/each}
