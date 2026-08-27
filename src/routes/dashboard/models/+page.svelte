@@ -44,6 +44,7 @@
 	import SyncStatusIndicator from '$lib/components/SyncStatusIndicator.svelte';
 	import SettingsPageShell from '$lib/components/SettingsPageShell.svelte';
 	import { toast } from 'svelte-sonner';
+	import MarqueeText from '$lib/components/MarqueeText.svelte';
 
 	let DEFAULT_SMALL_MODEL = $derived.by<ModelBundle>(() => {
 		const did = deviceState.selectedDeviceId;
@@ -1304,7 +1305,7 @@
 									{/if}
 								</div>
 								<div class="min-w-0">
-									<div class="flex flex-wrap items-center gap-2">
+									<div class="flex min-w-0 items-center gap-2">
 										<span
 											class="flex min-w-[6rem] shrink-0 items-center justify-center rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 text-center font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 											>{card.label}</span
@@ -1313,9 +1314,10 @@
 											class="shrink-0 rounded bg-[var(--sl-bg-elevated)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--sl-text-3)]"
 											>{card.model.short_name}</code
 										>
-										<span class="truncate text-sm font-medium text-[var(--sl-text-1)]"
-											>{card.model.display_name}</span
-										>
+										<MarqueeText
+											text={card.model.display_name}
+											className="text-sm font-medium text-[var(--sl-text-1)] min-w-0 flex-1"
+										/>
 									</div>
 								</div>
 							</div>
