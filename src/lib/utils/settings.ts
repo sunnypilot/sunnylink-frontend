@@ -176,7 +176,7 @@ export const BACKUP_EXCLUDED_KEYS = new Set([
 	'MapSpeedLimit',
 	'MapTargetVelocities',
 	'ModelManager_ClearCache',
-	'ModelManager_DownloadRef',
+	'ModelManager_DownloadIndex',
 	'NextMapSpeedLimit',
 	'ObdMultiplexingChanged',
 	'ObdMultiplexingEnabled',
