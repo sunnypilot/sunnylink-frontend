@@ -1649,9 +1649,9 @@ export const SETTINGS_DEFINITIONS: SettingDefinition[] = [
 		hidden: true
 	},
 	{
-		key: 'ModelManager_ActiveBundleUSBGPU',
+		key: 'ModelManager_ActiveBundleChestnut',
 		label: 'Active Big Model Bundle',
-		description: 'Currently active big model (USB GPU)',
+		description: 'Currently active big model (Chestnut)',
 		category: 'developer',
 		advanced: true,
 		readonly: true,
