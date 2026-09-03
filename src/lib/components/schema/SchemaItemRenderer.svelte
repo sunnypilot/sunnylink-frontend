@@ -21,6 +21,12 @@
 	import { Info, Loader2 } from 'lucide-svelte';
 	import SelectDropdown from '$lib/components/SelectDropdown.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
+	import {
+		resolveValueTransform,
+		toDisplayStep,
+		toDisplayValue,
+		toStoredValue
+	} from '$lib/utils/valueTransform';
 	import { toast } from 'svelte-sonner';
 	import SchemaItemRenderer from './SchemaItemRenderer.svelte';
 
@@ -146,7 +152,24 @@
 	});
 
 	let currentValue = $derived(deviceState.deviceValues[deviceId]?.[item.key]);
-	let displayValue: unknown = $derived(currentValue);
+	let isMetric = $derived.by(() => {
+		const value = ruleContext.paramValues?.['IsMetric'];
+		return value === true || value === 1 || value === '1';
+	});
+	let valueTransform = $derived(resolveValueTransform(item.value_transform, isMetric));
+	let displayValue: unknown = $derived(
+		typeof currentValue === 'number' ? toDisplayValue(currentValue, valueTransform) : currentValue
+	);
+	let displayMin = $derived(
+		item.min !== undefined ? toDisplayValue(item.min, valueTransform) : undefined
+	);
+	let displayMax = $derived(
+		item.max !== undefined ? toDisplayValue(item.max, valueTransform) : undefined
+	);
+	let displayStep = $derived(toDisplayStep(item.step, valueTransform));
+	let displayPrecision = $derived(
+		valueTransform?.precision ?? (displayStep !== undefined && displayStep < 1 ? 2 : 0)
+	);
 
 	function isOptionEnabled(option: SchemaOption): boolean {
 		if (!option.enablement || option.enablement.length === 0) return true;
@@ -175,16 +198,18 @@
 	});
 
 	let isLoading = $derived(loadingValues && currentValue === undefined);
-	let isFloat = $derived(item.step !== undefined && item.step < 1);
+	let isFloat = $derived(
+		displayPrecision > 0 ||
+			(displayStep !== undefined && !Number.isInteger(displayStep)) ||
+			(displayMin !== undefined && !Number.isInteger(displayMin)) ||
+			(displayMax !== undefined && !Number.isInteger(displayMax))
+	);
 	let isOn = $derived(displayValue === true || displayValue === 1 || displayValue === '1');
 
 	let resolvedUnit = $derived.by(() => {
 		if (!item.unit) return undefined;
 		if (typeof item.unit === 'string') return item.unit;
-		const isMetric = ruleContext.paramValues?.['IsMetric'];
-		return isMetric === true || isMetric === 1 || isMetric === '1'
-			? item.unit.metric
-			: item.unit.imperial;
+		return isMetric ? item.unit.metric : item.unit.imperial;
 	});
 
 	// Live slider preview: shows value during drag, resets on release
@@ -218,6 +243,7 @@
 	let hasDrift = $derived(refreshBanner.getAll(deviceId).some((e) => e.key === item.key));
 
 	function inferParamType(): string {
+		if (item.value_transform) return 'Float';
 		const deviceParams = deviceState.deviceSettings[deviceId];
 		if (deviceParams) {
 			const paramInfo = deviceParams.find((p) => p.key === item.key);
@@ -259,7 +285,11 @@
 	}
 
 	function handleChange(newValue: unknown) {
-		pushValue(newValue);
+		// Display rounding can make a canonical endpoint look equal to a transformed
+		// bound (for example, 20 mph and 32 km/h). Do not re-quantize the stored
+		// value when the user cannot see any display-space change.
+		if (newValue === displayValue) return;
+		pushValue(typeof newValue === 'number' ? toStoredValue(newValue, valueTransform) : newValue);
 	}
 
 	// Row-level left accent for push/queue/drift feedback
@@ -283,7 +313,9 @@
 
 	function formatDisplay(val: unknown): string {
 		if (val === undefined || val === null) return '-';
-		if (isFloat && typeof val === 'number') return val.toFixed(2);
+		if (typeof val === 'number' && (valueTransform || isFloat)) {
+			return val.toFixed(displayPrecision);
+		}
 		return String(val);
 	}
 
@@ -750,7 +782,7 @@
 				{/if}
 			</div>
 		</div>
-	{:else if item.widget === 'option' && item.min !== undefined && item.max !== undefined}
+	{:else if item.widget === 'option' && displayMin !== undefined && displayMax !== undefined}
 		<!-- ── Slider Row (range input below label) ────────────────────── -->
 		<div class="px-4 py-4">
 			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -835,20 +867,20 @@
 				{:else}
 					<div class="flex w-full flex-col gap-2">
 						<div class="flex items-center justify-between text-xs text-[var(--sl-text-3)]">
-							<span>{isFloat ? Number(item.min).toFixed(2) : item.min}</span>
+							<span>{formatDisplay(displayMin)}</span>
 							<span
 								class="text-sm font-semibold tabular-nums transition-colors"
 								class:text-primary={sliderPreview === null}
 								class:text-[var(--sl-text-1)]={sliderPreview !== null}
 							>
 								{formatDisplay(
-									sliderPreview ?? (displayValue !== undefined ? displayValue : item.min)
+									sliderPreview ?? (displayValue !== undefined ? displayValue : displayMin)
 								)}
 								{#if resolvedUnit}<span class="ml-0.5 text-xs font-normal text-[var(--sl-text-3)]"
 										>{resolvedUnit}</span
 									>{/if}
 							</span>
-							<span>{isFloat ? Number(item.max).toFixed(2) : item.max}</span>
+							<span>{formatDisplay(displayMax)}</span>
 						</div>
 						<div
 							class="flex items-center gap-2 transition-opacity duration-200"
@@ -857,13 +889,12 @@
 						>
 							<button
 								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
-								disabled={!enabled || isPushing}
+								disabled={!enabled || isPushing || Number(displayValue ?? displayMin) <= displayMin}
 								aria-label="Decrease {item.title}"
 								onclick={() => {
-									const current =
-										displayValue !== undefined ? Number(displayValue) : Number(item.min);
-									const nv = Math.max(item.min!, current - (item.step || 1));
-									handleChange(isFloat ? parseFloat(nv.toFixed(2)) : nv);
+									const current = displayValue !== undefined ? Number(displayValue) : displayMin;
+									const nv = Math.max(displayMin, current - (displayStep || 1));
+									handleChange(isFloat ? parseFloat(nv.toFixed(displayPrecision)) : nv);
 								}}
 							>
 								<svg
@@ -880,10 +911,10 @@
 							</button>
 							<input
 								type="range"
-								min={item.min}
-								max={item.max}
-								step={item.step || 1}
-								value={displayValue !== undefined ? Number(displayValue) : item.min}
+								min={displayMin}
+								max={displayMax}
+								step={displayStep || 1}
+								value={displayValue !== undefined ? Number(displayValue) : displayMin}
 								class="range flex-1 range-primary range-xs"
 								disabled={!enabled || isPushing}
 								onpointerdown={startSliderDrag}
@@ -916,13 +947,12 @@
 							/>
 							<button
 								class="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--sl-text-3)] transition-all duration-100 hover:bg-[var(--sl-bg-elevated)] hover:text-[var(--sl-text-1)] active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] disabled:active:scale-100"
-								disabled={!enabled || isPushing}
+								disabled={!enabled || isPushing || Number(displayValue ?? displayMax) >= displayMax}
 								aria-label="Increase {item.title}"
 								onclick={() => {
-									const current =
-										displayValue !== undefined ? Number(displayValue) : Number(item.min);
-									const nv = Math.min(item.max!, current + (item.step || 1));
-									handleChange(isFloat ? parseFloat(nv.toFixed(2)) : nv);
+									const current = displayValue !== undefined ? Number(displayValue) : displayMin;
+									const nv = Math.min(displayMax, current + (displayStep || 1));
+									handleChange(isFloat ? parseFloat(nv.toFixed(displayPrecision)) : nv);
 								}}
 							>
 								<svg
