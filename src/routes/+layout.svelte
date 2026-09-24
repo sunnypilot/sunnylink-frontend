@@ -43,6 +43,8 @@
 	import SyncStatusBanner from '$lib/components/SyncStatusBanner.svelte';
 	import LegacyTopBanner from '$lib/components/LegacyTopBanner.svelte';
 	import { Toaster } from 'svelte-sonner';
+	import { t } from '$lib/i18n';
+	import RuntimeLocalizer from '$lib/components/RuntimeLocalizer.svelte';
 	import { themeState } from '$lib/stores/theme.svelte';
 	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 	import SplashScreen from '$lib/components/SplashScreen.svelte';
@@ -203,21 +205,21 @@
 
 	const getPageTitle = (path: string) => {
 		const titles: Record<string, string> = {
-			'/': 'Home',
-			'/dashboard': 'Home',
-			'/dashboard/models': 'Models',
-			'/dashboard/settings/device': 'Device Settings',
-			'/dashboard/settings/toggles': 'Toggles',
-			'/dashboard/settings/steering': 'Steering',
-			'/dashboard/settings/cruise': 'Cruise',
-			'/dashboard/settings/visuals': 'Visuals',
-			'/dashboard/settings/vehicle': 'Vehicle',
-			'/dashboard/settings/display': 'Display',
-			'/dashboard/settings/software': 'Software',
-			'/dashboard/settings/developer': 'Developer',
-			'/dashboard/osm': 'Maps',
-			'/dashboard/preferences': 'Preferences',
-			'/dashboard/whats-new': "What's new"
+			'/': t('page.home'),
+			'/dashboard': t('page.home'),
+			'/dashboard/models': t('page.models'),
+			'/dashboard/settings/device': t('page.deviceSettings'),
+			'/dashboard/settings/toggles': t('page.toggles'),
+			'/dashboard/settings/steering': t('page.steering'),
+			'/dashboard/settings/cruise': t('page.cruise'),
+			'/dashboard/settings/visuals': t('page.visuals'),
+			'/dashboard/settings/vehicle': t('page.vehicle'),
+			'/dashboard/settings/display': t('page.display'),
+			'/dashboard/settings/software': t('page.software'),
+			'/dashboard/settings/developer': t('page.developer'),
+			'/dashboard/osm': t('page.maps'),
+			'/dashboard/preferences': t('page.preferences'),
+			'/dashboard/whats-new': t('page.whatsNew')
 		};
 		return `sunnylink${titles[path] ? ` - ${titles[path]}` : ''}`;
 	};
@@ -256,13 +258,13 @@
 	let topLevelItems: NavItem[] = $derived(
 		authState.isAuthenticated
 			? [
-					{ icon: House, label: 'Home', href: '/dashboard' },
-					{ icon: Smartphone, label: 'My Devices', href: '/dashboard/devices' },
+					{ icon: House, label: t('page.home'), href: '/dashboard' },
+					{ icon: Smartphone, label: t('navigation.myDevices'), href: '/dashboard/devices' },
 					...(FEATURES.whatsNewRoute
 						? [
 								{
 									icon: Sparkles,
-									label: "What's new",
+									label: t('account.whatsNew'),
 									href: '/dashboard/whats-new',
 									badge: whatsNewStore.unreadCount
 								}
@@ -276,19 +278,19 @@
 		authState.isAuthenticated && deviceState.pairedDevicesLoaded && deviceState.selectedDeviceId
 			? [
 					{
-						label: 'Device Settings',
+						label: t('page.deviceSettings'),
 						items: [
-							{ icon: HardDrive, label: 'Device', href: '/dashboard/settings/device' },
-							{ icon: ToggleLeft, label: 'Toggles', href: '/dashboard/settings/toggles' },
-							{ icon: Bot, label: 'Models', href: '/dashboard/models' },
-							{ icon: Gauge, label: 'Steering', href: '/dashboard/settings/steering' },
-							{ icon: Wind, label: 'Cruise', href: '/dashboard/settings/cruise' },
-							{ icon: Palette, label: 'Visuals', href: '/dashboard/settings/visuals' },
-							{ icon: Monitor, label: 'Display', href: '/dashboard/settings/display' },
-							{ icon: MapIcon, label: 'Maps', href: '/dashboard/osm' },
-							{ icon: Car, label: 'Vehicle', href: '/dashboard/settings/vehicle' },
-							{ icon: Package, label: 'Software', href: '/dashboard/settings/software' },
-							{ icon: Wrench, label: 'Developer', href: '/dashboard/settings/developer' }
+							{ icon: HardDrive, label: t('page.deviceSettings'), href: '/dashboard/settings/device' },
+							{ icon: ToggleLeft, label: t('page.toggles'), href: '/dashboard/settings/toggles' },
+							{ icon: Bot, label: t('page.models'), href: '/dashboard/models' },
+							{ icon: Gauge, label: t('page.steering'), href: '/dashboard/settings/steering' },
+							{ icon: Wind, label: t('page.cruise'), href: '/dashboard/settings/cruise' },
+							{ icon: Palette, label: t('page.visuals'), href: '/dashboard/settings/visuals' },
+							{ icon: Monitor, label: t('page.display'), href: '/dashboard/settings/display' },
+							{ icon: MapIcon, label: t('page.maps'), href: '/dashboard/osm' },
+							{ icon: Car, label: t('page.vehicle'), href: '/dashboard/settings/vehicle' },
+							{ icon: Package, label: t('page.software'), href: '/dashboard/settings/software' },
+							{ icon: Wrench, label: t('page.developer'), href: '/dashboard/settings/developer' }
 						]
 					}
 				]
@@ -302,14 +304,14 @@
 			? [
 					{
 						icon: ArrowLeftRight,
-						label: 'Migration Wizard',
+						label: t('navigation.migrationWizard'),
 						action: () => deviceState.openMigrationWizard()
 					}
 				]
 			: []),
 		{
 			icon: Smartphone,
-			label: 'Pair Device',
+			label: t('navigation.pairDevice'),
 			action: () => deviceState.openPairingModal()
 		}
 	]);
@@ -549,6 +551,8 @@
 	let isChromeless = $derived(isLandingPage || pathname === '/auth/callback');
 </script>
 
+<RuntimeLocalizer />
+
 <svelte:head>
 	<title>{getPageTitle(pathname)}</title>
 	<link rel="icon" href={favicon} />
@@ -591,7 +595,7 @@
 						<div class="flex items-center justify-between gap-3">
 							<label
 								for="main-drawer"
-								aria-label="open sidebar"
+								aria-label={t('shell.openSidebar')}
 								class="btn btn-square text-[var(--sl-text-1)] btn-ghost transition-all duration-100 btn-sm active:scale-[0.88] active:bg-[var(--sl-bg-subtle)] lg:hidden"
 							>
 								<Menu size={20} />
@@ -614,7 +618,7 @@
 											aria-label="Change selected device"
 										>
 											<ArrowLeftRight size={14} aria-hidden="true" />
-											<span>Change device</span>
+											<span>{t('shell.changeDevice')}</span>
 										</a>
 									{/if}
 									{#if authState.isAuthenticated && FEATURES.notificationBell}
@@ -946,7 +950,7 @@
 										'lg:block'
 									]}
 								>
-									{authState.isSigningIn ? 'Signing in…' : 'Login'}
+									{authState.isSigningIn ? t('shell.signingIn') : t('actions.signIn')}
 								</span>
 							</button>
 						{/if}
@@ -1022,7 +1026,7 @@
 			>
 				{#if authState.isSigningIn}
 					<Loader2 size={14} class="animate-spin" aria-hidden="true" />
-					<span>Signing in…</span>
+					<span>{t('shell.signingIn')}</span>
 				{:else}
 					Sign in
 				{/if}
