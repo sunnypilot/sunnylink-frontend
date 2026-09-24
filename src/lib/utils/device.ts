@@ -60,8 +60,14 @@ export function encodeParamValue(param: { key: string; value: any; type: string 
 				stringValue = param.value ? '1' : '0';
 				break;
 			case 'Int':
-			case 'Float':
 				stringValue = String(param.value);
+				break;
+			case 'Float':
+				// Round to 2dp to match decodeParamValue's readback rounding.
+				// Slider step arithmetic produces imprecise floats (0.01 * 15 =
+				// 0.14999999999999999); storing the raw string makes the drift
+				// comparison flag a false "changed on device".
+				stringValue = String(Number(param.value.toFixed(2)));
 				break;
 			case 'Json':
 				stringValue = typeof param.value === 'string' ? param.value : JSON.stringify(param.value);
