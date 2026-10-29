@@ -115,10 +115,10 @@ class SchemaStore {
 					// Schema structure unchanged but capabilities may have changed
 					// (e.g., vehicle change, param clear, different CarParamsPersistent)
 					this.schemas[deviceId] = {
-						...existingSchema,
-						capabilities: parsed.capabilities,
-						capability_labels: parsed.capability_labels,
-						default_model: parsed.default_model
+						// keep structural refs so derived state does not re-run; take every runtime field
+						...parsed,
+						panels: existingSchema.panels,
+						vehicle_settings: existingSchema.vehicle_settings
 					};
 				}
 
@@ -153,10 +153,10 @@ class SchemaStore {
 				const existing = this.schemas[deviceId];
 				if (existing) {
 					this.schemas[deviceId] = {
-						...existing,
-						capabilities: parsed.capabilities,
-						capability_labels: parsed.capability_labels,
-						default_model: parsed.default_model
+						// keep structural refs so derived state does not re-run; take every runtime field
+						...parsed,
+						panels: existing.panels,
+						vehicle_settings: existing.vehicle_settings
 					};
 				} else {
 					this.schemas[deviceId] = parsed;

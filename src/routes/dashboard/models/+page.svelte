@@ -153,6 +153,13 @@
 		}
 	}
 
+	// Model-gated settings (custom_model_active) change with the active bundle
+	async function refreshCapabilities() {
+		if (!deviceId || !logtoClient) return;
+		const token = await logtoClient.getIdToken();
+		if (token) await schemaState.refreshCapabilities(deviceId, token);
+	}
+
 	let qcomModelList = $state<ModelBundle[] | undefined>();
 	let chestnutModelList = $state<ModelBundle[] | undefined>();
 	let currentSmallModelShortName = $state<string | undefined>(undefined);
@@ -584,6 +591,7 @@
 		if (wasDownloading) {
 			wasDownloading = false;
 			fetchModelsForDevice(true);
+			refreshCapabilities();
 		}
 	});
 
@@ -1151,7 +1159,10 @@
 			sendingModelType = undefined;
 
 			// Device processes the download param at ~1Hz; poll after a short delay
-			setTimeout(() => fetchModelsForDevice(true), 1500);
+			setTimeout(() => {
+				fetchModelsForDevice(true);
+				if (bundle.short_name === 'default') refreshCapabilities();
+			}, 1500);
 		} catch (e: unknown) {
 			const message = (e as Error)?.message || 'Failed to send model to device.';
 			console.error('Error sending model to device:', e);

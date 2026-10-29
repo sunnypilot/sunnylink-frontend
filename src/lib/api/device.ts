@@ -616,10 +616,10 @@ export async function checkDeviceStatus(
 				// Schema structure unchanged but capabilities may have changed
 				// (e.g., vehicle fingerprint, CarParamsPersistent update)
 				schemaState.schemas[deviceId] = {
-					...existing,
-					capabilities: compressedSettings.capabilities,
-					capability_labels: compressedSettings.capability_labels,
-					default_model: compressedSettings.default_model
+					// keep structural refs so derived state does not re-run; take every runtime field
+					...compressedSettings,
+					panels: existing.panels,
+					vehicle_settings: existing.vehicle_settings
 				};
 			}
 			// Got new metadata schema — device is on a sunnylink-2.0-ready sunnypilot
