@@ -161,6 +161,7 @@ export interface SettingsSchema {
 	vehicle_settings: Record<string, VehicleBrandSettings>;
 	capability_fields?: string[];
 	capability_labels?: Record<string, string>;
+	car_capability_fields?: string[];
 	capabilities?: Capabilities;
 	default_model?: string;
 	default_big_model?: string;

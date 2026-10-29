@@ -56,7 +56,8 @@
 		capabilities: schemaState.capabilities[deviceId] ?? null,
 		paramValues: deviceState.deviceValues[deviceId] ?? {},
 		isOffroad: deviceState.offroadStatuses[deviceId]?.isOffroad ?? true,
-		engaged: deviceState.deviceTelemetry[deviceId]?.engaged ?? false
+		engaged: deviceState.deviceTelemetry[deviceId]?.engaged ?? false,
+		carCapabilityFields: schemaState.schemas[deviceId]?.car_capability_fields
 	});
 
 	let visible = $derived(isVisible(item.visibility, ruleContext));

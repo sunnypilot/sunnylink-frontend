@@ -31,6 +31,8 @@ export interface RuleContext {
 	paramValues: Record<string, unknown>;
 	isOffroad: boolean;
 	engaged: boolean;
+	/** Capability fields read from the car, sent by the device. Absent on older devices. */
+	carCapabilityFields?: string[];
 }
 
 /**
@@ -229,9 +231,11 @@ function _describeFailedRule(
 			return 'Disengage the vehicle to change this setting';
 
 		case 'capability': {
-			// When no car is fingerprinted (brand empty), show a vehicle-start prompt
-			// instead of specific capability names — matches device-side behavior.
-			const noCarFingerprinted = ctx.capabilities && !ctx.capabilities.brand;
+			// When no car is fingerprinted (brand empty), car-derived capabilities show a
+			// vehicle-start prompt instead of their label. Older devices don't send the
+			// car field list, so every capability is treated as car-derived for them.
+			const carField = ctx.carCapabilityFields?.includes(rule.field) ?? true;
+			const noCarFingerprinted = ctx.capabilities && !ctx.capabilities.brand && carField;
 			if (noCarFingerprinted) return 'Start the vehicle to check vehicle compatibility';
 
 			const label = capLabels?.[rule.field] ?? CAPABILITY_LABELS_FALLBACK[rule.field] ?? rule.field;
