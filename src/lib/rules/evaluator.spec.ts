@@ -530,6 +530,16 @@ describe('real-world rule combinations', () => {
 		expect(reasons).toEqual(['Start the vehicle to check vehicle compatibility']);
 	});
 
+	it('no car fingerprinted, device without car field list: every capability gets vehicle-start message', () => {
+		const rules: Rule[] = [{ type: 'capability', field: 'custom_model_active', equals: true }];
+		const noCar = ctx();
+		noCar.capabilities!.brand = '';
+
+		expect(getDisabledReasons(rules, noCar)).toEqual([
+			'Start the vehicle to check vehicle compatibility'
+		]);
+	});
+
 	it('no car fingerprinted: non-car capability rules keep their own label', () => {
 		const rules: Rule[] = [{ type: 'capability', field: 'custom_model_active', equals: true }];
 		const noCar = ctx();
