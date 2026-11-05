@@ -15,6 +15,7 @@
 	import DeregisterDeviceModal from '$lib/components/DeregisterDeviceModal.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { getDeviceDisplayName, getDeviceTypeLabel } from '$lib/utils/deviceDisplay';
+	import { isDeviceLocalSync, registerManualIp, getManualIp, forgetLocalDevice } from '$lib/api/local-discovery';
 
 	let id = $derived(page.params.id);
 
@@ -264,6 +265,35 @@
 	let advancedOpen = $state(false);
 	let deregisterOpen = $state(false);
 
+	// Local connection state
+	let localIpInput = $state('');
+	let localIpConnecting = $state(false);
+	let isLocal = $derived(deviceState.localOnline[id ?? ''] ?? false);
+	let manualIp = $derived(getManualIp(id ?? ''));
+
+	async function connectLocalIp() {
+		if (!id || !localIpInput.trim()) return;
+		localIpConnecting = true;
+		try {
+			const ok = await registerManualIp(id, localIpInput.trim());
+			if (ok) {
+				deviceState.localOnline[id] = true;
+				toast.success('Connected locally!');
+			} else {
+				toast.error('Could not reach device at that IP');
+			}
+		} finally {
+			localIpConnecting = false;
+		}
+	}
+
+	function disconnectLocal() {
+		if (!id) return;
+		forgetLocalDevice(id);
+		deviceState.localOnline[id] = false;
+		toast.success('Disconnected from local device');
+	}
+
 	async function handleBackupClick(fullRefresh: boolean = false) {
 		if (!id) return;
 		await startBackup(id, fullRefresh);
@@ -368,6 +398,7 @@
 		{@render statusRow()}
 		{@render row('Device type', deviceTypeName, false, statusLoaded)}
 		{@render row('Network', networkType, false, statusLoaded)}
+		{@render localConnectionRow()}
 		{@render row(
 			'Last seen',
 			lastSeen ? (statusPolling.tickCounter, formatRelativeTime(lastSeen)) : null,
@@ -612,6 +643,53 @@
 						<Copy size={12} aria-hidden="true" />
 					{/if}
 				</button>
+			{/if}
+		</dd>
+	</div>
+{/snippet}
+
+{#snippet localConnectionRow()}
+	<div class="flex items-center justify-between gap-4 px-4 py-3">
+		<dt class="text-[0.8125rem] text-[var(--sl-text-3)]">Local connection</dt>
+		<dd class="flex items-center gap-2">
+			{#if isLocal}
+				<span class="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-[3px] text-[0.6875rem] font-semibold text-emerald-600 dark:text-emerald-400">
+					<span class="block h-[5px] w-[5px] shrink-0 rounded-full bg-emerald-400"></span>
+					Connected via LAN
+				</span>
+				<button
+					type="button"
+					onclick={disconnectLocal}
+					class="text-[0.6875rem] text-[var(--sl-text-3)] underline transition-colors hover:text-[var(--sl-text-1)]"
+				>
+					Disconnect
+				</button>
+			{:else}
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						connectLocalIp();
+					}}
+					class="flex items-center gap-1.5"
+				>
+					<input
+						type="text"
+						bind:value={localIpInput}
+						placeholder={manualIp ?? '192.168.1.100'}
+						class="h-7 w-[120px] rounded-md border border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] px-2 text-[0.75rem] text-[var(--sl-text-1)] placeholder:text-[var(--sl-text-3)] focus:outline-none focus:ring-1 focus:ring-primary"
+					/>
+					<button
+						type="submit"
+						disabled={localIpConnecting || !localIpInput.trim()}
+						class="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-[0.6875rem] font-medium text-white transition-all duration-100 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						{#if localIpConnecting}
+							<Loader2 size={12} class="animate-spin" />
+						{:else}
+							Connect
+						{/if}
+					</button>
+				</form>
 			{/if}
 		</dd>
 	</div>
