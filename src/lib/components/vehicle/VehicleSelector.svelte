@@ -18,36 +18,74 @@
 		onApiEnd?: (success: boolean) => void;
 	}>();
 
-	// Module-level CarList cache (survives component re-mounts during SPA navigation)
-	const carListCache: Record<string, Record<string, any>> = ((globalThis as any).__carListCache ??=
+	interface CarListCacheEntry {
+		list: Record<string, any>;
+		commit: string | null;
+		timestamp: number;
+	}
+
+	const CARLIST_STORAGE_PREFIX = 'sunnylink_carlist_';
+	const CARLIST_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+	const carListCache: Record<string, CarListCacheEntry> = ((globalThis as any).__carListCache ??=
 		{});
 
-	// localStorage cache for carList (survives full page refreshes)
-	const CARLIST_STORAGE_KEY = `sunnylink_carlist_${deviceId}`;
+	function getDeviceCommit(id: string): string | null {
+		return (
+			(deviceState.deviceValues[id]?.['GitCommit'] as string) ||
+			schemaState.schemas[id]?.schema_version ||
+			getLastKnownCommit(id) ||
+			null
+		);
+	}
 
-	function loadCarListFromStorage(): Record<string, any> | null {
+	function isCarListEntryValid(entry: unknown, commit: string | null): entry is CarListCacheEntry {
+		if (!entry || typeof entry !== 'object') return false;
+		const e = entry as Partial<CarListCacheEntry>;
+		if (!e.list || typeof e.list !== 'object' || typeof e.timestamp !== 'number') return false;
+		if (Date.now() - e.timestamp > CARLIST_CACHE_MAX_AGE_MS) return false;
+		if (commit && e.commit !== commit) return false;
+		return true;
+	}
+
+	function loadCachedCarList(id: string): Record<string, any> | null {
+		const commit = getDeviceCommit(id);
+		const mem = carListCache[id];
+		if (isCarListEntryValid(mem, commit)) return mem.list;
+		delete carListCache[id];
+
+		const key = `${CARLIST_STORAGE_PREFIX}${id}`;
 		try {
-			const raw = localStorage.getItem(CARLIST_STORAGE_KEY);
+			const raw = localStorage.getItem(key);
 			if (!raw) return null;
 			const parsed = JSON.parse(raw);
-			carListCache[deviceId] = parsed;
-			return parsed;
+			if (!isCarListEntryValid(parsed, commit)) {
+				localStorage.removeItem(key);
+				return null;
+			}
+			carListCache[id] = parsed;
+			return parsed.list;
 		} catch {
 			return null;
 		}
 	}
 
-	function saveCarListToStorage(list: Record<string, any>) {
+	function saveCarListCache(id: string, list: Record<string, any>) {
+		const entry: CarListCacheEntry = {
+			list,
+			commit: getDeviceCommit(id),
+			timestamp: Date.now()
+		};
+		carListCache[id] = entry;
 		try {
-			localStorage.setItem(CARLIST_STORAGE_KEY, JSON.stringify(list));
+			localStorage.setItem(`${CARLIST_STORAGE_PREFIX}${id}`, JSON.stringify(entry));
 		} catch {}
 	}
 
-	let carList = $state<Record<string, any> | null>(
-		carListCache[deviceId] ?? loadCarListFromStorage()
-	);
+	const initialCarList = loadCachedCarList(deviceId);
+	let carList = $state<Record<string, any> | null>(initialCarList);
 	let isFetchingCarList = $state(false);
-	let hasAttemptedAutoFetch = $state(!!(carListCache[deviceId] ?? loadCarListFromStorage()));
+	let hasAttemptedAutoFetch = $state(!!initialCarList);
 	let modalOpen = $state(false);
 	let detailsOpen = $state(false);
 	let rawOpen = $state(false);
@@ -204,7 +242,28 @@
 		}
 	}
 
-	// Reactive auto-fetch CarList
+	async function fetchCarList() {
+		if (!deviceId || isFetchingCarList) return;
+		const targetDeviceId = deviceId;
+		isFetchingCarList = true;
+		try {
+			const token = await logtoClient?.getIdToken();
+			if (token) {
+				const list = await getCarList(targetDeviceId, token);
+				if (list) {
+					saveCarListCache(targetDeviceId, list);
+					if (targetDeviceId === deviceId) {
+						carList = list;
+					}
+				}
+			}
+		} catch (e) {
+			console.error('Failed to fetch CarList', e);
+		} finally {
+			isFetchingCarList = false;
+		}
+	}
+
 	$effect(() => {
 		if (
 			carFingerprint &&
@@ -214,24 +273,7 @@
 			!hasAttemptedAutoFetch
 		) {
 			hasAttemptedAutoFetch = true;
-			(async () => {
-				isFetchingCarList = true;
-				try {
-					const token = await logtoClient?.getIdToken();
-					if (token) {
-						const list = await getCarList(deviceId, token);
-						if (list) {
-							carList = list;
-							carListCache[deviceId] = list;
-							saveCarListToStorage(list);
-						}
-					}
-				} catch (e) {
-					console.error('Effect fetch failed', e);
-				} finally {
-					isFetchingCarList = false;
-				}
-			})();
+			void fetchCarList();
 		}
 	});
 
@@ -239,24 +281,9 @@
 		fetchValues();
 	});
 
-	async function handleOpen() {
+	function handleOpen() {
 		modalOpen = true;
-		if (!carList && !isFetchingCarList) {
-			isFetchingCarList = true;
-			try {
-				const token = await logtoClient?.getIdToken();
-				if (token) {
-					const list = await getCarList(deviceId, token);
-					if (list) {
-						carList = list;
-						carListCache[deviceId] = list;
-						saveCarListToStorage(list);
-					}
-				}
-			} finally {
-				isFetchingCarList = false;
-			}
-		}
+		void fetchCarList();
 	}
 
 	function requestClear() {

@@ -39,7 +39,8 @@
 				if (
 					key?.startsWith('sunnylink_schema_') ||
 					key?.startsWith('sunnylink_pending_') ||
-					key?.startsWith('sunnylink_values_')
+					key?.startsWith('sunnylink_values_') ||
+					key?.startsWith('sunnylink_carlist_')
 				) {
 					keysToRemove.push(key);
 				}
