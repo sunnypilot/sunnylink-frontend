@@ -89,6 +89,17 @@ export interface SchemaOption {
 	enablement?: Rule[];
 }
 
+export interface ValueTransform {
+	scale: number;
+	precision: number;
+	step?: number;
+}
+
+export interface ValueTransformByUnit {
+	metric?: ValueTransform;
+	imperial?: ValueTransform;
+}
+
 export interface SchemaItem {
 	key: string;
 	widget: WidgetType;
@@ -102,6 +113,7 @@ export interface SchemaItem {
 	max?: number;
 	step?: number;
 	unit?: string | { metric: string; imperial: string };
+	value_transform?: ValueTransformByUnit;
 	value_map?: Record<string, number>;
 	visibility?: Rule[];
 	enablement?: Rule[];
