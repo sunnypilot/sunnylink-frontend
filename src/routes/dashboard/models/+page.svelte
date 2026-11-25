@@ -292,7 +292,7 @@
 		}
 		if (!list) return undefined;
 		if (activeShortName !== undefined) {
-			return list.find((m) => m.short_name === activeShortName) ?? defaultModel;
+			return list.find((m) => matchesActive(m, activeShortName)) ?? defaultModel;
 		}
 		// Don't flash the default model while still loading/resolving
 		if (loadingModels) return undefined;
@@ -653,7 +653,12 @@
 		};
 	}
 
-	function shortNameFromActiveBundle(decodedValue: unknown): string | undefined {
+	// Device bundles share short names; ref is unique. short_name only for bundles without a ref.
+	function matchesActive(model: ModelBundle, activeKey: string | undefined): boolean {
+		return activeKey !== undefined && (model.ref === activeKey || model.short_name === activeKey);
+	}
+
+	function activeKeyFromBundle(decodedValue: unknown): string | undefined {
 		let value = decodedValue;
 
 		if (typeof value === 'string') {
@@ -667,6 +672,9 @@
 		if (typeof value === 'object' && value !== null) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const bundle = value as any;
+			if ('ref' in bundle && typeof bundle.ref === 'string' && bundle.ref) {
+				return bundle.ref;
+			}
 			if ('short_name' in bundle && typeof bundle.short_name === 'string') {
 				return bundle.short_name;
 			}
@@ -913,10 +921,10 @@
 				}
 
 				currentSmallModelShortName = activeBundleParam
-					? shortNameFromActiveBundle(decodeParamValue(activeBundleParam))
+					? activeKeyFromBundle(decodeParamValue(activeBundleParam))
 					: undefined;
 				currentBigModelShortName = activeBundleChestnutParam
-					? shortNameFromActiveBundle(decodeParamValue(activeBundleChestnutParam))
+					? activeKeyFromBundle(decodeParamValue(activeBundleChestnutParam))
 					: undefined;
 
 				if (dualModelDevice) {
@@ -958,9 +966,9 @@
 					const pendingSmall = qcomModelList?.find((m) => m.ref === pending);
 					const pendingBig = chestnutModelList?.find((m) => m.ref === pending);
 					const smallDone =
-						pendingSmall !== undefined && pendingSmall.short_name === currentSmallModelShortName;
+						pendingSmall !== undefined && matchesActive(pendingSmall, currentSmallModelShortName);
 					const bigDone =
-						pendingBig !== undefined && pendingBig.short_name === currentBigModelShortName;
+						pendingBig !== undefined && matchesActive(pendingBig, currentBigModelShortName);
 					if (smallDone || bigDone) {
 						downloadingRef = undefined;
 						downloadRefConfirmed = false;
@@ -1058,7 +1066,7 @@
 		if (!deviceState.selectedDeviceId) return;
 		const currentShortName =
 			type === 'chestnut' ? currentBigModelShortName : currentSmallModelShortName;
-		if (bundle.short_name === currentShortName) {
+		if (matchesActive(bundle, currentShortName)) {
 			toast.info('Model already active');
 			selectedModelRef = undefined;
 			return;
@@ -1474,7 +1482,7 @@
 						{@const downloading =
 							downloadingRef !== undefined &&
 							card.model.ref === downloadingRef &&
-							card.model.short_name !== card.activeShortName}
+							!matchesActive(card.model, card.activeShortName)}
 						{#if sendingModelType === card.type}
 							<div class="flex items-center gap-2 text-xs text-[var(--sl-text-2)]">
 								<span class="loading loading-xs loading-spinner"></span>
@@ -1676,7 +1684,7 @@
 
 									{#if openFolders[group.name]}
 										<div transition:slide={{ duration: 200 }} class="bg-[var(--sl-bg-subtle)]">
-											{#each group.models as model (model.short_name)}
+											{#each group.models as model (model.ref)}
 												{@const favKeyState =
 													toggledFavRefs.has(model.ref) && deviceState.selectedDeviceId
 														? batchPush.getKeyState(
@@ -1790,7 +1798,7 @@
 															</p>
 														{/if}
 														<div class="mt-4 flex items-center gap-3">
-															{#if currentTabModel?.short_name === model.short_name}
+															{#if currentTabModel?.ref === model.ref}
 																<div
 																	class="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400"
 																>
