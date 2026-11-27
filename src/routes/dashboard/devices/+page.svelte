@@ -13,6 +13,7 @@
 	import { schemaState } from '$lib/stores/schema.svelte';
 	import { FEATURES } from '$lib/config/features';
 	import { getDeviceDisplayName } from '$lib/utils/deviceDisplay';
+	import { t } from '$lib/i18n';
 
 	let { data } = $props();
 
@@ -164,14 +165,14 @@
 		{#if devices.length === 0}
 			<!-- API returned but no devices — true empty state -->
 			<div class="flex flex-col items-center justify-center py-16 text-center">
-				<p class="text-sm text-[var(--sl-text-2)]">No devices connected</p>
-				<p class="mt-1 text-xs text-[var(--sl-text-3)]">Pair a sunnypilot device to get started.</p>
+				<p class="text-sm text-[var(--sl-text-2)]">{t('devicesPage.noDevices')}</p>
+				<p class="mt-1 text-xs text-[var(--sl-text-3)]">{t('devicesPage.pairToStart')}</p>
 				<button
 					class="btn mt-6 gap-2 border-[var(--sl-border)] bg-[var(--sl-bg-elevated)] text-[var(--sl-text-1)] transition-all duration-100 btn-sm hover:bg-[var(--sl-bg-subtle)] active:scale-[0.97] active:bg-[var(--sl-bg-elevated)]"
 					onclick={() => deviceState.openPairingModal()}
 				>
 					<Plus size={16} />
-					Pair Device
+					{t('navigation.pairDevice')}
 				</button>
 			</div>
 		{:else}
@@ -180,10 +181,10 @@
 					<h1
 						class="text-[24px] leading-[32px] font-medium tracking-[-0.16px] text-[var(--sl-text-1)]"
 					>
-						My Devices
+						{t('navigation.myDevices')}
 					</h1>
 					<p class="mt-1 text-[0.8125rem] text-[var(--sl-text-2)]">
-						{devices.length} device{devices.length === 1 ? '' : 's'}
+						{devices.length} {devices.length === 1 ? t('devicesPage.countSingular') : t('devicesPage.countPlural')}
 					</p>
 				</div>
 				<RefreshIndicator />
@@ -214,9 +215,9 @@
 					role="button"
 					tabindex="0"
 					aria-label="{getAlias(device)} — {isError
-						? 'Check failed, tap to retry'
-						: isOffline
-							? 'Offline'
+						? t('devicesPage.checkFailed')
+							: isOffline
+								? t('device.offline')
 							: getStatusText(device)}{isSelected ? ', selected' : ''}"
 					aria-busy={isLoading || isPolling ? 'true' : undefined}
 				>
@@ -252,8 +253,8 @@
 									<span
 										in:scale={{ duration: 150, start: 0.5 }}
 										class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white"
-										aria-label="Selected device"
-										title="Selected device"
+									aria-label={t('devicesPage.selected')}
+									title={t('devicesPage.selected')}
 									>
 										<Check size={12} aria-hidden="true" />
 									</span>
@@ -269,7 +270,7 @@
 				</div>
 			{/snippet}
 
-			<div class="flex flex-col gap-3" role="list" aria-label="Device list">
+			<div class="flex flex-col gap-3" role="list" aria-label={t('devicesPage.list')}>
 				{#each sortedDevices as device (device.device_id)}
 					{@render deviceCard(device)}
 				{/each}
@@ -287,7 +288,7 @@
 				<p
 					class="text-sm text-[var(--sl-text-3)] transition-colors group-hover:text-[var(--sl-text-2)]"
 				>
-					Pair New Device
+					{t('devicesPage.pairNew')}
 				</p>
 			</button>
 		{/if}

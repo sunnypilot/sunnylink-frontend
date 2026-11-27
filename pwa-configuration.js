@@ -4,7 +4,8 @@ export const pwaConfiguration = {
 	manifest: {
 		name: 'sunnylink',
 		short_name: 'sunnylink',
-		description: 'Connect with sunnypilot.',
+		description: '連結 sunnypilot，隨時管理你的 comma 裝置。',
+		lang: 'zh-TW',
 		theme_color: '#0f1726',
 		background_color: '#0f1726',
 		display: 'standalone',

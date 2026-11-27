@@ -22,6 +22,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import SplashScreen from '$lib/components/SplashScreen.svelte';
+	import { translateRuntimeText } from '$lib/i18n/runtime';
 
 	let isMenuOpen = $state(false);
 
@@ -203,9 +204,9 @@
 						<h1
 							class="mb-6 text-4xl font-bold tracking-tight text-white sm:text-6xl lg:leading-tight"
 						>
-							Manage Your comma Device From <span
+							<span
 								class="bg-gradient-to-r from-[#594AE2] to-blue-500 bg-clip-text text-transparent"
-								>Anywhere</span
+								>{translateRuntimeText('Manage Your comma Device From Anywhere')}</span
 							>
 						</h1>
 						<p class="mb-8 text-lg leading-relaxed text-slate-400">
